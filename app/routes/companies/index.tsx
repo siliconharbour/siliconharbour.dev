@@ -33,14 +33,18 @@ export default function CompaniesIndex() {
             <p className="text-harbour-500">Tech companies in the community</p>
           </div>
           
-          {/* Search */}
-          <SearchInput placeholder="Search companies..." />
-          
-          {/* Result count */}
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
+          {/* Search - only show if pagination is needed */}
+          {(total > limit || searchQuery) && (
+            <>
+              <SearchInput placeholder="Search companies..." />
+              
+              {/* Result count */}
+              {searchQuery && (
+                <p className="text-sm text-harbour-500">
+                  {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+                </p>
+              )}
+            </>
           )}
         </div>
 

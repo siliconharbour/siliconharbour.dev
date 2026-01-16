@@ -34,14 +34,18 @@ export default function NewsIndex() {
             <p className="text-harbour-500">Announcements and articles from the community</p>
           </div>
           
-          {/* Search */}
-          <SearchInput placeholder="Search news..." />
-          
-          {/* Result count */}
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
+          {/* Search - only show if pagination is needed */}
+          {(total > limit || searchQuery) && (
+            <>
+              <SearchInput placeholder="Search news..." />
+              
+              {/* Result count */}
+              {searchQuery && (
+                <p className="text-sm text-harbour-500">
+                  {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+                </p>
+              )}
+            </>
           )}
         </div>
 

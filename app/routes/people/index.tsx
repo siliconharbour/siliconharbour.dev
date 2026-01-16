@@ -33,14 +33,18 @@ export default function PeopleIndex() {
             <p className="text-harbour-500">Community members and contributors</p>
           </div>
           
-          {/* Search */}
-          <SearchInput placeholder="Search people..." />
-          
-          {/* Result count */}
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
+          {/* Search - only show if pagination is needed */}
+          {(total > limit || searchQuery) && (
+            <>
+              <SearchInput placeholder="Search people..." />
+              
+              {/* Result count */}
+              {searchQuery && (
+                <p className="text-sm text-harbour-500">
+                  {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+                </p>
+              )}
+            </>
           )}
         </div>
 

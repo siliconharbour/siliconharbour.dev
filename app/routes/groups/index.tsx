@@ -33,14 +33,18 @@ export default function GroupsIndex() {
             <p className="text-harbour-500">Meetups and community organizations</p>
           </div>
           
-          {/* Search */}
-          <SearchInput placeholder="Search groups..." />
-          
-          {/* Result count */}
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
+          {/* Search - only show if pagination is needed */}
+          {(total > limit || searchQuery) && (
+            <>
+              <SearchInput placeholder="Search groups..." />
+              
+              {/* Result count */}
+              {searchQuery && (
+                <p className="text-sm text-harbour-500">
+                  {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+                </p>
+              )}
+            </>
           )}
         </div>
 

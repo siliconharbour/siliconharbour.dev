@@ -51,14 +51,18 @@ export default function ProjectsIndex() {
             <p className="text-harbour-500">Community projects, apps, games, and tools</p>
           </div>
           
-          {/* Search */}
-          <SearchInput placeholder="Search projects..." />
-          
-          {/* Result count */}
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
+          {/* Search - only show if pagination is needed */}
+          {(total > limit || searchQuery) && (
+            <>
+              <SearchInput placeholder="Search projects..." />
+              
+              {/* Result count */}
+              {searchQuery && (
+                <p className="text-sm text-harbour-500">
+                  {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+                </p>
+              )}
+            </>
           )}
         </div>
 
