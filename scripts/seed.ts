@@ -8,6 +8,8 @@ import {
   people,
   news,
   jobs,
+  projects,
+  projectImages,
   references,
 } from "../app/db/schema";
 import { createCompany } from "../app/lib/companies.server";
@@ -17,6 +19,8 @@ import { createLearning } from "../app/lib/learning.server";
 import { createPerson } from "../app/lib/people.server";
 import { createNews } from "../app/lib/news.server";
 import { createJob } from "../app/lib/jobs.server";
+import { createProject } from "../app/lib/projects.server";
+import { stringifyProjectLinks } from "../app/lib/project-links";
 
 const args = process.argv.slice(2);
 const forceReset = args.includes("--force");
@@ -29,6 +33,7 @@ async function checkEmpty(): Promise<boolean> {
   const peopleCount = await db.select().from(people);
   const newsCount = await db.select().from(news);
   const jobCount = await db.select().from(jobs);
+  const projectCount = await db.select().from(projects);
 
   return (
     companyCount.length === 0 &&
@@ -37,7 +42,8 @@ async function checkEmpty(): Promise<boolean> {
     learningCount.length === 0 &&
     peopleCount.length === 0 &&
     newsCount.length === 0 &&
-    jobCount.length === 0
+    jobCount.length === 0 &&
+    projectCount.length === 0
   );
 }
 
@@ -46,6 +52,8 @@ async function clearAllData(): Promise<void> {
   await db.delete(references);
   await db.delete(eventDates);
   await db.delete(events);
+  await db.delete(projectImages);
+  await db.delete(projects);
   await db.delete(companies);
   await db.delete(groups);
   await db.delete(learning);
@@ -567,6 +575,105 @@ async function seedJobs() {
   console.log(`  Created ${jobsData.length} jobs`);
 }
 
+async function seedProjects() {
+  console.log("Seeding projects...");
+
+  const projectsData = [
+    {
+      name: "Harbour Lights",
+      description:
+        "A narrative adventure game set in a fictional Newfoundland fishing community. Developed by [[Clockwork Fox Studios]] and created by [[Mike O'Brien]], the game explores themes of community, loss, and resilience through interactive storytelling.\n\n## Features\n\n- Atmospheric exploration of outport Newfoundland\n- Rich dialogue system with memorable characters\n- Original soundtrack featuring local musicians\n- Hand-painted art style inspired by the province's landscapes",
+      type: "game" as const,
+      status: "completed" as const,
+      links: stringifyProjectLinks({
+        website: "https://clockworkfoxstudios.com/harbour-lights",
+        itchio: "https://clockworkfox.itch.io/harbour-lights",
+        steam: "https://store.steampowered.com/app/harbour-lights",
+      }),
+    },
+    {
+      name: "NL Tech Slack Bot",
+      description:
+        "A custom Slack bot built for the [[NL Tech]] community. Helps with onboarding new members, answering FAQs, and facilitating community engagement.\n\n## Features\n\n- Automated welcome messages for new members\n- Channel recommendations based on interests\n- Event reminders and announcements\n- Community stats and leaderboards",
+      type: "tool" as const,
+      status: "active" as const,
+      links: stringifyProjectLinks({
+        github: "https://github.com/nltech/slack-bot",
+      }),
+    },
+    {
+      name: "Trail Finder NL",
+      description:
+        "A mobile-friendly web app for discovering and navigating trails across Newfoundland and Labrador. Built in partnership with [[East Coast Trail Association]].\n\n## Features\n\n- Interactive trail maps with GPS tracking\n- Difficulty ratings and estimated times\n- Photo galleries from other hikers\n- Offline map downloads\n- Trail condition updates",
+      type: "webapp" as const,
+      status: "active" as const,
+      links: stringifyProjectLinks({
+        website: "https://trailfinder.nl.ca",
+        github: "https://github.com/ecta/trail-finder",
+      }),
+    },
+    {
+      name: "Signal Hill Weather Station",
+      description:
+        "An open-source weather monitoring station built by [[David Murphy]] and other local hardware enthusiasts. Provides real-time weather data from Signal Hill.\n\n## Hardware\n\n- Raspberry Pi 4 base station\n- Custom sensor array (temp, humidity, wind, barometric pressure)\n- Solar-powered with battery backup\n- LoRa connectivity for remote data transmission\n\n## Data\n\nAll data is publicly available through an open API and displayed on a community dashboard.",
+      type: "hardware" as const,
+      status: "active" as const,
+      links: stringifyProjectLinks({
+        github: "https://github.com/nlmakers/signal-hill-weather",
+        website: "https://weather.signalhill.dev",
+      }),
+    },
+    {
+      name: "NL Open Data Toolkit",
+      description:
+        "A collection of Python libraries for working with Newfoundland and Labrador open data sources. Simplifies access to government data, environmental monitoring, and municipal information.\n\n## Included Libraries\n\n- `nl-gov-data`: Access provincial government datasets\n- `nl-weather`: Historical and real-time weather data\n- `nl-geo`: Geographic data and boundary files\n\nMaintained by volunteers from [[Data Science NL]].",
+      type: "library" as const,
+      status: "active" as const,
+      links: stringifyProjectLinks({
+        github: "https://github.com/datasciencenl/nl-open-data",
+        docs: "https://nl-open-data.readthedocs.io",
+      }),
+    },
+    {
+      name: "Startup Matchmaker",
+      description:
+        "A tool developed at [[Genesis Centre]] to help connect startup founders with mentors based on skills, industry, and availability. Used internally by Genesis accelerator programs.\n\n## How It Works\n\n- Founders and mentors create profiles\n- Algorithm suggests optimal matches\n- Built-in scheduling for coffee chats\n- Feedback system to improve matches over time",
+      type: "webapp" as const,
+      status: "active" as const,
+      links: stringifyProjectLinks({
+        website: "https://matchmaker.genesis.mun.ca",
+      }),
+    },
+    {
+      name: "Iceberg Tracker",
+      description:
+        "A community project to track and photograph icebergs along the Newfoundland coast. Combines citizen science with modern web technologies.\n\n## Features\n\n- Submit iceberg sightings with photos and GPS\n- Real-time map of recent sightings\n- Integration with Canadian Ice Service data\n- Seasonal statistics and historical comparisons\n\nBuilt during an [[NL Game Developers]] game jam (but it's not a game!).",
+      type: "webapp" as const,
+      status: "on-hold" as const,
+      links: stringifyProjectLinks({
+        github: "https://github.com/nldev/iceberg-tracker",
+        website: "https://icebergtracker.ca",
+      }),
+    },
+    {
+      name: "MUN Course Planner",
+      description:
+        "An unofficial course planning tool for [[Memorial University - Computer Science]] students. Helps visualize prerequisites and plan degree completion.\n\n## Features\n\n- Visual prerequisite tree\n- Drag-and-drop semester planning\n- Graduation requirement tracking\n- Export to calendar formats\n\nCreated by [[Kevin Nolan]] as a side project while completing his studies.",
+      type: "tool" as const,
+      status: "archived" as const,
+      links: stringifyProjectLinks({
+        github: "https://github.com/kevinnolan-dev/mun-planner",
+      }),
+    },
+  ];
+
+  for (const project of projectsData) {
+    await createProject(project);
+  }
+
+  console.log(`  Created ${projectsData.length} projects`);
+}
+
 async function seedEvents() {
   console.log("Seeding events...");
 
@@ -721,6 +828,7 @@ async function seed() {
   await seedPeople();
   await seedNews();
   await seedJobs();
+  await seedProjects();
   await seedEvents();
 
   console.log("\nSeed completed successfully!");
