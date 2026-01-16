@@ -1,46 +1,11 @@
-import { type RouteConfig, index, route, prefix } from "@react-router/dev/routes";
+import { type RouteConfig, index, route, prefix, layout } from "@react-router/dev/routes";
 
 export default [
-  index("routes/home.tsx"),
-  route("conduct", "routes/conduct.tsx"),
+  // Static routes (no layout needed)
   route("images/:filename", "routes/images.tsx"),
   route("calendar.ics", "routes/calendar-ics.tsx"),
   
-  // Public content routes
-  ...prefix("events", [
-    index("routes/events/index.tsx"),
-    route(":slug", "routes/events/detail.tsx"),
-  ]),
-  ...prefix("companies", [
-    index("routes/companies/index.tsx"),
-    route(":slug", "routes/companies/detail.tsx"),
-  ]),
-  ...prefix("groups", [
-    index("routes/groups/index.tsx"),
-    route(":slug", "routes/groups/detail.tsx"),
-  ]),
-  ...prefix("learning", [
-    index("routes/learning/index.tsx"),
-    route(":slug", "routes/learning/detail.tsx"),
-  ]),
-  ...prefix("people", [
-    index("routes/people/index.tsx"),
-    route(":slug", "routes/people/detail.tsx"),
-  ]),
-  ...prefix("news", [
-    index("routes/news/index.tsx"),
-    route(":slug", "routes/news/detail.tsx"),
-  ]),
-  ...prefix("jobs", [
-    index("routes/jobs/index.tsx"),
-    route(":slug", "routes/jobs/detail.tsx"),
-  ]),
-  ...prefix("projects", [
-    index("routes/projects/index.tsx"),
-    route(":slug", "routes/projects/detail.tsx"),
-  ]),
-  
-  // RSS feeds
+  // RSS feeds (no layout needed)
   route("feed.rss", "routes/feed-rss.tsx"),
   route("events.rss", "routes/events-rss.tsx"),
   route("news.rss", "routes/news-rss.tsx"),
@@ -50,11 +15,50 @@ export default [
   route("api/comments", "routes/api.comments.tsx"),
   route("api/comments/delete", "routes/api.comments.delete.tsx"),
   
+  // Public routes with shared layout (header/footer with visibility config)
+  layout("routes/public-layout.tsx", [
+    index("routes/home.tsx"),
+    route("conduct", "routes/conduct.tsx"),
+    ...prefix("events", [
+      index("routes/events/index.tsx"),
+      route(":slug", "routes/events/detail.tsx"),
+    ]),
+    ...prefix("companies", [
+      index("routes/companies/index.tsx"),
+      route(":slug", "routes/companies/detail.tsx"),
+    ]),
+    ...prefix("groups", [
+      index("routes/groups/index.tsx"),
+      route(":slug", "routes/groups/detail.tsx"),
+    ]),
+    ...prefix("learning", [
+      index("routes/learning/index.tsx"),
+      route(":slug", "routes/learning/detail.tsx"),
+    ]),
+    ...prefix("people", [
+      index("routes/people/index.tsx"),
+      route(":slug", "routes/people/detail.tsx"),
+    ]),
+    ...prefix("news", [
+      index("routes/news/index.tsx"),
+      route(":slug", "routes/news/detail.tsx"),
+    ]),
+    ...prefix("jobs", [
+      index("routes/jobs/index.tsx"),
+      route(":slug", "routes/jobs/detail.tsx"),
+    ]),
+    ...prefix("projects", [
+      index("routes/projects/index.tsx"),
+      route(":slug", "routes/projects/detail.tsx"),
+    ]),
+  ]),
+  
   // Admin routes
   ...prefix("manage", [
     route("login", "routes/manage/login.tsx"),
     route("logout", "routes/manage/logout.tsx"),
     index("routes/manage/index.tsx"),
+    route("settings", "routes/manage/settings.tsx"),
     route("comments", "routes/manage/comments.tsx"),
     ...prefix("events", [
       index("routes/manage/events/index.tsx"),

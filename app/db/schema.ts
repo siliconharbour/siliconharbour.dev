@@ -244,6 +244,34 @@ export const comments = sqliteTable("comments", {
 }));
 
 // =============================================================================
+// Site Configuration - key-value settings
+// =============================================================================
+
+export const siteConfig = sqliteTable("site_config", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export type SiteConfig = typeof siteConfig.$inferSelect;
+export type NewSiteConfig = typeof siteConfig.$inferInsert;
+
+// Section visibility keys
+export const sectionKeys = [
+  "events",
+  "companies", 
+  "groups",
+  "projects",
+  "learning",
+  "people",
+  "news",
+  "jobs",
+] as const;
+export type SectionKey = typeof sectionKeys[number];
+
+// =============================================================================
 // References - [[link]] relationships between content
 // =============================================================================
 

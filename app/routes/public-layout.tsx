@@ -1,21 +1,30 @@
-import { Link } from "react-router";
+import type { Route } from "./+types/public-layout";
+import { Link, Outlet, useLoaderData } from "react-router";
+import { getSectionVisibility, type SectionVisibility } from "~/lib/config.server";
+import type { SectionKey } from "~/db/schema";
 
-interface PublicLayoutProps {
-  children: React.ReactNode;
+export async function loader({}: Route.LoaderArgs) {
+  const visibility = await getSectionVisibility();
+  return { visibility };
 }
 
-const navItems = [
-  { href: "/events", label: "Events" },
-  { href: "/companies", label: "Companies" },
-  { href: "/groups", label: "Groups" },
-  { href: "/projects", label: "Projects" },
-  { href: "/learning", label: "Learning" },
-  { href: "/people", label: "People" },
-  { href: "/news", label: "News" },
-  { href: "/jobs", label: "Jobs" },
+const navItems: { href: string; label: string; key: SectionKey }[] = [
+  { href: "/events", label: "Events", key: "events" },
+  { href: "/companies", label: "Companies", key: "companies" },
+  { href: "/groups", label: "Groups", key: "groups" },
+  { href: "/projects", label: "Projects", key: "projects" },
+  { href: "/learning", label: "Learning", key: "learning" },
+  { href: "/people", label: "People", key: "people" },
+  { href: "/news", label: "News", key: "news" },
+  { href: "/jobs", label: "Jobs", key: "jobs" },
 ];
 
-export function PublicLayout({ children }: PublicLayoutProps) {
+export default function PublicLayoutRoute() {
+  const { visibility } = useLoaderData<typeof loader>();
+  
+  // Filter nav items based on visibility config
+  const visibleNavItems = navItems.filter((item) => visibility[item.key]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-harbour-200/50">
@@ -30,7 +39,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           </Link>
           
           <nav className="flex flex-wrap gap-4">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
@@ -44,7 +53,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       </header>
 
       <main className="flex-1">
-        {children}
+        <Outlet context={{ visibility }} />
       </main>
 
       <footer className="border-t border-harbour-200/50 p-8">
@@ -60,4 +69,11 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       </footer>
     </div>
   );
+}
+
+// Hook for child routes to access visibility
+export function useVisibility(): SectionVisibility {
+  // This will be used by child routes via useOutletContext
+  // Import from react-router: useOutletContext
+  return {} as SectionVisibility; // Placeholder - actual usage via useOutletContext
 }

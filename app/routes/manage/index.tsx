@@ -73,6 +73,12 @@ export default function ManageIndex() {
           </div>
           <div className="flex items-center gap-4">
             <Link
+              to="/manage/settings"
+              className="text-sm text-harbour-400 hover:text-harbour-600"
+            >
+              Settings
+            </Link>
+            <Link
               to="/"
               className="text-sm text-harbour-400 hover:text-harbour-600"
             >

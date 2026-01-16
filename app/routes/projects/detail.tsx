@@ -6,7 +6,6 @@ import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/reference
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
-import { PublicLayout } from "~/components/PublicLayout";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ImageGallery } from "~/components/ImageGallery";
@@ -144,100 +143,98 @@ export default function ProjectDetail() {
   const linkEntries = Object.entries(links).filter(([_, url]) => url);
 
   return (
-    <PublicLayout>
-      <div className="max-w-4xl mx-auto p-4 py-8">
-        <article className="flex flex-col gap-6">
-          {project.coverImage && (
-            <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+    <div className="max-w-4xl mx-auto p-4 py-8">
+      <article className="flex flex-col gap-6">
+        {project.coverImage && (
+          <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+            <img
+              src={`/images/${project.coverImage}`}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </div>
+        )}
+
+        <div className="flex items-start gap-4">
+          {project.logo && (
+            <div className="img-tint w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
               <img
-                src={`/images/${project.coverImage}`}
+                src={`/images/${project.logo}`}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-contain"
               />
             </div>
           )}
-
-          <div className="flex items-start gap-4">
-            {project.logo && (
-              <div className="img-tint w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
-                <img
-                  src={`/images/${project.logo}`}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-contain"
-                />
-              </div>
-            )}
-            <div className="flex flex-col gap-1">
-              <h1 className="text-3xl font-bold text-harbour-700">{project.name}</h1>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm text-harbour-500">{typeLabels[project.type]}</span>
-                <span className={`text-xs px-1.5 py-0.5 ${statusColors[project.status]}`}>
-                  {statusLabels[project.status]}
-                </span>
-              </div>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold text-harbour-700">{project.name}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-harbour-500">{typeLabels[project.type]}</span>
+              <span className={`text-xs px-1.5 py-0.5 ${statusColors[project.status]}`}>
+                {statusLabels[project.status]}
+              </span>
             </div>
           </div>
+        </div>
 
-          <RichMarkdown content={project.description} resolvedRefs={resolvedRefs} />
+        <RichMarkdown content={project.description} resolvedRefs={resolvedRefs} />
 
-          {/* Image Gallery */}
-          {project.images.length > 0 && (
-            <ImageGallery images={project.images} />
-          )}
+        {/* Image Gallery */}
+        {project.images.length > 0 && (
+          <ImageGallery images={project.images} />
+        )}
 
-          {/* Links */}
-          {linkEntries.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {linkEntries.map(([key, url]) => {
-                const config = linkConfig[key] || { 
-                  label: key.charAt(0).toUpperCase() + key.slice(1),
-                  icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  ),
-                };
-                return (
-                  <a
-                    key={key}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors no-underline"
-                  >
-                    {config.icon}
-                    {config.label}
+        {/* Links */}
+        {linkEntries.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {linkEntries.map(([key, url]) => {
+              const config = linkConfig[key] || { 
+                label: key.charAt(0).toUpperCase() + key.slice(1),
+                icon: (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                ),
+              };
+              return (
+                <a
+                  key={key}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors no-underline"
+                >
+                  {config.icon}
+                  {config.label}
+                </a>
+              );
+            })}
+          </div>
+        )}
+
+        {backlinks.length > 0 && (
+          <div className="border-t border-harbour-200/50 pt-6">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-3">Referenced By</h2>
+            <ul className="flex flex-col gap-2">
+              {backlinks.map((link) => (
+                <li key={`${link.type}-${link.id}`}>
+                  <a href={link.url} className="text-harbour-600 hover:text-harbour-700">
+                    {link.name}
                   </a>
-                );
-              })}
-            </div>
-          )}
+                  <span className="text-harbour-400 text-sm ml-2">({link.type})</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-          {backlinks.length > 0 && (
-            <div className="border-t border-harbour-200/50 pt-6">
-              <h2 className="text-lg font-semibold text-harbour-700 mb-3">Referenced By</h2>
-              <ul className="flex flex-col gap-2">
-                {backlinks.map((link) => (
-                  <li key={`${link.type}-${link.id}`}>
-                    <a href={link.url} className="text-harbour-600 hover:text-harbour-700">
-                      {link.name}
-                    </a>
-                    <span className="text-harbour-400 text-sm ml-2">({link.type})</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <CommentSection
-            contentType="project"
-            contentId={project.id}
-            comments={comments}
-            turnstileSiteKey={turnstileSiteKey}
-            isAdmin={isAdmin}
-          />
-        </article>
-      </div>
-    </PublicLayout>
+        <CommentSection
+          contentType="project"
+          contentId={project.id}
+          comments={comments}
+          turnstileSiteKey={turnstileSiteKey}
+          isAdmin={isAdmin}
+        />
+      </article>
+    </div>
   );
 }
