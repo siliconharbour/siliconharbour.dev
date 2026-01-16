@@ -40,15 +40,13 @@ export function CommentSection({
   // Build summary text
   let summaryText: string;
   if (isAdmin) {
-    // Admins always see counts, never "No Comments"
-    const parts: string[] = [];
-    if (publicCount > 0) {
-      parts.push(`${publicCount} Comment${publicCount === 1 ? "" : "s"}`);
-    }
-    if (privateCount > 0) {
-      parts.push(`${privateCount} Private`);
-    }
-    summaryText = parts.length > 0 ? parts.join(", ") : "Leave Feedback";
+    // Admins see public count with private count in parentheses
+    const publicText = publicCount === 0 
+      ? "No Comments" 
+      : `${publicCount} Comment${publicCount === 1 ? "" : "s"}`;
+    summaryText = privateCount > 0 
+      ? `${publicText} (${privateCount} Private)` 
+      : publicText;
   } else {
     summaryText = publicCount === 0 
       ? "No Comments" 
@@ -89,7 +87,7 @@ export function CommentSection({
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                Private Feedback ({privateComments.length})
+                Private Comments ({privateComments.length})
               </p>
               <div className="flex flex-col gap-3">
                 {privateComments.map((comment) => (

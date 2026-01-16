@@ -1,12 +1,13 @@
 import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getGroupBySlug } from "~/lib/groups.server";
-import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
+import { ReferencedBy } from "~/components/ReferencedBy";
 
 export function meta({ data }: Route.MetaArgs) {
   return [
@@ -25,7 +26,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   
   const [resolvedRefs, backlinks, comments] = await Promise.all([
     prepareRefsForClient(group.description),
-    getRichIncomingReferences("group", group.id),
+    getDetailedBacklinks("group", group.id),
     isAdmin ? getAllComments("group", group.id) : getPublicComments("group", group.id),
   ]);
   
@@ -84,21 +85,7 @@ export default function GroupDetail() {
           </a>
         )}
 
-        {backlinks.length > 0 && (
-          <div className="border-t border-harbour-200/50 pt-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3">Referenced By</h2>
-            <ul className="flex flex-col gap-2">
-              {backlinks.map((link) => (
-                <li key={`${link.type}-${link.id}`}>
-                  <a href={link.url} className="text-harbour-600 hover:text-harbour-700">
-                    {link.name}
-                  </a>
-                  <span className="text-harbour-400 text-sm ml-2">({link.type})</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <ReferencedBy backlinks={backlinks} />
 
         <CommentSection
           contentType="group"

@@ -6,6 +6,7 @@ export default [
   route("calendar.ics", "routes/calendar-ics.tsx"),
   
   // RSS feeds (no layout needed)
+  route("export.zip", "routes/export.tsx"),
   route("feed.rss", "routes/feed-rss.tsx"),
   route("events.rss", "routes/events-rss.tsx"),
   route("news.rss", "routes/news-rss.tsx"),
@@ -15,12 +16,32 @@ export default [
   route("api/comments", "routes/api.comments.tsx"),
   route("api/comments/delete", "routes/api.comments.delete.tsx"),
   
+  // Public JSON API
+  route("api/companies", "routes/api/companies.tsx"),
+  route("api/companies/:slug", "routes/api/companies.$slug.tsx"),
+  route("api/events", "routes/api/events.tsx"),
+  route("api/events/:slug", "routes/api/events.$slug.tsx"),
+  route("api/groups", "routes/api/groups.tsx"),
+  route("api/groups/:slug", "routes/api/groups.$slug.tsx"),
+  route("api/jobs", "routes/api/jobs.tsx"),
+  route("api/jobs/:slug", "routes/api/jobs.$slug.tsx"),
+  route("api/learning", "routes/api/learning.tsx"),
+  route("api/learning/:slug", "routes/api/learning.$slug.tsx"),
+  route("api/news", "routes/api/news.tsx"),
+  route("api/news/:slug", "routes/api/news.$slug.tsx"),
+  route("api/people", "routes/api/people.tsx"),
+  route("api/people/:slug", "routes/api/people.$slug.tsx"),
+  route("api/projects", "routes/api/projects.tsx"),
+  route("api/projects/:slug", "routes/api/projects.$slug.tsx"),
+  
   // Home page has its own hero header design
   index("routes/home.tsx"),
   
   // Public routes with shared layout (header/footer with visibility config)
   layout("routes/public-layout.tsx", [
     route("conduct", "routes/conduct.tsx"),
+    route("feeds", "routes/feeds.tsx"),
+    route("calendar", "routes/calendar.tsx"),
     ...prefix("events", [
       index("routes/events/index.tsx"),
       route(":slug", "routes/events/detail.tsx"),

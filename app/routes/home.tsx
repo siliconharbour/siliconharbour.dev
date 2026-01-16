@@ -15,6 +15,7 @@ import { EventCard } from "~/components/EventCard";
 import { format } from "date-fns";
 import type { ResolvedRef } from "~/components/RichMarkdown";
 import type { SectionKey } from "~/db/schema";
+import { Footer } from "~/components/Footer";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -361,18 +362,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-harbour-200/50 p-8">
-        <div className="max-w-6xl mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-sm text-harbour-400">
-          <div className="flex flex-wrap gap-4">
-            <a href="/feed.rss" className="hover:text-harbour-600">RSS Feed</a>
-            <a href="/calendar.ics" className="hover:text-harbour-600">Calendar</a>
-          </div>
-          <Link to="/manage/login" className="hover:text-harbour-600 no-underline">
-            Admin
-          </Link>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

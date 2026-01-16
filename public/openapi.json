@@ -1,0 +1,597 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "siliconharbour.dev API",
+    "description": "Public API for accessing St. John's tech community data",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Silicon Harbour",
+      "url": "https://siliconharbour.dev"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://siliconharbour.dev",
+      "description": "Production"
+    }
+  ],
+  "paths": {
+    "/api/companies": {
+      "get": {
+        "summary": "List companies",
+        "description": "Get a paginated list of tech companies",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanyList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/companies/{slug}": {
+      "get": {
+        "summary": "Get company",
+        "description": "Get a single company by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Company" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "summary": "List events",
+        "description": "Get a paginated list of events",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EventList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events/{slug}": {
+      "get": {
+        "summary": "Get event",
+        "description": "Get a single event by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Event" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/groups": {
+      "get": {
+        "summary": "List groups",
+        "description": "Get a paginated list of community groups",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GroupList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/groups/{slug}": {
+      "get": {
+        "summary": "Get group",
+        "description": "Get a single group by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Group" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/jobs": {
+      "get": {
+        "summary": "List jobs",
+        "description": "Get a paginated list of active job postings",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JobList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/{slug}": {
+      "get": {
+        "summary": "Get job",
+        "description": "Get a single job by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Job" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/learning": {
+      "get": {
+        "summary": "List learning resources",
+        "description": "Get a paginated list of learning institutions and resources",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LearningList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/learning/{slug}": {
+      "get": {
+        "summary": "Get learning resource",
+        "description": "Get a single learning resource by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Learning" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/news": {
+      "get": {
+        "summary": "List news articles",
+        "description": "Get a paginated list of published news articles",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NewsList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/news/{slug}": {
+      "get": {
+        "summary": "Get news article",
+        "description": "Get a single news article by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/News" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/people": {
+      "get": {
+        "summary": "List people",
+        "description": "Get a paginated list of people in the tech community",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PersonList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people/{slug}": {
+      "get": {
+        "summary": "Get person",
+        "description": "Get a single person by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Person" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "summary": "List projects",
+        "description": "Get a paginated list of community projects",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProjectList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{slug}": {
+      "get": {
+        "summary": "Get project",
+        "description": "Get a single project by slug",
+        "parameters": [
+          { "$ref": "#/components/parameters/slug" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "limit": {
+        "name": "limit",
+        "in": "query",
+        "description": "Number of items to return (max 100)",
+        "schema": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "offset": {
+        "name": "offset",
+        "in": "query",
+        "description": "Number of items to skip",
+        "schema": {
+          "type": "integer",
+          "default": 0,
+          "minimum": 0
+        }
+      },
+      "slug": {
+        "name": "slug",
+        "in": "path",
+        "required": true,
+        "description": "Unique URL slug identifier",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "NotFound": {
+        "description": "Resource not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "offset": { "type": "integer" },
+          "hasMore": { "type": "boolean" }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "website": { "type": "string", "nullable": true },
+          "location": { "type": "string", "nullable": true },
+          "founded": { "type": "string", "nullable": true },
+          "logo": { "type": "string", "nullable": true },
+          "coverImage": { "type": "string", "nullable": true },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CompanyList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Company" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "EventDate": {
+        "type": "object",
+        "properties": {
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "organizer": { "type": "string", "nullable": true },
+          "location": { "type": "string", "nullable": true },
+          "link": { "type": "string" },
+          "coverImage": { "type": "string", "nullable": true },
+          "dates": { "type": "array", "items": { "$ref": "#/components/schemas/EventDate" } },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "EventList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Event" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "website": { "type": "string", "nullable": true },
+          "meetingFrequency": { "type": "string", "nullable": true },
+          "logo": { "type": "string", "nullable": true },
+          "coverImage": { "type": "string", "nullable": true },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "GroupList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Group" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "Job": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "companyName": { "type": "string", "nullable": true },
+          "location": { "type": "string", "nullable": true },
+          "remote": { "type": "boolean" },
+          "salaryRange": { "type": "string", "nullable": true },
+          "applyLink": { "type": "string" },
+          "postedAt": { "type": "string", "format": "date-time" },
+          "expiresAt": { "type": "string", "format": "date-time", "nullable": true },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "JobList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Job" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "Learning": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["university", "college", "bootcamp", "online", "other"] },
+          "website": { "type": "string", "nullable": true },
+          "logo": { "type": "string", "nullable": true },
+          "coverImage": { "type": "string", "nullable": true },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "LearningList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Learning" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "News": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "excerpt": { "type": "string", "nullable": true },
+          "coverImage": { "type": "string", "nullable": true },
+          "publishedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "NewsList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/News" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "Person": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "bio": { "type": "string" },
+          "website": { "type": "string", "nullable": true },
+          "avatar": { "type": "string", "nullable": true },
+          "socialLinks": { "type": "object", "nullable": true },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PersonList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Person" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "type": { "type": "string", "enum": ["game", "webapp", "library", "tool", "hardware", "other"] },
+          "status": { "type": "string", "enum": ["active", "completed", "archived", "on-hold"] },
+          "links": { "type": "object", "nullable": true },
+          "logo": { "type": "string", "nullable": true },
+          "coverImage": { "type": "string", "nullable": true },
+          "url": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProjectList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      }
+    }
+  }
+}

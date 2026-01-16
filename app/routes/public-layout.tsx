@@ -2,6 +2,7 @@ import type { Route } from "./+types/public-layout";
 import { Link, Outlet, useLoaderData } from "react-router";
 import { getSectionVisibility, type SectionVisibility } from "~/lib/config.server";
 import type { SectionKey } from "~/db/schema";
+import { Footer } from "~/components/Footer";
 
 export async function loader({}: Route.LoaderArgs) {
   const visibility = await getSectionVisibility();
@@ -56,17 +57,7 @@ export default function PublicLayoutRoute() {
         <Outlet context={{ visibility }} />
       </main>
 
-      <footer className="border-t border-harbour-200/50 p-8">
-        <div className="max-w-6xl mx-auto flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-sm text-harbour-400">
-          <div className="flex flex-wrap gap-4">
-            <a href="/feed.rss" className="hover:text-harbour-600">RSS Feed</a>
-            <a href="/calendar.ics" className="hover:text-harbour-600">Calendar</a>
-          </div>
-          <Link to="/manage/login" className="hover:text-harbour-600 no-underline">
-            Admin
-          </Link>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getEventBySlug } from "~/lib/events.server";
-import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
+import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -18,7 +19,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
   
   const resolvedRefs = await prepareRefsForClient(event.description);
-  const backlinks = await getRichIncomingReferences("event", event.id);
+  const backlinks = await getDetailedBacklinks("event", event.id);
   
   return { event, resolvedRefs, backlinks };
 }
@@ -83,21 +84,7 @@ export default function EventDetail() {
           </svg>
         </a>
 
-        {backlinks.length > 0 && (
-          <div className="border-t border-harbour-200/50 pt-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3">Referenced By</h2>
-            <ul className="flex flex-col gap-2">
-              {backlinks.map((link) => (
-                <li key={`${link.type}-${link.id}`}>
-                  <a href={link.url} className="text-harbour-600 hover:text-harbour-700">
-                    {link.name}
-                  </a>
-                  <span className="text-harbour-400 text-sm ml-2">({link.type})</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <ReferencedBy backlinks={backlinks} />
       </article>
     </div>
   );

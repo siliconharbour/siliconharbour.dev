@@ -30,6 +30,16 @@ a:hover {
   @apply decoration-harbour-500 text-harbour-700;
 }
 
+/* Buttons should maintain their text color on hover */
+a[class*="bg-harbour"]:hover,
+a[class*="bg-red"]:hover,
+a[class*="bg-green"]:hover,
+button[class*="bg-harbour"]:hover,
+button[class*="bg-red"]:hover,
+button[class*="bg-green"]:hover {
+  @apply text-white;
+}
+
 a:focus {
   @apply outline-none ring-2 ring-harbour-400 ring-offset-2 decoration-harbour-500;
 }

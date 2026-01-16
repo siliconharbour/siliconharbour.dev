@@ -2,12 +2,13 @@ import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getProjectBySlugWithImages } from "~/lib/projects.server";
 import { parseProjectLinks } from "~/lib/project-links";
-import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
+import { ReferencedBy } from "~/components/ReferencedBy";
 import { ImageGallery } from "~/components/ImageGallery";
 import type { ProjectType, ProjectStatus } from "~/db/schema";
 
@@ -28,7 +29,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   
   const [resolvedRefs, backlinks, comments] = await Promise.all([
     prepareRefsForClient(project.description),
-    getRichIncomingReferences("project", project.id),
+    getDetailedBacklinks("project", project.id),
     isAdmin ? getAllComments("project", project.id) : getPublicComments("project", project.id),
   ]);
   
@@ -211,21 +212,7 @@ export default function ProjectDetail() {
           </div>
         )}
 
-        {backlinks.length > 0 && (
-          <div className="border-t border-harbour-200/50 pt-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3">Referenced By</h2>
-            <ul className="flex flex-col gap-2">
-              {backlinks.map((link) => (
-                <li key={`${link.type}-${link.id}`}>
-                  <a href={link.url} className="text-harbour-600 hover:text-harbour-700">
-                    {link.name}
-                  </a>
-                  <span className="text-harbour-400 text-sm ml-2">({link.type})</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <ReferencedBy backlinks={backlinks} />
 
         <CommentSection
           contentType="project"

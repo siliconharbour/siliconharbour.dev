@@ -2,18 +2,20 @@ import { db } from "~/db";
 import { 
   references, 
   events, 
+  eventDates,
   companies, 
   groups, 
   learning, 
   people, 
   news, 
   jobs,
+  projects,
   type ContentType,
   type Reference,
   type NewReference,
   contentTypes
 } from "~/db/schema";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, asc, gte } from "drizzle-orm";
 
 // =============================================================================
 // Reference Parser - Extract [[references]] from markdown
@@ -407,4 +409,161 @@ export async function getRichIncomingReferences(
   }
   
   return rich;
+}
+
+// =============================================================================
+// Detailed Backlinks - Full entity data for rich display
+// =============================================================================
+
+export type DetailedBacklink = 
+  | { type: "event"; data: { id: number; slug: string; title: string; coverImage: string | null; nextDate: Date | null } }
+  | { type: "company"; data: { id: number; slug: string; name: string; logo: string | null; location: string | null } }
+  | { type: "group"; data: { id: number; slug: string; name: string; logo: string | null } }
+  | { type: "learning"; data: { id: number; slug: string; name: string; logo: string | null; type: string | null } }
+  | { type: "person"; data: { id: number; slug: string; name: string; avatar: string | null } }
+  | { type: "news"; data: { id: number; slug: string; title: string; coverImage: string | null; excerpt: string | null; publishedAt: Date | null } }
+  | { type: "job"; data: { id: number; slug: string; title: string; companyName: string | null; location: string | null; remote: boolean } }
+  | { type: "project"; data: { id: number; slug: string; name: string; logo: string | null; type: string } };
+
+/**
+ * Get detailed backlink data for rich display on detail pages
+ */
+export async function getDetailedBacklinks(
+  targetType: ContentType,
+  targetId: number
+): Promise<DetailedBacklink[]> {
+  const refs = await getIncomingReferences(targetType, targetId);
+  const backlinks: DetailedBacklink[] = [];
+  const now = new Date();
+  
+  for (const ref of refs) {
+    switch (ref.sourceType) {
+      case "event": {
+        const [event] = await db.select({
+          id: events.id,
+          slug: events.slug,
+          title: events.title,
+          coverImage: events.coverImage,
+        }).from(events).where(eq(events.id, ref.sourceId));
+        
+        if (event) {
+          // Get next upcoming date
+          const [nextDate] = await db.select({ startDate: eventDates.startDate })
+            .from(eventDates)
+            .where(and(
+              eq(eventDates.eventId, event.id),
+              gte(eventDates.startDate, now)
+            ))
+            .orderBy(asc(eventDates.startDate))
+            .limit(1);
+          
+          backlinks.push({
+            type: "event",
+            data: { ...event, nextDate: nextDate?.startDate ?? null }
+          });
+        }
+        break;
+      }
+      case "company": {
+        const [company] = await db.select({
+          id: companies.id,
+          slug: companies.slug,
+          name: companies.name,
+          logo: companies.logo,
+          location: companies.location,
+        }).from(companies).where(eq(companies.id, ref.sourceId));
+        
+        if (company) {
+          backlinks.push({ type: "company", data: company });
+        }
+        break;
+      }
+      case "group": {
+        const [group] = await db.select({
+          id: groups.id,
+          slug: groups.slug,
+          name: groups.name,
+          logo: groups.logo,
+        }).from(groups).where(eq(groups.id, ref.sourceId));
+        
+        if (group) {
+          backlinks.push({ type: "group", data: group });
+        }
+        break;
+      }
+      case "learning": {
+        const [inst] = await db.select({
+          id: learning.id,
+          slug: learning.slug,
+          name: learning.name,
+          logo: learning.logo,
+          type: learning.type,
+        }).from(learning).where(eq(learning.id, ref.sourceId));
+        
+        if (inst) {
+          backlinks.push({ type: "learning", data: inst });
+        }
+        break;
+      }
+      case "person": {
+        const [person] = await db.select({
+          id: people.id,
+          slug: people.slug,
+          name: people.name,
+          avatar: people.avatar,
+        }).from(people).where(eq(people.id, ref.sourceId));
+        
+        if (person) {
+          backlinks.push({ type: "person", data: person });
+        }
+        break;
+      }
+      case "news": {
+        const [article] = await db.select({
+          id: news.id,
+          slug: news.slug,
+          title: news.title,
+          coverImage: news.coverImage,
+          excerpt: news.excerpt,
+          publishedAt: news.publishedAt,
+        }).from(news).where(eq(news.id, ref.sourceId));
+        
+        if (article) {
+          backlinks.push({ type: "news", data: article });
+        }
+        break;
+      }
+      case "job": {
+        const [job] = await db.select({
+          id: jobs.id,
+          slug: jobs.slug,
+          title: jobs.title,
+          companyName: jobs.companyName,
+          location: jobs.location,
+          remote: jobs.remote,
+        }).from(jobs).where(eq(jobs.id, ref.sourceId));
+        
+        if (job) {
+          backlinks.push({ type: "job", data: job });
+        }
+        break;
+      }
+      case "project": {
+        const [project] = await db.select({
+          id: projects.id,
+          slug: projects.slug,
+          name: projects.name,
+          logo: projects.logo,
+          type: projects.type,
+        }).from(projects).where(eq(projects.id, ref.sourceId));
+        
+        if (project) {
+          backlinks.push({ type: "project", data: project });
+        }
+        break;
+      }
+    }
+  }
+  
+  return backlinks;
 }
