@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
-import { useLoaderData, Form } from "react-router";
+import { useLoaderData } from "react-router";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
+import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -34,29 +35,7 @@ export default function JobsIndex() {
           </div>
           
           {/* Search */}
-          <Form method="get" className="flex gap-2">
-            <input
-              type="text"
-              name="q"
-              defaultValue={searchQuery}
-              placeholder="Search jobs..."
-              className="flex-1 px-3 py-2 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
-            >
-              Search
-            </button>
-            {searchQuery && (
-              <a
-                href="/jobs"
-                className="px-4 py-2 text-sm text-harbour-600 border border-harbour-200 hover:border-harbour-300 no-underline"
-              >
-                Clear
-              </a>
-            )}
-          </Form>
+          <SearchInput placeholder="Search jobs..." />
           
           {/* Result count */}
           {searchQuery && (

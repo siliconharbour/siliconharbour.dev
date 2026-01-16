@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
-import { useLoaderData, Form, useSearchParams } from "react-router";
+import { useLoaderData, useSearchParams } from "react-router";
 import { getPaginatedCompanies } from "~/lib/companies.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
+import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -22,7 +23,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function CompaniesIndex() {
   const { companies, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
-  const [searchParams] = useSearchParams();
 
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
@@ -34,29 +34,7 @@ export default function CompaniesIndex() {
           </div>
           
           {/* Search */}
-          <Form method="get" className="flex gap-2">
-            <input
-              type="text"
-              name="q"
-              defaultValue={searchQuery}
-              placeholder="Search companies..."
-              className="flex-1 px-3 py-2 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
-            >
-              Search
-            </button>
-            {searchQuery && (
-              <a
-                href="/companies"
-                className="px-4 py-2 text-sm text-harbour-600 border border-harbour-200 hover:border-harbour-300 no-underline"
-              >
-                Clear
-              </a>
-            )}
-          </Form>
+          <SearchInput placeholder="Search companies..." />
           
           {/* Result count */}
           {searchQuery && (
