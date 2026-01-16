@@ -8,11 +8,13 @@ type CalendarProps = {
   events: (Event & { dates: EventDate[] })[];
   /** If true, clicking a date navigates to event(s). Default: true */
   navigateOnClick?: boolean;
+  /** If true, always filter by date even for single events. Default: false (single events navigate directly) */
+  alwaysFilterByDate?: boolean;
   /** Custom handler for date clicks (overrides default navigation) */
   onDateClick?: (date: Date, events: (Event & { dates: EventDate[] })[]) => void;
 };
 
-export function Calendar({ events, navigateOnClick = true, onDateClick }: CalendarProps) {
+export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = false, onDateClick }: CalendarProps) {
   const navigate = useNavigate();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [offsetDate, setOffsetDate] = useState<Date>(new Date());
@@ -61,11 +63,11 @@ export function Calendar({ events, navigateOnClick = true, onDateClick }: Calend
     // Default navigation behavior
     if (!navigateOnClick || dayEvents.length === 0) return;
     
-    if (dayEvents.length === 1) {
-      // Single event - go directly to it
+    if (dayEvents.length === 1 && !alwaysFilterByDate) {
+      // Single event - go directly to it (only on homepage)
       navigate(`/events/${dayEvents[0].slug}`);
     } else {
-      // Multiple events - go to events page filtered by date
+      // Multiple events or alwaysFilterByDate - go to events page filtered by date
       navigate(`/events?filter=all&date=${dateKey}`);
     }
   };

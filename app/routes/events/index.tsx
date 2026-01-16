@@ -173,7 +173,7 @@ export default function EventsIndex() {
         <aside className="lg:col-span-1">
           <div className="sticky top-8">
             <div className="ring-1 ring-harbour-200/50">
-              <Calendar events={allEvents} />
+              <Calendar events={allEvents} alwaysFilterByDate />
             </div>
           </div>
         </aside>
