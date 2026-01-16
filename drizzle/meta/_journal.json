@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1768587481582,
+      "tag": "0000_colossal_william_stryker",
+      "breakpoints": true
+    }
+  ]
+}

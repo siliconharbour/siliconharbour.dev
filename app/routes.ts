@@ -2,6 +2,7 @@ import { type RouteConfig, index, route, prefix } from "@react-router/dev/routes
 
 export default [
   index("routes/home.tsx"),
+  route("conduct", "routes/conduct.tsx"),
   route("images/:filename", "routes/images.tsx"),
   route("calendar.ics", "routes/calendar-ics.tsx"),
   

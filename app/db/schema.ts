@@ -186,13 +186,16 @@ export const comments = sqliteTable("comments", {
   authorName: text("author_name"), // optional, for attribution
   content: text("content").notNull(),
   isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(false), // for webmaster-only feedback
-  // Metadata
-  ipHash: text("ip_hash"), // hashed IP for spam prevention
+  // Metadata for spam management
+  ipAddress: text("ip_address"), // raw IP for admin spam cleanup
+  ipHash: text("ip_hash"), // hashed IP for privacy-preserving rate limiting
+  userAgent: text("user_agent"), // browser/client info for spam patterns
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 }, (table) => ({
   contentIdx: index("comments_content_idx").on(table.contentType, table.contentId),
+  ipIdx: index("comments_ip_idx").on(table.ipAddress), // for finding all comments from an IP
 }));
 
 // =============================================================================

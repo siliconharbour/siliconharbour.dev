@@ -45,11 +45,12 @@ export async function action({ request }: Route.ActionArgs) {
     }
   }
 
-  // Get client IP for rate limiting
+  // Get client metadata for spam management
   const clientIP = request.headers.get("CF-Connecting-IP") 
     || request.headers.get("X-Forwarded-For")?.split(",")[0]
     || request.headers.get("X-Real-IP")
     || undefined;
+  const userAgent = request.headers.get("User-Agent") || undefined;
 
   try {
     await createComment(
@@ -60,7 +61,7 @@ export async function action({ request }: Route.ActionArgs) {
         content: content.trim(),
         isPrivate,
       },
-      clientIP
+      { ip: clientIP, userAgent }
     );
 
     return { success: true };

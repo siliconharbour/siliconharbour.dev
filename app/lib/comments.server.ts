@@ -14,14 +14,16 @@ function hashIP(ip: string): string {
  * Create a new comment
  */
 export async function createComment(
-  comment: Omit<NewComment, "ipHash">,
-  ip?: string
+  comment: Omit<NewComment, "ipHash" | "ipAddress" | "userAgent">,
+  metadata?: { ip?: string; userAgent?: string }
 ): Promise<Comment> {
   const [newComment] = await db
     .insert(comments)
     .values({
       ...comment,
-      ipHash: ip ? hashIP(ip) : null,
+      ipAddress: metadata?.ip || null,
+      ipHash: metadata?.ip ? hashIP(metadata.ip) : null,
+      userAgent: metadata?.userAgent || null,
     })
     .returning();
 
