@@ -8,9 +8,10 @@ export function Footer() {
           <Link to="/feeds" className="hover:text-harbour-600 no-underline">RSS Feeds</Link>
           <Link to="/calendar" className="hover:text-harbour-600 no-underline">Calendar</Link>
         </div>
-        <Link to="/manage/login" className="hover:text-harbour-600 no-underline">
-          Admin
-        </Link>
+        <div className="flex gap-4">
+          <Link to="/about" className="hover:text-harbour-600 no-underline">About</Link>
+          <Link to="/manage/login" className="hover:text-harbour-600 no-underline">Admin</Link>
+        </div>
       </div>
     </footer>
   );
