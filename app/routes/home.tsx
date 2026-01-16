@@ -7,6 +7,7 @@ import { getAllPeople } from "~/lib/people.server";
 import { getAllLearning } from "~/lib/learning.server";
 import { getPublishedNews } from "~/lib/news.server";
 import { getActiveJobs } from "~/lib/jobs.server";
+import { getAllProjects } from "~/lib/projects.server";
 import { prepareRefsForClient } from "~/lib/references.server";
 import { Calendar } from "~/components/Calendar";
 import { EventCard } from "~/components/EventCard";
@@ -21,7 +22,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({}: Route.LoaderArgs) {
-  const [thisWeek, upcoming, companies, groups, people, learning, news, jobs] = await Promise.all([
+  const [thisWeek, upcoming, companies, groups, people, learning, news, jobs, projects] = await Promise.all([
     getEventsThisWeek(),
     getUpcomingEvents(),
     getAllCompanies(),
@@ -30,6 +31,7 @@ export async function loader({}: Route.LoaderArgs) {
     getAllLearning(),
     getPublishedNews(),
     getActiveJobs(),
+    getAllProjects(),
   ]);
   
   const thisWeekIds = new Set(thisWeek.map(e => e.id));
@@ -53,6 +55,7 @@ export async function loader({}: Route.LoaderArgs) {
     learning,
     news: news.slice(0, 3), // Latest 3 news articles
     jobs: jobs.slice(0, 4), // Latest 4 jobs
+    projects: projects.slice(0, 4), // Latest 4 projects
     eventRefs,
     counts: {
       companies: companies.length,
@@ -62,6 +65,7 @@ export async function loader({}: Route.LoaderArgs) {
       news: news.length,
       jobs: jobs.length,
       events: upcoming.length,
+      projects: projects.length,
     }
   };
 }
@@ -73,13 +77,15 @@ export default function Home() {
     allEvents, 
     companies, 
     news, 
-    jobs, 
+    jobs,
+    projects,
     counts,
     eventRefs,
   } = useLoaderData<typeof loader>();
 
   const hasEvents = allEvents.length > 0;
   const featuredCompanies = companies.slice(0, 4);
+  const featuredProjects = projects.slice(0, 4);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -231,6 +237,44 @@ export default function Home() {
                 </section>
               )}
 
+              {/* Featured Projects */}
+              {featuredProjects.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-harbour-700">Projects</h2>
+                    <Link to="/projects" className="text-sm text-harbour-500 hover:text-harbour-700">
+                      View all
+                    </Link>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {featuredProjects.map((project) => (
+                      <Link
+                        key={project.id}
+                        to={`/projects/${project.slug}`}
+                        className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                      >
+                        {project.logo ? (
+                          <div className="img-tint w-12 h-12 relative overflow-hidden bg-harbour-100">
+                            <img
+                              src={`/images/${project.logo}`}
+                              alt=""
+                              className="absolute inset-0 w-full h-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
+                            <span className="text-lg text-harbour-400">{project.name.charAt(0)}</span>
+                          </div>
+                        )}
+                        <span className="text-sm font-medium text-harbour-700 group-hover:text-harbour-600 text-center line-clamp-2">
+                          {project.name}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {/* Active Jobs */}
               {jobs.length > 0 && (
                 <section className="flex flex-col gap-4">
@@ -287,6 +331,7 @@ export default function Home() {
                   <nav className="flex flex-col gap-2">
                     <QuickLink to="/events" label="Events" count={counts.events} />
                     <QuickLink to="/companies" label="Companies" count={counts.companies} />
+                    <QuickLink to="/projects" label="Projects" count={counts.projects} />
                     <QuickLink to="/jobs" label="Jobs" count={counts.jobs} />
                     <QuickLink to="/news" label="News" count={counts.news} />
                     <QuickLink to="/groups" label="Groups" count={counts.groups} />
