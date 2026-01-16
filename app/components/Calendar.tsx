@@ -1,14 +1,19 @@
 import { useDatePicker } from "@rehookify/datepicker";
 import { useState, useMemo } from "react";
 import { format, isSameDay, addMonths, subMonths } from "date-fns";
+import { useNavigate } from "react-router";
 import type { Event, EventDate } from "~/db/schema";
 
 type CalendarProps = {
   events: (Event & { dates: EventDate[] })[];
-  onDateClick?: (date: Date) => void;
+  /** If true, clicking a date navigates to event(s). Default: true */
+  navigateOnClick?: boolean;
+  /** Custom handler for date clicks (overrides default navigation) */
+  onDateClick?: (date: Date, events: (Event & { dates: EventDate[] })[]) => void;
 };
 
-export function Calendar({ events, onDateClick }: CalendarProps) {
+export function Calendar({ events, navigateOnClick = true, onDateClick }: CalendarProps) {
+  const navigate = useNavigate();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [offsetDate, setOffsetDate] = useState<Date>(new Date());
 
@@ -45,7 +50,25 @@ export function Calendar({ events, onDateClick }: CalendarProps) {
   }, [events]);
 
   const handleDayClick = (date: Date) => {
-    onDateClick?.(date);
+    const dateKey = format(date, "yyyy-MM-dd");
+    const dayEvents = eventDateMap.get(dateKey) || [];
+    
+    // If custom handler provided, use it
+    if (onDateClick) {
+      onDateClick(date, dayEvents);
+      return;
+    }
+    
+    // Default navigation behavior
+    if (!navigateOnClick || dayEvents.length === 0) return;
+    
+    if (dayEvents.length === 1) {
+      // Single event - go directly to it
+      navigate(`/events/${dayEvents[0].slug}`);
+    } else {
+      // Multiple events - go to events page filtered by date
+      navigate(`/events?filter=all&date=${dateKey}`);
+    }
   };
 
   return (
@@ -128,8 +151,7 @@ export function Calendar({ events, onDateClick }: CalendarProps) {
                 relative aspect-square flex flex-col items-center justify-start p-1 text-sm transition-colors
                 ${dpDay.inCurrentMonth ? "text-harbour-700" : "text-harbour-200"}
                 ${isToday ? "bg-harbour-50 font-semibold" : ""}
-                ${hasEvents && dpDay.inCurrentMonth ? "hover:bg-harbour-50" : ""}
-                ${!hasEvents ? "cursor-default" : "cursor-pointer"}
+                ${hasEvents && dpDay.inCurrentMonth ? "hover:bg-harbour-50 cursor-pointer" : "cursor-default"}
               `}
             >
               <span

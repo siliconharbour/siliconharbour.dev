@@ -268,14 +268,29 @@ export async function getPaginatedEvents(
   limit: number,
   offset: number,
   searchQuery?: string,
-  filter: EventFilter = "upcoming"
+  filter: EventFilter = "upcoming",
+  dateFilter?: string // yyyy-MM-dd format
 ): Promise<PaginatedEvents> {
   const now = new Date();
   
   // Get event IDs based on filter
   let filteredEventIds: number[];
   
-  if (filter === "upcoming") {
+  // If filtering by specific date, get events on that date
+  if (dateFilter) {
+    const filterDate = new Date(dateFilter);
+    const startOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate(), 0, 0, 0);
+    const endOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate(), 23, 59, 59);
+    
+    const dateRows = await db
+      .selectDistinct({ eventId: eventDates.eventId })
+      .from(eventDates)
+      .where(and(
+        gte(eventDates.startDate, startOfDay),
+        lte(eventDates.startDate, endOfDay)
+      ));
+    filteredEventIds = dateRows.map(r => r.eventId);
+  } else if (filter === "upcoming") {
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
