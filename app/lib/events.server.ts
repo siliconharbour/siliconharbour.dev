@@ -278,9 +278,10 @@ export async function getPaginatedEvents(
   
   // If filtering by specific date, get events on that date
   if (dateFilter) {
-    const filterDate = new Date(dateFilter);
-    const startOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate(), 0, 0, 0);
-    const endOfDay = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate(), 23, 59, 59);
+    // Parse yyyy-MM-dd and create UTC day boundaries
+    const [year, month, day] = dateFilter.split("-").map(Number);
+    const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+    const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
     
     const dateRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
