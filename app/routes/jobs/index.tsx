@@ -1,6 +1,7 @@
 import type { Route } from "./+types/index";
-import { useLoaderData } from "react-router";
-import { getActiveJobs } from "~/lib/jobs.server";
+import { useLoaderData, Form } from "react-router";
+import { getPaginatedJobs } from "~/lib/jobs.server";
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,24 +11,65 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({}: Route.LoaderArgs) {
-  const jobs = await getActiveJobs();
-  return { jobs };
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const { limit, offset } = parsePaginationParams(url);
+  const searchQuery = url.searchParams.get("q") || "";
+  
+  const { items: jobs, total } = await getPaginatedJobs(limit, offset, searchQuery);
+  
+  return { jobs, total, limit, offset, searchQuery };
 }
 
 export default function JobsIndex() {
-  const { jobs } = useLoaderData<typeof loader>();
+  const { jobs, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-harbour-700">Jobs</h1>
-          <p className="text-harbour-500">Tech job opportunities in the community</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-bold text-harbour-700">Jobs</h1>
+            <p className="text-harbour-500">Tech job opportunities in the community</p>
+          </div>
+          
+          {/* Search */}
+          <Form method="get" className="flex gap-2">
+            <input
+              type="text"
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="Search jobs..."
+              className="flex-1 px-3 py-2 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+            >
+              Search
+            </button>
+            {searchQuery && (
+              <a
+                href="/jobs"
+                className="px-4 py-2 text-sm text-harbour-600 border border-harbour-200 hover:border-harbour-300 no-underline"
+              >
+                Clear
+              </a>
+            )}
+          </Form>
+          
+          {/* Result count */}
+          {searchQuery && (
+            <p className="text-sm text-harbour-500">
+              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+            </p>
+          )}
         </div>
 
         {jobs.length === 0 ? (
-          <p className="text-harbour-400">No job listings at the moment.</p>
+          <p className="text-harbour-400">
+            {searchQuery ? "No jobs match your search." : "No job listings at the moment."}
+          </p>
         ) : (
           <div className="flex flex-col gap-4">
             {jobs.map((job) => (
@@ -62,6 +104,8 @@ export default function JobsIndex() {
             ))}
           </div>
         )}
+        
+        <Pagination total={total} limit={limit} offset={offset} />
       </div>
     </div>
   );

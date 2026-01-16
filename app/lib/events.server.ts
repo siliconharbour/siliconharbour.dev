@@ -1,9 +1,10 @@
 import { db } from "~/db";
 import { events, eventDates, type Event, type EventDate, type NewEvent, type NewEventDate } from "~/db/schema";
-import { eq, gte, and, lte, asc, desc } from "drizzle-orm";
+import { eq, gte, and, lte, asc, desc, count, inArray } from "drizzle-orm";
 import { deleteImage } from "./images.server";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
+import { searchContentIds } from "./search.server";
 
 export type EventWithDates = Event & { dates: EventDate[] };
 
@@ -250,4 +251,87 @@ export async function getEventsByMonth(year: number, month: number): Promise<Eve
   );
 
   return eventsWithDates.filter((e): e is EventWithDates => e !== null);
+}
+
+// =============================================================================
+// Paginated queries with search
+// =============================================================================
+
+export interface PaginatedEvents {
+  items: EventWithDates[];
+  total: number;
+}
+
+export type EventFilter = "upcoming" | "past" | "all";
+
+export async function getPaginatedEvents(
+  limit: number,
+  offset: number,
+  searchQuery?: string,
+  filter: EventFilter = "upcoming"
+): Promise<PaginatedEvents> {
+  const now = new Date();
+  
+  // Get event IDs based on filter
+  let filteredEventIds: number[];
+  
+  if (filter === "upcoming") {
+    const upcomingRows = await db
+      .selectDistinct({ eventId: eventDates.eventId })
+      .from(eventDates)
+      .where(gte(eventDates.startDate, now));
+    filteredEventIds = upcomingRows.map(r => r.eventId);
+  } else if (filter === "past") {
+    // Past events: all events that have NO upcoming dates
+    const upcomingRows = await db
+      .selectDistinct({ eventId: eventDates.eventId })
+      .from(eventDates)
+      .where(gte(eventDates.startDate, now));
+    const upcomingIds = new Set(upcomingRows.map(r => r.eventId));
+    
+    const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
+    filteredEventIds = allRows.map(r => r.eventId).filter(id => !upcomingIds.has(id));
+  } else {
+    // All events
+    const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
+    filteredEventIds = allRows.map(r => r.eventId);
+  }
+  
+  if (filteredEventIds.length === 0) {
+    return { items: [], total: 0 };
+  }
+  
+  // If searching, intersect with FTS results
+  if (searchQuery && searchQuery.trim()) {
+    const matchingIds = searchContentIds("event", searchQuery);
+    filteredEventIds = filteredEventIds.filter(id => matchingIds.includes(id));
+    
+    if (filteredEventIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+  }
+  
+  const total = filteredEventIds.length;
+  
+  // Get the paginated slice of event IDs
+  const paginatedIds = filteredEventIds.slice(offset, offset + limit);
+  
+  // Fetch full event data with dates
+  const eventsWithDates = await Promise.all(
+    paginatedIds.map(id => getEventById(id))
+  );
+  
+  const items = eventsWithDates.filter((e): e is EventWithDates => e !== null);
+  
+  // Sort by next date
+  items.sort((a, b) => {
+    const aNext = a.dates.find(d => filter === "past" ? true : d.startDate >= now)?.startDate;
+    const bNext = b.dates.find(d => filter === "past" ? true : d.startDate >= now)?.startDate;
+    if (!aNext || !bNext) return 0;
+    return filter === "past" 
+      ? bNext.getTime() - aNext.getTime()  // Past: newest first
+      : aNext.getTime() - bNext.getTime(); // Upcoming: soonest first
+  });
+  
+  return { items, total };
 }

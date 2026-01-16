@@ -1,6 +1,7 @@
 import type { Route } from "./+types/index";
-import { useLoaderData } from "react-router";
-import { getAllLearning } from "~/lib/learning.server";
+import { useLoaderData, Form } from "react-router";
+import { getPaginatedLearning } from "~/lib/learning.server";
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -9,13 +10,18 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({}: Route.LoaderArgs) {
-  const institutions = await getAllLearning();
-  return { institutions };
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const { limit, offset } = parsePaginationParams(url);
+  const searchQuery = url.searchParams.get("q") || "";
+  
+  const { items: institutions, total } = await getPaginatedLearning(limit, offset, searchQuery);
+  
+  return { institutions, total, limit, offset, searchQuery };
 }
 
 export default function LearningIndex() {
-  const { institutions } = useLoaderData<typeof loader>();
+  const { institutions, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
 
   const typeLabels: Record<string, string> = {
     university: "University",
@@ -28,13 +34,49 @@ export default function LearningIndex() {
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-harbour-700">Learning</h1>
-          <p className="text-harbour-500">Educational institutions and resources</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-bold text-harbour-700">Learning</h1>
+            <p className="text-harbour-500">Educational institutions and resources</p>
+          </div>
+          
+          {/* Search */}
+          <Form method="get" className="flex gap-2">
+            <input
+              type="text"
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="Search learning resources..."
+              className="flex-1 px-3 py-2 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+            >
+              Search
+            </button>
+            {searchQuery && (
+              <a
+                href="/learning"
+                className="px-4 py-2 text-sm text-harbour-600 border border-harbour-200 hover:border-harbour-300 no-underline"
+              >
+                Clear
+              </a>
+            )}
+          </Form>
+          
+          {/* Result count */}
+          {searchQuery && (
+            <p className="text-sm text-harbour-500">
+              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+            </p>
+          )}
         </div>
 
         {institutions.length === 0 ? (
-          <p className="text-harbour-400">No learning resources listed yet.</p>
+          <p className="text-harbour-400">
+            {searchQuery ? "No learning resources match your search." : "No learning resources listed yet."}
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {institutions.map((inst) => (
@@ -62,6 +104,8 @@ export default function LearningIndex() {
             ))}
           </div>
         )}
+        
+        <Pagination total={total} limit={limit} offset={offset} />
       </div>
     </div>
   );

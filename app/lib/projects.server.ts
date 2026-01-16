@@ -7,9 +7,10 @@ import {
   type ProjectImage,
   type NewProjectImage,
 } from "~/db/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
+import { searchContentIds } from "./search.server";
 
 // =============================================================================
 // Slug generation
@@ -173,6 +174,52 @@ export async function getProjectBySlugWithImages(slug: string): Promise<ProjectW
   
   const images = await getProjectImages(project.id);
   return { ...project, images };
+}
+
+// =============================================================================
+// Paginated queries with search
+// =============================================================================
+
+export interface PaginatedProjects {
+  items: Project[];
+  total: number;
+}
+
+export async function getPaginatedProjects(
+  limit: number,
+  offset: number,
+  searchQuery?: string
+): Promise<PaginatedProjects> {
+  // If searching, use FTS5
+  if (searchQuery && searchQuery.trim()) {
+    const matchingIds = searchContentIds("project", searchQuery);
+    
+    if (matchingIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+    
+    const items = await db
+      .select()
+      .from(projects)
+      .where(inArray(projects.id, matchingIds))
+      .orderBy(desc(projects.createdAt))
+      .limit(limit)
+      .offset(offset);
+    
+    return { items, total: matchingIds.length };
+  }
+  
+  // No search - get total count and paginated items
+  const [{ total }] = await db.select({ total: count() }).from(projects);
+  
+  const items = await db
+    .select()
+    .from(projects)
+    .orderBy(desc(projects.createdAt))
+    .limit(limit)
+    .offset(offset);
+  
+  return { items, total };
 }
 
 // Re-export from shared module

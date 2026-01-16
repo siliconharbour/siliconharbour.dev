@@ -1,8 +1,9 @@
 import { db } from "~/db";
 import { learning, type Learning, type NewLearning } from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
+import { searchContentIds } from "./search.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: learning.slug }).from(learning);
@@ -69,4 +70,50 @@ export async function getLearningBySlug(slug: string): Promise<Learning | null> 
 
 export async function getAllLearning(): Promise<Learning[]> {
   return db.select().from(learning).orderBy(desc(learning.createdAt));
+}
+
+// =============================================================================
+// Paginated queries with search
+// =============================================================================
+
+export interface PaginatedLearning {
+  items: Learning[];
+  total: number;
+}
+
+export async function getPaginatedLearning(
+  limit: number,
+  offset: number,
+  searchQuery?: string
+): Promise<PaginatedLearning> {
+  // If searching, use FTS5
+  if (searchQuery && searchQuery.trim()) {
+    const matchingIds = searchContentIds("learning", searchQuery);
+    
+    if (matchingIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+    
+    const items = await db
+      .select()
+      .from(learning)
+      .where(inArray(learning.id, matchingIds))
+      .orderBy(asc(learning.name))
+      .limit(limit)
+      .offset(offset);
+    
+    return { items, total: matchingIds.length };
+  }
+  
+  // No search - get total count and paginated items
+  const [{ total }] = await db.select({ total: count() }).from(learning);
+  
+  const items = await db
+    .select()
+    .from(learning)
+    .orderBy(asc(learning.name))
+    .limit(limit)
+    .offset(offset);
+  
+  return { items, total };
 }

@@ -1,8 +1,9 @@
 import { db } from "~/db";
 import { people, type Person, type NewPerson } from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
+import { searchContentIds } from "./search.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: people.slug }).from(people);
@@ -69,4 +70,50 @@ export async function getPersonBySlug(slug: string): Promise<Person | null> {
 
 export async function getAllPeople(): Promise<Person[]> {
   return db.select().from(people).orderBy(desc(people.createdAt));
+}
+
+// =============================================================================
+// Paginated queries with search
+// =============================================================================
+
+export interface PaginatedPeople {
+  items: Person[];
+  total: number;
+}
+
+export async function getPaginatedPeople(
+  limit: number,
+  offset: number,
+  searchQuery?: string
+): Promise<PaginatedPeople> {
+  // If searching, use FTS5
+  if (searchQuery && searchQuery.trim()) {
+    const matchingIds = searchContentIds("person", searchQuery);
+    
+    if (matchingIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+    
+    const items = await db
+      .select()
+      .from(people)
+      .where(inArray(people.id, matchingIds))
+      .orderBy(asc(people.name))
+      .limit(limit)
+      .offset(offset);
+    
+    return { items, total: matchingIds.length };
+  }
+  
+  // No search - get total count and paginated items
+  const [{ total }] = await db.select({ total: count() }).from(people);
+  
+  const items = await db
+    .select()
+    .from(people)
+    .orderBy(asc(people.name))
+    .limit(limit)
+    .offset(offset);
+  
+  return { items, total };
 }

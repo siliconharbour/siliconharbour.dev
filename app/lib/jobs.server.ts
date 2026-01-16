@@ -1,8 +1,9 @@
 import { db } from "~/db";
 import { jobs, type Job, type NewJob } from "~/db/schema";
-import { eq, desc, gte, or, isNull } from "drizzle-orm";
+import { eq, desc, gte, or, isNull, and, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
+import { searchContentIds } from "./search.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: jobs.slug }).from(jobs);
@@ -77,4 +78,64 @@ export async function getActiveJobs(): Promise<Job[]> {
     .from(jobs)
     .where(or(isNull(jobs.expiresAt), gte(jobs.expiresAt, now)))
     .orderBy(desc(jobs.postedAt));
+}
+
+// =============================================================================
+// Paginated queries with search
+// =============================================================================
+
+export interface PaginatedJobs {
+  items: Job[];
+  total: number;
+}
+
+export async function getPaginatedJobs(
+  limit: number,
+  offset: number,
+  searchQuery?: string
+): Promise<PaginatedJobs> {
+  const now = new Date();
+  const activeCondition = or(isNull(jobs.expiresAt), gte(jobs.expiresAt, now));
+  
+  // If searching, use FTS5
+  if (searchQuery && searchQuery.trim()) {
+    const matchingIds = searchContentIds("job", searchQuery);
+    
+    if (matchingIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+    
+    // Filter to only active jobs that match search
+    const items = await db
+      .select()
+      .from(jobs)
+      .where(and(activeCondition, inArray(jobs.id, matchingIds)))
+      .orderBy(desc(jobs.postedAt))
+      .limit(limit)
+      .offset(offset);
+    
+    // Count total matching active jobs
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(jobs)
+      .where(and(activeCondition, inArray(jobs.id, matchingIds)));
+    
+    return { items, total };
+  }
+  
+  // No search - get total count and paginated items (active only)
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(jobs)
+    .where(activeCondition);
+  
+  const items = await db
+    .select()
+    .from(jobs)
+    .where(activeCondition)
+    .orderBy(desc(jobs.postedAt))
+    .limit(limit)
+    .offset(offset);
+  
+  return { items, total };
 }

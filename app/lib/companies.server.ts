@@ -1,8 +1,14 @@
 import { db } from "~/db";
 import { companies, type Company, type NewCompany } from "~/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
+import { searchContentIds } from "./search.server";
+
+export interface PaginatedCompanies {
+  items: Company[];
+  total: number;
+}
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: companies.slug }).from(companies);
@@ -68,5 +74,42 @@ export async function getCompanyBySlug(slug: string): Promise<Company | null> {
 }
 
 export async function getAllCompanies(): Promise<Company[]> {
-  return db.select().from(companies).orderBy(desc(companies.createdAt));
+  return db.select().from(companies).orderBy(asc(companies.name));
+}
+
+export async function getPaginatedCompanies(
+  limit: number,
+  offset: number,
+  searchQuery?: string
+): Promise<PaginatedCompanies> {
+  // If searching, use FTS5
+  if (searchQuery && searchQuery.trim()) {
+    const matchingIds = searchContentIds("company", searchQuery);
+    
+    if (matchingIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+    
+    const items = await db
+      .select()
+      .from(companies)
+      .where(inArray(companies.id, matchingIds))
+      .orderBy(asc(companies.name))
+      .limit(limit)
+      .offset(offset);
+    
+    return { items, total: matchingIds.length };
+  }
+  
+  // No search - get total count and paginated items
+  const [{ total }] = await db.select({ total: count() }).from(companies);
+  
+  const items = await db
+    .select()
+    .from(companies)
+    .orderBy(asc(companies.name))
+    .limit(limit)
+    .offset(offset);
+  
+  return { items, total };
 }

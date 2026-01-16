@@ -1,8 +1,9 @@
 import { db } from "~/db";
 import { news, type News, type NewNews } from "~/db/schema";
-import { eq, desc, isNotNull, lte } from "drizzle-orm";
+import { eq, desc, isNotNull, lte, and, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
+import { searchContentIds } from "./search.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: news.slug }).from(news);
@@ -77,4 +78,64 @@ export async function getPublishedNews(): Promise<News[]> {
     .from(news)
     .where(lte(news.publishedAt, now))
     .orderBy(desc(news.publishedAt));
+}
+
+// =============================================================================
+// Paginated queries with search
+// =============================================================================
+
+export interface PaginatedNews {
+  items: News[];
+  total: number;
+}
+
+export async function getPaginatedNews(
+  limit: number,
+  offset: number,
+  searchQuery?: string
+): Promise<PaginatedNews> {
+  const now = new Date();
+  const publishedCondition = lte(news.publishedAt, now);
+  
+  // If searching, use FTS5
+  if (searchQuery && searchQuery.trim()) {
+    const matchingIds = searchContentIds("news", searchQuery);
+    
+    if (matchingIds.length === 0) {
+      return { items: [], total: 0 };
+    }
+    
+    // Filter to only published articles that match search
+    const items = await db
+      .select()
+      .from(news)
+      .where(and(publishedCondition, inArray(news.id, matchingIds)))
+      .orderBy(desc(news.publishedAt))
+      .limit(limit)
+      .offset(offset);
+    
+    // Count total matching published articles
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(news)
+      .where(and(publishedCondition, inArray(news.id, matchingIds)));
+    
+    return { items, total };
+  }
+  
+  // No search - get total count and paginated items (published only)
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(news)
+    .where(publishedCondition);
+  
+  const items = await db
+    .select()
+    .from(news)
+    .where(publishedCondition)
+    .orderBy(desc(news.publishedAt))
+    .limit(limit)
+    .offset(offset);
+  
+  return { items, total };
 }

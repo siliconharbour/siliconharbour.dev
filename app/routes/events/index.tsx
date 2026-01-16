@@ -1,6 +1,7 @@
 import type { Route } from "./+types/index";
-import { useLoaderData } from "react-router";
-import { getUpcomingEvents } from "~/lib/events.server";
+import { useLoaderData, Form } from "react-router";
+import { getPaginatedEvents, type EventFilter } from "~/lib/events.server";
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,24 +11,107 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({}: Route.LoaderArgs) {
-  const events = await getUpcomingEvents();
-  return { events };
+export async function loader({ request }: Route.LoaderArgs) {
+  const url = new URL(request.url);
+  const { limit, offset } = parsePaginationParams(url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const filter = (url.searchParams.get("filter") || "upcoming") as EventFilter;
+  
+  const { items: events, total } = await getPaginatedEvents(limit, offset, searchQuery, filter);
+  
+  return { events, total, limit, offset, searchQuery, filter };
 }
 
 export default function EventsIndex() {
-  const { events } = useLoaderData<typeof loader>();
+  const { events, total, limit, offset, searchQuery, filter } = useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
       <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold text-harbour-700">Events</h1>
-          <p className="text-harbour-500">Upcoming tech events in the community</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-bold text-harbour-700">Events</h1>
+            <p className="text-harbour-500">Tech events in the community</p>
+          </div>
+          
+          {/* Filter tabs */}
+          <div className="flex gap-2">
+            <a
+              href={`/events?filter=upcoming${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
+              className={`px-3 py-1.5 text-sm no-underline transition-colors ${
+                filter === "upcoming"
+                  ? "bg-harbour-600 text-white"
+                  : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
+              }`}
+            >
+              Upcoming
+            </a>
+            <a
+              href={`/events?filter=past${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
+              className={`px-3 py-1.5 text-sm no-underline transition-colors ${
+                filter === "past"
+                  ? "bg-harbour-600 text-white"
+                  : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
+              }`}
+            >
+              Past
+            </a>
+            <a
+              href={`/events?filter=all${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
+              className={`px-3 py-1.5 text-sm no-underline transition-colors ${
+                filter === "all"
+                  ? "bg-harbour-600 text-white"
+                  : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
+              }`}
+            >
+              All
+            </a>
+          </div>
+          
+          {/* Search */}
+          <Form method="get" className="flex gap-2">
+            <input type="hidden" name="filter" value={filter} />
+            <input
+              type="text"
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="Search events..."
+              className="flex-1 px-3 py-2 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+            >
+              Search
+            </button>
+            {searchQuery && (
+              <a
+                href={`/events?filter=${filter}`}
+                className="px-4 py-2 text-sm text-harbour-600 border border-harbour-200 hover:border-harbour-300 no-underline"
+              >
+                Clear
+              </a>
+            )}
+          </Form>
+          
+          {/* Result count */}
+          {searchQuery && (
+            <p className="text-sm text-harbour-500">
+              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+            </p>
+          )}
         </div>
 
         {events.length === 0 ? (
-          <p className="text-harbour-400">No upcoming events at the moment.</p>
+          <p className="text-harbour-400">
+            {searchQuery 
+              ? "No events match your search." 
+              : filter === "upcoming" 
+                ? "No upcoming events at the moment."
+                : filter === "past"
+                  ? "No past events found."
+                  : "No events listed yet."}
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map((event) => (
@@ -62,6 +146,8 @@ export default function EventsIndex() {
             ))}
           </div>
         )}
+        
+        <Pagination total={total} limit={limit} offset={offset} />
       </div>
     </div>
   );

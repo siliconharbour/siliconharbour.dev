@@ -13,3 +13,6 @@ if (!existsSync(dir)) {
 
 const sqlite = new Database(dbPath);
 export const db = drizzle(sqlite, { schema });
+
+// Export raw sqlite for FTS5 queries
+export const rawDb = sqlite;
