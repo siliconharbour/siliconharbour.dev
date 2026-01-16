@@ -119,12 +119,6 @@ export default function Home() {
         <p className="text-2xl md:text-3xl lg:text-3xl font-bold text-harbour-600 tracking-wide pt-4">
           siliconharbour.dev
         </p>
-        <a
-          href="/calendar.ics"
-          className="text-sm text-harbour-400 hover:text-harbour-600 transition-colors pt-4"
-        >
-          Subscribe to Calendar
-        </a>
       </header>
 
       {/* Main Content */}
