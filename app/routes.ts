@@ -39,6 +39,7 @@ export default [
   
   // Public routes with shared layout (header/footer with visibility config)
   layout("routes/public-layout.tsx", [
+    route("about", "routes/about.tsx"),
     route("conduct", "routes/conduct.tsx"),
     route("feeds", "routes/feeds.tsx"),
     route("calendar", "routes/calendar.tsx"),

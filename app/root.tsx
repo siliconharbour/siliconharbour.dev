@@ -1,5 +1,6 @@
 import {
   isRouteErrorResponse,
+  Link,
   Links,
   Meta,
   Outlet,
@@ -34,6 +35,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Link
+          to="/about"
+          className="fixed bottom-4 right-4 z-50 bg-harbour-600 text-white px-4 py-2 text-sm font-medium no-underline hover:bg-harbour-700 transition-colors shadow-lg"
+        >
+          About
+        </Link>
         <ScrollRestoration />
         <Scripts />
       </body>
