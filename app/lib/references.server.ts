@@ -280,6 +280,7 @@ const contentTypeRoutes: Record<ContentType, string> = {
   person: "/people",
   news: "/news",
   job: "/jobs",
+  project: "/projects",
 };
 
 export function getContentUrl(type: ContentType, slug: string): string {

@@ -27,7 +27,7 @@ export const sessions = sqliteTable("sessions", {
 // =============================================================================
 
 // Content type enum for the references table
-export const contentTypes = ["event", "company", "group", "learning", "person", "news", "job"] as const;
+export const contentTypes = ["event", "company", "group", "learning", "person", "news", "job", "project"] as const;
 export type ContentType = typeof contentTypes[number];
 
 // Events - tech meetups, conferences, workshops
@@ -174,6 +174,51 @@ export const jobs = sqliteTable("jobs", {
 });
 
 // =============================================================================
+// Projects - community projects, apps, games, tools
+// =============================================================================
+
+export const projectTypes = ["game", "webapp", "library", "tool", "hardware", "other"] as const;
+export type ProjectType = typeof projectTypes[number];
+
+export const projectStatuses = ["active", "completed", "archived", "on-hold"] as const;
+export type ProjectStatus = typeof projectStatuses[number];
+
+export const projects = sqliteTable("projects", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(), // markdown
+  // Links as JSON: { github?, itchio?, website?, demo?, npm?, pypi?, steam?, etc. }
+  links: text("links"), // JSON string
+  type: text("type", { enum: projectTypes }).notNull().default("other"),
+  status: text("status", { enum: projectStatuses }).notNull().default("active"),
+  logo: text("logo"), // icon/avatar image
+  coverImage: text("cover_image"), // primary cover photo
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Project gallery images
+export const projectImages = sqliteTable("project_images", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  image: text("image").notNull(), // filename
+  caption: text("caption"), // optional caption
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  projectIdx: index("project_images_project_idx").on(table.projectId),
+}));
+
+// =============================================================================
 // Comments - anonymous user feedback on content
 // =============================================================================
 
@@ -257,3 +302,9 @@ export type NewReference = typeof references.$inferInsert;
 
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+
+export type Project = typeof projects.$inferSelect;
+export type NewProject = typeof projects.$inferInsert;
+
+export type ProjectImage = typeof projectImages.$inferSelect;
+export type NewProjectImage = typeof projectImages.$inferInsert;

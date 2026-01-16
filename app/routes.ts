@@ -35,6 +35,10 @@ export default [
     index("routes/jobs/index.tsx"),
     route(":slug", "routes/jobs/detail.tsx"),
   ]),
+  ...prefix("projects", [
+    index("routes/projects/index.tsx"),
+    route(":slug", "routes/projects/detail.tsx"),
+  ]),
   
   // RSS feeds
   route("feed.rss", "routes/feed-rss.tsx"),
@@ -93,6 +97,12 @@ export default [
       route("new", "routes/manage/jobs/new.tsx"),
       route(":id", "routes/manage/jobs/edit.tsx"),
       route(":id/delete", "routes/manage/jobs/delete.tsx"),
+    ]),
+    ...prefix("projects", [
+      index("routes/manage/projects/index.tsx"),
+      route("new", "routes/manage/projects/new.tsx"),
+      route(":id", "routes/manage/projects/edit.tsx"),
+      route(":id/delete", "routes/manage/projects/delete.tsx"),
     ]),
   ]),
 ] satisfies RouteConfig;

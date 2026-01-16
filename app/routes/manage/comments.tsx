@@ -30,6 +30,7 @@ function getContentUrl(contentType: ContentType, contentId: number): string {
     person: "people",
     news: "news",
     job: "jobs",
+    project: "projects",
   };
   // We don't have slug here, so link to admin edit page instead
   return `/manage/${typeToPath[contentType]}/${contentId}`;
@@ -44,6 +45,7 @@ function getContentLabel(contentType: ContentType): string {
     person: "Person",
     news: "News",
     job: "Job",
+    project: "Project",
   };
   return labels[contentType];
 }
