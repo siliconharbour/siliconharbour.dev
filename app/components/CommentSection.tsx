@@ -34,11 +34,28 @@ export function CommentSection({
 
   const publicComments = comments.filter((c) => !c.isPrivate);
   const privateComments = comments.filter((c) => c.isPrivate);
-  const commentCount = publicComments.length;
+  const publicCount = publicComments.length;
+  const privateCount = privateComments.length;
 
-  const summaryText = commentCount === 0 
-    ? "No Comments" 
-    : `${commentCount} Comment${commentCount === 1 ? "" : "s"}`;
+  // Build summary text
+  let summaryText: string;
+  if (isAdmin) {
+    // Admins always see counts, never "No Comments"
+    const parts: string[] = [];
+    if (publicCount > 0) {
+      parts.push(`${publicCount} Comment${publicCount === 1 ? "" : "s"}`);
+    }
+    if (privateCount > 0) {
+      parts.push(`${privateCount} Private`);
+    }
+    summaryText = parts.length > 0 ? parts.join(", ") : "Leave Feedback";
+  } else {
+    summaryText = publicCount === 0 
+      ? "No Comments" 
+      : `${publicCount} Comment${publicCount === 1 ? "" : "s"}`;
+  }
+
+  const hasAnyComments = publicCount > 0 || (isAdmin && privateCount > 0);
 
   return (
     <div className="border-t border-harbour-200/50 pt-4 mt-6 text-sm">
@@ -60,7 +77,7 @@ export function CommentSection({
           {publicComments.length > 0 && (
             <div className="flex flex-col gap-3">
               {publicComments.map((comment) => (
-                <CommentCard key={comment.id} comment={comment} />
+                <CommentCard key={comment.id} comment={comment} isAdmin={isAdmin} />
               ))}
             </div>
           )}
@@ -76,14 +93,14 @@ export function CommentSection({
               </p>
               <div className="flex flex-col gap-3">
                 {privateComments.map((comment) => (
-                  <CommentCard key={comment.id} comment={comment} isPrivate />
+                  <CommentCard key={comment.id} comment={comment} isPrivate isAdmin={isAdmin} />
                 ))}
               </div>
             </div>
           )}
 
           {/* Comment Form - wrapped in details only if there are existing comments */}
-          {commentCount > 0 ? (
+          {hasAnyComments ? (
             <details className="mt-2">
               <summary className="cursor-pointer select-none text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-2 text-xs">
                 <svg 
@@ -237,22 +254,50 @@ function CommentForm({
   );
 }
 
-function CommentCard({ comment, isPrivate = false }: { comment: Comment; isPrivate?: boolean }) {
+function CommentCard({ 
+  comment, 
+  isPrivate = false,
+  isAdmin = false,
+}: { 
+  comment: Comment; 
+  isPrivate?: boolean;
+  isAdmin?: boolean;
+}) {
+  const fetcher = useFetcher();
+  const isDeleting = fetcher.state !== "idle";
+
   return (
     <div
       className={`p-3 text-sm ${
         isPrivate
           ? "bg-amber-50 ring-1 ring-amber-200"
           : "ring-1 ring-harbour-200/50"
-      }`}
+      } ${isDeleting ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between mb-1">
         <span className="font-medium text-harbour-700 text-xs">
           {comment.authorName || "Anonymous"}
         </span>
-        <span className="text-xs text-harbour-400">
-          {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-harbour-400">
+            {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
+          </span>
+          {isAdmin && (
+            <fetcher.Form method="post" action="/api/comments/delete">
+              <input type="hidden" name="commentId" value={comment.id} />
+              <button
+                type="submit"
+                disabled={isDeleting}
+                className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50"
+                title="Delete comment"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </fetcher.Form>
+          )}
+        </div>
       </div>
       <p className="text-harbour-600 whitespace-pre-wrap">{comment.content}</p>
       {isPrivate && (

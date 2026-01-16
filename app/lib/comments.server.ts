@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { comments, type Comment, type NewComment, type ContentType } from "~/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 
 /**
@@ -119,4 +119,41 @@ export async function getRecentCommentCount(
   
   // Filter by time in JS since SQLite timestamp comparison is tricky
   return result.filter(c => c.createdAt >= windowStart).length;
+}
+
+/**
+ * Get paginated comments for admin view
+ */
+export async function getPaginatedComments(
+  page: number = 1,
+  perPage: number = 20
+): Promise<{ comments: Comment[]; total: number; totalPages: number }> {
+  const offset = (page - 1) * perPage;
+  
+  const [allComments, countResult] = await Promise.all([
+    db
+      .select()
+      .from(comments)
+      .orderBy(desc(comments.createdAt))
+      .limit(perPage)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(comments),
+  ]);
+  
+  const total = countResult[0]?.count ?? 0;
+  const totalPages = Math.ceil(total / perPage);
+  
+  return { comments: allComments, total, totalPages };
+}
+
+/**
+ * Get total comment count
+ */
+export async function getCommentCount(): Promise<number> {
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(comments);
+  return result[0]?.count ?? 0;
 }

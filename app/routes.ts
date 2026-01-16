@@ -44,12 +44,14 @@ export default [
   
   // API routes
   route("api/comments", "routes/api.comments.tsx"),
+  route("api/comments/delete", "routes/api.comments.delete.tsx"),
   
   // Admin routes
   ...prefix("manage", [
     route("login", "routes/manage/login.tsx"),
     route("logout", "routes/manage/logout.tsx"),
     index("routes/manage/index.tsx"),
+    route("comments", "routes/manage/comments.tsx"),
     ...prefix("events", [
       index("routes/manage/events/index.tsx"),
       route("new", "routes/manage/events/new.tsx"),

@@ -8,6 +8,7 @@ import { getAllLearning } from "~/lib/learning.server";
 import { getAllPeople } from "~/lib/people.server";
 import { getAllNews } from "~/lib/news.server";
 import { getAllJobs } from "~/lib/jobs.server";
+import { getCommentCount } from "~/lib/comments.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -17,7 +18,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
-  const [events, companies, groups, learning, people, news, jobs] = await Promise.all([
+  const [events, companies, groups, learning, people, news, jobs, commentsCount] = await Promise.all([
     getAllEvents(),
     getAllCompanies(),
     getAllGroups(),
@@ -25,6 +26,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     getAllPeople(),
     getAllNews(),
     getAllJobs(),
+    getCommentCount(),
   ]);
   return { 
     user, 
@@ -36,6 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       people: people.length,
       news: news.length,
       jobs: jobs.length,
+      comments: commentsCount,
     }
   };
 }
@@ -48,6 +51,7 @@ const contentTypes = [
   { key: "people", label: "People", href: "/manage/people" },
   { key: "news", label: "News", href: "/manage/news" },
   { key: "jobs", label: "Jobs", href: "/manage/jobs" },
+  { key: "comments", label: "Comments", href: "/manage/comments" },
 ] as const;
 
 export default function ManageIndex() {
