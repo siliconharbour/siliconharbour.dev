@@ -43,27 +43,19 @@ export default function NewsIndex() {
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
       <div className="flex flex-col gap-8">
-        {/* Header */}
-        <div className="flex flex-col gap-4">
-          <div className="border-b-2 border-harbour-700 pb-2">
-            <h1 className="text-4xl font-bold text-harbour-700 tracking-tight">News</h1>
-            <p className="text-harbour-500 mt-1">Community announcements and updates</p>
+        {/* Search - only show if pagination is needed */}
+        {(total > limit || searchQuery) && (
+          <div className="flex flex-col gap-2">
+            <SearchInput placeholder="Search news..." />
+            
+            {/* Result count */}
+            {searchQuery && (
+              <p className="text-sm text-harbour-500">
+                {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+              </p>
+            )}
           </div>
-          
-          {/* Search - only show if pagination is needed */}
-          {(total > limit || searchQuery) && (
-            <>
-              <SearchInput placeholder="Search news..." />
-              
-              {/* Result count */}
-              {searchQuery && (
-                <p className="text-sm text-harbour-500">
-                  {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-                </p>
-              )}
-            </>
-          )}
-        </div>
+        )}
 
         {articles.length === 0 ? (
           <p className="text-harbour-400">
@@ -73,7 +65,7 @@ export default function NewsIndex() {
           <>
             {/* Headline + Secondary Articles (newspaper style) */}
             {showHeadline && headline && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-6 border-b border-harbour-200">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Headline - 2 columns */}
                 <HeadlineArticle article={headline} />
                 
@@ -90,7 +82,7 @@ export default function NewsIndex() {
             
             {/* Remaining Articles Grid */}
             {remainingArticles.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-8" : ""}`}>
                 {remainingArticles.map((article) => (
                   <ArticleCard key={article.id} article={article} />
                 ))}
