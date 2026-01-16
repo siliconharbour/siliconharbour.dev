@@ -40,6 +40,11 @@ button[class*="bg-green"]:hover {
   @apply text-white;
 }
 
+/* Calendar buttons should NOT get white text on hover */
+button.calendar-day:hover {
+  color: inherit;
+}
+
 a:focus {
   @apply outline-none ring-2 ring-harbour-400 ring-offset-2 decoration-harbour-500;
 }
