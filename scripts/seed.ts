@@ -278,7 +278,7 @@ async function seedPeople() {
   const peopleData = [
     {
       name: "Sarah Mitchell",
-      bio: "Full-stack developer at [[CoLab Software]] and organizer of [[St. John's JavaScript]]. Passionate about React, TypeScript, and building great developer experiences.",
+      bio: "[[{Full-stack Developer} at {CoLab Software}]] and [[{Organizer} at {St. John's JavaScript}]]. Passionate about React, TypeScript, and building great developer experiences.",
       website: "https://sarahmitchell.dev",
       socialLinks: JSON.stringify({
         twitter: "sarahcodes",
@@ -288,7 +288,7 @@ async function seedPeople() {
     },
     {
       name: "James Walsh",
-      bio: "CTO and co-founder at a local startup. Previously led engineering teams at [[Verafin]]. Interested in distributed systems, fintech, and mentoring new developers.",
+      bio: "[[{CTO} at {Verafin}]] and co-founder at a local startup. Interested in distributed systems, fintech, and mentoring new developers.",
       website: "https://jameswalsh.ca",
       socialLinks: JSON.stringify({
         twitter: "jwalshtech",
@@ -297,7 +297,7 @@ async function seedPeople() {
     },
     {
       name: "Emily Chen",
-      bio: "Data scientist at [[Sequence Bio]] working on genomics and personalized medicine. PhD from [[Memorial University - Computer Science]]. Organizer of [[Data Science NL]].",
+      bio: "[[{Data Scientist} at {Sequence Bio}]] working on genomics and personalized medicine. PhD from [[Memorial University - Computer Science]]. [[{Organizer} at {Data Science NL}]].",
       socialLinks: JSON.stringify({
         github: "emilychen-ds",
         linkedin: "emilychends",
@@ -305,7 +305,7 @@ async function seedPeople() {
     },
     {
       name: "Mike O'Brien",
-      bio: "Game developer and founder of [[Clockwork Fox Studios]]. Makes indie games with heart. Active in [[NL Game Developers]] community.",
+      bio: "Game developer and [[{Founder} at {Clockwork Fox Studios}]]. Makes indie games with heart. Active in [[NL Game Developers]] community.",
       website: "https://mikeobrien.games",
       socialLinks: JSON.stringify({
         twitter: "mikemakesgames",
@@ -314,7 +314,7 @@ async function seedPeople() {
     },
     {
       name: "Rachel Power",
-      bio: "UX designer and researcher. Currently design lead at [[HeyOrca]]. Advocate for accessible design and co-organizer of [[Women in Tech NL]].",
+      bio: "UX designer and researcher. [[{Design Lead} at {HeyOrca}]]. Advocate for accessible design and [[{Co-organizer} at {Women in Tech NL}]].",
       website: "https://rachelpower.design",
       socialLinks: JSON.stringify({
         twitter: "rachelpowerux",
@@ -323,7 +323,7 @@ async function seedPeople() {
     },
     {
       name: "David Murphy",
-      bio: "Senior software engineer at [[Mysa]], working on IoT and embedded systems. Enjoys hardware hacking, home automation, and hiking the [[East Coast Trail Association]] trails.",
+      bio: "[[{Senior Software Engineer} at {Mysa}]], working on IoT and embedded systems. Enjoys hardware hacking, home automation, and hiking the [[East Coast Trail Association]] trails.",
       socialLinks: JSON.stringify({
         github: "davemurphy-iot",
         linkedin: "davidmurphynl",
@@ -331,7 +331,7 @@ async function seedPeople() {
     },
     {
       name: "Amanda King",
-      bio: "Engineering manager at [[Verafin]] focused on growing and developing high-performing teams. Speaker on tech leadership and engineering culture.",
+      bio: "[[{Engineering Manager} at {Verafin}]] focused on growing and developing high-performing teams. Speaker on tech leadership and engineering culture.",
       website: "https://amandaking.tech",
       socialLinks: JSON.stringify({
         twitter: "amandaleads",
@@ -340,7 +340,7 @@ async function seedPeople() {
     },
     {
       name: "Chris Parsons",
-      bio: "Freelance web developer and consultant. Specializes in e-commerce and helping local businesses establish their online presence. Mentor at [[Genesis Centre]].",
+      bio: "Freelance web developer and consultant. Specializes in e-commerce and helping local businesses establish their online presence. [[{Mentor} at {Genesis Centre}]].",
       website: "https://chrisparsons.dev",
       socialLinks: JSON.stringify({
         twitter: "chrisbuildswebs",
@@ -349,7 +349,7 @@ async function seedPeople() {
     },
     {
       name: "Lisa Fong",
-      bio: "Mobile developer at [[Bluedrop ISM]] building learning applications. Kotlin and Swift enthusiast. Regular speaker at [[NL Tech]] meetups.",
+      bio: "[[{Mobile Developer} at {Bluedrop ISM}]] building learning applications. Kotlin and Swift enthusiast. Regular speaker at [[NL Tech]] meetups.",
       socialLinks: JSON.stringify({
         github: "lisafongmobile",
         linkedin: "lisafongnl",
@@ -357,7 +357,7 @@ async function seedPeople() {
     },
     {
       name: "Tom Ryan",
-      bio: "DevOps engineer passionate about cloud infrastructure and automation. AWS certified. Helping [[Kraken Robotics]] scale their systems for global deployment.",
+      bio: "[[{DevOps Engineer} at {Kraken Robotics}]] passionate about cloud infrastructure and automation. AWS certified. Helping scale their systems for global deployment.",
       socialLinks: JSON.stringify({
         github: "tomryan-devops",
         linkedin: "tomryannl",
@@ -365,7 +365,7 @@ async function seedPeople() {
     },
     {
       name: "Jennifer Baird",
-      bio: "Product manager at [[Solace Power]] bridging the gap between engineering and business. Background in electrical engineering from [[Memorial University - Computer Science]].",
+      bio: "[[{Product Manager} at {Solace Power}]] bridging the gap between engineering and business. Background in electrical engineering from [[Memorial University - Computer Science]].",
       website: "https://jenniferb.pm",
       socialLinks: JSON.stringify({
         twitter: "jenbairdpm",
@@ -374,7 +374,7 @@ async function seedPeople() {
     },
     {
       name: "Kevin Nolan",
-      bio: "Student at [[College of the North Atlantic - IT Programs]] and aspiring developer. Active in [[freeCodeCamp St. John's Study Group]] and always eager to learn from the community.",
+      bio: "[[{Student} at {College of the North Atlantic - IT Programs}]] and aspiring developer. Active in [[freeCodeCamp St. John's Study Group]] and always eager to learn from the community.",
       socialLinks: JSON.stringify({
         github: "kevinnolan-dev",
         linkedin: "kevinnolanstj",

@@ -287,6 +287,9 @@ export const references = sqliteTable("references", {
   targetId: integer("target_id").notNull(),
   // The original reference text (for display/debugging)
   referenceText: text("reference_text").notNull(), // e.g., "Verafin" or "John Smith"
+  // Optional relation metadata (e.g., "CEO", "Founder", "Organizer")
+  // Used with syntax: [[{CEO} at {CoLab Software}]]
+  relation: text("relation"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

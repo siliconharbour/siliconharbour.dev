@@ -21,27 +21,46 @@ import { eq, and, or, asc, gte } from "drizzle-orm";
 // Reference Parser - Extract [[references]] from markdown
 // =============================================================================
 
+// Matches both simple [[Target]] and relation [[{Relation} at {Target}]] syntax
 const REFERENCE_REGEX = /\[\[([^\]]+)\]\]/g;
+// Matches the relation syntax: {Relation} at {Target}
+const RELATION_REGEX = /^\{([^}]+)\}\s+at\s+\{([^}]+)\}$/i;
 
 export interface ParsedReference {
-  text: string;      // The text inside [[...]]
+  text: string;      // The target text (entity name)
+  relation?: string; // Optional relation (e.g., "CEO", "Founder")
   fullMatch: string; // The full [[...]] match
   index: number;     // Position in the string
 }
 
 /**
  * Extract all [[reference]] patterns from markdown content
+ * Supports both simple [[Target]] and [[{Relation} at {Target}]] syntax
  */
 export function parseReferences(content: string): ParsedReference[] {
   const refs: ParsedReference[] = [];
   let match;
   
   while ((match = REFERENCE_REGEX.exec(content)) !== null) {
-    refs.push({
-      text: match[1].trim(),
-      fullMatch: match[0],
-      index: match.index,
-    });
+    const inner = match[1].trim();
+    const relationMatch = RELATION_REGEX.exec(inner);
+    
+    if (relationMatch) {
+      // Relation syntax: [[{CEO} at {CoLab Software}]]
+      refs.push({
+        text: relationMatch[2].trim(),
+        relation: relationMatch[1].trim(),
+        fullMatch: match[0],
+        index: match.index,
+      });
+    } else {
+      // Simple syntax: [[CoLab Software]]
+      refs.push({
+        text: inner,
+        fullMatch: match[0],
+        index: match.index,
+      });
+    }
   }
   
   return refs;
@@ -234,6 +253,19 @@ export async function syncReferences(
 ): Promise<{ resolved: ResolvedReference[]; unresolved: UnresolvedReference[] }> {
   // Parse references from content
   const parsed = parseReferences(content);
+  
+  // Build a map of text -> relation for quick lookup
+  const relationMap = new Map<string, string | undefined>();
+  for (const p of parsed) {
+    // If we've seen this text before without a relation, but now have one, use the relation
+    const existing = relationMap.get(p.text);
+    if (!existing && p.relation) {
+      relationMap.set(p.text, p.relation);
+    } else if (!relationMap.has(p.text)) {
+      relationMap.set(p.text, p.relation);
+    }
+  }
+  
   const texts = parsed.map(p => p.text);
   
   // Resolve all references
@@ -261,6 +293,7 @@ export async function syncReferences(
         targetType: result.reference.type,
         targetId: result.reference.id,
         referenceText: text,
+        relation: relationMap.get(text) || null,
       });
     } else {
       unresolved.push(result.reference);
@@ -310,6 +343,7 @@ export interface SerializedRef {
   type: ContentType;
   slug: string;
   name: string;
+  relation?: string;
 }
 
 /**
@@ -321,6 +355,14 @@ export async function prepareRefsForClient(content: string): Promise<Record<stri
   const texts = parsed.map(p => p.text);
   const resolutions = await resolveReferences(texts);
   
+  // Build relation map
+  const relationMap = new Map<string, string | undefined>();
+  for (const p of parsed) {
+    if (p.relation && !relationMap.has(p.text)) {
+      relationMap.set(p.text, p.relation);
+    }
+  }
+  
   const result: Record<string, SerializedRef> = {};
   
   for (const [text, resolution] of resolutions) {
@@ -330,6 +372,7 @@ export async function prepareRefsForClient(content: string): Promise<Record<stri
         type: resolution.reference.type,
         slug: resolution.reference.slug,
         name: resolution.reference.name,
+        relation: relationMap.get(text),
       };
     }
   }
@@ -416,14 +459,14 @@ export async function getRichIncomingReferences(
 // =============================================================================
 
 export type DetailedBacklink = 
-  | { type: "event"; data: { id: number; slug: string; title: string; coverImage: string | null; nextDate: Date | null } }
-  | { type: "company"; data: { id: number; slug: string; name: string; logo: string | null; location: string | null } }
-  | { type: "group"; data: { id: number; slug: string; name: string; logo: string | null } }
-  | { type: "learning"; data: { id: number; slug: string; name: string; logo: string | null; type: string | null } }
-  | { type: "person"; data: { id: number; slug: string; name: string; avatar: string | null } }
-  | { type: "news"; data: { id: number; slug: string; title: string; coverImage: string | null; excerpt: string | null; publishedAt: Date | null } }
-  | { type: "job"; data: { id: number; slug: string; title: string; companyName: string | null; location: string | null; remote: boolean } }
-  | { type: "project"; data: { id: number; slug: string; name: string; logo: string | null; type: string } };
+  | { type: "event"; relation?: string; data: { id: number; slug: string; title: string; coverImage: string | null; nextDate: Date | null } }
+  | { type: "company"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; location: string | null } }
+  | { type: "group"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null } }
+  | { type: "learning"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; type: string | null } }
+  | { type: "person"; relation?: string; data: { id: number; slug: string; name: string; avatar: string | null } }
+  | { type: "news"; relation?: string; data: { id: number; slug: string; title: string; coverImage: string | null; excerpt: string | null; publishedAt: Date | null } }
+  | { type: "job"; relation?: string; data: { id: number; slug: string; title: string; companyName: string | null; location: string | null; remote: boolean } }
+  | { type: "project"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; type: string } };
 
 /**
  * Get detailed backlink data for rich display on detail pages
@@ -459,6 +502,7 @@ export async function getDetailedBacklinks(
           
           backlinks.push({
             type: "event",
+            relation: ref.relation ?? undefined,
             data: { ...event, nextDate: nextDate?.startDate ?? null }
           });
         }
@@ -474,7 +518,7 @@ export async function getDetailedBacklinks(
         }).from(companies).where(eq(companies.id, ref.sourceId));
         
         if (company) {
-          backlinks.push({ type: "company", data: company });
+          backlinks.push({ type: "company", relation: ref.relation ?? undefined, data: company });
         }
         break;
       }
@@ -487,7 +531,7 @@ export async function getDetailedBacklinks(
         }).from(groups).where(eq(groups.id, ref.sourceId));
         
         if (group) {
-          backlinks.push({ type: "group", data: group });
+          backlinks.push({ type: "group", relation: ref.relation ?? undefined, data: group });
         }
         break;
       }
@@ -501,7 +545,7 @@ export async function getDetailedBacklinks(
         }).from(learning).where(eq(learning.id, ref.sourceId));
         
         if (inst) {
-          backlinks.push({ type: "learning", data: inst });
+          backlinks.push({ type: "learning", relation: ref.relation ?? undefined, data: inst });
         }
         break;
       }
@@ -514,7 +558,7 @@ export async function getDetailedBacklinks(
         }).from(people).where(eq(people.id, ref.sourceId));
         
         if (person) {
-          backlinks.push({ type: "person", data: person });
+          backlinks.push({ type: "person", relation: ref.relation ?? undefined, data: person });
         }
         break;
       }
@@ -529,7 +573,7 @@ export async function getDetailedBacklinks(
         }).from(news).where(eq(news.id, ref.sourceId));
         
         if (article) {
-          backlinks.push({ type: "news", data: article });
+          backlinks.push({ type: "news", relation: ref.relation ?? undefined, data: article });
         }
         break;
       }
@@ -544,7 +588,7 @@ export async function getDetailedBacklinks(
         }).from(jobs).where(eq(jobs.id, ref.sourceId));
         
         if (job) {
-          backlinks.push({ type: "job", data: job });
+          backlinks.push({ type: "job", relation: ref.relation ?? undefined, data: job });
         }
         break;
       }
@@ -558,7 +602,7 @@ export async function getDetailedBacklinks(
         }).from(projects).where(eq(projects.id, ref.sourceId));
         
         if (project) {
-          backlinks.push({ type: "project", data: project });
+          backlinks.push({ type: "project", relation: ref.relation ?? undefined, data: project });
         }
         break;
       }

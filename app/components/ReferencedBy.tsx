@@ -70,7 +70,7 @@ function BacklinkCard({ backlink }: { backlink: DetailedBacklink }) {
     case "group":
       return <GroupCard data={backlink.data} />;
     case "person":
-      return <PersonCard data={backlink.data} />;
+      return <PersonCard data={backlink.data} relation={backlink.relation} />;
     case "learning":
       return <LearningCard data={backlink.data} />;
     default:
@@ -254,7 +254,7 @@ function GroupCard({ data }: { data: DetailedBacklink & { type: "group" } extend
   );
 }
 
-function PersonCard({ data }: { data: DetailedBacklink & { type: "person" } extends { data: infer D } ? D : never }) {
+function PersonCard({ data, relation }: { data: DetailedBacklink & { type: "person" } extends { data: infer D } ? D : never; relation?: string }) {
   return (
     <Link
       to={`/people/${data.slug}`}
@@ -273,9 +273,14 @@ function PersonCard({ data }: { data: DetailedBacklink & { type: "person" } exte
           <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
         </div>
       )}
-      <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1 flex-1 min-w-0">
-        {data.name}
-      </h4>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+          {data.name}
+        </h4>
+        {relation && (
+          <p className="text-sm text-harbour-500">{relation}</p>
+        )}
+      </div>
     </Link>
   );
 }

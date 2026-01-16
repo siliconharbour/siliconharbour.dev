@@ -11,6 +11,7 @@ export interface ResolvedRef {
   type: ContentType;
   slug: string;
   name: string;
+  relation?: string;
 }
 
 interface RichMarkdownProps {
@@ -43,10 +44,13 @@ function getContentUrl(type: ContentType, slug: string): string {
 // =============================================================================
 
 const REFERENCE_REGEX = /\[\[([^\]]+)\]\]/g;
+// Matches the relation syntax: {Relation} at {Target}
+const RELATION_REGEX = /^\{([^}]+)\}\s+at\s+\{([^}]+)\}$/i;
 
 /**
  * Pre-process markdown to convert [[references]] to links
  * Resolved refs become real links, unresolved ones stay as styled text
+ * Supports both [[Target]] and [[{Relation} at {Target}]] syntax
  */
 function processReferences(
   content: string, 
@@ -54,6 +58,25 @@ function processReferences(
 ): string {
   return content.replace(REFERENCE_REGEX, (match, text) => {
     const trimmed = text.trim();
+    
+    // Check for relation syntax: [[{CEO} at {CoLab Software}]]
+    const relationMatch = RELATION_REGEX.exec(trimmed);
+    if (relationMatch) {
+      const relation = relationMatch[1].trim();
+      const target = relationMatch[2].trim();
+      const resolved = resolvedRefs?.[target];
+      
+      if (resolved) {
+        const url = getContentUrl(resolved.type, resolved.slug);
+        // Display as "Relation at Target" with Target linked
+        return `${relation} at [${resolved.name}](${url})`;
+      }
+      
+      // Unresolved - show the full text
+      return `${relation} at **${target}**`;
+    }
+    
+    // Simple syntax: [[Target]]
     const resolved = resolvedRefs?.[trimmed];
     
     if (resolved) {
