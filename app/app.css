@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  
+  /* Custom blue palette from siliconharbour.svg */
+  --color-harbour-50: #e8f0ff;
+  --color-harbour-100: #d1e0ff;
+  --color-harbour-200: #89adff;
+  --color-harbour-300: #7593fa;
+  --color-harbour-400: #587bf0;
+  --color-harbour-500: #4166e2;
+  --color-harbour-600: #2b51d1;
+  --color-harbour-700: #2144bb;
+  --color-harbour-800: #1a369a;
+  --color-harbour-900: #142a7a;
+}
+
+html,
+body {
+  @apply bg-white;
+}
+
+a {
+  @apply underline decoration-harbour-200 underline-offset-2 transition-all;
+}
+
+a:hover {
+  @apply decoration-harbour-500 text-harbour-700;
+}
+
+a:focus {
+  @apply outline-none ring-2 ring-harbour-400 ring-offset-2 decoration-harbour-500;
+}
+
+a:active {
+  @apply decoration-harbour-700 text-harbour-800;
+}
+
+button {
+  @apply cursor-pointer;
+}
+
+/* Blue tint overlay for images - wrap img in .img-tint div */
+.img-tint {
+  @apply relative;
+}
+
+.img-tint::after {
+  content: "";
+  @apply absolute inset-0 pointer-events-none transition-all;
+  background: var(--color-harbour-200);
+  opacity: 0.15;
+}
+
+.img-tint:hover::after,
+.img-tint:focus-within::after,
+.group:hover .img-tint::after,
+.group:focus-within .img-tint::after {
+  opacity: 0;
+}

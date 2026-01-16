@@ -1,0 +1,72 @@
+import { db } from "~/db";
+import { companies, type Company, type NewCompany } from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { generateSlug, makeSlugUnique } from "./slug";
+import { syncReferences } from "./references.server";
+
+async function getExistingSlugs(): Promise<string[]> {
+  const rows = await db.select({ slug: companies.slug }).from(companies);
+  return rows.map(r => r.slug);
+}
+
+export async function generateCompanySlug(name: string, excludeId?: number): Promise<string> {
+  const baseSlug = generateSlug(name);
+  let existingSlugs = await getExistingSlugs();
+  
+  if (excludeId) {
+    const current = await db.select({ slug: companies.slug }).from(companies).where(eq(companies.id, excludeId)).get();
+    if (current) {
+      existingSlugs = existingSlugs.filter(s => s !== current.slug);
+    }
+  }
+  
+  return makeSlugUnique(baseSlug, existingSlugs);
+}
+
+export async function createCompany(company: Omit<NewCompany, "slug">): Promise<Company> {
+  const slug = await generateCompanySlug(company.name);
+  const [newCompany] = await db.insert(companies).values({ ...company, slug }).returning();
+  
+  await syncReferences("company", newCompany.id, newCompany.description);
+  
+  return newCompany;
+}
+
+export async function updateCompany(id: number, company: Partial<Omit<NewCompany, "slug">>): Promise<Company | null> {
+  let updateData: Partial<NewCompany> = { ...company, updatedAt: new Date() };
+  
+  if (company.name) {
+    updateData.slug = await generateCompanySlug(company.name, id);
+  }
+  
+  const [updated] = await db
+    .update(companies)
+    .set(updateData)
+    .where(eq(companies.id, id))
+    .returning();
+
+  if (!updated) return null;
+
+  if (company.description) {
+    await syncReferences("company", id, company.description);
+  }
+
+  return updated;
+}
+
+export async function deleteCompany(id: number): Promise<boolean> {
+  const result = await db.delete(companies).where(eq(companies.id, id));
+  return true;
+}
+
+export async function getCompanyById(id: number): Promise<Company | null> {
+  return db.select().from(companies).where(eq(companies.id, id)).get() ?? null;
+}
+
+export async function getCompanyBySlug(slug: string): Promise<Company | null> {
+  return db.select().from(companies).where(eq(companies.slug, slug)).get() ?? null;
+}
+
+export async function getAllCompanies(): Promise<Company[]> {
+  return db.select().from(companies).orderBy(desc(companies.createdAt));
+}

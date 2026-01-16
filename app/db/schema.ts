@@ -1,0 +1,231 @@
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+
+// =============================================================================
+// Auth tables
+// =============================================================================
+
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role", { enum: ["regular", "admin"] }).notNull().default("regular"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+});
+
+// =============================================================================
+// Content types - all follow a similar pattern with slug, markdown content, timestamps
+// =============================================================================
+
+// Content type enum for the references table
+export const contentTypes = ["event", "company", "group", "learning", "person", "news", "job"] as const;
+export type ContentType = typeof contentTypes[number];
+
+// Events - tech meetups, conferences, workshops
+export const events = sqliteTable("events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description").notNull(), // markdown
+  location: text("location"),
+  link: text("link").notNull(), // external link
+  organizer: text("organizer"),
+  coverImage: text("cover_image"),
+  iconImage: text("icon_image"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const eventDates = sqliteTable("event_dates", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  eventId: integer("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  startDate: integer("start_date", { mode: "timestamp" }).notNull(),
+  endDate: integer("end_date", { mode: "timestamp" }),
+});
+
+// Companies - local tech companies
+export const companies = sqliteTable("companies", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(), // markdown
+  website: text("website"), // external link
+  location: text("location"),
+  founded: text("founded"), // year as string, flexible format
+  logo: text("logo"), // image filename
+  coverImage: text("cover_image"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Groups - meetups, communities, organizations
+export const groups = sqliteTable("groups", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(), // markdown
+  website: text("website"), // external link (meetup.com, discord, etc.)
+  meetingFrequency: text("meeting_frequency"), // e.g., "Weekly", "Monthly", "First Tuesday"
+  logo: text("logo"),
+  coverImage: text("cover_image"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Learning - educational institutions and resources
+export const learning = sqliteTable("learning", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(), // markdown
+  website: text("website"), // external link
+  type: text("type", { 
+    enum: ["university", "college", "bootcamp", "online", "other"] 
+  }).notNull().default("other"),
+  logo: text("logo"),
+  coverImage: text("cover_image"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// People - community members, speakers, etc.
+export const people = sqliteTable("people", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  bio: text("bio").notNull(), // markdown
+  website: text("website"),
+  avatar: text("avatar"), // image filename
+  // Social links stored as JSON string
+  socialLinks: text("social_links"), // JSON: { twitter?, github?, linkedin?, etc. }
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// News - announcements, articles
+export const news = sqliteTable("news", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content").notNull(), // markdown
+  excerpt: text("excerpt"), // short summary for lists/RSS
+  coverImage: text("cover_image"),
+  publishedAt: integer("published_at", { mode: "timestamp" }), // null = draft
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Jobs - employment opportunities
+export const jobs = sqliteTable("jobs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description").notNull(), // markdown
+  companyName: text("company_name"), // denormalized, can also use [[Company]] reference
+  location: text("location"),
+  remote: integer("remote", { mode: "boolean" }).notNull().default(false),
+  salaryRange: text("salary_range"), // flexible text like "$80k-$100k" or "Competitive"
+  applyLink: text("apply_link").notNull(), // external link
+  postedAt: integer("posted_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  expiresAt: integer("expires_at", { mode: "timestamp" }), // null = no expiry
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// =============================================================================
+// References - [[link]] relationships between content
+// =============================================================================
+
+// Stores extracted [[references]] from markdown content
+// Enables bidirectional queries: "what links to X" and "what does X link to"
+export const references = sqliteTable("references", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  // Source content (the one containing the [[reference]])
+  sourceType: text("source_type", { enum: contentTypes }).notNull(),
+  sourceId: integer("source_id").notNull(),
+  // Target content (the one being referenced)
+  targetType: text("target_type", { enum: contentTypes }).notNull(),
+  targetId: integer("target_id").notNull(),
+  // The original reference text (for display/debugging)
+  referenceText: text("reference_text").notNull(), // e.g., "Verafin" or "John Smith"
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  sourceIdx: index("references_source_idx").on(table.sourceType, table.sourceId),
+  targetIdx: index("references_target_idx").on(table.targetType, table.targetId),
+}));
+
+// =============================================================================
+// Type exports
+// =============================================================================
+
+export type User = typeof users.$inferSelect;
+export type Session = typeof sessions.$inferSelect;
+
+export type Event = typeof events.$inferSelect;
+export type EventDate = typeof eventDates.$inferSelect;
+export type NewEvent = typeof events.$inferInsert;
+export type NewEventDate = typeof eventDates.$inferInsert;
+
+export type Company = typeof companies.$inferSelect;
+export type NewCompany = typeof companies.$inferInsert;
+
+export type Group = typeof groups.$inferSelect;
+export type NewGroup = typeof groups.$inferInsert;
+
+export type Learning = typeof learning.$inferSelect;
+export type NewLearning = typeof learning.$inferInsert;
+
+export type Person = typeof people.$inferSelect;
+export type NewPerson = typeof people.$inferInsert;
+
+export type News = typeof news.$inferSelect;
+export type NewNews = typeof news.$inferInsert;
+
+export type Job = typeof jobs.$inferSelect;
+export type NewJob = typeof jobs.$inferInsert;
+
+export type Reference = typeof references.$inferSelect;
+export type NewReference = typeof references.$inferInsert;

@@ -1,0 +1,51 @@
+{
+  "name": "siliconharbour.dev",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "react-router dev",
+    "start": "react-router-serve ./build/server/index.js",
+    "typecheck": "react-router typegen && tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "create-user": "tsx scripts/create-user.ts"
+  },
+  "dependencies": {
+    "@react-router/node": "7.12.0",
+    "@react-router/serve": "7.12.0",
+    "@rehookify/datepicker": "^6.6.8",
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.0",
+    "date-fns": "^4.1.0",
+    "drizzle-orm": "^0.45.1",
+    "ics": "^3.8.1",
+    "isbot": "^5.1.31",
+    "react": "^19.2.3",
+    "react-day-picker": "^9.13.0",
+    "react-dom": "^19.2.3",
+    "react-image-crop": "^11.0.10",
+    "react-markdown": "^10.1.0",
+    "react-router": "7.12.0",
+    "sharp": "^0.34.5",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@react-router/dev": "7.12.0",
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/uuid": "^10.0.0",
+    "drizzle-kit": "^0.31.8",
+    "tailwindcss": "^4.1.13",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}
