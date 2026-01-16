@@ -144,24 +144,17 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
           const isToday = isSameDay(dpDay.$date, new Date());
 
           const isClickable = hasEvents && dpDay.inCurrentMonth;
-
-          return (
-            <button
-              key={dateKey}
-              type="button"
-              onClick={isClickable ? () => handleDayClick(dpDay.$date) : undefined}
-              className={`
-                calendar-day relative aspect-square flex flex-col items-center justify-start p-1 text-sm transition-colors
-                ${dpDay.inCurrentMonth ? (hasEvents ? "text-harbour-700" : "text-harbour-400") : "text-harbour-200"}
-                ${isToday ? "bg-harbour-50 font-semibold" : ""}
-                ${isClickable ? "hover:bg-harbour-50 cursor-pointer" : ""}
-              `}
-            >
-              <span
-                className={`
-                  ${isToday ? "text-harbour-600" : ""}
-                `}
-              >
+          
+          const dayClasses = `
+            calendar-day relative aspect-square flex flex-col items-center justify-start p-1 text-sm transition-colors
+            ${dpDay.inCurrentMonth ? (hasEvents ? "text-harbour-700" : "text-harbour-400") : "text-harbour-200"}
+            ${isToday ? "bg-harbour-50 font-semibold" : ""}
+            ${isClickable ? "hover:bg-harbour-50 cursor-pointer" : ""}
+          `;
+          
+          const dayContent = (
+            <>
+              <span className={isToday ? "text-harbour-600" : ""}>
                 {dpDay.day}
               </span>
               {hasEvents && dpDay.inCurrentMonth && (
@@ -178,7 +171,22 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
                   )}
                 </div>
               )}
+            </>
+          );
+
+          return isClickable ? (
+            <button
+              key={dateKey}
+              type="button"
+              onClick={() => handleDayClick(dpDay.$date)}
+              className={dayClasses}
+            >
+              {dayContent}
             </button>
+          ) : (
+            <div key={dateKey} className={dayClasses}>
+              {dayContent}
+            </div>
           );
         })}
       </div>
