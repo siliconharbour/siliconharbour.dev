@@ -2,8 +2,12 @@ import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getGroupBySlug } from "~/lib/groups.server";
 import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { getPublicComments, getAllComments } from "~/lib/comments.server";
+import { getTurnstileSiteKey } from "~/lib/turnstile.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { PublicLayout } from "~/components/PublicLayout";
 import { RichMarkdown } from "~/components/RichMarkdown";
+import { CommentSection } from "~/components/CommentSection";
 
 export function meta({ data }: Route.MetaArgs) {
   return [
@@ -11,20 +15,28 @@ export function meta({ data }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const group = await getGroupBySlug(params.slug);
   if (!group) {
     throw new Response("Group not found", { status: 404 });
   }
   
-  const resolvedRefs = await prepareRefsForClient(group.description);
-  const backlinks = await getRichIncomingReferences("group", group.id);
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
   
-  return { group, resolvedRefs, backlinks };
+  const [resolvedRefs, backlinks, comments] = await Promise.all([
+    prepareRefsForClient(group.description),
+    getRichIncomingReferences("group", group.id),
+    isAdmin ? getAllComments("group", group.id) : getPublicComments("group", group.id),
+  ]);
+  
+  const turnstileSiteKey = getTurnstileSiteKey();
+  
+  return { group, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
 }
 
 export default function GroupDetail() {
-  const { group, resolvedRefs, backlinks } = useLoaderData<typeof loader>();
+  const { group, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <PublicLayout>
@@ -89,6 +101,14 @@ export default function GroupDetail() {
               </ul>
             </div>
           )}
+
+          <CommentSection
+            contentType="group"
+            contentId={group.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
         </article>
       </div>
     </PublicLayout>

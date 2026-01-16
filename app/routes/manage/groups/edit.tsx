@@ -3,6 +3,7 @@ import { Link, redirect, useActionData, useLoaderData, Form } from "react-router
 import { requireAuth } from "~/lib/session.server";
 import { getGroupById, updateGroup } from "~/lib/groups.server";
 import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.group?.name || "Group"} - siliconharbour.dev` }];
@@ -117,9 +118,6 @@ export default function EditGroup() {
         )}
 
         <Form method="post" className="flex flex-col gap-6">
-          <input type="hidden" name="existingLogo" value={group.logo ?? ""} />
-          <input type="hidden" name="existingCoverImage" value={group.coverImage ?? ""} />
-
           <div className="flex flex-col gap-2">
             <label htmlFor="name" className="font-medium text-harbour-700">
               Name *
@@ -172,6 +170,27 @@ export default function EditGroup() {
               placeholder="e.g., Monthly, First Tuesday"
               defaultValue={group.meetingFrequency ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ImageUpload
+              label="Logo"
+              name="logoData"
+              existingName="existingLogo"
+              aspect={1}
+              existingImage={group.logo}
+              previewStyle="square"
+              helpText="Upload logo (1:1)"
+            />
+            <ImageUpload
+              label="Cover Image"
+              name="coverImageData"
+              existingName="existingCoverImage"
+              aspect={16 / 9}
+              existingImage={group.coverImage}
+              previewStyle="cover"
+              helpText="Upload cover (16:9)"
             />
           </div>
 

@@ -1,13 +1,14 @@
 import { format } from "date-fns";
 import type { Event, EventDate } from "~/db/schema";
-import Markdown from "react-markdown";
+import { RichMarkdown, type ResolvedRef } from "./RichMarkdown";
 
 type EventCardProps = {
   event: Event & { dates: EventDate[] };
   variant?: "featured" | "default";
+  resolvedRefs?: Record<string, ResolvedRef>;
 };
 
-export function EventCard({ event, variant = "default" }: EventCardProps) {
+export function EventCard({ event, variant = "default", resolvedRefs }: EventCardProps) {
   const nextDate = event.dates[0];
   const hasMultipleDates = event.dates.length > 1;
 
@@ -86,8 +87,12 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
         )}
 
         {isFeatured && (
-          <div className="text-sm text-harbour-500 line-clamp-3 prose prose-sm max-w-none">
-            <Markdown>{event.description}</Markdown>
+          <div className="text-sm text-harbour-500 line-clamp-3">
+            <RichMarkdown 
+              content={event.description} 
+              resolvedRefs={resolvedRefs}
+              className="prose-harbour"
+            />
           </div>
         )}
 

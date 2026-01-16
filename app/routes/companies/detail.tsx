@@ -2,8 +2,12 @@ import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getCompanyBySlug } from "~/lib/companies.server";
 import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { getPublicComments, getAllComments } from "~/lib/comments.server";
+import { getTurnstileSiteKey } from "~/lib/turnstile.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { PublicLayout } from "~/components/PublicLayout";
 import { RichMarkdown } from "~/components/RichMarkdown";
+import { CommentSection } from "~/components/CommentSection";
 
 export function meta({ data }: Route.MetaArgs) {
   return [
@@ -11,20 +15,28 @@ export function meta({ data }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const company = await getCompanyBySlug(params.slug);
   if (!company) {
     throw new Response("Company not found", { status: 404 });
   }
   
-  const resolvedRefs = await prepareRefsForClient(company.description);
-  const backlinks = await getRichIncomingReferences("company", company.id);
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
   
-  return { company, resolvedRefs, backlinks };
+  const [resolvedRefs, backlinks, comments] = await Promise.all([
+    prepareRefsForClient(company.description),
+    getRichIncomingReferences("company", company.id),
+    isAdmin ? getAllComments("company", company.id) : getPublicComments("company", company.id),
+  ]);
+  
+  const turnstileSiteKey = getTurnstileSiteKey();
+  
+  return { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
 }
 
 export default function CompanyDetail() {
-  const { company, resolvedRefs, backlinks } = useLoaderData<typeof loader>();
+  const { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <PublicLayout>
@@ -92,6 +104,14 @@ export default function CompanyDetail() {
               </ul>
             </div>
           )}
+
+          <CommentSection
+            contentType="company"
+            contentId={company.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
         </article>
       </div>
     </PublicLayout>

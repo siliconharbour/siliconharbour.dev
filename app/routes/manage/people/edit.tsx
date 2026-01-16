@@ -3,6 +3,7 @@ import { Link, redirect, useActionData, useLoaderData, Form } from "react-router
 import { requireAuth } from "~/lib/session.server";
 import { getPersonById, updatePerson } from "~/lib/people.server";
 import { processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.person?.name || "Person"} - siliconharbour.dev` }];
@@ -116,7 +117,15 @@ export default function EditPerson() {
         )}
 
         <Form method="post" className="flex flex-col gap-6">
-          <input type="hidden" name="existingAvatar" value={person.avatar ?? ""} />
+          <ImageUpload
+            label="Avatar"
+            name="avatarData"
+            existingName="existingAvatar"
+            aspect={1}
+            existingImage={person.avatar}
+            previewStyle="square"
+            helpText="Upload avatar (1:1)"
+          />
 
           <div className="flex flex-col gap-2">
             <label htmlFor="name" className="font-medium text-harbour-700">

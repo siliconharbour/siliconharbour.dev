@@ -3,6 +3,7 @@ import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { createPerson } from "~/lib/people.server";
 import { processAndSaveIconImage } from "~/lib/images.server";
+import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Person - siliconharbour.dev" }];
@@ -78,6 +79,14 @@ export default function NewPerson() {
         )}
 
         <Form method="post" className="flex flex-col gap-6">
+          <ImageUpload
+            label="Avatar"
+            name="avatarData"
+            aspect={1}
+            previewStyle="square"
+            helpText="Upload avatar (1:1)"
+          />
+
           <div className="flex flex-col gap-2">
             <label htmlFor="name" className="font-medium text-harbour-700">
               Name *

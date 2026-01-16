@@ -3,6 +3,7 @@ import { Link, redirect, useActionData, useLoaderData, Form } from "react-router
 import { requireAuth } from "~/lib/session.server";
 import { getNewsById, updateNews } from "~/lib/news.server";
 import { processAndSaveCoverImage, deleteImage } from "~/lib/images.server";
+import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.article?.title || "Article"} - siliconharbour.dev` }];
@@ -108,7 +109,15 @@ export default function EditNews() {
         )}
 
         <Form method="post" className="flex flex-col gap-6">
-          <input type="hidden" name="existingCoverImage" value={article.coverImage ?? ""} />
+          <ImageUpload
+            label="Cover Image"
+            name="coverImageData"
+            existingName="existingCoverImage"
+            aspect={16 / 9}
+            existingImage={article.coverImage}
+            previewStyle="cover"
+            helpText="Upload cover (16:9)"
+          />
 
           <div className="flex flex-col gap-2">
             <label htmlFor="title" className="font-medium text-harbour-700">

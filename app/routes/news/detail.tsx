@@ -2,8 +2,12 @@ import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getNewsBySlug } from "~/lib/news.server";
 import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { getPublicComments, getAllComments } from "~/lib/comments.server";
+import { getTurnstileSiteKey } from "~/lib/turnstile.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { PublicLayout } from "~/components/PublicLayout";
 import { RichMarkdown } from "~/components/RichMarkdown";
+import { CommentSection } from "~/components/CommentSection";
 import { format } from "date-fns";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -12,20 +16,28 @@ export function meta({ data }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const article = await getNewsBySlug(params.slug);
   if (!article) {
     throw new Response("Article not found", { status: 404 });
   }
   
-  const resolvedRefs = await prepareRefsForClient(article.content);
-  const backlinks = await getRichIncomingReferences("news", article.id);
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
   
-  return { article, resolvedRefs, backlinks };
+  const [resolvedRefs, backlinks, comments] = await Promise.all([
+    prepareRefsForClient(article.content),
+    getRichIncomingReferences("news", article.id),
+    isAdmin ? getAllComments("news", article.id) : getPublicComments("news", article.id),
+  ]);
+  
+  const turnstileSiteKey = getTurnstileSiteKey();
+  
+  return { article, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
 }
 
 export default function NewsDetail() {
-  const { article, resolvedRefs, backlinks } = useLoaderData<typeof loader>();
+  const { article, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <PublicLayout>
@@ -67,6 +79,14 @@ export default function NewsDetail() {
               </ul>
             </div>
           )}
+
+          <CommentSection
+            contentType="news"
+            contentId={article.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
         </article>
       </div>
     </PublicLayout>

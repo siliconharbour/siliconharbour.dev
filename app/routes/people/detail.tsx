@@ -2,8 +2,12 @@ import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getPersonBySlug } from "~/lib/people.server";
 import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { getPublicComments, getAllComments } from "~/lib/comments.server";
+import { getTurnstileSiteKey } from "~/lib/turnstile.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { PublicLayout } from "~/components/PublicLayout";
 import { RichMarkdown } from "~/components/RichMarkdown";
+import { CommentSection } from "~/components/CommentSection";
 
 export function meta({ data }: Route.MetaArgs) {
   return [
@@ -11,14 +15,22 @@ export function meta({ data }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const person = await getPersonBySlug(params.slug);
   if (!person) {
     throw new Response("Person not found", { status: 404 });
   }
   
-  const resolvedRefs = await prepareRefsForClient(person.bio);
-  const backlinks = await getRichIncomingReferences("person", person.id);
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
+  
+  const [resolvedRefs, backlinks, comments] = await Promise.all([
+    prepareRefsForClient(person.bio),
+    getRichIncomingReferences("person", person.id),
+    isAdmin ? getAllComments("person", person.id) : getPublicComments("person", person.id),
+  ]);
+  
+  const turnstileSiteKey = getTurnstileSiteKey();
   
   // Parse social links if present
   let socialLinks: Record<string, string> = {};
@@ -30,11 +42,11 @@ export async function loader({ params }: Route.LoaderArgs) {
     }
   }
   
-  return { person, resolvedRefs, backlinks, socialLinks };
+  return { person, resolvedRefs, backlinks, socialLinks, comments, turnstileSiteKey, isAdmin };
 }
 
 export default function PersonDetail() {
-  const { person, resolvedRefs, backlinks, socialLinks } = useLoaderData<typeof loader>();
+  const { person, resolvedRefs, backlinks, socialLinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <PublicLayout>
@@ -119,6 +131,14 @@ export default function PersonDetail() {
               </ul>
             </div>
           )}
+
+          <CommentSection
+            contentType="person"
+            contentId={person.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
         </article>
       </div>
     </PublicLayout>

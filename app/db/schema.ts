@@ -174,6 +174,28 @@ export const jobs = sqliteTable("jobs", {
 });
 
 // =============================================================================
+// Comments - anonymous user feedback on content
+// =============================================================================
+
+export const comments = sqliteTable("comments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  // Polymorphic relation to any content type
+  contentType: text("content_type", { enum: contentTypes }).notNull(),
+  contentId: integer("content_id").notNull(),
+  // Comment data
+  authorName: text("author_name"), // optional, for attribution
+  content: text("content").notNull(),
+  isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(false), // for webmaster-only feedback
+  // Metadata
+  ipHash: text("ip_hash"), // hashed IP for spam prevention
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  contentIdx: index("comments_content_idx").on(table.contentType, table.contentId),
+}));
+
+// =============================================================================
 // References - [[link]] relationships between content
 // =============================================================================
 
@@ -229,3 +251,6 @@ export type NewJob = typeof jobs.$inferInsert;
 
 export type Reference = typeof references.$inferSelect;
 export type NewReference = typeof references.$inferInsert;
+
+export type Comment = typeof comments.$inferSelect;
+export type NewComment = typeof comments.$inferInsert;

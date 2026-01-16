@@ -3,6 +3,7 @@ import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { createLearning } from "~/lib/learning.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Learning Institution - siliconharbour.dev" }];
@@ -134,6 +135,23 @@ export default function NewLearning() {
               id="website"
               name="website"
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ImageUpload
+              label="Logo"
+              name="logoData"
+              aspect={1}
+              previewStyle="square"
+              helpText="Upload logo (1:1)"
+            />
+            <ImageUpload
+              label="Cover Image"
+              name="coverImageData"
+              aspect={16 / 9}
+              previewStyle="cover"
+              helpText="Upload cover (16:9)"
             />
           </div>
 

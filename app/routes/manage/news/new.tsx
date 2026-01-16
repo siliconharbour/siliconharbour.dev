@@ -3,6 +3,7 @@ import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { createNews } from "~/lib/news.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
+import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Article - siliconharbour.dev" }];
@@ -71,6 +72,14 @@ export default function NewNews() {
         )}
 
         <Form method="post" className="flex flex-col gap-6">
+          <ImageUpload
+            label="Cover Image"
+            name="coverImageData"
+            aspect={16 / 9}
+            previewStyle="cover"
+            helpText="Upload cover (16:9)"
+          />
+
           <div className="flex flex-col gap-2">
             <label htmlFor="title" className="font-medium text-harbour-700">
               Title *

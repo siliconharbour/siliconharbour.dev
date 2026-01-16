@@ -41,6 +41,9 @@ export default [
   route("news.rss", "routes/news-rss.tsx"),
   route("jobs.rss", "routes/jobs-rss.tsx"),
   
+  // API routes
+  route("api/comments", "routes/api.comments.tsx"),
+  
   // Admin routes
   ...prefix("manage", [
     route("login", "routes/manage/login.tsx"),

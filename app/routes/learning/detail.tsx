@@ -2,8 +2,12 @@ import type { Route } from "./+types/detail";
 import { useLoaderData } from "react-router";
 import { getLearningBySlug } from "~/lib/learning.server";
 import { prepareRefsForClient, getRichIncomingReferences } from "~/lib/references.server";
+import { getPublicComments, getAllComments } from "~/lib/comments.server";
+import { getTurnstileSiteKey } from "~/lib/turnstile.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { PublicLayout } from "~/components/PublicLayout";
 import { RichMarkdown } from "~/components/RichMarkdown";
+import { CommentSection } from "~/components/CommentSection";
 
 export function meta({ data }: Route.MetaArgs) {
   return [
@@ -11,20 +15,28 @@ export function meta({ data }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const institution = await getLearningBySlug(params.slug);
   if (!institution) {
     throw new Response("Institution not found", { status: 404 });
   }
   
-  const resolvedRefs = await prepareRefsForClient(institution.description);
-  const backlinks = await getRichIncomingReferences("learning", institution.id);
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
   
-  return { institution, resolvedRefs, backlinks };
+  const [resolvedRefs, backlinks, comments] = await Promise.all([
+    prepareRefsForClient(institution.description),
+    getRichIncomingReferences("learning", institution.id),
+    isAdmin ? getAllComments("learning", institution.id) : getPublicComments("learning", institution.id),
+  ]);
+  
+  const turnstileSiteKey = getTurnstileSiteKey();
+  
+  return { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
 }
 
 export default function LearningDetail() {
-  const { institution, resolvedRefs, backlinks } = useLoaderData<typeof loader>();
+  const { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
 
   const typeLabels: Record<string, string> = {
     university: "University",
@@ -95,6 +107,14 @@ export default function LearningDetail() {
               </ul>
             </div>
           )}
+
+          <CommentSection
+            contentType="learning"
+            contentId={institution.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
         </article>
       </div>
     </PublicLayout>
