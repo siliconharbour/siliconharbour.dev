@@ -19,7 +19,6 @@ export function Calendar({ events, navigateOnClick = true, onDateClick }: Calend
 
   const {
     data: { calendars, weekDays },
-    propGetters: { dayButton },
   } = useDatePicker({
     selectedDates,
     onDatesChange: setSelectedDates,
@@ -145,7 +144,7 @@ export function Calendar({ events, navigateOnClick = true, onDateClick }: Calend
           return (
             <button
               key={dateKey}
-              {...dayButton(dpDay)}
+              type="button"
               onClick={() => handleDayClick(dpDay.$date)}
               className={`
                 relative aspect-square flex flex-col items-center justify-start p-1 text-sm transition-colors
