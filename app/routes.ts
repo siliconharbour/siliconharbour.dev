@@ -15,9 +15,11 @@ export default [
   route("api/comments", "routes/api.comments.tsx"),
   route("api/comments/delete", "routes/api.comments.delete.tsx"),
   
+  // Home page has its own hero header design
+  index("routes/home.tsx"),
+  
   // Public routes with shared layout (header/footer with visibility config)
   layout("routes/public-layout.tsx", [
-    index("routes/home.tsx"),
     route("conduct", "routes/conduct.tsx"),
     ...prefix("events", [
       index("routes/events/index.tsx"),
