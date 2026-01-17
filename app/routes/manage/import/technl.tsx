@@ -1,10 +1,12 @@
 import type { Route } from "./+types/technl";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeTechNL, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
 import { createCompany, updateCompany, getAllCompanies, getCompanyByName } from "~/lib/companies.server";
+import { getAllLearning } from "~/lib/learning.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
+import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from TechNL - siliconharbour.dev" }];
@@ -14,9 +16,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   
   // Get existing companies for duplicate detection
-  const existingCompanies = await getAllCompanies();
-  const existingNames = new Set(existingCompanies.map(c => c.name.toLowerCase()));
-  const existingWebsites = new Set(
+  const existingCompanies = await getAllCompanies(true); // include hidden
+  const companyNames = new Set(existingCompanies.map(c => c.name.toLowerCase()));
+  const companyWebsites = new Set(
     existingCompanies
       .filter(c => c.website)
       .map(c => normalizeUrl(c.website!))
@@ -28,10 +30,30 @@ export async function loader({ request }: Route.LoaderArgs) {
       .map(c => c.name.toLowerCase())
   );
   
+  // Get existing learning institutions (TechNL lists some educational orgs too)
+  const existingLearning = await getAllLearning(true); // include hidden
+  const learningNames = new Set(existingLearning.map(l => l.name.toLowerCase()));
+  const learningWithTechNL = new Set(
+    existingLearning
+      .filter(l => l.technl)
+      .map(l => l.name.toLowerCase())
+  );
+  
+  // Combine names for "already exists" check
+  const existingNames = new Set([...companyNames, ...learningNames]);
+  const existingWebsites = companyWebsites; // Only companies have websites typically
+  
+  // Combine TechNL flags
+  const allTechNL = new Set([...hasTechNL, ...learningWithTechNL]);
+  
+  // Get blocked items
+  const blockedTechNL = await getBlockedExternalIds("technl");
+  
   return { 
     existingNames: Array.from(existingNames), 
     existingWebsites: Array.from(existingWebsites),
-    hasTechNL: Array.from(hasTechNL),
+    hasTechNL: Array.from(allTechNL),
+    blockedTechNL: Array.from(blockedTechNL),
   };
 }
 
@@ -49,6 +71,28 @@ export async function action({ request }: Route.ActionArgs) {
   
   const formData = await request.formData();
   const intent = formData.get("intent");
+  
+  // Blocklist actions
+  if (intent === "block") {
+    const externalId = formData.get("externalId") as string;
+    const name = formData.get("name") as string;
+    
+    if (externalId && name) {
+      await blockItem("technl", externalId, name);
+      return { intent: "block", blocked: { externalId, name } };
+    }
+    return { intent: "block", error: "Missing externalId or name" };
+  }
+  
+  if (intent === "unblock") {
+    const externalId = formData.get("externalId") as string;
+    
+    if (externalId) {
+      await unblockItem("technl", externalId);
+      return { intent: "unblock", unblocked: externalId };
+    }
+    return { intent: "unblock", error: "Missing externalId" };
+  }
   
   if (intent === "fetch") {
     try {
@@ -118,19 +162,35 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportTechNL() {
-  const { existingNames, existingWebsites, hasTechNL } = useLoaderData<typeof loader>();
+  const { existingNames, existingWebsites, hasTechNL, blockedTechNL: initialBlocked } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   
   const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadLogos, setDownloadLogos] = useState(true);
+  const [blockedTechNL, setBlockedTechNL] = useState<Set<string>>(new Set(initialBlocked));
   
   const fetcherData = fetcher.data;
-  if (fetcherData?.intent === "fetch" && fetcherData.companies && fetcherData.companies.length > 0) {
-    if (fetchedCompanies.length === 0) {
-      setFetchedCompanies(fetcherData.companies);
+  
+  useEffect(() => {
+    if (fetcherData?.intent === "fetch" && fetcherData.companies && fetcherData.companies.length > 0) {
+      if (fetchedCompanies.length === 0) {
+        setFetchedCompanies(fetcherData.companies);
+      }
     }
-  }
+    
+    // Handle block/unblock responses
+    if (fetcherData?.intent === "block" && fetcherData.blocked) {
+      setBlockedTechNL(prev => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
+    }
+    if (fetcherData?.intent === "unblock" && fetcherData.unblocked) {
+      setBlockedTechNL(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fetcherData.unblocked.toLowerCase());
+        return newSet;
+      });
+    }
+  }, [fetcherData, fetchedCompanies.length]);
   
   const isExisting = (company: ScrapedCompany) => {
     const nameLower = company.name.toLowerCase();
@@ -146,6 +206,28 @@ export default function ImportTechNL() {
     return hasTechNL.includes(company.name.toLowerCase());
   };
   
+  const isBlocked = (company: ScrapedCompany) => {
+    // Check by website (normalized) or name
+    const externalId = company.website ? normalizeUrl(company.website) : company.name;
+    return blockedTechNL.has(externalId.toLowerCase());
+  };
+  
+  const handleBlock = (company: ScrapedCompany) => {
+    const externalId = company.website ? normalizeUrl(company.website) : company.name;
+    fetcher.submit(
+      { intent: "block", externalId, name: company.name },
+      { method: "post" }
+    );
+  };
+  
+  const handleUnblock = (company: ScrapedCompany) => {
+    const externalId = company.website ? normalizeUrl(company.website) : company.name;
+    fetcher.submit(
+      { intent: "unblock", externalId },
+      { method: "post" }
+    );
+  };
+  
   const toggleSelect = (sourceId: string) => {
     const newSelected = new Set(selected);
     if (newSelected.has(sourceId)) {
@@ -157,7 +239,7 @@ export default function ImportTechNL() {
   };
   
   const selectAll = () => {
-    const selectable = fetchedCompanies.filter(c => !alreadyHasTechNL(c));
+    const selectable = fetchedCompanies.filter(c => !alreadyHasTechNL(c) && !isBlocked(c));
     setSelected(new Set(selectable.map(c => c.sourceId)));
   };
   
@@ -275,11 +357,14 @@ export default function ImportTechNL() {
               {fetchedCompanies.map((company) => {
                 const existing = isExisting(company);
                 const hasTechNLFlag = alreadyHasTechNL(company);
+                const blocked = isBlocked(company);
                 return (
                   <div
                     key={company.sourceId}
                     className={`flex items-center gap-4 p-3 border ${
-                      hasTechNLFlag 
+                      blocked
+                        ? "bg-red-50 border-red-200 opacity-50"
+                        : hasTechNLFlag 
                         ? "bg-harbour-50 border-harbour-200 opacity-60" 
                         : selected.has(company.sourceId)
                         ? "bg-blue-50 border-blue-300"
@@ -292,7 +377,7 @@ export default function ImportTechNL() {
                       type="checkbox"
                       checked={selected.has(company.sourceId)}
                       onChange={() => toggleSelect(company.sourceId)}
-                      disabled={hasTechNLFlag}
+                      disabled={hasTechNLFlag || blocked}
                       className="w-5 h-5"
                     />
                     
@@ -300,7 +385,7 @@ export default function ImportTechNL() {
                       <img
                         src={company.logoUrl}
                         alt=""
-                        className="w-10 h-10 object-contain bg-white border border-harbour-100"
+                        className={`w-10 h-10 object-contain bg-white border border-harbour-100 ${blocked ? "grayscale" : ""}`}
                         loading="lazy"
                       />
                     ) : (
@@ -309,13 +394,18 @@ export default function ImportTechNL() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium truncate">{company.name}</span>
-                        {hasTechNLFlag && (
+                        <span className={`font-medium truncate ${blocked ? "line-through text-harbour-400" : ""}`}>{company.name}</span>
+                        {blocked && (
+                          <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
+                            Import blocked
+                          </span>
+                        )}
+                        {!blocked && hasTechNLFlag && (
                           <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
                             Already imported
                           </span>
                         )}
-                        {existing && !hasTechNLFlag && (
+                        {!blocked && existing && !hasTechNLFlag && (
                           <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
                             Will update
                           </span>
@@ -344,6 +434,24 @@ export default function ImportTechNL() {
                           </span>
                         ))}
                       </div>
+                    )}
+                    
+                    {blocked ? (
+                      <button
+                        type="button"
+                        onClick={() => handleUnblock(company)}
+                        className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                      >
+                        Remove block
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleBlock(company)}
+                        className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
+                      >
+                        Import block
+                      </button>
                     )}
                   </div>
                 );

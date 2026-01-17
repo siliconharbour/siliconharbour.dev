@@ -68,6 +68,13 @@ export async function getLearningBySlug(slug: string): Promise<Learning | null> 
   return db.select().from(learning).where(eq(learning.slug, slug)).get() ?? null;
 }
 
+export async function getLearningByName(name: string): Promise<Learning | null> {
+  // Case-insensitive search by lowercasing both sides
+  const all = await db.select().from(learning);
+  const nameLower = name.toLowerCase();
+  return all.find(l => l.name.toLowerCase() === nameLower) ?? null;
+}
+
 export async function getAllLearning(includeHidden: boolean = false): Promise<Learning[]> {
   if (includeHidden) {
     return db.select().from(learning).orderBy(desc(learning.createdAt));
