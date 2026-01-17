@@ -78,6 +78,30 @@ export async function processAndSaveIconImage(
   return filename;
 }
 
+/**
+ * Process an image to 1:1 aspect ratio by adding padding (no cropping).
+ * The image is centered and padded with white background to make it square,
+ * then resized to the target icon size.
+ */
+export async function processAndSaveIconImageWithPadding(
+  buffer: Buffer
+): Promise<string> {
+  const filename = `icon-${uuid()}.webp`;
+  const filepath = join(IMAGES_DIR, filename);
+
+  // Use sharp's resize with "contain" fit and a background color
+  // This will letterbox the image to make it square without cropping
+  await sharp(buffer)
+    .resize(ICON_SIZE, ICON_SIZE, {
+      fit: "contain",
+      background: { r: 255, g: 255, b: 255, alpha: 1 },
+    })
+    .webp({ quality: 85 })
+    .toFile(filepath);
+
+  return filename;
+}
+
 export async function deleteImage(filename: string): Promise<void> {
   const filepath = join(IMAGES_DIR, filename);
   if (existsSync(filepath)) {

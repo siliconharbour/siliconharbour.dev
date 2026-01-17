@@ -4,7 +4,7 @@ import { useState } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeTechNL, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
 import { createCompany, getAllCompanies } from "~/lib/companies.server";
-import { processAndSaveIconImage } from "~/lib/images.server";
+import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from TechNL - siliconharbour.dev" }];
@@ -33,6 +33,11 @@ function normalizeUrl(url: string): string {
   } catch {
     return url.toLowerCase();
   }
+}
+
+function getTechNLSearchUrl(companyName: string): string {
+  const encoded = encodeURIComponent(companyName).replace(/%20/g, "+");
+  return `https://members.technl.ca/memberdirectory/Find?term=${encoded}`;
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -69,16 +74,21 @@ export async function action({ request }: Route.ActionArgs) {
           if (downloadLogos && company.logoUrl) {
             const imageBuffer = await fetchImage(company.logoUrl);
             if (imageBuffer) {
-              logo = await processAndSaveIconImage(imageBuffer);
+              logo = await processAndSaveIconImageWithPadding(imageBuffer);
             }
           }
           
+          // Build description with TechNL link
+          const technlUrl = getTechNLSearchUrl(company.name);
+          const description = company.description || 
+            `[View on TechNL Directory](${technlUrl})`;
+          
           await createCompany({
             name: company.name,
-            description: company.description || `${company.name} is a member of the TechNL community.`,
+            description,
             website: company.website,
             email: company.email,
-            location: "Newfoundland & Labrador", // Default location for TechNL members
+            location: null, // Leave empty - can be filled in manually
             logo,
           });
           
