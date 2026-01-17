@@ -222,7 +222,7 @@ export default function Home() {
                 <section className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-harbour-700">Companies</h2>
-                    <Link to="/companies" className="text-sm text-harbour-500 hover:text-harbour-700">
+                    <Link to="/directory/companies" className="text-sm text-harbour-500 hover:text-harbour-700">
                       View all
                     </Link>
                   </div>
@@ -230,7 +230,7 @@ export default function Home() {
                     {featuredCompanies.map((company) => (
                       <Link
                         key={company.id}
-                        to={`/companies/${company.slug}`}
+                        to={`/directory/companies/${company.slug}`}
                         className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {company.logo ? (
@@ -260,7 +260,7 @@ export default function Home() {
                 <section className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-harbour-700">Projects</h2>
-                    <Link to="/projects" className="text-sm text-harbour-500 hover:text-harbour-700">
+                    <Link to="/directory/projects" className="text-sm text-harbour-500 hover:text-harbour-700">
                       View all
                     </Link>
                   </div>
@@ -268,7 +268,7 @@ export default function Home() {
                     {featuredProjects.map((project) => (
                       <Link
                         key={project.id}
-                        to={`/projects/${project.slug}`}
+                        to={`/directory/projects/${project.slug}`}
                         className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {project.logo ? (

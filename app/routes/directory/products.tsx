@@ -7,7 +7,7 @@ import type { ProductType } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Products - Works - siliconharbour.dev" },
+    { title: "Products - Directory - siliconharbour.dev" },
   ];
 }
 
@@ -36,7 +36,7 @@ const typeColors: Record<ProductType, string> = {
   other: "bg-harbour-100 text-harbour-500",
 };
 
-export default function WorksProducts() {
+export default function DirectoryProducts() {
   const { items, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
 
   return (
@@ -62,7 +62,7 @@ export default function WorksProducts() {
           {items.map((product) => (
             <a
               key={product.id}
-              href={`/products/${product.slug}`}
+              href={`/directory/products/${product.slug}`}
               className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all overflow-hidden"
             >
               {product.coverImage ? (

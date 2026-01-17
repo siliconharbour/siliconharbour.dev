@@ -49,54 +49,42 @@ export default [
     route("conduct", "routes/conduct.tsx"),
     route("feeds", "routes/feeds.tsx"),
     route("calendar", "routes/calendar.tsx"),
-    // Consolidated directory pages (companies, groups, learning)
+    
+    // Consolidated directory pages with tab layout
     layout("routes/directory/layout.tsx", [
       route("directory", "routes/directory/companies.tsx", { id: "directory-index" }),
       route("directory/companies", "routes/directory/companies.tsx"),
       route("directory/groups", "routes/directory/groups.tsx"),
+      route("directory/people", "routes/directory/people.tsx"),
+      route("directory/products", "routes/directory/products.tsx"),
+      route("directory/projects", "routes/directory/projects.tsx"),
       route("directory/learning", "routes/directory/learning.tsx"),
     ]),
-    // Consolidated works pages (products, projects)
-    layout("routes/works/layout.tsx", [
-      route("works", "routes/works/products.tsx", { id: "works-index" }),
-      route("works/products", "routes/works/products.tsx"),
-      route("works/projects", "routes/works/projects.tsx"),
-    ]),
+    
+    // Directory detail pages (outside tab layout for full-width content)
+    route("directory/companies/:slug", "routes/directory/companies.$slug.tsx"),
+    route("directory/groups/:slug", "routes/directory/groups.$slug.tsx"),
+    route("directory/people/:slug", "routes/directory/people.$slug.tsx"),
+    route("directory/products/:slug", "routes/directory/products.$slug.tsx"),
+    route("directory/projects/:slug", "routes/directory/projects.$slug.tsx"),
+    route("directory/learning/:slug", "routes/directory/learning.$slug.tsx"),
+    
+    // Events (realtime content, separate from directory)
     ...prefix("events", [
       index("routes/events/index.tsx"),
       route(":slug", "routes/events/detail.tsx"),
     ]),
-    ...prefix("companies", [
-      index("routes/companies/index.tsx"),
-      route(":slug", "routes/companies/detail.tsx"),
-    ]),
-    ...prefix("groups", [
-      index("routes/groups/index.tsx"),
-      route(":slug", "routes/groups/detail.tsx"),
-    ]),
-    ...prefix("learning", [
-      index("routes/learning/index.tsx"),
-      route(":slug", "routes/learning/detail.tsx"),
-    ]),
-    ...prefix("people", [
-      index("routes/people/index.tsx"),
-      route(":slug", "routes/people/detail.tsx"),
-    ]),
+    
+    // News (realtime content, separate from directory)
     ...prefix("news", [
       index("routes/news/index.tsx"),
       route(":slug", "routes/news/detail.tsx"),
     ]),
+    
+    // Jobs (separate from directory)
     ...prefix("jobs", [
       index("routes/jobs/index.tsx"),
       route(":slug", "routes/jobs/detail.tsx"),
-    ]),
-    ...prefix("projects", [
-      index("routes/projects/index.tsx"),
-      route(":slug", "routes/projects/detail.tsx"),
-    ]),
-    ...prefix("products", [
-      index("routes/products/index.tsx"),
-      route(":slug", "routes/products/detail.tsx"),
     ]),
   ]),
   

@@ -1,4 +1,4 @@
-import type { Route } from "./+types/detail";
+import type { Route } from "./+types/products.$slug";
 import { useLoaderData, Link } from "react-router";
 import { getProductBySlugWithCompany } from "~/lib/products.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
@@ -86,7 +86,7 @@ export default function ProductDetail() {
               </span>
               {product.company && (
                 <Link 
-                  to={`/companies/${product.company.slug}`}
+                  to={`/directory/companies/${product.company.slug}`}
                   className="text-sm text-harbour-500 hover:text-harbour-700"
                 >
                   by {product.company.name}

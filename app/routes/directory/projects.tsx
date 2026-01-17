@@ -8,7 +8,7 @@ import type { ProjectType, ProjectStatus } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Projects - Works - siliconharbour.dev" },
+    { title: "Projects - Directory - siliconharbour.dev" },
   ];
 }
 
@@ -37,7 +37,7 @@ const statusColors: Record<ProjectStatus, string> = {
   "on-hold": "bg-amber-100 text-amber-700",
 };
 
-export default function WorksProjects() {
+export default function DirectoryProjects() {
   const { items, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
 
   return (
@@ -65,7 +65,7 @@ export default function WorksProjects() {
             return (
               <a
                 key={project.id}
-                href={`/projects/${project.slug}`}
+                href={`/directory/projects/${project.slug}`}
                 className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all overflow-hidden"
               >
                 {project.coverImage ? (

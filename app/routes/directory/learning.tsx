@@ -53,7 +53,7 @@ export default function DirectoryLearning() {
           {items.map((item) => (
             <a
               key={item.id}
-              href={`/learning/${item.slug}`}
+              href={`/directory/learning/${item.slug}`}
               className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
             >
               {item.logo ? (

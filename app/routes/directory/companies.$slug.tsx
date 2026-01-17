@@ -1,4 +1,4 @@
-import type { Route } from "./+types/detail";
+import type { Route } from "./+types/companies.$slug";
 import { useLoaderData } from "react-router";
 import { getCompanyBySlug } from "~/lib/companies.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";

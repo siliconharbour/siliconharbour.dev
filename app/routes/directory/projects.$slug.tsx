@@ -1,4 +1,4 @@
-import type { Route } from "./+types/detail";
+import type { Route } from "./+types/projects.$slug";
 import { useLoaderData } from "react-router";
 import { getProjectBySlugWithImages } from "~/lib/projects.server";
 import { parseProjectLinks } from "~/lib/project-links";

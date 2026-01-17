@@ -45,7 +45,7 @@ export default function DirectoryGroups() {
           {items.map((group) => (
             <a
               key={group.id}
-              href={`/groups/${group.slug}`}
+              href={`/directory/groups/${group.slug}`}
               className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
             >
               {group.logo ? (

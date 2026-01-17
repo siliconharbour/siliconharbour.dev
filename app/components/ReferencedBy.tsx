@@ -170,7 +170,7 @@ function JobCard({ data }: { data: DetailedBacklink & { type: "job" } extends { 
 function CompanyCard({ data }: { data: DetailedBacklink & { type: "company" } extends { data: infer D } ? D : never }) {
   return (
     <Link
-      to={`/companies/${data.slug}`}
+      to={`/directory/companies/${data.slug}`}
       className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
@@ -201,7 +201,7 @@ function CompanyCard({ data }: { data: DetailedBacklink & { type: "company" } ex
 function ProjectCard({ data }: { data: DetailedBacklink & { type: "project" } extends { data: infer D } ? D : never }) {
   return (
     <Link
-      to={`/projects/${data.slug}`}
+      to={`/directory/projects/${data.slug}`}
       className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
@@ -230,7 +230,7 @@ function ProjectCard({ data }: { data: DetailedBacklink & { type: "project" } ex
 function GroupCard({ data }: { data: DetailedBacklink & { type: "group" } extends { data: infer D } ? D : never }) {
   return (
     <Link
-      to={`/groups/${data.slug}`}
+      to={`/directory/groups/${data.slug}`}
       className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
@@ -256,7 +256,7 @@ function GroupCard({ data }: { data: DetailedBacklink & { type: "group" } extend
 function PersonCard({ data, relation }: { data: DetailedBacklink & { type: "person" } extends { data: infer D } ? D : never; relation?: string }) {
   return (
     <Link
-      to={`/people/${data.slug}`}
+      to={`/directory/people/${data.slug}`}
       className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.avatar ? (
@@ -287,7 +287,7 @@ function PersonCard({ data, relation }: { data: DetailedBacklink & { type: "pers
 function LearningCard({ data }: { data: DetailedBacklink & { type: "learning" } extends { data: infer D } ? D : never }) {
   return (
     <Link
-      to={`/learning/${data.slug}`}
+      to={`/directory/learning/${data.slug}`}
       className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (

@@ -14,9 +14,7 @@ export async function loader({}: Route.LoaderArgs) {
 // Items without keys are always shown
 const navItems: { href: string; label: string; keys?: SectionKey[] }[] = [
   { href: "/events", label: "Events", keys: ["events"] },
-  { href: "/directory", label: "Directory", keys: ["companies", "groups", "learning"] },
-  { href: "/works", label: "Works", keys: ["projects", "products"] },
-  { href: "/people", label: "People", keys: ["people"] },
+  { href: "/directory", label: "Directory", keys: ["companies", "groups", "people", "products", "projects", "learning"] },
   { href: "/news", label: "News", keys: ["news"] },
   { href: "/jobs", label: "Jobs", keys: ["jobs"] },
 ];
@@ -33,25 +31,9 @@ export default function PublicLayoutRoute() {
     return item.keys.some(key => visibility[key]);
   });
 
-  // Check if nav item is active (including sub-routes for consolidated pages)
+  // Check if nav item is active
   const isNavItemActive = (item: typeof navItems[number]) => {
-    // Direct match
-    if (location.pathname.startsWith(item.href)) return true;
-    
-    // For directory: also match /companies, /groups, /learning
-    if (item.href === "/directory") {
-      return location.pathname.startsWith("/companies") ||
-             location.pathname.startsWith("/groups") ||
-             location.pathname.startsWith("/learning");
-    }
-    
-    // For works: also match /products, /projects
-    if (item.href === "/works") {
-      return location.pathname.startsWith("/products") ||
-             location.pathname.startsWith("/projects");
-    }
-    
-    return false;
+    return location.pathname.startsWith(item.href);
   };
 
   // Close mobile menu on navigation

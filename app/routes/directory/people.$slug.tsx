@@ -1,4 +1,4 @@
-import type { Route } from "./+types/detail";
+import type { Route } from "./+types/people.$slug";
 import { useLoaderData } from "react-router";
 import { getPersonBySlug } from "~/lib/people.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
