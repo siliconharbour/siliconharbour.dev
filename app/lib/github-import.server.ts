@@ -18,6 +18,7 @@ import {
 import { createPerson, updatePerson, getPersonByName, getPersonByGitHub } from "./people.server";
 import { findCompanyByFuzzyName, parseGitHubCompanyField, extractCompanyFromBio, updateCompany } from "./companies.server";
 import { processAndSaveIconImageWithPadding } from "./images.server";
+import { isBlocked } from "./import-blocklist.server";
 
 const GITHUB_IMPORT_JOB_ID = "github-newfoundland";
 const USERS_PER_PAGE = 30;
@@ -31,6 +32,7 @@ export interface ImportProgress {
   totalPages: number;
   importedCount: number;
   skippedCount: number;
+  blockedCount: number;
   errorCount: number;
   rateLimitRemaining: number | null;
   rateLimitReset: Date | null;
@@ -55,6 +57,7 @@ export async function getImportProgress(): Promise<ImportProgress> {
       totalPages: 0,
       importedCount: 0,
       skippedCount: 0,
+      blockedCount: 0,
       errorCount: 0,
       rateLimitRemaining: null,
       rateLimitReset: null,
@@ -80,6 +83,7 @@ export async function getImportProgress(): Promise<ImportProgress> {
     totalPages: job.totalPages ?? 0,
     importedCount: job.importedCount ?? 0,
     skippedCount: job.skippedCount ?? 0,
+    blockedCount: 0, // Not tracked in job table, computed at display time from blocklist
     errorCount: job.errorCount ?? 0,
     rateLimitRemaining: job.rateLimitRemaining,
     rateLimitReset: job.rateLimitReset ? new Date(job.rateLimitReset * 1000) : null,
@@ -253,6 +257,9 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
         if (result.action === "imported" || result.action === "merged") {
           importedCount++;
           processed.push(`${result.name} (${result.action})`);
+        } else if (result.action === "blocked") {
+          // Blocked items don't count towards skipped - they're intentionally excluded
+          processed.push(`${result.name} (blocked)`);
         } else {
           skippedCount++;
           processed.push(`${result.name} (${result.action})`);
@@ -361,9 +368,15 @@ export async function resetImport(): Promise<ImportProgress> {
 async function importSingleUser(
   user: GitHubUserWithSocials,
   downloadAvatars: boolean
-): Promise<{ name: string; action: "imported" | "merged" | "skipped" }> {
+): Promise<{ name: string; action: "imported" | "merged" | "skipped" | "blocked" }> {
   const githubUrl = user.html_url;
   const displayName = user.name || user.login;
+  
+  // Check if blocked from import
+  const blocked = await isBlocked("github", githubUrl);
+  if (blocked) {
+    return { name: displayName, action: "blocked" };
+  }
   
   // Check if person already exists
   const existingByGitHub = await getPersonByGitHub(githubUrl);

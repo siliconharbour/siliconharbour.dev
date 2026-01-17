@@ -24,6 +24,11 @@ import {
   resetImport,
   type ImportProgress,
 } from "~/lib/github-import.server";
+import {
+  getBlockedExternalIds,
+  blockItem,
+  unblockItem,
+} from "~/lib/import-blocklist.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from GitHub - siliconharbour.dev" }];
@@ -33,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   
   // Get existing people for duplicate detection
-  const existingPeople = await getAllPeople();
+  const existingPeople = await getAllPeople(true); // include hidden
   const existingNames = new Set(existingPeople.map(p => p.name.toLowerCase()));
   const existingGitHubs = new Set(
     existingPeople
@@ -41,12 +46,16 @@ export async function loader({ request }: Route.LoaderArgs) {
       .map(p => p.github!.toLowerCase())
   );
   
+  // Get blocked GitHub URLs
+  const blockedGitHubs = await getBlockedExternalIds("github");
+  
   // Get bulk import progress
   const importProgress = await getImportProgress();
   
   return { 
     existingNames: Array.from(existingNames), 
     existingGitHubs: Array.from(existingGitHubs),
+    blockedGitHubs: Array.from(blockedGitHubs),
     importProgress,
   };
 }
@@ -82,6 +91,29 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "bulk-reset") {
     const progress = await resetImport();
     return { intent: "bulk-reset", progress, error: null };
+  }
+  
+  // Blocklist actions
+  if (intent === "block") {
+    const externalId = formData.get("externalId") as string;
+    const name = formData.get("name") as string;
+    const reason = formData.get("reason") as string | null;
+    
+    if (externalId && name) {
+      await blockItem("github", externalId, name, reason || undefined);
+      return { intent: "block", blocked: { externalId, name } };
+    }
+    return { intent: "block", error: "Missing externalId or name" };
+  }
+  
+  if (intent === "unblock") {
+    const externalId = formData.get("externalId") as string;
+    
+    if (externalId) {
+      await unblockItem("github", externalId);
+      return { intent: "unblock", unblocked: externalId };
+    }
+    return { intent: "unblock", error: "Missing externalId" };
   }
   
   // Original manual search/import actions
@@ -229,7 +261,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportGitHub() {
-  const { existingNames, existingGitHubs, importProgress: initialProgress } = useLoaderData<typeof loader>();
+  const { existingNames, existingGitHubs, blockedGitHubs: initialBlocked, importProgress: initialProgress } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   
   const [fetchedUsers, setFetchedUsers] = useState<GitHubUser[]>([]);
@@ -240,6 +272,7 @@ export default function ImportGitHub() {
   const [bulkProgress, setBulkProgress] = useState<ImportProgress>(initialProgress);
   const [autoRun, setAutoRun] = useState(false);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
+  const [blockedGitHubs, setBlockedGitHubs] = useState<Set<string>>(new Set(initialBlocked));
   
   // Handle fetcher response
   const fetcherData = fetcher.data;
@@ -268,6 +301,18 @@ export default function ImportGitHub() {
       if (fetcherData.errors?.length) {
         setRecentActivity(prev => [...fetcherData.errors!.map(e => `ERROR: ${e}`), ...prev].slice(0, 20));
       }
+    }
+    
+    // Handle block/unblock responses
+    if (fetcherData?.intent === "block" && fetcherData.blocked) {
+      setBlockedGitHubs(prev => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
+    }
+    if (fetcherData?.intent === "unblock" && fetcherData.unblocked) {
+      setBlockedGitHubs(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(fetcherData.unblocked.toLowerCase());
+        return newSet;
+      });
     }
   }, [fetcherData, currentPage, fetchedUsers.length]);
   
@@ -308,6 +353,10 @@ export default function ImportGitHub() {
     return false;
   };
   
+  const isUserBlocked = (user: GitHubUser) => {
+    return blockedGitHubs.has(user.html_url.toLowerCase());
+  };
+  
   const toggleSelect = (login: string) => {
     const newSelected = new Set(selected);
     if (newSelected.has(login)) {
@@ -319,7 +368,7 @@ export default function ImportGitHub() {
   };
   
   const selectAll = () => {
-    const selectable = fetchedUsers.filter(u => isExisting(u) !== "github");
+    const selectable = fetchedUsers.filter(u => isExisting(u) !== "github" && !isUserBlocked(u));
     setSelected(new Set(selectable.map(u => u.login)));
   };
   
@@ -360,6 +409,21 @@ export default function ImportGitHub() {
     setAutoRun(false);
     setRecentActivity([]);
     fetcher.submit({ intent: "bulk-reset" }, { method: "post" });
+  };
+  
+  const handleBlock = (user: GitHubUser) => {
+    const displayName = user.name || user.login;
+    fetcher.submit(
+      { intent: "block", externalId: user.html_url, name: displayName },
+      { method: "post" }
+    );
+  };
+  
+  const handleUnblock = (user: GitHubUser) => {
+    fetcher.submit(
+      { intent: "unblock", externalId: user.html_url },
+      { method: "post" }
+    );
   };
   
   const isSearching = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "search";
@@ -658,12 +722,15 @@ export default function ImportGitHub() {
             <div className="flex flex-col gap-2">
               {fetchedUsers.map((user) => {
                 const existingStatus = isExisting(user);
+                const blocked = isUserBlocked(user);
                 const displayName = user.name || user.login;
                 return (
                   <div
                     key={user.login}
                     className={`flex items-center gap-4 p-3 border ${
-                      existingStatus === "github"
+                      blocked
+                        ? "bg-red-50 border-red-200 opacity-50"
+                        : existingStatus === "github"
                         ? "bg-harbour-50 border-harbour-200 opacity-60" 
                         : selected.has(user.login)
                         ? "bg-blue-50 border-blue-300"
@@ -676,7 +743,7 @@ export default function ImportGitHub() {
                       type="checkbox"
                       checked={selected.has(user.login)}
                       onChange={() => toggleSelect(user.login)}
-                      disabled={existingStatus === "github"}
+                      disabled={existingStatus === "github" || blocked}
                       className="w-5 h-5"
                     />
                     
@@ -684,7 +751,7 @@ export default function ImportGitHub() {
                       <img
                         src={user.avatar_url}
                         alt=""
-                        className="w-10 h-10 object-cover rounded-full bg-harbour-100"
+                        className={`w-10 h-10 object-cover rounded-full bg-harbour-100 ${blocked ? "grayscale" : ""}`}
                         loading="lazy"
                       />
                     ) : (
@@ -693,14 +760,19 @@ export default function ImportGitHub() {
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{displayName}</span>
+                        <span className={`font-medium ${blocked ? "line-through text-harbour-400" : ""}`}>{displayName}</span>
                         <span className="text-sm text-harbour-400">@{user.login}</span>
-                        {existingStatus === "github" && (
+                        {blocked && (
+                          <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
+                            Blocked
+                          </span>
+                        )}
+                        {!blocked && existingStatus === "github" && (
                           <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
                             Already imported
                           </span>
                         )}
-                        {existingStatus === "name" && (
+                        {!blocked && existingStatus === "name" && (
                           <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
                             Will merge
                           </span>
@@ -730,14 +802,33 @@ export default function ImportGitHub() {
                       </div>
                     </div>
                     
-                    <a
-                      href={user.html_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-harbour-400 hover:text-harbour-600"
-                    >
-                      View on GitHub
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={user.html_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-harbour-400 hover:text-harbour-600"
+                      >
+                        View
+                      </a>
+                      {blocked ? (
+                        <button
+                          type="button"
+                          onClick={() => handleUnblock(user)}
+                          className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                        >
+                          Unblock
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleBlock(user)}
+                          className="text-xs px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                        >
+                          Block
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

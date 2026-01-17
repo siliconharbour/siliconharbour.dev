@@ -423,6 +423,26 @@ export type ImportJob = typeof importJobs.$inferSelect;
 export type NewImportJob = typeof importJobs.$inferInsert;
 
 // =============================================================================
+// Import Blocklist - Entities to skip during import
+// =============================================================================
+
+export const importBlocklist = sqliteTable("import_blocklist", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  source: text("source").notNull(), // "github", "technl", etc.
+  externalId: text("external_id").notNull(), // GitHub URL, TechNL ID, etc.
+  name: text("name").notNull(), // Display name for UI
+  reason: text("reason"), // Optional reason for blocking
+  blockedAt: integer("blocked_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  sourceExternalIdx: index("blocklist_source_external_idx").on(table.source, table.externalId),
+}));
+
+export type ImportBlocklistItem = typeof importBlocklist.$inferSelect;
+export type NewImportBlocklistItem = typeof importBlocklist.$inferInsert;
+
+// =============================================================================
 // Type exports
 // =============================================================================
 
