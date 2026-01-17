@@ -3,7 +3,7 @@ import { Link, useFetcher, useLoaderData } from "react-router";
 import { useState } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeTechNL, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
-import { createCompany, getAllCompanies } from "~/lib/companies.server";
+import { createCompany, updateCompany, getAllCompanies, getCompanyByName } from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -21,8 +21,18 @@ export async function loader({ request }: Route.LoaderArgs) {
       .filter(c => c.website)
       .map(c => normalizeUrl(c.website!))
   );
+  // Track which companies already have TechNL links (already imported)
+  const hasTechNLLink = new Set(
+    existingCompanies
+      .filter(c => c.description.includes("members.technl.ca"))
+      .map(c => c.name.toLowerCase())
+  );
   
-  return { existingNames: Array.from(existingNames), existingWebsites: Array.from(existingWebsites) };
+  return { 
+    existingNames: Array.from(existingNames), 
+    existingWebsites: Array.from(existingWebsites),
+    hasTechNLLink: Array.from(hasTechNLLink),
+  };
 }
 
 function normalizeUrl(url: string): string {
@@ -78,21 +88,43 @@ export async function action({ request }: Route.ActionArgs) {
             }
           }
           
-          // Build description with TechNL link
+          // Build TechNL link
           const technlUrl = getTechNLSearchUrl(company.name);
-          const description = company.description || 
-            `[View in the TechNL Directory](${technlUrl})`;
+          const technlLink = `[View in the TechNL Directory](${technlUrl})`;
           
-          await createCompany({
-            name: company.name,
-            description,
-            website: company.website,
-            email: company.email,
-            location: null, // Leave empty - can be filled in manually
-            logo,
-          });
+          // Check if company already exists (e.g., imported from Genesis)
+          const existing = await getCompanyByName(company.name);
           
-          imported.push(company.name);
+          if (existing) {
+            // Merge: append TechNL link to existing description if not already there
+            let newDescription = existing.description;
+            if (!newDescription.includes("members.technl.ca")) {
+              newDescription = newDescription + "\n\n" + technlLink;
+            }
+            
+            // Update with TechNL data, but don't overwrite existing values
+            await updateCompany(existing.id, {
+              description: newDescription,
+              website: existing.website || company.website,
+              logo: existing.logo || logo,
+            });
+            
+            imported.push(`${company.name} (merged)`);
+          } else {
+            // Create new company with TechNL link
+            const description = company.description || technlLink;
+            
+            await createCompany({
+              name: company.name,
+              description,
+              website: company.website,
+              email: company.email,
+              location: null,
+              logo,
+            });
+            
+            imported.push(company.name);
+          }
         } catch (e) {
           errors.push(`${company.name}: ${String(e)}`);
         }
@@ -108,7 +140,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportTechNL() {
-  const { existingNames, existingWebsites } = useLoaderData<typeof loader>();
+  const { existingNames, existingWebsites, hasTechNLLink } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   
   const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>([]);
@@ -123,6 +155,7 @@ export default function ImportTechNL() {
     }
   }
   
+  // Check if company exists in our database
   const isExisting = (company: ScrapedCompany) => {
     const nameLower = company.name.toLowerCase();
     if (existingNames.includes(nameLower)) return true;
@@ -131,6 +164,11 @@ export default function ImportTechNL() {
       if (existingWebsites.includes(normalized)) return true;
     }
     return false;
+  };
+  
+  // Check if already has TechNL link (already imported from TechNL)
+  const alreadyHasTechNL = (company: ScrapedCompany) => {
+    return hasTechNLLink.includes(company.name.toLowerCase());
   };
   
   const toggleSelect = (sourceId: string) => {
@@ -144,8 +182,9 @@ export default function ImportTechNL() {
   };
   
   const selectAll = () => {
-    const nonExisting = fetchedCompanies.filter(c => !isExisting(c));
-    setSelected(new Set(nonExisting.map(c => c.sourceId)));
+    // Select all that don't already have TechNL link
+    const selectable = fetchedCompanies.filter(c => !alreadyHasTechNL(c));
+    setSelected(new Set(selectable.map(c => c.sourceId)));
   };
   
   const selectNone = () => {
@@ -265,14 +304,17 @@ export default function ImportTechNL() {
             <div className="flex flex-col gap-2">
               {fetchedCompanies.map((company) => {
                 const existing = isExisting(company);
+                const hasTechNL = alreadyHasTechNL(company);
                 return (
                   <div
                     key={company.sourceId}
                     className={`flex items-center gap-4 p-3 border ${
-                      existing 
+                      hasTechNL 
                         ? "bg-harbour-50 border-harbour-200 opacity-60" 
                         : selected.has(company.sourceId)
                         ? "bg-blue-50 border-blue-300"
+                        : existing
+                        ? "bg-amber-50 border-amber-200"
                         : "bg-white border-harbour-200"
                     }`}
                   >
@@ -280,7 +322,7 @@ export default function ImportTechNL() {
                       type="checkbox"
                       checked={selected.has(company.sourceId)}
                       onChange={() => toggleSelect(company.sourceId)}
-                      disabled={existing}
+                      disabled={hasTechNL}
                       className="w-5 h-5"
                     />
                     
@@ -296,11 +338,16 @@ export default function ImportTechNL() {
                     )}
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium truncate">{company.name}</span>
-                        {existing && (
+                        {hasTechNL && (
                           <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
-                            Already exists
+                            Already imported
+                          </span>
+                        )}
+                        {existing && !hasTechNL && (
+                          <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
+                            Will merge
                           </span>
                         )}
                       </div>
