@@ -52,7 +52,9 @@ export async function action({ request, params }: Route.ActionArgs) {
       );
       return redirect(`/manage/learning/${institution.id}`);
     } catch (error) {
-      return { error: "Failed to convert company to institution" };
+      console.error("Failed to convert company to institution:", error);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      return { error: `Failed to convert company to institution: ${message}` };
     }
   }
 
