@@ -7,6 +7,15 @@ import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "
 import { ImageUpload } from "~/components/ImageUpload";
 import { blockItem } from "~/lib/import-blocklist.server";
 
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.replace(/^www\./, "").toLowerCase() + parsed.pathname.replace(/\/$/, "");
+  } catch {
+    return url.toLowerCase();
+  }
+}
+
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.company?.name || "Company"} - siliconharbour.dev` }];
 }
@@ -51,8 +60,11 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { error: "No import source specified" };
     }
     
-    // Use website URL as external ID, or name if no website
-    const externalId = existingCompany.website || existingCompany.name;
+    // Use normalized website URL as external ID, or name if no website
+    // Must match the normalization used in the import page
+    const externalId = existingCompany.website 
+      ? normalizeUrl(existingCompany.website) 
+      : existingCompany.name.toLowerCase();
     
     await blockItem(source, externalId, existingCompany.name, "Blocked from edit page");
     await deleteCompany(id);

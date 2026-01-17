@@ -206,24 +206,28 @@ export default function ImportTechNL() {
     return hasTechNL.includes(company.name.toLowerCase());
   };
   
+  const getExternalId = (company: ScrapedCompany) => {
+    // Use normalized website URL, or lowercase name if no website
+    // This must match the normalization used everywhere else
+    return company.website 
+      ? normalizeUrl(company.website) 
+      : company.name.toLowerCase();
+  };
+  
   const isBlocked = (company: ScrapedCompany) => {
-    // Check by website (normalized) or name
-    const externalId = company.website ? normalizeUrl(company.website) : company.name;
-    return blockedTechNL.has(externalId.toLowerCase());
+    return blockedTechNL.has(getExternalId(company));
   };
   
   const handleBlock = (company: ScrapedCompany) => {
-    const externalId = company.website ? normalizeUrl(company.website) : company.name;
     fetcher.submit(
-      { intent: "block", externalId, name: company.name },
+      { intent: "block", externalId: getExternalId(company), name: company.name },
       { method: "post" }
     );
   };
   
   const handleUnblock = (company: ScrapedCompany) => {
-    const externalId = company.website ? normalizeUrl(company.website) : company.name;
     fetcher.submit(
-      { intent: "unblock", externalId },
+      { intent: "unblock", externalId: getExternalId(company) },
       { method: "post" }
     );
   };
