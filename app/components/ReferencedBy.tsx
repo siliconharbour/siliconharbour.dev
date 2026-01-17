@@ -82,7 +82,7 @@ function EventCard({ data }: { data: DetailedBacklink & { type: "event" } extend
   return (
     <Link
       to={`/events/${data.slug}`}
-      className="group flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.coverImage ? (
         <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -117,7 +117,7 @@ function NewsCard({ data }: { data: DetailedBacklink & { type: "news" } extends 
   return (
     <Link
       to={`/news/${data.slug}`}
-      className="group flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.coverImage ? (
         <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -152,7 +152,7 @@ function JobCard({ data }: { data: DetailedBacklink & { type: "job" } extends { 
   return (
     <Link
       to={`/jobs/${data.slug}`}
-      className="group flex flex-col p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex flex-col p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
         {data.title}
@@ -172,7 +172,7 @@ function CompanyCard({ data }: { data: DetailedBacklink & { type: "company" } ex
   return (
     <Link
       to={`/companies/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
         <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -203,7 +203,7 @@ function ProjectCard({ data }: { data: DetailedBacklink & { type: "project" } ex
   return (
     <Link
       to={`/projects/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
         <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -232,7 +232,7 @@ function GroupCard({ data }: { data: DetailedBacklink & { type: "group" } extend
   return (
     <Link
       to={`/groups/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
         <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -258,7 +258,7 @@ function PersonCard({ data, relation }: { data: DetailedBacklink & { type: "pers
   return (
     <Link
       to={`/people/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.avatar ? (
         <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 rounded-full flex-shrink-0">
@@ -289,7 +289,7 @@ function LearningCard({ data }: { data: DetailedBacklink & { type: "learning" } 
   return (
     <Link
       to={`/learning/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
         <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">

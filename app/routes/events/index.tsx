@@ -61,7 +61,7 @@ export default function EventsIndex() {
               <div className="flex flex-wrap gap-2">
                 <a
                   href={`/events?filter=upcoming${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
-                  className={`px-3 py-1.5 text-sm no-underline transition-colors ${
+                  className={`px-3 py-1.5 text-sm transition-colors ${
                     filter === "upcoming" && !dateFilter
                       ? "bg-harbour-600 text-white"
                       : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
@@ -71,7 +71,7 @@ export default function EventsIndex() {
                 </a>
                 <a
                   href={`/events?filter=past${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
-                  className={`px-3 py-1.5 text-sm no-underline transition-colors ${
+                  className={`px-3 py-1.5 text-sm transition-colors ${
                     filter === "past" && !dateFilter
                       ? "bg-harbour-600 text-white"
                       : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
@@ -81,7 +81,7 @@ export default function EventsIndex() {
                 </a>
                 <a
                   href={`/events?filter=all${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
-                  className={`px-3 py-1.5 text-sm no-underline transition-colors ${
+                  className={`px-3 py-1.5 text-sm transition-colors ${
                     filter === "all" && !dateFilter
                       ? "bg-harbour-600 text-white"
                       : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
@@ -94,7 +94,7 @@ export default function EventsIndex() {
                     {dateFilterDisplay}
                     <a
                       href={`/events?filter=${filter}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
-                      className="text-white/80 hover:text-white no-underline"
+                      className="text-white/80 hover:text-white"
                       title="Clear date filter"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,7 +136,7 @@ export default function EventsIndex() {
                   <a
                     key={event.id}
                     href={`/events/${event.slug}`}
-                    className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                    className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                   >
                     {event.coverImage && (
                       <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">

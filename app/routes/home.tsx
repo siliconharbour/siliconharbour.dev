@@ -186,7 +186,7 @@ export default function Home() {
                       <Link
                         key={article.id}
                         to={`/news/${article.slug}`}
-                        className="group flex flex-col sm:flex-row gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                        className="group flex flex-col sm:flex-row gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {article.coverImage && (
                           <div className="img-tint w-full sm:w-32 h-24 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -230,7 +230,7 @@ export default function Home() {
                       <Link
                         key={company.id}
                         to={`/companies/${company.slug}`}
-                        className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                        className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {company.logo ? (
                           <div className="img-tint w-12 h-12 relative overflow-hidden bg-harbour-100">
@@ -268,7 +268,7 @@ export default function Home() {
                       <Link
                         key={project.id}
                         to={`/projects/${project.slug}`}
-                        className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                        className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {project.logo ? (
                           <div className="img-tint w-12 h-12 relative overflow-hidden bg-harbour-100">
@@ -306,7 +306,7 @@ export default function Home() {
                       <Link
                         key={job.id}
                         to={`/jobs/${job.slug}`}
-                        className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                        className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         <div className="flex flex-col gap-1">
                           <h3 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
@@ -371,7 +371,7 @@ function QuickLink({ to, label, count }: { to: string; label: string; count: num
   return (
     <Link
       to={to}
-      className="flex items-center justify-between py-1 text-sm text-harbour-600 hover:text-harbour-700 no-underline"
+      className="flex items-center justify-between py-1 text-sm text-harbour-600 hover:text-harbour-700"
     >
       <span>{label}</span>
       <span className="text-harbour-400">{count}</span>

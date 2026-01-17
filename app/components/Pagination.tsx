@@ -58,7 +58,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
       {hasPrev ? (
         <Link
           to={buildPageUrl(currentPage - 1)}
-          className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50 no-underline"
+          className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
           aria-label="Previous page"
         >
           <span aria-hidden="true">&larr;</span> Prev
@@ -74,7 +74,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
         <>
           <Link
             to={buildPageUrl(1)}
-            className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50 no-underline"
+            className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
           >
             1
           </Link>
@@ -89,7 +89,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
         <Link
           key={page}
           to={buildPageUrl(page)}
-          className={`px-3 py-2 text-sm no-underline ${
+          className={`px-3 py-2 text-sm ${
             page === currentPage
               ? "bg-harbour-600 text-white"
               : "text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
@@ -108,7 +108,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
           )}
           <Link
             to={buildPageUrl(totalPages)}
-            className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50 no-underline"
+            className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
           >
             {totalPages}
           </Link>
@@ -119,7 +119,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
       {hasNext ? (
         <Link
           to={buildPageUrl(currentPage + 1)}
-          className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50 no-underline"
+          className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
           aria-label="Next page"
         >
           Next <span aria-hidden="true">&rarr;</span>

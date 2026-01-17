@@ -104,7 +104,7 @@ export default function ConductPage() {
               href="https://ctsnl.ca/conduct/" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-harbour-500 hover:text-harbour-600"
+              className="link-inline link-external text-harbour-500"
             >
               CTS-NL Code of Conduct
             </a>
@@ -113,7 +113,7 @@ export default function ConductPage() {
               href="http://creativecommons.org/licenses/by/3.0/deed.en_US" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-harbour-500 hover:text-harbour-600"
+              className="link-inline link-external text-harbour-500"
             >
               Creative Commons Attribution 3.0
             </a>.

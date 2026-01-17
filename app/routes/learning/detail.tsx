@@ -82,7 +82,7 @@ export default function LearningDetail() {
             href={institution.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors no-underline self-start"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors self-start"
           >
             Visit Website
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

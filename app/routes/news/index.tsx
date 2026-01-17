@@ -125,7 +125,7 @@ function FilterTab({ href, active, label }: { href: string; active: boolean; lab
   return (
     <Link
       to={href}
-      className={`px-3 py-1.5 text-sm font-medium no-underline transition-colors ${
+      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
         active
           ? "bg-harbour-600 text-white"
           : "text-harbour-600 hover:bg-harbour-50"
@@ -159,7 +159,7 @@ function HeadlineArticle({ article }: { article: News }) {
   return (
     <a
       href={`/news/${article.slug}`}
-      className="group lg:col-span-2 flex flex-col gap-4 no-underline"
+      className="group lg:col-span-2 flex flex-col gap-4"
     >
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
@@ -192,7 +192,7 @@ function SecondaryArticle({ article }: { article: News }) {
   return (
     <a
       href={`/news/${article.slug}`}
-      className="group flex gap-3 no-underline pb-4 border-b border-harbour-100 last:border-b-0 last:pb-0"
+      className="group flex gap-3 pb-4 border-b border-harbour-100 last:border-b-0 last:pb-0"
     >
       {article.coverImage && (
         <div className="img-tint w-24 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -222,7 +222,7 @@ function ArticleCard({ article }: { article: News }) {
   return (
     <a
       href={`/news/${article.slug}`}
-      className="group flex flex-col gap-3 no-underline"
+      className="group flex flex-col gap-3"
     >
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">

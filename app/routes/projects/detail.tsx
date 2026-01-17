@@ -202,7 +202,7 @@ export default function ProjectDetail() {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors no-underline"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors"
                 >
                   {config.icon}
                   {config.label}

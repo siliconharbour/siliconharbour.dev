@@ -30,7 +30,7 @@ export default function PublicLayoutRoute() {
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-harbour-200/50">
         <div className="max-w-6xl mx-auto p-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <Link to="/" className="flex items-center gap-3 no-underline">
+          <Link to="/" className="flex items-center gap-3">
             <img 
               src="/siliconharbour.svg" 
               alt="Silicon Harbour" 
@@ -44,7 +44,7 @@ export default function PublicLayoutRoute() {
               <Link
                 key={item.href}
                 to={item.href}
-                className="text-sm text-harbour-500 hover:text-harbour-700 no-underline"
+                className="text-sm text-harbour-500 hover:text-harbour-700"
               >
                 {item.label}
               </Link>

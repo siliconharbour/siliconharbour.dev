@@ -58,7 +58,7 @@ export default function PeopleIndex() {
               <a
                 key={person.id}
                 href={`/people/${person.slug}`}
-                className="group flex items-center gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                className="group flex items-center gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
               >
                 {person.avatar ? (
                   <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">

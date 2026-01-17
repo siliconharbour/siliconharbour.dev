@@ -81,7 +81,7 @@ export default function CalendarPage() {
             <h3 className="font-medium text-harbour-700 mb-2">Google Calendar</h3>
             <ol className="text-harbour-600 list-decimal list-inside space-y-1">
               <li>Copy the calendar URL above</li>
-              <li>Open <a href="https://calendar.google.com" className="text-harbour-600">Google Calendar</a></li>
+              <li>Open <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer" className="link-inline link-external text-harbour-600">Google Calendar</a></li>
               <li>Click the + next to "Other calendars" in the left sidebar</li>
               <li>Select "From URL"</li>
               <li>Paste the URL and click "Add calendar"</li>
@@ -135,7 +135,7 @@ export default function CalendarPage() {
                 <a
                   key={event.id}
                   href={`/events/${event.slug}`}
-                  className="p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline"
+                  className="p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-center">
@@ -157,7 +157,7 @@ export default function CalendarPage() {
               );
             })}
           </div>
-          <a href="/events" className="block mt-4 text-sm text-harbour-600 hover:text-harbour-700">
+          <a href="/events" className="link-inline block mt-4 text-sm text-harbour-600">
             View all events &rarr;
           </a>
         </section>

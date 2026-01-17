@@ -224,7 +224,7 @@ function CommentForm({
 
       <p className="text-xs text-harbour-400">
         By submitting, you agree to our{" "}
-        <a href="/conduct" className="text-harbour-500 hover:text-harbour-600 underline">
+        <a href="/conduct" className="link-inline text-harbour-500">
           community guidelines
         </a>.
       </p>

@@ -78,7 +78,7 @@ export default function ProjectsIndex() {
                 <a
                   key={project.id}
                   href={`/projects/${project.slug}`}
-                  className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all no-underline overflow-hidden"
+                  className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all overflow-hidden"
                 >
                   {project.coverImage ? (
                     <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
