@@ -33,22 +33,19 @@ function escapeFtsQuery(query: string): string {
 
 /**
  * Build an FTS5 match query from user input
- * Adds prefix matching (*) for better partial matches
+ * With trigram tokenizer, we don't need prefix matching - substring matching is native
  */
 function buildFtsQuery(query: string): string {
   const escaped = escapeFtsQuery(query);
   if (!escaped) return "";
   
-  // Split into words and add prefix matching to each
+  // With trigram tokenizer, just quote each term for exact substring matching
+  // Split into words and quote each one
   const words = escaped.split(" ").filter(w => w.length > 0);
   
-  // For single-word queries, just use prefix match
-  if (words.length === 1) {
-    return `"${words[0]}"*`;
-  }
-  
-  // For multi-word queries, match all words with prefix
-  return words.map(w => `"${w}"*`).join(" ");
+  // Quote each word for exact matching
+  // For multi-word queries, all terms must match (implicit AND)
+  return words.map(w => `"${w}"`).join(" ");
 }
 
 /**

@@ -99,6 +99,13 @@
       "when": 1768684900000,
       "tag": "0013_import_blocklist",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1768693200000,
+      "tag": "0014_fts5_trigram_search",
+      "breakpoints": true
     }
   ]
 }
