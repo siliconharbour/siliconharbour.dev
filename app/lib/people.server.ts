@@ -89,6 +89,15 @@ export async function getAllPeople(includeHidden: boolean = false): Promise<Pers
   return db.select().from(people).where(eq(people.visible, true)).orderBy(desc(people.createdAt));
 }
 
+export async function getHiddenPeople(): Promise<Person[]> {
+  return db.select().from(people).where(eq(people.visible, false)).orderBy(desc(people.createdAt));
+}
+
+export async function getHiddenPeopleCount(): Promise<number> {
+  const [{ total }] = await db.select({ total: count() }).from(people).where(eq(people.visible, false));
+  return total;
+}
+
 // =============================================================================
 // Paginated queries with search
 // =============================================================================

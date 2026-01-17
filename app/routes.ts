@@ -103,6 +103,7 @@ export default [
     ]),
     ...prefix("companies", [
       index("routes/manage/companies/index.tsx"),
+      route("review", "routes/manage/companies/review.tsx"),
       route("new", "routes/manage/companies/new.tsx"),
       route(":id", "routes/manage/companies/edit.tsx"),
       route(":id/delete", "routes/manage/companies/delete.tsx"),
@@ -121,6 +122,7 @@ export default [
     ]),
     ...prefix("people", [
       index("routes/manage/people/index.tsx"),
+      route("review", "routes/manage/people/review.tsx"),
       route("new", "routes/manage/people/new.tsx"),
       route(":id", "routes/manage/people/edit.tsx"),
       route(":id/delete", "routes/manage/people/delete.tsx"),

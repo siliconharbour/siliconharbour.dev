@@ -1,7 +1,7 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getPaginatedPeople } from "~/lib/people.server";
+import { getPaginatedPeople, getHiddenPeopleCount } from "~/lib/people.server";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,24 +12,38 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: people } = await getPaginatedPeople(100, 0, searchQuery, true);
-  return { people, searchQuery };
+  const [{ items: people }, hiddenCount] = await Promise.all([
+    getPaginatedPeople(100, 0, searchQuery, true),
+    getHiddenPeopleCount()
+  ]);
+  return { people, searchQuery, hiddenCount };
 }
 
 export default function ManagePeopleIndex() {
-  const { people } = useLoaderData<typeof loader>();
+  const { people, hiddenCount } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">People</h1>
-          <Link
-            to="/manage/people/new"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
-          >
-            New Person
-          </Link>
+          <div className="flex items-center gap-3">
+            {hiddenCount > 0 && (
+              <Link
+                to="/manage/people/review"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors flex items-center gap-2"
+              >
+                Review
+                <span className="px-1.5 py-0.5 bg-amber-600 text-xs rounded-full">{hiddenCount}</span>
+              </Link>
+            )}
+            <Link
+              to="/manage/people/new"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            >
+              New Person
+            </Link>
+          </div>
         </div>
 
         <SearchInput placeholder="Search people..." />

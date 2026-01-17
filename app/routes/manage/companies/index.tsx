@@ -1,7 +1,7 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getPaginatedCompanies } from "~/lib/companies.server";
+import { getPaginatedCompanies, getHiddenCompaniesCount } from "~/lib/companies.server";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,24 +12,38 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: companies } = await getPaginatedCompanies(100, 0, searchQuery, true);
-  return { companies, searchQuery };
+  const [{ items: companies }, hiddenCount] = await Promise.all([
+    getPaginatedCompanies(100, 0, searchQuery, true),
+    getHiddenCompaniesCount()
+  ]);
+  return { companies, searchQuery, hiddenCount };
 }
 
 export default function ManageCompaniesIndex() {
-  const { companies } = useLoaderData<typeof loader>();
+  const { companies, hiddenCount } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Companies</h1>
-          <Link
-            to="/manage/companies/new"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
-          >
-            New Company
-          </Link>
+          <div className="flex items-center gap-3">
+            {hiddenCount > 0 && (
+              <Link
+                to="/manage/companies/review"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors flex items-center gap-2"
+              >
+                Review
+                <span className="px-1.5 py-0.5 bg-amber-600 text-xs rounded-full">{hiddenCount}</span>
+              </Link>
+            )}
+            <Link
+              to="/manage/companies/new"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            >
+              New Company
+            </Link>
+          </div>
         </div>
 
         <SearchInput placeholder="Search companies..." />

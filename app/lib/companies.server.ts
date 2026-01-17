@@ -87,6 +87,15 @@ export async function getAllCompanies(includeHidden: boolean = false): Promise<C
   return db.select().from(companies).where(eq(companies.visible, true)).orderBy(asc(companies.name));
 }
 
+export async function getHiddenCompanies(): Promise<Company[]> {
+  return db.select().from(companies).where(eq(companies.visible, false)).orderBy(desc(companies.createdAt));
+}
+
+export async function getHiddenCompaniesCount(): Promise<number> {
+  const [{ total }] = await db.select({ total: count() }).from(companies).where(eq(companies.visible, false));
+  return total;
+}
+
 export async function getPaginatedCompanies(
   limit: number,
   offset: number,
