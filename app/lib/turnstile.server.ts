@@ -1,10 +1,22 @@
 const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
+// Token max length per Cloudflare docs
+const MAX_TOKEN_LENGTH = 2048;
+
 interface TurnstileVerifyResponse {
   success: boolean;
   "error-codes"?: string[];
   challenge_ts?: string;
   hostname?: string;
+  action?: string;
+  cdata?: string;
+}
+
+/**
+ * Check if Turnstile verification is enabled (secret key is configured)
+ */
+export function isTurnstileEnabled(): boolean {
+  return !!process.env.TURNSTILE_SECRET_KEY;
 }
 
 /**
@@ -17,13 +29,24 @@ interface TurnstileVerifyResponse {
 export async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
   
-  // If no secret key is configured, skip verification in development
+  // If no secret key is configured, skip verification in development only
   if (!secretKey) {
     if (process.env.NODE_ENV === "development") {
       console.warn("TURNSTILE_SECRET_KEY not set, skipping verification in development");
       return true;
     }
     console.error("TURNSTILE_SECRET_KEY not configured");
+    return false;
+  }
+
+  // Validate token format before making API call
+  if (!token || typeof token !== "string" || token.trim().length === 0) {
+    console.warn("Turnstile verification failed: missing or empty token");
+    return false;
+  }
+
+  if (token.length > MAX_TOKEN_LENGTH) {
+    console.warn("Turnstile verification failed: token exceeds max length");
     return false;
   }
 

@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.comments";
 import { createComment } from "~/lib/comments.server";
-import { verifyTurnstile } from "~/lib/turnstile.server";
+import { verifyTurnstile, isTurnstileEnabled } from "~/lib/turnstile.server";
 import { contentTypes, type ContentType } from "~/db/schema";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -33,8 +33,8 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Comment is too long (max 5000 characters)" };
   }
 
-  // Verify Turnstile (skip if in dev without key configured)
-  if (turnstileToken || process.env.TURNSTILE_SECRET_KEY) {
+  // Verify Turnstile if enabled (always verify when secret key is configured)
+  if (isTurnstileEnabled()) {
     const clientIP = request.headers.get("CF-Connecting-IP") 
       || request.headers.get("X-Forwarded-For")?.split(",")[0]
       || undefined;
