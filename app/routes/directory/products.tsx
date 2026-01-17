@@ -1,6 +1,7 @@
 import type { Route } from "./+types/products";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { getPaginatedProducts } from "~/lib/products.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import type { ProductType } from "~/db/schema";
@@ -16,8 +17,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
   
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
+  
   const { items, total } = await getPaginatedProducts(limit, offset, searchQuery);
-  return { items, total, limit, offset, searchQuery };
+  return { items, total, limit, offset, searchQuery, isAdmin };
 }
 
 const typeLabels: Record<ProductType, string> = {
@@ -37,10 +41,22 @@ const typeColors: Record<ProductType, string> = {
 };
 
 export default function DirectoryProducts() {
-  const { items, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
+  const { items, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Admin create button */}
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Link
+            to="/manage/products/new"
+            className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+          >
+            + New Product
+          </Link>
+        </div>
+      )}
+
       {/* Search */}
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">

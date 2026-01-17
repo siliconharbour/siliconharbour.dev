@@ -1,6 +1,7 @@
 import type { Route } from "./+types/index";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { getPaginatedJobs } from "~/lib/jobs.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
@@ -17,20 +18,33 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
   
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
+  
   const { items: jobs, total } = await getPaginatedJobs(limit, offset, searchQuery);
   
-  return { jobs, total, limit, offset, searchQuery };
+  return { jobs, total, limit, offset, searchQuery, isAdmin };
 }
 
 export default function JobsIndex() {
-  const { jobs, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
+  const { jobs, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-bold text-harbour-700">Jobs</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-harbour-700">Jobs</h1>
+              {isAdmin && (
+                <Link
+                  to="/manage/jobs/new"
+                  className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+                >
+                  + New Job
+                </Link>
+              )}
+            </div>
             <p className="text-harbour-500">Tech job opportunities in the community</p>
           </div>
           

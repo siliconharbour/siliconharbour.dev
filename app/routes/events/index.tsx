@@ -1,6 +1,7 @@
 import type { Route } from "./+types/index";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { getPaginatedEvents, getUpcomingEvents, type EventFilter } from "~/lib/events.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import { Calendar } from "~/components/Calendar";
@@ -20,6 +21,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const filter = (url.searchParams.get("filter") || "upcoming") as EventFilter;
   const dateFilter = url.searchParams.get("date") || undefined;
   
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
+  
   const [paginatedResult, allEvents] = await Promise.all([
     getPaginatedEvents(limit, offset, searchQuery, filter, dateFilter),
     getUpcomingEvents(), // For calendar display
@@ -34,11 +38,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     filter,
     dateFilter,
     allEvents,
+    isAdmin,
   };
 }
 
 export default function EventsIndex() {
-  const { events, total, limit, offset, searchQuery, filter, dateFilter, allEvents } = useLoaderData<typeof loader>();
+  const { events, total, limit, offset, searchQuery, filter, dateFilter, allEvents, isAdmin } = useLoaderData<typeof loader>();
   
   // Format the date filter for display
   const dateFilterDisplay = dateFilter 
@@ -53,7 +58,17 @@ export default function EventsIndex() {
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold text-harbour-700">Events</h1>
+                <div className="flex items-center justify-between">
+                  <h1 className="text-3xl font-bold text-harbour-700">Events</h1>
+                  {isAdmin && (
+                    <Link
+                      to="/manage/events/new"
+                      className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+                    >
+                      + New Event
+                    </Link>
+                  )}
+                </div>
                 <p className="text-harbour-500">Tech events in the community</p>
               </div>
               

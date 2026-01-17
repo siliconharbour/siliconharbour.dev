@@ -1,6 +1,7 @@
 import type { Route } from "./+types/projects";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { getPaginatedProjects } from "~/lib/projects.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { parseProjectLinks } from "~/lib/project-links";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
@@ -17,8 +18,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
   
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
+  
   const { items, total } = await getPaginatedProjects(limit, offset, searchQuery);
-  return { items, total, limit, offset, searchQuery };
+  return { items, total, limit, offset, searchQuery, isAdmin };
 }
 
 const typeLabels: Record<ProjectType, string> = {
@@ -38,10 +42,21 @@ const statusColors: Record<ProjectStatus, string> = {
 };
 
 export default function DirectoryProjects() {
-  const { items, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
+  const { items, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <div className="flex flex-col gap-6">
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Link
+            to="/manage/projects/new"
+            className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+          >
+            + New Project
+          </Link>
+        </div>
+      )}
+
       {/* Search */}
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">

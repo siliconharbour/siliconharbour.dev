@@ -1,6 +1,7 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { getPaginatedNews, type NewsType } from "~/lib/news.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import { format, isAfter, subDays } from "date-fns";
@@ -21,6 +22,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const searchQuery = url.searchParams.get("q") || "";
   const typeParam = url.searchParams.get("type");
   
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
+  
   // Validate type filter
   const typeFilter = typeParam && validTypes.includes(typeParam as NewsType) 
     ? (typeParam as NewsType) 
@@ -34,11 +38,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     articles[0].publishedAt && 
     isAfter(articles[0].publishedAt, oneWeekAgo);
   
-  return { articles, total, limit, offset, searchQuery, hasRecentHeadline, typeFilter };
+  return { articles, total, limit, offset, searchQuery, hasRecentHeadline, typeFilter, isAdmin };
 }
 
 export default function NewsIndex() {
-  const { articles, total, limit, offset, searchQuery, hasRecentHeadline, typeFilter } = useLoaderData<typeof loader>();
+  const { articles, total, limit, offset, searchQuery, hasRecentHeadline, typeFilter, isAdmin } = useLoaderData<typeof loader>();
   
   // If we're on the first page and have a recent headline, split articles
   const isFirstPage = offset === 0;
@@ -51,12 +55,22 @@ export default function NewsIndex() {
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
       <div className="flex flex-col gap-6">
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-4">
-          <FilterTab href="/news" active={!typeFilter} label="All" />
-          <FilterTab href="/news?type=announcement" active={typeFilter === "announcement"} label="Announcements" />
-          <FilterTab href="/news?type=editorial" active={typeFilter === "editorial"} label="Editorial" />
-          <FilterTab href="/news?type=meta" active={typeFilter === "meta"} label="Site Updates" />
+        {/* Filter Tabs + Admin Button */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <FilterTab href="/news" active={!typeFilter} label="All" />
+            <FilterTab href="/news?type=announcement" active={typeFilter === "announcement"} label="Announcements" />
+            <FilterTab href="/news?type=editorial" active={typeFilter === "editorial"} label="Editorial" />
+            <FilterTab href="/news?type=meta" active={typeFilter === "meta"} label="Site Updates" />
+          </div>
+          {isAdmin && (
+            <Link
+              to="/manage/news/new"
+              className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+            >
+              + New Article
+            </Link>
+          )}
         </div>
 
         {/* Search - only show if pagination is needed */}

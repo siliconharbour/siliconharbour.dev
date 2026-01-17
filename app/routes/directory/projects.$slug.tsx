@@ -1,5 +1,5 @@
 import type { Route } from "./+types/projects.$slug";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { getProjectBySlugWithImages } from "~/lib/projects.server";
 import { parseProjectLinks } from "~/lib/project-links";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
@@ -166,8 +166,21 @@ export default function ProjectDetail() {
               />
             </div>
           )}
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-harbour-700">{project.name}</h1>
+          <div className="flex flex-col gap-1 flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-harbour-700">{project.name}</h1>
+              {isAdmin && (
+                <Link
+                  to={`/manage/projects/${project.id}`}
+                  className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                  title="Edit"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </Link>
+              )}
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-harbour-500">{typeLabels[project.type]}</span>
               <span className={`text-xs px-1.5 py-0.5 ${statusColors[project.status]}`}>

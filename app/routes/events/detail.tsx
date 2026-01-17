@@ -1,8 +1,9 @@
 import type { Route } from "./+types/detail";
-import { useLoaderData } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { getEventBySlug, getEventWithOccurrences, type EventOccurrenceDisplay } from "~/lib/events.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
 import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.server";
+import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
@@ -25,11 +26,14 @@ export function meta({ data, params }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ params, request }: Route.LoaderArgs) {
   const event = await getEventBySlug(params.slug);
   if (!event) {
     throw new Response("Event not found", { status: 404 });
   }
+  
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
   
   const resolvedRefs = await prepareRefsForClient(event.description);
   const backlinks = await getDetailedBacklinks("event", event.id);
@@ -48,11 +52,11 @@ export async function loader({ params }: Route.LoaderArgs) {
     }
   }
   
-  return { event, resolvedRefs, backlinks, occurrences, recurrenceDescription };
+  return { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin };
 }
 
 export default function EventDetail() {
-  const { event, resolvedRefs, backlinks, occurrences, recurrenceDescription } = useLoaderData<typeof loader>();
+  const { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin } = useLoaderData<typeof loader>();
   const isRecurring = !!event.recurrenceRule;
 
   return (
@@ -69,7 +73,20 @@ export default function EventDetail() {
         )}
 
         <div className="flex flex-col gap-4">
-          <h1 className="text-3xl font-bold text-harbour-700">{event.title}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-3xl font-bold text-harbour-700">{event.title}</h1>
+            {isAdmin && (
+              <Link
+                to={`/manage/events/${event.id}`}
+                className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                title="Edit"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </Link>
+            )}
+          </div>
           
           {event.organizer && (
             <p className="text-harbour-500">Organized by {event.organizer}</p>
