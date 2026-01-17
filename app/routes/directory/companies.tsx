@@ -23,7 +23,7 @@ export default function DirectoryCompanies() {
   const { items, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       {/* Search */}
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
@@ -41,12 +41,12 @@ export default function DirectoryCompanies() {
           {searchQuery ? "No companies match your search." : "No companies listed yet."}
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 -m-1 p-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((company) => (
             <a
               key={company.id}
               href={`/directory/companies/${company.slug}`}
-              className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+              className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
             >
               {company.logo ? (
                 <div className="w-16 h-16 relative overflow-hidden bg-harbour-100">
@@ -75,6 +75,6 @@ export default function DirectoryCompanies() {
       )}
       
       <Pagination total={total} limit={limit} offset={offset} />
-    </>
+    </div>
   );
 }

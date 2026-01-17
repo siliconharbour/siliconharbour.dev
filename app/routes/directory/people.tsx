@@ -24,7 +24,7 @@ export default function DirectoryPeople() {
   const { people, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       {/* Search - only show if pagination is needed */}
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
@@ -44,12 +44,12 @@ export default function DirectoryPeople() {
           {searchQuery ? "No people match your search." : "No people listed yet."}
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 -m-1 p-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {people.map((person) => (
             <a
               key={person.id}
               href={`/directory/people/${person.slug}`}
-              className="group flex items-center gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+              className="group flex items-center gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
             >
               {person.avatar ? (
                 <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">
@@ -75,6 +75,6 @@ export default function DirectoryPeople() {
       )}
       
       <Pagination total={total} limit={limit} offset={offset} />
-    </>
+    </div>
   );
 }

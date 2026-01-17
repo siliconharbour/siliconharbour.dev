@@ -21,7 +21,7 @@ export default function DirectoryLayout() {
   const location = useLocation();
 
   return (
-    <div className="max-w-6xl mx-auto p-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
@@ -29,8 +29,8 @@ export default function DirectoryLayout() {
             <p className="text-harbour-500">Companies, groups, people, and projects in the tech community</p>
           </div>
           
-          {/* Tabs */}
-          <div className="flex gap-1 border-b border-harbour-200 overflow-x-auto">
+          {/* Tabs - extend to edges on mobile */}
+          <div className="flex gap-1 border-b border-harbour-200 -mx-4 px-4 overflow-x-auto">
             {tabs.map((tab) => (
               <Link
                 key={tab.path}

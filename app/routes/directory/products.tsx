@@ -40,7 +40,7 @@ export default function DirectoryProducts() {
   const { items, total, limit, offset, searchQuery } = useLoaderData<typeof loader>();
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       {/* Search */}
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
@@ -58,12 +58,12 @@ export default function DirectoryProducts() {
           {searchQuery ? "No products match your search." : "No products listed yet."}
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 -m-1 p-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((product) => (
             <a
               key={product.id}
               href={`/directory/products/${product.slug}`}
-              className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all overflow-hidden"
+              className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all overflow-hidden"
             >
               {product.coverImage ? (
                 <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
@@ -113,6 +113,6 @@ export default function DirectoryProducts() {
       )}
       
       <Pagination total={total} limit={limit} offset={offset} />
-    </>
+    </div>
   );
 }
