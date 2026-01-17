@@ -172,7 +172,7 @@ function HeadlineArticle({ article }: { article: News }) {
       )}
       <div className="flex flex-col gap-2">
         <TypeBadge type={article.type} />
-        <h2 className="text-2xl lg:text-3xl font-bold text-harbour-700 group-hover:text-harbour-600 leading-tight">
+        <h2 className="link-title text-2xl lg:text-3xl font-bold text-harbour-700 group-hover:text-harbour-600 leading-tight">
           {article.title}
         </h2>
         {article.publishedAt && (
@@ -205,7 +205,7 @@ function SecondaryArticle({ article }: { article: News }) {
       )}
       <div className="flex flex-col gap-1 flex-1 min-w-0">
         <TypeBadge type={article.type} />
-        <h3 className="font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
+        <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
           {article.title}
         </h3>
         {article.publishedAt && (
@@ -235,7 +235,7 @@ function ArticleCard({ article }: { article: News }) {
       )}
       <div className="flex flex-col gap-1">
         <TypeBadge type={article.type} />
-        <h3 className="font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
+        <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
           {article.title}
         </h3>
         {article.publishedAt && (

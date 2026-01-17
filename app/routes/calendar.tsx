@@ -135,7 +135,7 @@ export default function CalendarPage() {
                 <a
                   key={event.id}
                   href={`/events/${event.slug}`}
-                  className="p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+                  className="group p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-center">
@@ -147,7 +147,7 @@ export default function CalendarPage() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="font-medium text-harbour-700">{event.title}</h3>
+                      <h3 className="link-title font-medium text-harbour-700">{event.title}</h3>
                       <p className="text-sm text-harbour-500">
                         {format(nextDate.startDate, "EEEE 'at' h:mm a")}
                       </p>

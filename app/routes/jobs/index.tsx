@@ -62,7 +62,7 @@ export default function JobsIndex() {
                 className="group flex flex-col gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <h2 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
+                  <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                     {job.title}
                   </h2>
                   <div className="flex flex-wrap gap-2">

@@ -74,7 +74,7 @@ export default function PeopleIndex() {
                   </div>
                 )}
                 <div className="flex flex-col gap-1">
-                  <h2 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
+                  <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                     {person.name}
                   </h2>
                 </div>

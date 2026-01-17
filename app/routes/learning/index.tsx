@@ -78,7 +78,7 @@ export default function LearningIndex() {
                   </div>
                 )}
                 <div className="flex flex-col gap-1">
-                  <h2 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
+                  <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                     {inst.name}
                   </h2>
                   <p className="text-sm text-harbour-400">{typeLabels[inst.type] ?? inst.type}</p>

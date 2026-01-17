@@ -100,7 +100,7 @@ function EventCard({ data }: { data: DetailedBacklink & { type: "event" } extend
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
+        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
           {data.title}
         </h4>
         {data.nextDate && (
@@ -135,7 +135,7 @@ function NewsCard({ data }: { data: DetailedBacklink & { type: "news" } extends 
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
+        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
           {data.title}
         </h4>
         {data.publishedAt && (
@@ -154,7 +154,7 @@ function JobCard({ data }: { data: DetailedBacklink & { type: "job" } extends { 
       to={`/jobs/${data.slug}`}
       className="group flex flex-col p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
-      <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
+      <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
         {data.title}
       </h4>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500 mt-1">
@@ -188,7 +188,7 @@ function CompanyCard({ data }: { data: DetailedBacklink & { type: "company" } ex
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
           {data.name}
         </h4>
         {data.location && (
@@ -219,7 +219,7 @@ function ProjectCard({ data }: { data: DetailedBacklink & { type: "project" } ex
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
           {data.name}
         </h4>
         <p className="text-sm text-harbour-500 capitalize">{data.type}</p>
@@ -247,7 +247,7 @@ function GroupCard({ data }: { data: DetailedBacklink & { type: "group" } extend
           <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
         </div>
       )}
-      <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1 flex-1 min-w-0">
+      <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1 flex-1 min-w-0">
         {data.name}
       </h4>
     </Link>
@@ -274,7 +274,7 @@ function PersonCard({ data, relation }: { data: DetailedBacklink & { type: "pers
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
           {data.name}
         </h4>
         {relation && (
@@ -307,7 +307,7 @@ function LearningCard({ data }: { data: DetailedBacklink & { type: "learning" } 
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
           {data.name}
         </h4>
         {data.type && (

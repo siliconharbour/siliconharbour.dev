@@ -104,7 +104,7 @@ export default function ProjectsIndex() {
                   
                   <div className="p-4 flex flex-col gap-2">
                     <div className="flex items-start justify-between gap-2">
-                      <h2 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
+                      <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                         {project.name}
                       </h2>
                       <span className={`text-xs px-1.5 py-0.5 ${statusColors[project.status]}`}>

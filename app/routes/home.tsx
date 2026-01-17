@@ -198,7 +198,7 @@ export default function Home() {
                           </div>
                         )}
                         <div className="flex flex-col gap-1">
-                          <h3 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
+                          <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                             {article.title}
                           </h3>
                           {article.publishedAt && (
@@ -245,7 +245,7 @@ export default function Home() {
                             <span className="text-lg text-harbour-400">{company.name.charAt(0)}</span>
                           </div>
                         )}
-                        <span className="text-sm font-medium text-harbour-700 group-hover:text-harbour-600 text-center line-clamp-2">
+                        <span className="link-title text-sm font-medium text-harbour-700 group-hover:text-harbour-600 text-center line-clamp-2">
                           {company.name}
                         </span>
                       </Link>
@@ -283,7 +283,7 @@ export default function Home() {
                             <span className="text-lg text-harbour-400">{project.name.charAt(0)}</span>
                           </div>
                         )}
-                        <span className="text-sm font-medium text-harbour-700 group-hover:text-harbour-600 text-center line-clamp-2">
+                        <span className="link-title text-sm font-medium text-harbour-700 group-hover:text-harbour-600 text-center line-clamp-2">
                           {project.name}
                         </span>
                       </Link>
@@ -309,7 +309,7 @@ export default function Home() {
                         className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         <div className="flex flex-col gap-1">
-                          <h3 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
+                          <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                             {job.title}
                           </h3>
                           <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">

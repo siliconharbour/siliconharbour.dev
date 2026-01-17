@@ -37,6 +37,16 @@ a:focus {
   @apply text-harbour-700;
 }
 
+/* Card title underline - for titles within clickable cards */
+/* Apply to the title element, parent must have .group class */
+.group .link-title {
+  @apply decoration-transparent underline underline-offset-2 transition-all;
+}
+
+.group:hover .link-title {
+  @apply decoration-harbour-300;
+}
+
 /* Inline text links - underlined style for links within content */
 .link-inline {
   @apply underline decoration-harbour-200 underline-offset-2 transition-colors;

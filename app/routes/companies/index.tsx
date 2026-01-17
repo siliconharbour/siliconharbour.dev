@@ -70,7 +70,7 @@ export default function CompaniesIndex() {
                   </div>
                 )}
                 <div className="flex flex-col gap-1">
-                  <h2 className="font-semibold text-harbour-700 group-hover:text-harbour-600">
+                  <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                     {company.name}
                   </h2>
                   {company.location && (
