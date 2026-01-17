@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllProductsWithCompany } from "~/lib/products.server";
+import { getPaginatedProducts } from "~/lib/products.server";
+import { SearchInput } from "~/components/SearchInput";
 import type { ProductType } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,8 +11,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const products = await getAllProductsWithCompany();
-  return { products };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: products } = await getPaginatedProducts(100, 0, searchQuery);
+  return { products, searchQuery };
 }
 
 const typeLabels: Record<ProductType, string> = {
@@ -45,6 +48,8 @@ export default function ManageProductsIndex() {
             New Product
           </Link>
         </div>
+
+        <SearchInput placeholder="Search products..." />
 
         {products.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">

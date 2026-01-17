@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllLearning } from "~/lib/learning.server";
+import { getPaginatedLearning } from "~/lib/learning.server";
+import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Learning - siliconharbour.dev" }];
@@ -9,8 +10,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const institutions = await getAllLearning();
-  return { institutions };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: institutions } = await getPaginatedLearning(100, 0, searchQuery, true);
+  return { institutions, searchQuery };
 }
 
 const typeLabels: Record<string, string> = {
@@ -36,6 +39,8 @@ export default function ManageLearningIndex() {
             New Institution
           </Link>
         </div>
+
+        <SearchInput placeholder="Search institutions..." />
 
         {institutions.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">

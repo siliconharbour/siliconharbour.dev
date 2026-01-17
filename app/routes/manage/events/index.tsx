@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllEvents } from "~/lib/events.server";
+import { getPaginatedEvents } from "~/lib/events.server";
+import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,8 +11,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const events = await getAllEvents();
-  return { events };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: events } = await getPaginatedEvents(100, 0, searchQuery, "all");
+  return { events, searchQuery };
 }
 
 export default function ManageEventsIndex() {
@@ -29,6 +32,8 @@ export default function ManageEventsIndex() {
             New Event
           </Link>
         </div>
+
+        <SearchInput placeholder="Search events..." />
 
         {events.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">

@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllProjects } from "~/lib/projects.server";
+import { getPaginatedProjects } from "~/lib/projects.server";
+import { SearchInput } from "~/components/SearchInput";
 import type { ProjectStatus, ProjectType } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,8 +11,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const projects = await getAllProjects();
-  return { projects };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: projects } = await getPaginatedProjects(100, 0, searchQuery);
+  return { projects, searchQuery };
 }
 
 const typeLabels: Record<ProjectType, string> = {
@@ -45,6 +48,8 @@ export default function ManageProjectsIndex() {
             New Project
           </Link>
         </div>
+
+        <SearchInput placeholder="Search projects..." />
 
         {projects.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">

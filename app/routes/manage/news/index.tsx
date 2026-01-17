@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllNews } from "~/lib/news.server";
+import { getPaginatedNews } from "~/lib/news.server";
+import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,8 +11,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const articles = await getAllNews();
-  return { articles };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: articles } = await getPaginatedNews(100, 0, searchQuery);
+  return { articles, searchQuery };
 }
 
 export default function ManageNewsIndex() {
@@ -29,6 +32,8 @@ export default function ManageNewsIndex() {
             New Article
           </Link>
         </div>
+
+        <SearchInput placeholder="Search articles..." />
 
         {articles.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">

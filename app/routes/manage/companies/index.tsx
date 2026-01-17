@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllCompanies } from "~/lib/companies.server";
+import { getPaginatedCompanies } from "~/lib/companies.server";
+import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Companies - siliconharbour.dev" }];
@@ -9,8 +10,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const companies = await getAllCompanies();
-  return { companies };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: companies } = await getPaginatedCompanies(100, 0, searchQuery, true);
+  return { companies, searchQuery };
 }
 
 export default function ManageCompaniesIndex() {
@@ -28,6 +31,8 @@ export default function ManageCompaniesIndex() {
             New Company
           </Link>
         </div>
+
+        <SearchInput placeholder="Search companies..." />
 
         {companies.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">

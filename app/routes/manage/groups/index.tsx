@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllGroups } from "~/lib/groups.server";
+import { getPaginatedGroups } from "~/lib/groups.server";
+import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Groups - siliconharbour.dev" }];
@@ -9,8 +10,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const groups = await getAllGroups();
-  return { groups };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: groups } = await getPaginatedGroups(100, 0, searchQuery, true);
+  return { groups, searchQuery };
 }
 
 export default function ManageGroupsIndex() {
@@ -28,6 +31,8 @@ export default function ManageGroupsIndex() {
             New Group
           </Link>
         </div>
+
+        <SearchInput placeholder="Search groups..." />
 
         {groups.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">

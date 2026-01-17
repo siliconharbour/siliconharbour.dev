@@ -1,7 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllJobs } from "~/lib/jobs.server";
+import { getPaginatedJobs } from "~/lib/jobs.server";
+import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,8 +11,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const jobs = await getAllJobs();
-  return { jobs };
+  const url = new URL(request.url);
+  const searchQuery = url.searchParams.get("q") || "";
+  const { items: jobs } = await getPaginatedJobs(100, 0, searchQuery);
+  return { jobs, searchQuery };
 }
 
 export default function ManageJobsIndex() {
@@ -29,6 +32,8 @@ export default function ManageJobsIndex() {
             New Job
           </Link>
         </div>
+
+        <SearchInput placeholder="Search jobs..." />
 
         {jobs.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">
