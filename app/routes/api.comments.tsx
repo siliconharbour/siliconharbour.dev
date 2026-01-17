@@ -1,7 +1,14 @@
 import type { Route } from "./+types/api.comments";
-import { createComment, getCommentById } from "~/lib/comments.server";
+import { createComment, getCommentById, hashIP } from "~/lib/comments.server";
 import { verifyTurnstile, isTurnstileEnabled } from "~/lib/turnstile.server";
 import { contentTypes, type ContentType } from "~/db/schema";
+import {
+  checkRateLimit,
+  cleanupExpiredRateLimits,
+  commentRateLimitKey,
+  COMMENT_RATE_LIMIT,
+  COMMENT_RATE_WINDOW,
+} from "~/lib/ratelimit.server";
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -69,6 +76,30 @@ export async function action({ request }: Route.ActionArgs) {
     || request.headers.get("X-Real-IP")
     || undefined;
   const userAgent = request.headers.get("User-Agent") || undefined;
+
+  // Rate limiting - 10 comments per 30 minutes per IP
+  if (clientIP) {
+    const ipHash = hashIP(clientIP);
+    const rateLimit = await checkRateLimit(
+      commentRateLimitKey(ipHash),
+      COMMENT_RATE_LIMIT,
+      COMMENT_RATE_WINDOW
+    );
+
+    if (!rateLimit.allowed) {
+      const minutesLeft = Math.ceil(
+        (rateLimit.resetAt.getTime() - Date.now()) / 60000
+      );
+      return {
+        error: `Please wait ${minutesLeft} minute${minutesLeft === 1 ? "" : "s"} before posting again.`,
+      };
+    }
+
+    // Opportunistically clean up expired entries (1% of requests)
+    if (Math.random() < 0.01) {
+      cleanupExpiredRateLimits().catch(() => {});
+    }
+  }
 
   try {
     await createComment(

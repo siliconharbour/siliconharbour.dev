@@ -13,7 +13,7 @@ export interface CommentWithDepth extends Comment {
 /**
  * Hash an IP address for privacy-preserving spam prevention
  */
-function hashIP(ip: string): string {
+export function hashIP(ip: string): string {
   return crypto.createHash("sha256").update(ip).digest("hex").slice(0, 16);
 }
 

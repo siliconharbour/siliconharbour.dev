@@ -371,6 +371,22 @@ export const references = sqliteTable("references", {
 }));
 
 // =============================================================================
+// Rate Limiting - Redis-like rate limiting backed by SQLite
+// =============================================================================
+
+export const rateLimits = sqliteTable("rate_limits", {
+  key: text("key").primaryKey(), // e.g., "comment:{ipHash}"
+  count: integer("count").notNull().default(0),
+  windowStart: integer("window_start").notNull(), // Unix timestamp (seconds)
+  expiresAt: integer("expires_at").notNull(), // For cleanup
+}, (table) => ({
+  expiresIdx: index("rate_limits_expires_idx").on(table.expiresAt),
+}));
+
+export type RateLimit = typeof rateLimits.$inferSelect;
+export type NewRateLimit = typeof rateLimits.$inferInsert;
+
+// =============================================================================
 // Type exports
 // =============================================================================
 
