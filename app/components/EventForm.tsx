@@ -20,9 +20,89 @@ type DateEntry = {
   isRange: boolean;
 };
 
+type RecurrenceFrequency = "none" | "weekly" | "biweekly" | "monthly";
+type DayOfWeek = "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
+
+const DAYS_OF_WEEK: { value: DayOfWeek; label: string }[] = [
+  { value: "MO", label: "Monday" },
+  { value: "TU", label: "Tuesday" },
+  { value: "WE", label: "Wednesday" },
+  { value: "TH", label: "Thursday" },
+  { value: "FR", label: "Friday" },
+  { value: "SA", label: "Saturday" },
+  { value: "SU", label: "Sunday" },
+];
+
+const MONTHLY_POSITIONS = [
+  { value: 1, label: "First" },
+  { value: 2, label: "Second" },
+  { value: 3, label: "Third" },
+  { value: 4, label: "Fourth" },
+  { value: -1, label: "Last" },
+];
+
+// Parse existing recurrence rule to extract settings
+function parseRecurrenceRule(rule: string | null): {
+  frequency: RecurrenceFrequency;
+  dayOfWeek: DayOfWeek;
+  monthlyPosition: number;
+} {
+  if (!rule) {
+    return { frequency: "none", dayOfWeek: "TH", monthlyPosition: 1 };
+  }
+
+  const parts = rule.split(";");
+  let freq: RecurrenceFrequency = "none";
+  let interval = 1;
+  let dayOfWeek: DayOfWeek = "TH";
+  let monthlyPosition = 1;
+
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+    if (key === "FREQ") {
+      if (value === "WEEKLY") freq = "weekly";
+      else if (value === "MONTHLY") freq = "monthly";
+    }
+    if (key === "INTERVAL") interval = parseInt(value, 10);
+    if (key === "BYDAY") {
+      const match = value.match(/^(-?\d)?([A-Z]{2})$/);
+      if (match) {
+        if (match[1]) monthlyPosition = parseInt(match[1], 10);
+        dayOfWeek = match[2] as DayOfWeek;
+      }
+    }
+  }
+
+  if (freq === "weekly" && interval === 2) freq = "biweekly";
+
+  return { frequency: freq, dayOfWeek, monthlyPosition };
+}
+
 export function EventForm({ event, error }: EventFormProps) {
+  // Determine if this is a recurring event
+  const isExistingRecurring = !!event?.recurrenceRule;
+
+  // Event type: "onetime" or "recurring"
+  const [eventType, setEventType] = useState<"onetime" | "recurring">(
+    isExistingRecurring ? "recurring" : "onetime"
+  );
+
+  // Recurrence settings
+  const parsedRule = parseRecurrenceRule(event?.recurrenceRule || null);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>(
+    parsedRule.frequency === "none" ? "weekly" : parsedRule.frequency
+  );
+  const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState<DayOfWeek>(parsedRule.dayOfWeek);
+  const [monthlyPosition, setMonthlyPosition] = useState<number>(parsedRule.monthlyPosition);
+  const [defaultStartTime, setDefaultStartTime] = useState(event?.defaultStartTime || "19:00");
+  const [defaultEndTime, setDefaultEndTime] = useState(event?.defaultEndTime || "21:00");
+  const [hasEndTime, setHasEndTime] = useState(!!event?.defaultEndTime);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(event?.recurrenceEnd || null);
+  const [showRecurrenceEndPicker, setShowRecurrenceEndPicker] = useState(false);
+
+  // One-time event dates
   const [dates, setDates] = useState<DateEntry[]>(() => {
-    if (event?.dates.length) {
+    if (!isExistingRecurring && event?.dates.length) {
       return event.dates.map((d, i) => ({
         id: `existing-${i}`,
         startDate: d.startDate,
@@ -124,6 +204,18 @@ export function EventForm({ event, error }: EventFormProps) {
 
   const updateDate = (id: string, updates: Partial<DateEntry>) => {
     setDates(dates.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+  };
+
+  // Build recurrence rule string
+  const buildRecurrenceRule = (): string => {
+    if (recurrenceFrequency === "weekly") {
+      return `FREQ=WEEKLY;BYDAY=${recurrenceDayOfWeek}`;
+    } else if (recurrenceFrequency === "biweekly") {
+      return `FREQ=WEEKLY;INTERVAL=2;BYDAY=${recurrenceDayOfWeek}`;
+    } else if (recurrenceFrequency === "monthly") {
+      return `FREQ=MONTHLY;BYDAY=${monthlyPosition}${recurrenceDayOfWeek}`;
+    }
+    return "";
   };
 
   return (
@@ -304,135 +396,96 @@ export function EventForm({ event, error }: EventFormProps) {
           <input type="hidden" name="existingIconImage" value={event.iconImage} />
         )}
 
-        {/* Dates */}
+        {/* Event Type Selection */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-harbour-700">Event Dates *</label>
-            <button
-              type="button"
-              onClick={addDate}
-              className="text-sm text-harbour-600 hover:text-harbour-700"
-            >
-              + Add Date
-            </button>
+          <label className="block text-sm font-medium mb-2 text-harbour-700">Event Type *</label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="eventType"
+                value="onetime"
+                checked={eventType === "onetime"}
+                onChange={() => setEventType("onetime")}
+                className="accent-harbour-600"
+              />
+              <span className="text-harbour-600">One-time event</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="eventType"
+                value="recurring"
+                checked={eventType === "recurring"}
+                onChange={() => setEventType("recurring")}
+                className="accent-harbour-600"
+              />
+              <span className="text-harbour-600">Recurring event</span>
+            </label>
           </div>
+        </div>
 
-          <div className="space-y-4">
-            {dates.map((dateEntry, index) => (
-              <div
-                key={dateEntry.id}
-                className="p-4 border border-harbour-200 bg-harbour-50/30"
+        {/* One-time Event Dates */}
+        {eventType === "onetime" && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-harbour-700">Event Dates *</label>
+              <button
+                type="button"
+                onClick={addDate}
+                className="text-sm text-harbour-600 hover:text-harbour-700"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-sm font-medium text-harbour-500">
-                    Date {index + 1}
-                  </span>
-                  {dates.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeDate(dateEntry.id)}
-                      className="text-sm text-red-600 hover:underline"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
+                + Add Date
+              </button>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-harbour-500 mb-1">
-                      Start Date
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setActiveDatePicker(
-                          activeDatePicker === `${dateEntry.id}-start`
-                            ? null
-                            : `${dateEntry.id}-start`
-                        )
-                      }
-                      className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
-                    >
-                      {format(dateEntry.startDate, "MMM d, yyyy")}
-                    </button>
-                    {activeDatePicker === `${dateEntry.id}-start` && (
-                      <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
-                        <DayPicker
-                          mode="single"
-                          selected={dateEntry.startDate}
-                          onSelect={(date) => {
-                            if (date) {
-                              updateDate(dateEntry.id, { startDate: date });
-                              setActiveDatePicker(null);
-                            }
-                          }}
-                        />
-                      </div>
+            <div className="space-y-4">
+              {dates.map((dateEntry, index) => (
+                <div
+                  key={dateEntry.id}
+                  className="p-4 border border-harbour-200 bg-harbour-50/30"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span className="text-sm font-medium text-harbour-500">
+                      Date {index + 1}
+                    </span>
+                    {dates.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeDate(dateEntry.id)}
+                        className="text-sm text-red-600 hover:underline"
+                      >
+                        Remove
+                      </button>
                     )}
                   </div>
 
-                  <div>
-                    <label className="block text-xs text-harbour-500 mb-1">
-                      Start Time
-                    </label>
-                    <input
-                      type="time"
-                      value={dateEntry.startTime}
-                      onChange={(e) =>
-                        updateDate(dateEntry.id, { startTime: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-harbour-200 bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-3">
-                  <label className="flex items-center gap-2 text-sm text-harbour-600">
-                    <input
-                      type="checkbox"
-                      checked={dateEntry.isRange}
-                      onChange={(e) =>
-                        updateDate(dateEntry.id, {
-                          isRange: e.target.checked,
-                          endDate: e.target.checked ? dateEntry.startDate : null,
-                        })
-                      }
-                      className="accent-harbour-600"
-                    />
-                    Has end time
-                  </label>
-                </div>
-
-                {dateEntry.isRange && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs text-harbour-500 mb-1">
-                        End Date
+                        Start Date
                       </label>
                       <button
                         type="button"
                         onClick={() =>
                           setActiveDatePicker(
-                            activeDatePicker === `${dateEntry.id}-end`
+                            activeDatePicker === `${dateEntry.id}-start`
                               ? null
-                              : `${dateEntry.id}-end`
+                              : `${dateEntry.id}-start`
                           )
                         }
                         className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
                       >
-                        {dateEntry.endDate
-                          ? format(dateEntry.endDate, "MMM d, yyyy")
-                          : "Select date"}
+                        {format(dateEntry.startDate, "MMM d, yyyy")}
                       </button>
-                      {activeDatePicker === `${dateEntry.id}-end` && (
+                      {activeDatePicker === `${dateEntry.id}-start` && (
                         <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
                           <DayPicker
                             mode="single"
-                            selected={dateEntry.endDate || undefined}
+                            selected={dateEntry.startDate}
                             onSelect={(date) => {
                               if (date) {
-                                updateDate(dateEntry.id, { endDate: date });
+                                updateDate(dateEntry.id, { startDate: date });
                                 setActiveDatePicker(null);
                               }
                             }}
@@ -443,54 +496,277 @@ export function EventForm({ event, error }: EventFormProps) {
 
                     <div>
                       <label className="block text-xs text-harbour-500 mb-1">
-                        End Time
+                        Start Time
                       </label>
                       <input
                         type="time"
-                        value={dateEntry.endTime}
+                        value={dateEntry.startTime}
                         onChange={(e) =>
-                          updateDate(dateEntry.id, { endTime: e.target.value })
+                          updateDate(dateEntry.id, { startTime: e.target.value })
                         }
                         className="w-full px-3 py-2 border border-harbour-200 bg-white"
                       />
                     </div>
                   </div>
-                )}
 
-                {/* Hidden inputs for this date */}
+                  <div className="mt-3">
+                    <label className="flex items-center gap-2 text-sm text-harbour-600">
+                      <input
+                        type="checkbox"
+                        checked={dateEntry.isRange}
+                        onChange={(e) =>
+                          updateDate(dateEntry.id, {
+                            isRange: e.target.checked,
+                            endDate: e.target.checked ? dateEntry.startDate : null,
+                          })
+                        }
+                        className="accent-harbour-600"
+                      />
+                      Has end time
+                    </label>
+                  </div>
+
+                  {dateEntry.isRange && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                      <div>
+                        <label className="block text-xs text-harbour-500 mb-1">
+                          End Date
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveDatePicker(
+                              activeDatePicker === `${dateEntry.id}-end`
+                                ? null
+                                : `${dateEntry.id}-end`
+                            )
+                          }
+                          className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
+                        >
+                          {dateEntry.endDate
+                            ? format(dateEntry.endDate, "MMM d, yyyy")
+                            : "Select date"}
+                        </button>
+                        {activeDatePicker === `${dateEntry.id}-end` && (
+                          <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                            <DayPicker
+                              mode="single"
+                              selected={dateEntry.endDate || undefined}
+                              onSelect={(date) => {
+                                if (date) {
+                                  updateDate(dateEntry.id, { endDate: date });
+                                  setActiveDatePicker(null);
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs text-harbour-500 mb-1">
+                          End Time
+                        </label>
+                        <input
+                          type="time"
+                          value={dateEntry.endTime}
+                          onChange={(e) =>
+                            updateDate(dateEntry.id, { endTime: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-harbour-200 bg-white"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Hidden inputs for this date */}
+                  <input
+                    type="hidden"
+                    name={`dates[${index}][startDate]`}
+                    value={dateEntry.startDate.toISOString().split("T")[0]}
+                  />
+                  <input
+                    type="hidden"
+                    name={`dates[${index}][startTime]`}
+                    value={dateEntry.startTime}
+                  />
+                  <input
+                    type="hidden"
+                    name={`dates[${index}][hasEnd]`}
+                    value={dateEntry.isRange ? "1" : "0"}
+                  />
+                  {dateEntry.isRange && dateEntry.endDate && (
+                    <>
+                      <input
+                        type="hidden"
+                        name={`dates[${index}][endDate]`}
+                        value={dateEntry.endDate.toISOString().split("T")[0]}
+                      />
+                      <input
+                        type="hidden"
+                        name={`dates[${index}][endTime]`}
+                        value={dateEntry.endTime}
+                      />
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recurring Event Settings */}
+        {eventType === "recurring" && (
+          <div className="p-4 border border-harbour-200 bg-harbour-50/30 space-y-4">
+            <h3 className="text-sm font-medium text-harbour-700">Recurrence Settings</h3>
+
+            {/* Frequency */}
+            <div>
+              <label className="block text-xs text-harbour-500 mb-1">Frequency *</label>
+              <select
+                value={recurrenceFrequency}
+                onChange={(e) => setRecurrenceFrequency(e.target.value as RecurrenceFrequency)}
+                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+              >
+                <option value="weekly">Every week</option>
+                <option value="biweekly">Every other week</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+
+            {/* Day of Week */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {recurrenceFrequency === "monthly" && (
+                <div>
+                  <label className="block text-xs text-harbour-500 mb-1">Week of Month *</label>
+                  <select
+                    value={monthlyPosition}
+                    onChange={(e) => setMonthlyPosition(parseInt(e.target.value, 10))}
+                    className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                  >
+                    {MONTHLY_POSITIONS.map((pos) => (
+                      <option key={pos.value} value={pos.value}>
+                        {pos.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs text-harbour-500 mb-1">Day of Week *</label>
+                <select
+                  value={recurrenceDayOfWeek}
+                  onChange={(e) => setRecurrenceDayOfWeek(e.target.value as DayOfWeek)}
+                  className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                >
+                  {DAYS_OF_WEEK.map((day) => (
+                    <option key={day.value} value={day.value}>
+                      {day.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Default Times */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-harbour-500 mb-1">Start Time *</label>
                 <input
-                  type="hidden"
-                  name={`dates[${index}][startDate]`}
-                  value={dateEntry.startDate.toISOString().split("T")[0]}
+                  type="time"
+                  value={defaultStartTime}
+                  onChange={(e) => setDefaultStartTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
                 />
-                <input
-                  type="hidden"
-                  name={`dates[${index}][startTime]`}
-                  value={dateEntry.startTime}
-                />
-                <input
-                  type="hidden"
-                  name={`dates[${index}][hasEnd]`}
-                  value={dateEntry.isRange ? "1" : "0"}
-                />
-                {dateEntry.isRange && dateEntry.endDate && (
-                  <>
-                    <input
-                      type="hidden"
-                      name={`dates[${index}][endDate]`}
-                      value={dateEntry.endDate.toISOString().split("T")[0]}
-                    />
-                    <input
-                      type="hidden"
-                      name={`dates[${index}][endTime]`}
-                      value={dateEntry.endTime}
-                    />
-                  </>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-sm text-harbour-600 mb-1">
+                  <input
+                    type="checkbox"
+                    checked={hasEndTime}
+                    onChange={(e) => setHasEndTime(e.target.checked)}
+                    className="accent-harbour-600"
+                  />
+                  Has end time
+                </label>
+                {hasEndTime && (
+                  <input
+                    type="time"
+                    value={defaultEndTime}
+                    onChange={(e) => setDefaultEndTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                  />
                 )}
               </div>
-            ))}
+            </div>
+
+            {/* Recurrence End Date */}
+            <div>
+              <label className="block text-xs text-harbour-500 mb-1">End Date (optional)</label>
+              <p className="text-xs text-harbour-400 mb-2">Leave empty for indefinite recurrence</p>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowRecurrenceEndPicker(!showRecurrenceEndPicker)}
+                  className="w-full md:w-auto px-3 py-2 text-left border border-harbour-200 bg-white"
+                >
+                  {recurrenceEndDate
+                    ? format(recurrenceEndDate, "MMM d, yyyy")
+                    : "No end date"}
+                </button>
+                {recurrenceEndDate && (
+                  <button
+                    type="button"
+                    onClick={() => setRecurrenceEndDate(null)}
+                    className="ml-2 text-sm text-red-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+                {showRecurrenceEndPicker && (
+                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                    <DayPicker
+                      mode="single"
+                      selected={recurrenceEndDate || undefined}
+                      onSelect={(date) => {
+                        setRecurrenceEndDate(date || null);
+                        setShowRecurrenceEndPicker(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Hidden inputs for recurrence */}
+            <input type="hidden" name="recurrenceRule" value={buildRecurrenceRule()} />
+            <input type="hidden" name="defaultStartTime" value={defaultStartTime} />
+            {hasEndTime && (
+              <input type="hidden" name="defaultEndTime" value={defaultEndTime} />
+            )}
+            {recurrenceEndDate && (
+              <input
+                type="hidden"
+                name="recurrenceEnd"
+                value={recurrenceEndDate.toISOString().split("T")[0]}
+              />
+            )}
+
+            {/* Preview */}
+            <div className="pt-2 border-t border-harbour-200">
+              <p className="text-sm text-harbour-600">
+                <strong>Preview:</strong>{" "}
+                {recurrenceFrequency === "weekly" && `Every ${DAYS_OF_WEEK.find(d => d.value === recurrenceDayOfWeek)?.label}`}
+                {recurrenceFrequency === "biweekly" && `Every other ${DAYS_OF_WEEK.find(d => d.value === recurrenceDayOfWeek)?.label}`}
+                {recurrenceFrequency === "monthly" && `${MONTHLY_POSITIONS.find(p => p.value === monthlyPosition)?.label} ${DAYS_OF_WEEK.find(d => d.value === recurrenceDayOfWeek)?.label} of every month`}
+                {" at "}
+                {defaultStartTime}
+                {hasEndTime && ` - ${defaultEndTime}`}
+                {recurrenceEndDate && ` until ${format(recurrenceEndDate, "MMM d, yyyy")}`}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex gap-4">
           <button

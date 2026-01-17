@@ -52,13 +52,25 @@ export default function ManageEventsIndex() {
                 )}
 
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <h2 className="font-medium truncate text-harbour-700">{event.title}</h2>
-                  {event.dates.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-medium truncate text-harbour-700">{event.title}</h2>
+                    {event.recurrenceRule && (
+                      <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
+                        Recurring
+                      </span>
+                    )}
+                  </div>
+                  {event.recurrenceRule ? (
+                    <p className="text-sm text-harbour-400">
+                      {event.defaultStartTime && `${event.defaultStartTime}`}
+                      {event.defaultEndTime && ` - ${event.defaultEndTime}`}
+                    </p>
+                  ) : event.dates.length > 0 ? (
                     <p className="text-sm text-harbour-400">
                       {format(event.dates[0].startDate, "MMM d, yyyy")}
                       {event.dates.length > 1 && ` (+${event.dates.length - 1} more)`}
                     </p>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-2">

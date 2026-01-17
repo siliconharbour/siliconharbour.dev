@@ -3,6 +3,7 @@ import {
   companies,
   events,
   eventDates,
+  eventOccurrences,
   groups,
   learning,
   people,
@@ -50,6 +51,7 @@ async function checkEmpty(): Promise<boolean> {
 async function clearAllData(): Promise<void> {
   console.log("Clearing existing data...");
   await db.delete(references);
+  await db.delete(eventOccurrences);
   await db.delete(eventDates);
   await db.delete(events);
   await db.delete(projectImages);
@@ -715,6 +717,31 @@ async function seedProjects() {
 async function seedEvents() {
   console.log("Seeding events...");
 
+  // First, create recurring events
+  const recurringEventsData = [
+    {
+      event: {
+        title: "Coffee & Trivia Socials NL (CTSNL)",
+        description:
+          "Weekly social gathering for the local tech community! Join us every Thursday evening for coffee, drinks, and tech trivia. A great way to meet other developers, designers, and tech enthusiasts in a casual setting.\n\n## What to Expect\n\n- Casual networking with local tech folks\n- Fun tech trivia rounds with prizes\n- Good coffee and conversation\n- Rotating venues around St. John's\n\nAll skill levels and backgrounds welcome. Whether you're a seasoned developer or just curious about tech, come hang out!",
+        location: "Varies weekly - check Discord for details",
+        link: "https://discord.gg/ctsnl",
+        organizer: "CTSNL",
+        recurrenceRule: "FREQ=WEEKLY;BYDAY=TH",
+        defaultStartTime: "19:00",
+        defaultEndTime: "21:00",
+        recurrenceEnd: null, // Indefinite
+      },
+    },
+  ];
+
+  for (const { event } of recurringEventsData) {
+    await createEvent(event, []);
+  }
+
+  console.log(`  Created ${recurringEventsData.length} recurring events`);
+
+  // Then, create one-time events
   const eventsData = [
     {
       event: {

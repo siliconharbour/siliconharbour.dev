@@ -93,6 +93,7 @@ export default [
       route("new", "routes/manage/events/new.tsx"),
       route(":id", "routes/manage/events/edit.tsx"),
       route(":id/delete", "routes/manage/events/delete.tsx"),
+      route(":id/occurrences", "routes/manage/events/occurrences.tsx"),
     ]),
     ...prefix("companies", [
       index("routes/manage/companies/index.tsx"),

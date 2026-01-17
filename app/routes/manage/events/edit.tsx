@@ -45,10 +45,14 @@ export async function action({ request, params }: Route.ActionArgs) {
   const link = formData.get("link") as string;
   const location = (formData.get("location") as string) || null;
   const organizer = (formData.get("organizer") as string) || null;
+  const eventType = formData.get("eventType") as string;
 
   if (!title || !description || !link) {
     return { error: "Title, description, and link are required" };
   }
+
+  // Check if this is a recurring event
+  const isRecurring = eventType === "recurring";
 
   // Process images
   let coverImage: string | null | undefined = undefined;
@@ -92,47 +96,83 @@ export async function action({ request, params }: Route.ActionArgs) {
     iconImage = null;
   }
 
-  // Parse dates
-  const dates: { startDate: Date; endDate: Date | null }[] = [];
-  let dateIndex = 0;
+  if (isRecurring) {
+    // Handle recurring event
+    const recurrenceRule = formData.get("recurrenceRule") as string;
+    const defaultStartTime = formData.get("defaultStartTime") as string;
+    const defaultEndTime = (formData.get("defaultEndTime") as string) || null;
+    const recurrenceEndStr = formData.get("recurrenceEnd") as string | null;
+    const recurrenceEnd = recurrenceEndStr ? new Date(recurrenceEndStr) : null;
 
-  while (formData.has(`dates[${dateIndex}][startDate]`)) {
-    const startDateStr = formData.get(`dates[${dateIndex}][startDate]`) as string;
-    const startTime = formData.get(`dates[${dateIndex}][startTime]`) as string;
-    const hasEnd = formData.get(`dates[${dateIndex}][hasEnd]`) === "1";
-
-    const startDate = new Date(`${startDateStr}T${startTime}`);
-    let endDate: Date | null = null;
-
-    if (hasEnd) {
-      const endDateStr = formData.get(`dates[${dateIndex}][endDate]`) as string;
-      const endTime = formData.get(`dates[${dateIndex}][endTime]`) as string;
-      if (endDateStr && endTime) {
-        endDate = new Date(`${endDateStr}T${endTime}`);
-      }
+    if (!recurrenceRule) {
+      return { error: "Recurrence pattern is required for recurring events" };
     }
 
-    dates.push({ startDate, endDate });
-    dateIndex++;
-  }
+    await updateEvent(
+      id,
+      {
+        title,
+        description,
+        link,
+        location,
+        organizer,
+        ...(coverImage !== undefined && { coverImage }),
+        ...(iconImage !== undefined && { iconImage }),
+        recurrenceRule,
+        recurrenceEnd,
+        defaultStartTime,
+        defaultEndTime,
+      },
+      [] // Clear explicit dates for recurring events
+    );
+  } else {
+    // Handle one-time event with explicit dates
+    const dates: { startDate: Date; endDate: Date | null }[] = [];
+    let dateIndex = 0;
 
-  if (dates.length === 0) {
-    return { error: "At least one date is required" };
-  }
+    while (formData.has(`dates[${dateIndex}][startDate]`)) {
+      const startDateStr = formData.get(`dates[${dateIndex}][startDate]`) as string;
+      const startTime = formData.get(`dates[${dateIndex}][startTime]`) as string;
+      const hasEnd = formData.get(`dates[${dateIndex}][hasEnd]`) === "1";
 
-  await updateEvent(
-    id,
-    {
-      title,
-      description,
-      link,
-      location,
-      organizer,
-      ...(coverImage !== undefined && { coverImage }),
-      ...(iconImage !== undefined && { iconImage }),
-    },
-    dates
-  );
+      const startDate = new Date(`${startDateStr}T${startTime}`);
+      let endDate: Date | null = null;
+
+      if (hasEnd) {
+        const endDateStr = formData.get(`dates[${dateIndex}][endDate]`) as string;
+        const endTime = formData.get(`dates[${dateIndex}][endTime]`) as string;
+        if (endDateStr && endTime) {
+          endDate = new Date(`${endDateStr}T${endTime}`);
+        }
+      }
+
+      dates.push({ startDate, endDate });
+      dateIndex++;
+    }
+
+    if (dates.length === 0) {
+      return { error: "At least one date is required for one-time events" };
+    }
+
+    await updateEvent(
+      id,
+      {
+        title,
+        description,
+        link,
+        location,
+        organizer,
+        ...(coverImage !== undefined && { coverImage }),
+        ...(iconImage !== undefined && { iconImage }),
+        // Clear recurrence when switching to one-time
+        recurrenceRule: null,
+        recurrenceEnd: null,
+        defaultStartTime: null,
+        defaultEndTime: null,
+      },
+      dates
+    );
+  }
 
   return redirect("/manage/events");
 }
@@ -140,6 +180,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 export default function EditEvent() {
   const { event } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const isRecurring = !!event.recurrenceRule;
 
   return (
     <div className="min-h-screen p-6">
@@ -153,7 +194,17 @@ export default function EditEvent() {
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">Edit Event</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-harbour-700">Edit Event</h1>
+          {isRecurring && (
+            <Link
+              to={`/manage/events/${event.id}/occurrences`}
+              className="px-4 py-2 bg-harbour-100 text-harbour-700 hover:bg-harbour-200 text-sm"
+            >
+              Manage Occurrences
+            </Link>
+          )}
+        </div>
 
         <EventForm event={event} error={actionData?.error} />
       </div>

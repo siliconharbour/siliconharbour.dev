@@ -15,6 +15,13 @@
       "when": 1768594907182,
       "tag": "0001_add-site-config",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1768617121183,
+      "tag": "0002_rainy_maddog",
+      "breakpoints": true
     }
   ]
 }

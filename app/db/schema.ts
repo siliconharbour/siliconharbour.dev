@@ -41,6 +41,11 @@ export const events = sqliteTable("events", {
   organizer: text("organizer"),
   coverImage: text("cover_image"),
   iconImage: text("icon_image"),
+  // Recurrence fields
+  recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
+  recurrenceEnd: integer("recurrence_end", { mode: "timestamp" }), // When recurrence stops (null = indefinite)
+  defaultStartTime: text("default_start_time"), // HH:mm format for recurring events
+  defaultEndTime: text("default_end_time"), // HH:mm format for recurring events
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -57,6 +62,27 @@ export const eventDates = sqliteTable("event_dates", {
   startDate: integer("start_date", { mode: "timestamp" }).notNull(),
   endDate: integer("end_date", { mode: "timestamp" }),
 });
+
+// Event occurrence overrides - for per-occurrence customization of recurring events
+export const eventOccurrences = sqliteTable("event_occurrences", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  eventId: integer("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  occurrenceDate: integer("occurrence_date", { mode: "timestamp" }).notNull(), // The date this occurrence falls on
+  // Override fields (null = use base event value)
+  location: text("location"),
+  description: text("description"),
+  link: text("link"),
+  startTime: text("start_time"), // HH:mm format override
+  endTime: text("end_time"), // HH:mm format override
+  cancelled: integer("cancelled", { mode: "boolean" }).default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  eventDateIdx: index("event_occurrences_event_date_idx").on(table.eventId, table.occurrenceDate),
+}));
 
 // Companies - local tech companies
 export const companies = sqliteTable("companies", {
@@ -313,6 +339,8 @@ export type Event = typeof events.$inferSelect;
 export type EventDate = typeof eventDates.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
 export type NewEventDate = typeof eventDates.$inferInsert;
+export type EventOccurrence = typeof eventOccurrences.$inferSelect;
+export type NewEventOccurrence = typeof eventOccurrences.$inferInsert;
 
 export type Company = typeof companies.$inferSelect;
 export type NewCompany = typeof companies.$inferInsert;
