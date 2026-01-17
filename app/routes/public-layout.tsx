@@ -10,15 +10,15 @@ export async function loader({}: Route.LoaderArgs) {
   return { visibility };
 }
 
-const navItems: { href: string; label: string; key: SectionKey }[] = [
-  { href: "/events", label: "Events", key: "events" },
-  { href: "/companies", label: "Companies", key: "companies" },
-  { href: "/groups", label: "Groups", key: "groups" },
-  { href: "/projects", label: "Projects", key: "projects" },
-  { href: "/learning", label: "Learning", key: "learning" },
-  { href: "/people", label: "People", key: "people" },
-  { href: "/news", label: "News", key: "news" },
-  { href: "/jobs", label: "Jobs", key: "jobs" },
+// Nav items with optional keys for visibility check
+// Items without keys are always shown
+const navItems: { href: string; label: string; keys?: SectionKey[] }[] = [
+  { href: "/events", label: "Events", keys: ["events"] },
+  { href: "/directory", label: "Directory", keys: ["companies", "groups", "learning"] },
+  { href: "/works", label: "Works", keys: ["projects", "products"] },
+  { href: "/people", label: "People", keys: ["people"] },
+  { href: "/news", label: "News", keys: ["news"] },
+  { href: "/jobs", label: "Jobs", keys: ["jobs"] },
 ];
 
 export default function PublicLayoutRoute() {
@@ -27,7 +27,32 @@ export default function PublicLayoutRoute() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Filter nav items based on visibility config
-  const visibleNavItems = navItems.filter((item) => visibility[item.key]);
+  // Show item if any of its keys are visible (or if no keys specified)
+  const visibleNavItems = navItems.filter((item) => {
+    if (!item.keys) return true;
+    return item.keys.some(key => visibility[key]);
+  });
+
+  // Check if nav item is active (including sub-routes for consolidated pages)
+  const isNavItemActive = (item: typeof navItems[number]) => {
+    // Direct match
+    if (location.pathname.startsWith(item.href)) return true;
+    
+    // For directory: also match /companies, /groups, /learning
+    if (item.href === "/directory") {
+      return location.pathname.startsWith("/companies") ||
+             location.pathname.startsWith("/groups") ||
+             location.pathname.startsWith("/learning");
+    }
+    
+    // For works: also match /products, /projects
+    if (item.href === "/works") {
+      return location.pathname.startsWith("/products") ||
+             location.pathname.startsWith("/projects");
+    }
+    
+    return false;
+  };
 
   // Close mobile menu on navigation
   const handleNavClick = () => setMobileMenuOpen(false);
@@ -52,7 +77,7 @@ export default function PublicLayoutRoute() {
                 key={item.href}
                 to={item.href}
                 className={`link-inline text-sm hover:text-harbour-700 ${
-                  location.pathname.startsWith(item.href) 
+                  isNavItemActive(item)
                     ? "text-harbour-700 font-medium" 
                     : "text-harbour-500"
                 }`}
@@ -92,7 +117,7 @@ export default function PublicLayoutRoute() {
                   to={item.href}
                   onClick={handleNavClick}
                   className={`link-inline py-3 text-sm border-b border-harbour-100 last:border-0 hover:text-harbour-700 ${
-                    location.pathname.startsWith(item.href)
+                    isNavItemActive(item)
                       ? "text-harbour-700 font-medium"
                       : "text-harbour-500"
                   }`}

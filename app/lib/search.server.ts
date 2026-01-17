@@ -15,6 +15,7 @@ const ftsTableMap: Record<ContentType, string> = {
   news: "news_fts",
   job: "jobs_fts",
   project: "projects_fts",
+  product: "products_fts",
 };
 
 /**

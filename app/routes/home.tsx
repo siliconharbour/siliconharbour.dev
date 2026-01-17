@@ -71,6 +71,7 @@ export async function loader({}: Route.LoaderArgs) {
       jobs: jobs.length,
       events: upcoming.length,
       projects: projects.length,
+      products: 0, // Not shown in quick links yet
     }
   };
 }

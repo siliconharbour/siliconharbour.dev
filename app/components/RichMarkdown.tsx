@@ -33,6 +33,7 @@ const contentTypeRoutes: Record<ContentType, string> = {
   news: "/news",
   job: "/jobs",
   project: "/projects",
+  product: "/products",
 };
 
 function getContentUrl(type: ContentType, slug: string): string {

@@ -27,7 +27,7 @@ export const sessions = sqliteTable("sessions", {
 // =============================================================================
 
 // Content type enum for the references table
-export const contentTypes = ["event", "company", "group", "learning", "person", "news", "job", "project"] as const;
+export const contentTypes = ["event", "company", "group", "learning", "person", "news", "job", "project", "product"] as const;
 export type ContentType = typeof contentTypes[number];
 
 // Events - tech meetups, conferences, workshops
@@ -255,6 +255,34 @@ export const projectImages = sqliteTable("project_images", {
 }));
 
 // =============================================================================
+// Products - commercial products/services from local companies
+// =============================================================================
+
+export const productTypes = ["saas", "mobile", "physical", "service", "other"] as const;
+export type ProductType = typeof productTypes[number];
+
+export const products = sqliteTable("products", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(), // markdown
+  website: text("website"), // product website
+  companyId: integer("company_id")
+    .references(() => companies.id, { onDelete: "set null" }), // optional FK to companies
+  type: text("type", { enum: productTypes }).notNull().default("other"),
+  logo: text("logo"), // icon/avatar image
+  coverImage: text("cover_image"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  companyIdx: index("products_company_idx").on(table.companyId),
+}));
+
+// =============================================================================
 // Comments - anonymous user feedback on content
 // =============================================================================
 
@@ -300,6 +328,7 @@ export const sectionKeys = [
   "companies", 
   "groups",
   "projects",
+  "products",
   "learning",
   "people",
   "news",
@@ -377,3 +406,6 @@ export type NewProject = typeof projects.$inferInsert;
 
 export type ProjectImage = typeof projectImages.$inferSelect;
 export type NewProjectImage = typeof projectImages.$inferInsert;
+
+export type Product = typeof products.$inferSelect;
+export type NewProduct = typeof products.$inferInsert;

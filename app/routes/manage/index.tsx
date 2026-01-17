@@ -9,6 +9,7 @@ import { getAllPeople } from "~/lib/people.server";
 import { getAllNews } from "~/lib/news.server";
 import { getAllJobs } from "~/lib/jobs.server";
 import { getAllProjects } from "~/lib/projects.server";
+import { getAllProducts } from "~/lib/products.server";
 import { getCommentCount } from "~/lib/comments.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -19,7 +20,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
-  const [events, companies, groups, learning, people, news, jobs, projects, commentsCount] = await Promise.all([
+  const [events, companies, groups, learning, people, news, jobs, projects, products, commentsCount] = await Promise.all([
     getAllEvents(),
     getAllCompanies(),
     getAllGroups(),
@@ -28,6 +29,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     getAllNews(),
     getAllJobs(),
     getAllProjects(),
+    getAllProducts(),
     getCommentCount(),
   ]);
   return { 
@@ -41,6 +43,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       news: news.length,
       jobs: jobs.length,
       projects: projects.length,
+      products: products.length,
       comments: commentsCount,
     }
   };
@@ -55,6 +58,7 @@ const contentTypes = [
   { key: "news", label: "News", href: "/manage/news" },
   { key: "jobs", label: "Jobs", href: "/manage/jobs" },
   { key: "projects", label: "Projects", href: "/manage/projects" },
+  { key: "products", label: "Products", href: "/manage/products" },
   { key: "comments", label: "Comments", href: "/manage/comments" },
 ] as const;
 

@@ -37,6 +37,8 @@ export default [
   route("api/people/:slug", "routes/api/people.$slug.tsx"),
   route("api/projects", "routes/api/projects.tsx"),
   route("api/projects/:slug", "routes/api/projects.$slug.tsx"),
+  route("api/products", "routes/api/products.tsx"),
+  route("api/products/:slug", "routes/api/products.$slug.tsx"),
   
   // Home page has its own hero header design
   index("routes/home.tsx"),
@@ -47,6 +49,9 @@ export default [
     route("conduct", "routes/conduct.tsx"),
     route("feeds", "routes/feeds.tsx"),
     route("calendar", "routes/calendar.tsx"),
+    // Consolidated pages
+    route("directory", "routes/directory/index.tsx"),
+    route("works", "routes/works/index.tsx"),
     ...prefix("events", [
       index("routes/events/index.tsx"),
       route(":slug", "routes/events/detail.tsx"),
@@ -78,6 +83,10 @@ export default [
     ...prefix("projects", [
       index("routes/projects/index.tsx"),
       route(":slug", "routes/projects/detail.tsx"),
+    ]),
+    ...prefix("products", [
+      index("routes/products/index.tsx"),
+      route(":slug", "routes/products/detail.tsx"),
     ]),
   ]),
   
@@ -136,6 +145,12 @@ export default [
       route("new", "routes/manage/projects/new.tsx"),
       route(":id", "routes/manage/projects/edit.tsx"),
       route(":id/delete", "routes/manage/projects/delete.tsx"),
+    ]),
+    ...prefix("products", [
+      index("routes/manage/products/index.tsx"),
+      route("new", "routes/manage/products/new.tsx"),
+      route(":id", "routes/manage/products/edit.tsx"),
+      route(":id/delete", "routes/manage/products/delete.tsx"),
     ]),
     ...prefix("import", [
       route("technl", "routes/manage/import/technl.tsx"),
