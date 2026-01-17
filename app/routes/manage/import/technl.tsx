@@ -3,8 +3,8 @@ import { Link, useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeTechNL, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
-import { createCompany, updateCompany, getAllCompanies, getCompanyByName } from "~/lib/companies.server";
-import { getAllLearning } from "~/lib/learning.server";
+import { createCompany, updateCompany, getAllCompanies, getCompanyByName, deleteCompany } from "~/lib/companies.server";
+import { getAllLearning, getLearningByName, deleteLearning } from "~/lib/learning.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
 
@@ -78,7 +78,20 @@ export async function action({ request }: Route.ActionArgs) {
     const name = formData.get("name") as string;
     
     if (externalId && name) {
+      // Add to blocklist
       await blockItem("technl", externalId, name);
+      
+      // Also delete existing company or learning institution with this name
+      const existingCompany = await getCompanyByName(name);
+      if (existingCompany) {
+        await deleteCompany(existingCompany.id);
+      }
+      
+      const existingLearning = await getLearningByName(name);
+      if (existingLearning) {
+        await deleteLearning(existingLearning.id);
+      }
+      
       return { intent: "block", blocked: { externalId, name } };
     }
     return { intent: "block", error: "Missing externalId or name" };

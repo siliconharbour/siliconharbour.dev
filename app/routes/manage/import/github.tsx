@@ -8,7 +8,7 @@ import {
   fetchAvatar,
   type GitHubUser 
 } from "~/lib/github.server";
-import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub } from "~/lib/people.server";
+import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub, deletePerson } from "~/lib/people.server";
 import { 
   findCompanyByFuzzyName, 
   parseGitHubCompanyField, 
@@ -100,7 +100,15 @@ export async function action({ request }: Route.ActionArgs) {
     const reason = formData.get("reason") as string | null;
     
     if (externalId && name) {
+      // Add to blocklist
       await blockItem("github", externalId, name, reason || undefined);
+      
+      // Also delete existing person with this GitHub URL
+      const existingPerson = await getPersonByGitHub(externalId);
+      if (existingPerson) {
+        await deletePerson(existingPerson.id);
+      }
+      
       return { intent: "block", blocked: { externalId, name } };
     }
     return { intent: "block", error: "Missing externalId or name" };
