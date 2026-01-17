@@ -2,11 +2,8 @@ import type { Route } from "./+types/people.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getPersonBySlug } from "~/lib/people.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
-import { getPublicComments, getAllComments } from "~/lib/comments.server";
-import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
-import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -24,13 +21,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
   
-  const [resolvedRefs, backlinks, comments] = await Promise.all([
+  const [resolvedRefs, backlinks] = await Promise.all([
     prepareRefsForClient(person.bio),
     getDetailedBacklinks("person", person.id),
-    isAdmin ? getAllComments("person", person.id) : getPublicComments("person", person.id),
   ]);
-  
-  const turnstileSiteKey = getTurnstileSiteKey();
   
   // Parse social links if present
   let socialLinks: Record<string, string> = {};
@@ -42,11 +36,11 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     }
   }
   
-  return { person, resolvedRefs, backlinks, socialLinks, comments, turnstileSiteKey, isAdmin };
+  return { person, resolvedRefs, backlinks, socialLinks, isAdmin };
 }
 
 export default function PersonDetail() {
-  const { person, resolvedRefs, backlinks, socialLinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
+  const { person, resolvedRefs, backlinks, socialLinks, isAdmin } = useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
@@ -129,14 +123,6 @@ export default function PersonDetail() {
         <RichMarkdown content={person.bio} resolvedRefs={resolvedRefs} />
 
         <ReferencedBy backlinks={backlinks} />
-
-        <CommentSection
-          contentType="person"
-          contentId={person.id}
-          comments={comments}
-          turnstileSiteKey={turnstileSiteKey}
-          isAdmin={isAdmin}
-        />
       </article>
     </div>
   );
