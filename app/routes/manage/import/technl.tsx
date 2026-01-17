@@ -81,7 +81,7 @@ export async function action({ request }: Route.ActionArgs) {
           // Build description with TechNL link
           const technlUrl = getTechNLSearchUrl(company.name);
           const description = company.description || 
-            `[View on TechNL Directory](${technlUrl})`;
+            `[View in the TechNL Directory](${technlUrl})`;
           
           await createCompany({
             name: company.name,
