@@ -89,12 +89,13 @@ export async function processAndSaveIconImageWithPadding(
   const filename = `icon-${uuid()}.webp`;
   const filepath = join(IMAGES_DIR, filename);
 
-  // Use sharp's resize with "contain" fit and a background color
-  // This will letterbox the image to make it square without cropping
+  // Flatten onto white background first (removes transparency),
+  // then resize with contain fit to add white padding as needed
   await sharp(buffer)
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
     .resize(ICON_SIZE, ICON_SIZE, {
       fit: "contain",
-      background: { r: 255, g: 255, b: 255, alpha: 1 },
+      background: { r: 255, g: 255, b: 255 },
     })
     .webp({ quality: 85 })
     .toFile(filepath);
