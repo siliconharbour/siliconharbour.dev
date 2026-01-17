@@ -120,6 +120,13 @@
       "when": 1768701000000,
       "tag": "0016_add_import_jobs",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1768702000000,
+      "tag": "0017_add_comments_parent_id",
+      "breakpoints": true
     }
   ]
 }
