@@ -1,9 +1,11 @@
-import { useFetcher } from "react-router";
+import { useFetcher, Link } from "react-router";
 import { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import type { ContentType } from "~/db/schema";
 import type { CommentWithDepth } from "~/lib/comments.server";
 import { TurnstileInput } from "./Turnstile";
+
+const MAX_INLINE_DEPTH = 4; // After this depth, show "continue thread" link
 
 interface CommentSectionProps {
   contentType: ContentType;
@@ -190,6 +192,8 @@ interface CommentThreadProps {
   setReplyingTo: (id: number | null) => void;
   isPrivate?: boolean;
   isRoot?: boolean;
+  depth?: number;
+  slug?: string; // For "continue thread" links
 }
 
 function CommentThread({
@@ -202,9 +206,11 @@ function CommentThread({
   setReplyingTo,
   isPrivate = false,
   isRoot = false,
+  depth = 0,
 }: CommentThreadProps) {
   const hasReplies = node.children.length > 0;
   const replyCount = countReplies(node);
+  const atMaxDepth = depth >= MAX_INLINE_DEPTH;
 
   return (
     <div className={`${isRoot ? '' : 'ml-4 pl-3 border-l-2 border-harbour-200 hover:border-harbour-400 transition-colors'}`}>
@@ -229,7 +235,43 @@ function CommentThread({
         </div>
       )}
 
-      {hasReplies && (
+      {hasReplies && atMaxDepth ? (
+        // At max depth: show "continue thread" link instead of inline replies
+        <div className="mt-2 ml-4">
+          <details className="group/continue">
+            <summary className="cursor-pointer select-none text-xs text-harbour-500 hover:text-harbour-600 list-none flex items-center gap-1 py-1">
+              <svg 
+                className="w-3 h-3 transition-transform group-open/continue:rotate-90" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <span>Continue thread ({replyCount} more {replyCount === 1 ? 'reply' : 'replies'})</span>
+            </summary>
+            {/* Reset depth to 0 when expanding "continue thread" */}
+            <div className="flex flex-col mt-1 pt-2 border-t border-harbour-100">
+              {node.children.map((child) => (
+                <CommentThread
+                  key={child.id}
+                  node={child}
+                  contentType={contentType}
+                  contentId={contentId}
+                  turnstileSiteKey={turnstileSiteKey}
+                  isAdmin={isAdmin}
+                  replyingTo={replyingTo}
+                  setReplyingTo={setReplyingTo}
+                  isPrivate={isPrivate}
+                  depth={0} // Reset depth for continued thread
+                  isRoot // Treat as root (no left border) since we reset
+                />
+              ))}
+            </div>
+          </details>
+        </div>
+      ) : hasReplies ? (
+        // Normal inline replies
         <details className="mt-1 group/replies" open>
           <summary className="cursor-pointer select-none text-xs text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-1 ml-4 py-1">
             <svg 
@@ -254,11 +296,12 @@ function CommentThread({
                 replyingTo={replyingTo}
                 setReplyingTo={setReplyingTo}
                 isPrivate={isPrivate}
+                depth={depth + 1}
               />
             ))}
           </div>
         </details>
-      )}
+      ) : null}
     </div>
   );
 }
