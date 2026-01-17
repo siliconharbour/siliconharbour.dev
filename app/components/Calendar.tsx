@@ -39,7 +39,11 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
     
     events.forEach((event) => {
       event.dates.forEach((eventDate) => {
-        const dateKey = format(eventDate.startDate, "yyyy-MM-dd");
+        // Handle both Date objects and date strings (from JSON serialization)
+        const startDate = eventDate.startDate instanceof Date 
+          ? eventDate.startDate 
+          : new Date(eventDate.startDate);
+        const dateKey = format(startDate, "yyyy-MM-dd");
         const existing = map.get(dateKey) || [];
         if (!existing.find((e) => e.id === event.id)) {
           map.set(dateKey, [...existing, event]);
