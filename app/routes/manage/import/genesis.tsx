@@ -4,7 +4,7 @@ import { useState } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeGenesis, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
 import { createCompany, getAllCompanies } from "~/lib/companies.server";
-import { processAndSaveIconImage } from "~/lib/images.server";
+import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from Genesis Centre - siliconharbour.dev" }];
@@ -69,7 +69,7 @@ export async function action({ request }: Route.ActionArgs) {
           if (downloadLogos && company.logoUrl) {
             const imageBuffer = await fetchImage(company.logoUrl);
             if (imageBuffer) {
-              logo = await processAndSaveIconImage(imageBuffer);
+              logo = await processAndSaveIconImageWithPadding(imageBuffer);
             }
           }
           
