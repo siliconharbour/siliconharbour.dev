@@ -46,8 +46,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   const meetingFrequency = (formData.get("meetingFrequency") as string) || null;
   const visible = formData.get("visible") === "true";
 
-  if (!name || !description) {
-    return { error: "Name and description are required" };
+  if (!name) {
+    return { error: "Name is required" };
   }
 
   let logo: string | null | undefined = undefined;
@@ -136,14 +136,13 @@ export default function EditGroup() {
 
           <div className="flex flex-col gap-2">
             <label htmlFor="description" className="font-medium text-harbour-700">
-              Description * (Markdown)
+              Description (Markdown)
             </label>
             <textarea
               id="description"
               name="description"
-              required
               rows={8}
-              defaultValue={group.description}
+              defaultValue={group.description ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </div>

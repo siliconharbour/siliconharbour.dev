@@ -57,8 +57,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   const linkedin = (formData.get("linkedin") as string) || null;
   const visible = formData.get("visible") === "true";
 
-  if (!name || !bio) {
-    return { error: "Name and bio are required" };
+  if (!name) {
+    return { error: "Name is required" };
   }
 
   let avatar: string | null | undefined = undefined;
@@ -146,14 +146,13 @@ export default function EditPerson() {
 
           <div className="flex flex-col gap-2">
             <label htmlFor="bio" className="font-medium text-harbour-700">
-              Bio * (Markdown)
+              Bio (Markdown)
             </label>
             <textarea
               id="bio"
               name="bio"
-              required
               rows={8}
-              defaultValue={person.bio}
+              defaultValue={person.bio ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </div>
