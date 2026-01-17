@@ -82,7 +82,7 @@ export default function DirectoryProducts() {
               className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all overflow-hidden"
             >
               {product.coverImage ? (
-                <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+                <div className="aspect-video relative overflow-hidden bg-harbour-100">
                   <img
                     src={`/images/${product.coverImage}`}
                     alt=""

@@ -53,7 +53,7 @@ export default function PersonDetail() {
       <article className="flex flex-col gap-6">
         <div className="flex items-start gap-4">
           {person.avatar ? (
-            <div className="img-tint w-24 h-24 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+            <div className="w-24 h-24 relative overflow-hidden bg-harbour-100 flex-shrink-0">
               <img
                 src={`/images/${person.avatar}`}
                 alt=""

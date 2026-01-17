@@ -59,7 +59,7 @@ export default function ProductDetail() {
     <div className="max-w-4xl mx-auto p-4 py-8">
       <article className="flex flex-col gap-6">
         {product.coverImage && (
-          <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+          <div className="aspect-video relative overflow-hidden bg-harbour-100">
             <img
               src={`/images/${product.coverImage}`}
               alt=""

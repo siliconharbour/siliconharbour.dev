@@ -272,7 +272,7 @@ export default function Home() {
                         className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {project.logo ? (
-                          <div className="img-tint w-12 h-12 relative overflow-hidden bg-harbour-100">
+                          <div className="w-12 h-12 relative overflow-hidden bg-harbour-100">
                             <img
                               src={`/images/${project.logo}`}
                               alt=""

@@ -68,7 +68,7 @@ export default function DirectoryPeople() {
               className="group flex items-center gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
             >
               {person.avatar ? (
-                <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+                <div className="w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">
                   <img
                     src={`/images/${person.avatar}`}
                     alt=""
