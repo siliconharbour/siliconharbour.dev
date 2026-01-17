@@ -1,7 +1,14 @@
 import { db } from "~/db";
 import { comments, type Comment, type NewComment, type ContentType } from "~/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, isNull, sql } from "drizzle-orm";
 import crypto from "crypto";
+
+/**
+ * Comment with depth information for nested display
+ */
+export interface CommentWithDepth extends Comment {
+  depth: number;
+}
 
 /**
  * Hash an IP address for privacy-preserving spam prevention
@@ -21,6 +28,7 @@ export async function createComment(
     .insert(comments)
     .values({
       ...comment,
+      parentId: comment.parentId || null,
       ipAddress: metadata?.ip || null,
       ipHash: metadata?.ip ? hashIP(metadata.ip) : null,
       userAgent: metadata?.userAgent || null,
@@ -31,42 +39,88 @@ export async function createComment(
 }
 
 /**
- * Get all public comments for a piece of content
+ * Get all public comments for a piece of content with threading
  */
 export async function getPublicComments(
   contentType: ContentType,
   contentId: number
-): Promise<Comment[]> {
-  return db
-    .select()
-    .from(comments)
-    .where(
-      and(
-        eq(comments.contentType, contentType),
-        eq(comments.contentId, contentId),
-        eq(comments.isPrivate, false)
-      )
+): Promise<CommentWithDepth[]> {
+  return getThreadedComments(contentType, contentId, false);
+}
+
+/**
+ * Get threaded comments with depth using recursive CTE.
+ * Returns a flat list sorted for display:
+ * - Top-level comments sorted newest first
+ * - Replies sorted chronologically within their thread
+ * - Each comment includes its depth for indentation
+ */
+export async function getThreadedComments(
+  contentType: ContentType,
+  contentId: number,
+  includePrivate: boolean = false
+): Promise<CommentWithDepth[]> {
+  // Use raw SQL for recursive CTE - Drizzle doesn't support WITH RECURSIVE natively
+  const privateFilter = includePrivate ? "" : "AND is_private = 0";
+  
+  const result = await db.all<CommentWithDepth>(sql.raw(`
+    WITH RECURSIVE comment_tree AS (
+      -- Base case: top-level comments (no parent)
+      SELECT 
+        id, content_type, content_id, parent_id, author_name, content, 
+        is_private, ip_address, ip_hash, user_agent, created_at,
+        0 as depth,
+        -- For sorting: top-level uses negative timestamp (newest first)
+        -- path tracks the thread hierarchy for proper ordering
+        printf('%020d', 9999999999999 - created_at) as sort_path
+      FROM comments 
+      WHERE content_type = '${contentType}' 
+        AND content_id = ${contentId} 
+        AND parent_id IS NULL
+        ${privateFilter}
+      
+      UNION ALL
+      
+      -- Recursive case: child comments
+      SELECT 
+        c.id, c.content_type, c.content_id, c.parent_id, c.author_name, c.content,
+        c.is_private, c.ip_address, c.ip_hash, c.user_agent, c.created_at,
+        ct.depth + 1 as depth,
+        -- Append child timestamp (oldest first within thread)
+        ct.sort_path || '/' || printf('%020d', c.created_at) as sort_path
+      FROM comments c
+      JOIN comment_tree ct ON c.parent_id = ct.id
+      WHERE c.content_type = '${contentType}'
+        AND c.content_id = ${contentId}
+        ${privateFilter}
     )
-    .orderBy(desc(comments.createdAt));
+    SELECT 
+      id, content_type as contentType, content_id as contentId, 
+      parent_id as parentId, author_name as authorName, content,
+      is_private as isPrivate, ip_address as ipAddress, ip_hash as ipHash,
+      user_agent as userAgent, created_at as createdAt, depth
+    FROM comment_tree 
+    ORDER BY sort_path
+  `));
+  
+  // Convert timestamps and booleans from SQLite format
+  return result.map(row => ({
+    ...row,
+    createdAt: new Date(row.createdAt as unknown as number * 1000),
+    isPrivate: Boolean(row.isPrivate),
+    parentId: row.parentId || null,
+  }));
 }
 
 /**
  * Get all comments (including private) for a piece of content - for admins
+ * Uses threaded format with depth
  */
 export async function getAllComments(
   contentType: ContentType,
   contentId: number
-): Promise<Comment[]> {
-  return db
-    .select()
-    .from(comments)
-    .where(
-      and(
-        eq(comments.contentType, contentType),
-        eq(comments.contentId, contentId)
-      )
-    )
-    .orderBy(desc(comments.createdAt));
+): Promise<CommentWithDepth[]> {
+  return getThreadedComments(contentType, contentId, true);
 }
 
 /**

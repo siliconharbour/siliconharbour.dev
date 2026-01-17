@@ -1,13 +1,17 @@
 import { useFetcher } from "react-router";
 import { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
-import type { Comment, ContentType } from "~/db/schema";
+import type { ContentType } from "~/db/schema";
+import type { CommentWithDepth } from "~/lib/comments.server";
 import { TurnstileInput } from "./Turnstile";
+
+const MAX_VISIBLE_DEPTH = 4; // Collapse threads deeper than this
+const INDENT_PX = 24; // Pixels per depth level
 
 interface CommentSectionProps {
   contentType: ContentType;
   contentId: number;
-  comments: Comment[];
+  comments: CommentWithDepth[];
   turnstileSiteKey: string | null;
   isAdmin?: boolean;
 }
@@ -19,18 +23,8 @@ export function CommentSection({
   turnstileSiteKey,
   isAdmin = false,
 }: CommentSectionProps) {
-  const fetcher = useFetcher();
-  const [showPrivateOption, setShowPrivateOption] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-  const isSubmitting = fetcher.state !== "idle";
-
-  // Reset form after successful submission
-  useEffect(() => {
-    if (fetcher.data?.success) {
-      formRef.current?.reset();
-      setShowPrivateOption(false);
-    }
-  }, [fetcher.data]);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [expandedThreads, setExpandedThreads] = useState<Set<number>>(new Set());
 
   const publicComments = comments.filter((c) => !c.isPrivate);
   const privateComments = comments.filter((c) => c.isPrivate);
@@ -40,7 +34,6 @@ export function CommentSection({
   // Build summary text
   let summaryText: string;
   if (isAdmin) {
-    // Admins see public count with private count in parentheses
     const publicText = publicCount === 0 
       ? "No Comments" 
       : `${publicCount} Comment${publicCount === 1 ? "" : "s"}`;
@@ -54,6 +47,95 @@ export function CommentSection({
   }
 
   const hasAnyComments = publicCount > 0 || (isAdmin && privateCount > 0);
+
+  // Toggle expanded state for a collapsed thread
+  const toggleThread = (commentId: number) => {
+    setExpandedThreads(prev => {
+      const next = new Set(prev);
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+      return next;
+    });
+  };
+
+  // Render comments with threading
+  const renderComments = (commentList: CommentWithDepth[], showPrivate: boolean = false) => {
+    const result: React.ReactNode[] = [];
+    let i = 0;
+    
+    while (i < commentList.length) {
+      const comment = commentList[i];
+      const effectiveDepth = comment.depth;
+      
+      // Check if this comment should be collapsed (depth > MAX and not expanded)
+      const isCollapsed = effectiveDepth >= MAX_VISIBLE_DEPTH && 
+        !expandedThreads.has(comment.parentId!);
+      
+      if (isCollapsed) {
+        // Count how many comments are in this collapsed subtree
+        let collapsedCount = 0;
+        const startDepth = effectiveDepth;
+        const parentId = comment.parentId!;
+        
+        while (i < commentList.length && commentList[i].depth >= startDepth) {
+          collapsedCount++;
+          i++;
+        }
+        
+        // Render "continue thread" link at parent's depth
+        result.push(
+          <div
+            key={`collapsed-${parentId}-${comment.id}`}
+            style={{ marginLeft: `${(MAX_VISIBLE_DEPTH - 1) * INDENT_PX}px` }}
+            className="py-2"
+          >
+            <button
+              onClick={() => toggleThread(parentId)}
+              className="text-xs text-harbour-500 hover:text-harbour-600 flex items-center gap-1"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              Continue thread ({collapsedCount} more {collapsedCount === 1 ? 'reply' : 'replies'})
+            </button>
+          </div>
+        );
+      } else {
+        result.push(
+          <div
+            key={comment.id}
+            style={{ marginLeft: `${Math.min(effectiveDepth, MAX_VISIBLE_DEPTH) * INDENT_PX}px` }}
+          >
+            <CommentCard
+              comment={comment}
+              isPrivate={showPrivate && comment.isPrivate}
+              isAdmin={isAdmin}
+              onReply={() => setReplyingTo(comment.id)}
+              isReplyFormOpen={replyingTo === comment.id}
+            />
+            {replyingTo === comment.id && (
+              <div className="mt-2 ml-4">
+                <ReplyForm
+                  contentType={contentType}
+                  contentId={contentId}
+                  parentId={comment.id}
+                  turnstileSiteKey={turnstileSiteKey}
+                  onCancel={() => setReplyingTo(null)}
+                  onSuccess={() => setReplyingTo(null)}
+                />
+              </div>
+            )}
+          </div>
+        );
+        i++;
+      }
+    }
+    
+    return result;
+  };
 
   return (
     <div className="border-t border-harbour-200/50 pt-4 mt-6 text-sm">
@@ -70,34 +152,30 @@ export function CommentSection({
           <span>{summaryText}</span>
         </summary>
 
-        <div className="mt-4 pl-6 flex flex-col gap-4">
-          {/* Existing Comments */}
+        <div className="mt-4 pl-6 flex flex-col gap-2">
+          {/* Threaded Comments */}
           {publicComments.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {publicComments.map((comment) => (
-                <CommentCard key={comment.id} comment={comment} isAdmin={isAdmin} />
-              ))}
+            <div className="flex flex-col gap-2">
+              {renderComments(publicComments)}
             </div>
           )}
 
           {/* Private Comments (Admin Only) */}
           {isAdmin && privateComments.length > 0 && (
-            <div className="border-t border-harbour-200/50 pt-4">
+            <div className="border-t border-harbour-200/50 pt-4 mt-2">
               <p className="text-xs font-medium text-amber-600 mb-2 flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 Private Comments ({privateComments.length})
               </p>
-              <div className="flex flex-col gap-3">
-                {privateComments.map((comment) => (
-                  <CommentCard key={comment.id} comment={comment} isPrivate isAdmin={isAdmin} />
-                ))}
+              <div className="flex flex-col gap-2">
+                {renderComments(privateComments, true)}
               </div>
             </div>
           )}
 
-          {/* Comment Form - wrapped in details only if there are existing comments */}
+          {/* Top-level Comment Form */}
           {hasAnyComments ? (
             <details className="mt-2">
               <summary className="cursor-pointer select-none text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-2 text-xs">
@@ -111,26 +189,16 @@ export function CommentSection({
                 </svg>
                 <span>Leave a comment</span>
               </summary>
-              <CommentForm
-                formRef={formRef}
-                fetcher={fetcher}
+              <TopLevelCommentForm
                 contentType={contentType}
                 contentId={contentId}
-                showPrivateOption={showPrivateOption}
-                setShowPrivateOption={setShowPrivateOption}
-                isSubmitting={isSubmitting}
                 turnstileSiteKey={turnstileSiteKey}
               />
             </details>
           ) : (
-            <CommentForm
-              formRef={formRef}
-              fetcher={fetcher}
+            <TopLevelCommentForm
               contentType={contentType}
               contentId={contentId}
-              showPrivateOption={showPrivateOption}
-              setShowPrivateOption={setShowPrivateOption}
-              isSubmitting={isSubmitting}
               turnstileSiteKey={turnstileSiteKey}
             />
           )}
@@ -140,27 +208,29 @@ export function CommentSection({
   );
 }
 
-interface CommentFormProps {
-  formRef: React.RefObject<HTMLFormElement | null>;
-  fetcher: ReturnType<typeof useFetcher>;
+interface TopLevelCommentFormProps {
   contentType: ContentType;
   contentId: number;
-  showPrivateOption: boolean;
-  setShowPrivateOption: (value: boolean) => void;
-  isSubmitting: boolean;
   turnstileSiteKey: string | null;
 }
 
-function CommentForm({
-  formRef,
-  fetcher,
+function TopLevelCommentForm({
   contentType,
   contentId,
-  showPrivateOption,
-  setShowPrivateOption,
-  isSubmitting,
   turnstileSiteKey,
-}: CommentFormProps) {
+}: TopLevelCommentFormProps) {
+  const fetcher = useFetcher();
+  const [showPrivateOption, setShowPrivateOption] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const isSubmitting = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (fetcher.data?.success) {
+      formRef.current?.reset();
+      setShowPrivateOption(false);
+    }
+  }, [fetcher.data]);
+
   return (
     <fetcher.Form
       ref={formRef}
@@ -252,14 +322,106 @@ function CommentForm({
   );
 }
 
+interface ReplyFormProps {
+  contentType: ContentType;
+  contentId: number;
+  parentId: number;
+  turnstileSiteKey: string | null;
+  onCancel: () => void;
+  onSuccess: () => void;
+}
+
+function ReplyForm({
+  contentType,
+  contentId,
+  parentId,
+  turnstileSiteKey,
+  onCancel,
+  onSuccess,
+}: ReplyFormProps) {
+  const fetcher = useFetcher();
+  const formRef = useRef<HTMLFormElement>(null);
+  const isSubmitting = fetcher.state !== "idle";
+
+  useEffect(() => {
+    if (fetcher.data?.success) {
+      formRef.current?.reset();
+      onSuccess();
+    }
+  }, [fetcher.data, onSuccess]);
+
+  return (
+    <fetcher.Form
+      ref={formRef}
+      method="post"
+      action="/api/comments"
+      className="flex flex-col gap-2 p-3 bg-harbour-50 ring-1 ring-harbour-200/50"
+    >
+      <input type="hidden" name="contentType" value={contentType} />
+      <input type="hidden" name="contentId" value={contentId} />
+      <input type="hidden" name="parentId" value={parentId} />
+
+      <div className="flex flex-col gap-1">
+        <input
+          type="text"
+          name="authorName"
+          placeholder="Name (optional)"
+          className="px-2 py-1 text-xs border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <textarea
+        name="content"
+        rows={2}
+        required
+        placeholder="Write a reply..."
+        className="px-2 py-1 text-xs border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700 resize-y"
+        disabled={isSubmitting}
+        autoFocus
+      />
+
+      {turnstileSiteKey && (
+        <TurnstileInput siteKey={turnstileSiteKey} className="mt-1" />
+      )}
+
+      {(fetcher.data as { error?: string } | undefined)?.error && (
+        <p className="text-red-600 text-xs">{(fetcher.data as { error: string }).error}</p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-2 py-1 text-xs bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? "Posting..." : "Reply"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          className="px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 transition-colors disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
+    </fetcher.Form>
+  );
+}
+
 function CommentCard({ 
   comment, 
   isPrivate = false,
   isAdmin = false,
+  onReply,
+  isReplyFormOpen,
 }: { 
-  comment: Comment; 
+  comment: CommentWithDepth; 
   isPrivate?: boolean;
   isAdmin?: boolean;
+  onReply: () => void;
+  isReplyFormOpen: boolean;
 }) {
   const fetcher = useFetcher();
   const isDeleting = fetcher.state !== "idle";
@@ -298,11 +460,24 @@ function CommentCard({
         </div>
       </div>
       <p className="text-harbour-600 whitespace-pre-wrap">{comment.content}</p>
-      {isPrivate && (
-        <span className="inline-block mt-1 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
-          Private
-        </span>
-      )}
+      <div className="flex items-center gap-2 mt-2">
+        {!isReplyFormOpen && (
+          <button
+            onClick={onReply}
+            className="text-xs text-harbour-400 hover:text-harbour-600 flex items-center gap-1"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+            reply
+          </button>
+        )}
+        {isPrivate && (
+          <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
+            Private
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { Route } from "./+types/api.comments";
-import { createComment } from "~/lib/comments.server";
+import { createComment, getCommentById } from "~/lib/comments.server";
 import { verifyTurnstile, isTurnstileEnabled } from "~/lib/turnstile.server";
 import { contentTypes, type ContentType } from "~/db/schema";
 
@@ -8,6 +8,7 @@ export async function action({ request }: Route.ActionArgs) {
   
   const contentType = formData.get("contentType") as string;
   const contentIdStr = formData.get("contentId") as string;
+  const parentIdStr = formData.get("parentId") as string | null;
   const authorName = formData.get("authorName") as string | null;
   const content = formData.get("content") as string;
   const isPrivate = formData.get("isPrivate") === "true";
@@ -22,6 +23,23 @@ export async function action({ request }: Route.ActionArgs) {
   const contentId = parseInt(contentIdStr, 10);
   if (isNaN(contentId) || contentId <= 0) {
     return { error: "Invalid content ID" };
+  }
+
+  // Validate parent ID if provided (for replies)
+  let parentId: number | null = null;
+  if (parentIdStr && parentIdStr.trim()) {
+    parentId = parseInt(parentIdStr, 10);
+    if (isNaN(parentId) || parentId <= 0) {
+      return { error: "Invalid parent comment ID" };
+    }
+    // Verify parent comment exists and belongs to same content
+    const parentComment = await getCommentById(parentId);
+    if (!parentComment) {
+      return { error: "Parent comment not found" };
+    }
+    if (parentComment.contentType !== contentType || parentComment.contentId !== contentId) {
+      return { error: "Parent comment belongs to different content" };
+    }
   }
 
   // Validate comment content
@@ -57,6 +75,7 @@ export async function action({ request }: Route.ActionArgs) {
       {
         contentType: contentType as ContentType,
         contentId,
+        parentId,
         authorName: authorName?.trim() || null,
         content: content.trim(),
         isPrivate,

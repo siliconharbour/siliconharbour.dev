@@ -295,6 +295,8 @@ export const comments = sqliteTable("comments", {
   // Polymorphic relation to any content type
   contentType: text("content_type", { enum: contentTypes }).notNull(),
   contentId: integer("content_id").notNull(),
+  // Threading support - null means top-level comment
+  parentId: integer("parent_id"), // references comments.id (self-referential)
   // Comment data
   authorName: text("author_name"), // optional, for attribution
   content: text("content").notNull(),
@@ -309,6 +311,7 @@ export const comments = sqliteTable("comments", {
 }, (table) => ({
   contentIdx: index("comments_content_idx").on(table.contentType, table.contentId),
   ipIdx: index("comments_ip_idx").on(table.ipAddress), // for finding all comments from an IP
+  parentIdx: index("comments_parent_idx").on(table.parentId), // for efficient child lookups
 }));
 
 // =============================================================================
