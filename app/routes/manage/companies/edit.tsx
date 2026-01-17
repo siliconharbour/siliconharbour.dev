@@ -43,6 +43,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const website = (formData.get("website") as string) || null;
+  const wikipedia = (formData.get("wikipedia") as string) || null;
   const location = (formData.get("location") as string) || null;
   const founded = (formData.get("founded") as string) || null;
 
@@ -93,6 +94,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     name,
     description,
     website,
+    wikipedia,
     location,
     founded,
     ...(logo !== undefined && { logo }),
@@ -164,6 +166,20 @@ export default function EditCompany() {
               id="website"
               name="website"
               defaultValue={company.website ?? ""}
+              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="wikipedia" className="font-medium text-harbour-700">
+              Wikipedia
+            </label>
+            <input
+              type="url"
+              id="wikipedia"
+              name="wikipedia"
+              placeholder="https://en.wikipedia.org/wiki/..."
+              defaultValue={company.wikipedia ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>

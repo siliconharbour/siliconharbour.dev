@@ -50,6 +50,13 @@
       "when": 1768659890448,
       "tag": "0006_keen_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1768661510688,
+      "tag": "0007_wide_captain_universe",
+      "breakpoints": true
     }
   ]
 }

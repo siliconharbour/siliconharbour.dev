@@ -20,6 +20,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     name: company.name,
     description: company.description,
     website: company.website,
+    wikipedia: company.wikipedia,
     location: company.location,
     founded: company.founded,
     logo: imageUrl(company.logo),
