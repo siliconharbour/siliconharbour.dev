@@ -26,14 +26,14 @@ interface RichMarkdownProps {
 
 const contentTypeRoutes: Record<ContentType, string> = {
   event: "/events",
-  company: "/companies",
-  group: "/groups",
-  learning: "/learning",
-  person: "/people",
+  company: "/directory/companies",
+  group: "/directory/groups",
+  learning: "/directory/learning",
+  person: "/directory/people",
   news: "/news",
   job: "/jobs",
-  project: "/projects",
-  product: "/products",
+  project: "/directory/projects",
+  product: "/directory/products",
 };
 
 function getContentUrl(type: ContentType, slug: string): string {

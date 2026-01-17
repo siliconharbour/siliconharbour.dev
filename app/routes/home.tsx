@@ -79,13 +79,13 @@ export async function loader({}: Route.LoaderArgs) {
 // Quick links config with section keys
 const quickLinks: { to: string; label: string; key: SectionKey }[] = [
   { to: "/events", label: "Events", key: "events" },
-  { to: "/companies", label: "Companies", key: "companies" },
-  { to: "/projects", label: "Projects", key: "projects" },
+  { to: "/directory/companies", label: "Companies", key: "companies" },
+  { to: "/directory/projects", label: "Projects", key: "projects" },
   { to: "/jobs", label: "Jobs", key: "jobs" },
   { to: "/news", label: "News", key: "news" },
-  { to: "/groups", label: "Groups", key: "groups" },
-  { to: "/people", label: "People", key: "people" },
-  { to: "/learning", label: "Learning", key: "learning" },
+  { to: "/directory/groups", label: "Groups", key: "groups" },
+  { to: "/directory/people", label: "People", key: "people" },
+  { to: "/directory/learning", label: "Learning", key: "learning" },
 ];
 
 export default function Home() {
