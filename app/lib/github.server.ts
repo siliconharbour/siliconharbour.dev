@@ -20,6 +20,16 @@ export interface GitHubUser {
   blog: string | null;
   location: string | null;
   public_repos: number;
+  twitter_username: string | null;
+}
+
+export interface GitHubSocialAccount {
+  provider: string;
+  url: string;
+}
+
+export interface GitHubUserWithSocials extends GitHubUser {
+  socialAccounts: GitHubSocialAccount[];
 }
 
 export interface GitHubSearchResult {
@@ -250,10 +260,25 @@ export async function getRateLimitStatus(): Promise<RateLimitInfo> {
 }
 
 /**
+ * Get user's social accounts
+ */
+export async function getUserSocialAccounts(username: string): Promise<GitHubSocialAccount[]> {
+  const url = `https://api.github.com/users/${encodeURIComponent(username)}/social_accounts`;
+  const response = await githubFetch(url);
+  
+  if (!response.ok) {
+    // Social accounts endpoint may not exist for all users, return empty
+    return [];
+  }
+  
+  return response.json();
+}
+
+/**
  * Get user profile with rate limit info returned
  */
 export async function getUserProfileWithRateLimit(username: string): Promise<{ 
-  user: GitHubUser; 
+  user: GitHubUserWithSocials; 
   rateLimit: RateLimitInfo 
 }> {
   const url = `https://api.github.com/users/${encodeURIComponent(username)}`;
@@ -272,7 +297,15 @@ export async function getUserProfileWithRateLimit(username: string): Promise<{
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
   
-  return { user: await response.json(), rateLimit };
+  const user: GitHubUser = await response.json();
+  
+  // Fetch social accounts (costs 1 more API call but gives us valuable data)
+  const socialAccounts = await getUserSocialAccounts(username);
+  
+  return { 
+    user: { ...user, socialAccounts }, 
+    rateLimit 
+  };
 }
 
 // Export the RateLimitInfo type

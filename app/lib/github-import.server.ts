@@ -12,7 +12,7 @@ import {
   searchNewfoundlandUsers, 
   getUserProfileWithRateLimit,
   fetchAvatar,
-  type GitHubUser,
+  type GitHubUserWithSocials,
   type RateLimitInfo,
 } from "./github.server";
 import { createPerson, updatePerson, getPersonByName, getPersonByGitHub } from "./people.server";
@@ -359,7 +359,7 @@ export async function resetImport(): Promise<ImportProgress> {
  * Import a single GitHub user
  */
 async function importSingleUser(
-  user: GitHubUser,
+  user: GitHubUserWithSocials,
   downloadAvatars: boolean
 ): Promise<{ name: string; action: "imported" | "merged" | "skipped" }> {
   const githubUrl = user.html_url;
@@ -422,14 +422,63 @@ async function importSingleUser(
     bio = `GitHub user from ${user.location || "Newfoundland"}.`;
   }
   
+  // Build social links from GitHub profile
+  // GitHub provides twitter_username directly, and social_accounts for others
+  const socialLinks: Record<string, string> = {};
+  
+  // Twitter can come from twitter_username field or social accounts
+  if (user.twitter_username) {
+    socialLinks.twitter = `https://twitter.com/${user.twitter_username}`;
+  }
+  
+  // Process social accounts (instagram, linkedin, etc.)
+  for (const account of user.socialAccounts || []) {
+    const provider = account.provider.toLowerCase();
+    if (provider === "twitter" && !socialLinks.twitter) {
+      socialLinks.twitter = account.url;
+    } else if (provider === "linkedin" || provider === "linkedin_company") {
+      socialLinks.linkedin = account.url;
+    } else if (provider === "instagram") {
+      socialLinks.instagram = account.url;
+    } else if (provider === "youtube") {
+      socialLinks.youtube = account.url;
+    } else if (provider === "mastodon") {
+      socialLinks.mastodon = account.url;
+    } else if (provider === "facebook") {
+      socialLinks.facebook = account.url;
+    }
+    // Other providers can be added as needed
+  }
+  
+  const socialLinksJson = Object.keys(socialLinks).length > 0 
+    ? JSON.stringify(socialLinks) 
+    : null;
+  
   if (existingByName) {
     // Merge with existing person
     if (!existingByName.github) {
+      // Parse existing social links to merge
+      let existingSocialLinks: Record<string, string> = {};
+      if (existingByName.socialLinks) {
+        try {
+          existingSocialLinks = JSON.parse(existingByName.socialLinks);
+        } catch {
+          // ignore
+        }
+      }
+      
+      // Merge social links (prefer existing values)
+      const mergedSocialLinks = { ...socialLinks, ...existingSocialLinks };
+      const mergedSocialLinksJson = Object.keys(mergedSocialLinks).length > 0 
+        ? JSON.stringify(mergedSocialLinks) 
+        : null;
+      
       await updatePerson(existingByName.id, {
         github: githubUrl,
         website: existingByName.website || user.blog || null,
         avatar: existingByName.avatar || avatar,
-        bio: existingByName.bio.startsWith("GitHub user from") ? bio : existingByName.bio,
+        bio: existingByName.bio?.startsWith("GitHub user from") ? bio : existingByName.bio,
+        socialLinks: mergedSocialLinksJson,
       });
       return { name: displayName, action: "merged" };
     }
@@ -443,6 +492,7 @@ async function importSingleUser(
     website: user.blog || null,
     github: githubUrl,
     avatar,
+    socialLinks: socialLinksJson,
     visible: false, // Imported users start hidden until reviewed
   });
   
