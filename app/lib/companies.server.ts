@@ -73,6 +73,13 @@ export async function getCompanyBySlug(slug: string): Promise<Company | null> {
   return db.select().from(companies).where(eq(companies.slug, slug)).get() ?? null;
 }
 
+export async function getCompanyByName(name: string): Promise<Company | null> {
+  // Case-insensitive search by lowercasing both sides
+  const all = await db.select().from(companies);
+  const nameLower = name.toLowerCase();
+  return all.find(c => c.name.toLowerCase() === nameLower) ?? null;
+}
+
 export async function getAllCompanies(): Promise<Company[]> {
   return db.select().from(companies).orderBy(asc(companies.name));
 }
