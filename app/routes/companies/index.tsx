@@ -61,7 +61,7 @@ export default function CompaniesIndex() {
                 className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
               >
                 {company.logo && (
-                  <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100">
+                  <div className="w-16 h-16 relative overflow-hidden bg-harbour-100">
                     <img
                       src={`/images/${company.logo}`}
                       alt=""
