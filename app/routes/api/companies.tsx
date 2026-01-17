@@ -1,20 +1,21 @@
 import type { Route } from "./+types/companies";
 import { db } from "~/db";
 import { companies } from "~/db/schema";
-import { asc, count } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { parsePagination, buildLinkHeader, jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePagination(url);
   
-  // Get total count
-  const [{ total }] = await db.select({ total: count() }).from(companies);
+  // Get total count (only visible)
+  const [{ total }] = await db.select({ total: count() }).from(companies).where(eq(companies.visible, true));
   
-  // Get paginated data
+  // Get paginated data (only visible)
   const data = await db
     .select()
     .from(companies)
+    .where(eq(companies.visible, true))
     .orderBy(asc(companies.name))
     .limit(limit)
     .offset(offset);

@@ -68,8 +68,11 @@ export async function getLearningBySlug(slug: string): Promise<Learning | null> 
   return db.select().from(learning).where(eq(learning.slug, slug)).get() ?? null;
 }
 
-export async function getAllLearning(): Promise<Learning[]> {
-  return db.select().from(learning).orderBy(desc(learning.createdAt));
+export async function getAllLearning(includeHidden: boolean = false): Promise<Learning[]> {
+  if (includeHidden) {
+    return db.select().from(learning).orderBy(desc(learning.createdAt));
+  }
+  return db.select().from(learning).where(eq(learning.visible, true)).orderBy(desc(learning.createdAt));
 }
 
 // =============================================================================

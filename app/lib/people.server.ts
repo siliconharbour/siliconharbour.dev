@@ -82,8 +82,11 @@ export async function getPersonByGitHub(githubUrl: string): Promise<Person | nul
   return all.find(p => p.github?.toLowerCase() === urlLower) ?? null;
 }
 
-export async function getAllPeople(): Promise<Person[]> {
-  return db.select().from(people).orderBy(desc(people.createdAt));
+export async function getAllPeople(includeHidden: boolean = false): Promise<Person[]> {
+  if (includeHidden) {
+    return db.select().from(people).orderBy(desc(people.createdAt));
+  }
+  return db.select().from(people).where(eq(people.visible, true)).orderBy(desc(people.createdAt));
 }
 
 // =============================================================================

@@ -80,8 +80,11 @@ export async function getCompanyByName(name: string): Promise<Company | null> {
   return all.find(c => c.name.toLowerCase() === nameLower) ?? null;
 }
 
-export async function getAllCompanies(): Promise<Company[]> {
-  return db.select().from(companies).orderBy(asc(companies.name));
+export async function getAllCompanies(includeHidden: boolean = false): Promise<Company[]> {
+  if (includeHidden) {
+    return db.select().from(companies).orderBy(asc(companies.name));
+  }
+  return db.select().from(companies).where(eq(companies.visible, true)).orderBy(asc(companies.name));
 }
 
 export async function getPaginatedCompanies(

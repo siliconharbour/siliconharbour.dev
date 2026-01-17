@@ -1,18 +1,19 @@
 import type { Route } from "./+types/groups";
 import { db } from "~/db";
 import { groups } from "~/db/schema";
-import { asc, count } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { parsePagination, buildLinkHeader, jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePagination(url);
   
-  const [{ total }] = await db.select({ total: count() }).from(groups);
+  const [{ total }] = await db.select({ total: count() }).from(groups).where(eq(groups.visible, true));
   
   const data = await db
     .select()
     .from(groups)
+    .where(eq(groups.visible, true))
     .orderBy(asc(groups.name))
     .limit(limit)
     .offset(offset);

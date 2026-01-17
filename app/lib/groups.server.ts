@@ -68,8 +68,11 @@ export async function getGroupBySlug(slug: string): Promise<Group | null> {
   return db.select().from(groups).where(eq(groups.slug, slug)).get() ?? null;
 }
 
-export async function getAllGroups(): Promise<Group[]> {
-  return db.select().from(groups).orderBy(desc(groups.createdAt));
+export async function getAllGroups(includeHidden: boolean = false): Promise<Group[]> {
+  if (includeHidden) {
+    return db.select().from(groups).orderBy(desc(groups.createdAt));
+  }
+  return db.select().from(groups).where(eq(groups.visible, true)).orderBy(desc(groups.createdAt));
 }
 
 // =============================================================================
