@@ -1,5 +1,5 @@
 import { db } from "~/db";
-import { learning, type Learning, type NewLearning } from "~/db/schema";
+import { learning, companies, type Learning, type NewLearning } from "~/db/schema";
 import { eq, desc, asc, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
@@ -116,4 +116,47 @@ export async function getPaginatedLearning(
     .offset(offset);
   
   return { items, total };
+}
+
+// =============================================================================
+// Company to Learning conversion
+// =============================================================================
+
+/**
+ * Convert a company to a learning institution.
+ * Creates the learning entry, deletes the company, and updates references.
+ */
+export async function convertCompanyToLearning(
+  companyId: number, 
+  type: "university" | "college" | "bootcamp" | "online" | "other" = "other"
+): Promise<Learning> {
+  // Get the company
+  const company = await db.select().from(companies).where(eq(companies.id, companyId)).get();
+  if (!company) {
+    throw new Error("Company not found");
+  }
+  
+  // Generate a unique slug for learning (might differ if there's a collision)
+  const slug = await generateLearningSlug(company.name);
+  
+  // Create the learning entry with company data
+  const [newInstitution] = await db.insert(learning).values({
+    slug,
+    name: company.name,
+    description: company.description,
+    website: company.website,
+    type,
+    logo: company.logo,
+    coverImage: company.coverImage,
+    technl: company.technl,
+    genesis: company.genesis,
+  }).returning();
+  
+  // Sync references for the new learning entry
+  await syncReferences("learning", newInstitution.id, newInstitution.description);
+  
+  // Delete the company (this will cascade delete its references)
+  await db.delete(companies).where(eq(companies.id, companyId));
+  
+  return newInstitution;
 }

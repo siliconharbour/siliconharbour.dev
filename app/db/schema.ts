@@ -138,6 +138,9 @@ export const learning = sqliteTable("learning", {
   }).notNull().default("other"),
   logo: text("logo"),
   coverImage: text("cover_image"),
+  // Directory listings (same as companies)
+  technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
+  genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

@@ -44,6 +44,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   const description = formData.get("description") as string;
   const website = (formData.get("website") as string) || null;
   const type = (formData.get("type") as string) || "other";
+  const technl = formData.get("technl") === "on";
+  const genesis = formData.get("genesis") === "on";
 
   if (!name || !description) {
     return { error: "Name and description are required" };
@@ -86,6 +88,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     description,
     website,
     type: type as "university" | "college" | "bootcamp" | "online" | "other",
+    technl,
+    genesis,
     ...(logo !== undefined && { logo }),
     ...(coverImage !== undefined && { coverImage }),
   });
@@ -196,6 +200,30 @@ export default function EditLearning() {
               previewStyle="cover"
               helpText="Upload cover (16:9)"
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-harbour-700">Directory Listings</span>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  name="technl" 
+                  defaultChecked={institution.technl ?? false}
+                  className="rounded" 
+                />
+                <span className="text-sm text-harbour-600">TechNL Member</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  name="genesis" 
+                  defaultChecked={institution.genesis ?? false}
+                  className="rounded" 
+                />
+                <span className="text-sm text-harbour-600">Genesis Centre</span>
+              </label>
+            </div>
           </div>
 
           <button

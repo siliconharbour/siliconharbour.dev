@@ -2,6 +2,7 @@ import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getCompanyById, updateCompany } from "~/lib/companies.server";
+import { convertCompanyToLearning } from "~/lib/learning.server";
 import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 
@@ -39,6 +40,21 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  // Handle convert to institution
+  if (intent === "convertToLearning") {
+    const institutionType = formData.get("institutionType") as string || "other";
+    try {
+      const institution = await convertCompanyToLearning(
+        id, 
+        institutionType as "university" | "college" | "bootcamp" | "online" | "other"
+      );
+      return redirect(`/manage/learning/${institution.id}`);
+    } catch (error) {
+      return { error: "Failed to convert company to institution" };
+    }
+  }
 
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
@@ -269,6 +285,45 @@ export default function EditCompany() {
             Update Company
           </button>
         </Form>
+
+        {/* Convert to Institution section */}
+        <div className="border-t border-harbour-200 pt-6 mt-6">
+          <h2 className="text-lg font-semibold text-harbour-700 mb-4">Convert to Learning Institution</h2>
+          <p className="text-sm text-harbour-500 mb-4">
+            This will move the company to the Learning directory. The company entry will be deleted 
+            and a new learning institution will be created with the same data.
+          </p>
+          <Form method="post" className="flex flex-wrap items-end gap-4">
+            <input type="hidden" name="intent" value="convertToLearning" />
+            <div className="flex flex-col gap-2">
+              <label htmlFor="institutionType" className="text-sm font-medium text-harbour-700">
+                Institution Type
+              </label>
+              <select
+                id="institutionType"
+                name="institutionType"
+                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              >
+                <option value="university">University</option>
+                <option value="college">College</option>
+                <option value="bootcamp">Bootcamp</option>
+                <option value="online">Online</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+              onClick={(e) => {
+                if (!confirm(`Are you sure you want to convert "${company.name}" to a learning institution? This will delete the company entry.`)) {
+                  e.preventDefault();
+                }
+              }}
+            >
+              Convert to Institution
+            </button>
+          </Form>
+        </div>
       </div>
     </div>
   );
