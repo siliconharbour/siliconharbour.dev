@@ -5,15 +5,48 @@ import type { ContentType } from "~/db/schema";
 import type { CommentWithDepth } from "~/lib/comments.server";
 import { TurnstileInput } from "./Turnstile";
 
-const MAX_VISIBLE_DEPTH = 4; // Collapse threads deeper than this
-const INDENT_PX = 24; // Pixels per depth level
-
 interface CommentSectionProps {
   contentType: ContentType;
   contentId: number;
   comments: CommentWithDepth[];
   turnstileSiteKey: string | null;
   isAdmin?: boolean;
+}
+
+// Build a tree structure from flat comments
+interface CommentNode extends CommentWithDepth {
+  children: CommentNode[];
+}
+
+function buildCommentTree(comments: CommentWithDepth[]): CommentNode[] {
+  const map = new Map<number, CommentNode>();
+  const roots: CommentNode[] = [];
+
+  // First pass: create nodes
+  for (const comment of comments) {
+    map.set(comment.id, { ...comment, children: [] });
+  }
+
+  // Second pass: build tree
+  for (const comment of comments) {
+    const node = map.get(comment.id)!;
+    if (comment.parentId && map.has(comment.parentId)) {
+      map.get(comment.parentId)!.children.push(node);
+    } else {
+      roots.push(node);
+    }
+  }
+
+  // Sort roots by date (newest first) and children by date (oldest first)
+  roots.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  
+  function sortChildren(node: CommentNode) {
+    node.children.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    node.children.forEach(sortChildren);
+  }
+  roots.forEach(sortChildren);
+
+  return roots;
 }
 
 export function CommentSection({
@@ -24,12 +57,15 @@ export function CommentSection({
   isAdmin = false,
 }: CommentSectionProps) {
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
-  const [expandedThreads, setExpandedThreads] = useState<Set<number>>(new Set());
 
   const publicComments = comments.filter((c) => !c.isPrivate);
   const privateComments = comments.filter((c) => c.isPrivate);
   const publicCount = publicComments.length;
   const privateCount = privateComments.length;
+
+  // Build trees
+  const publicTree = buildCommentTree(publicComments);
+  const privateTree = buildCommentTree(privateComments);
 
   // Build summary text
   let summaryText: string;
@@ -48,98 +84,9 @@ export function CommentSection({
 
   const hasAnyComments = publicCount > 0 || (isAdmin && privateCount > 0);
 
-  // Toggle expanded state for a collapsed thread
-  const toggleThread = (commentId: number) => {
-    setExpandedThreads(prev => {
-      const next = new Set(prev);
-      if (next.has(commentId)) {
-        next.delete(commentId);
-      } else {
-        next.add(commentId);
-      }
-      return next;
-    });
-  };
-
-  // Render comments with threading
-  const renderComments = (commentList: CommentWithDepth[], showPrivate: boolean = false) => {
-    const result: React.ReactNode[] = [];
-    let i = 0;
-    
-    while (i < commentList.length) {
-      const comment = commentList[i];
-      const effectiveDepth = comment.depth;
-      
-      // Check if this comment should be collapsed (depth > MAX and not expanded)
-      const isCollapsed = effectiveDepth >= MAX_VISIBLE_DEPTH && 
-        !expandedThreads.has(comment.parentId!);
-      
-      if (isCollapsed) {
-        // Count how many comments are in this collapsed subtree
-        let collapsedCount = 0;
-        const startDepth = effectiveDepth;
-        const parentId = comment.parentId!;
-        
-        while (i < commentList.length && commentList[i].depth >= startDepth) {
-          collapsedCount++;
-          i++;
-        }
-        
-        // Render "continue thread" link at parent's depth
-        result.push(
-          <div
-            key={`collapsed-${parentId}-${comment.id}`}
-            style={{ marginLeft: `${(MAX_VISIBLE_DEPTH - 1) * INDENT_PX}px` }}
-            className="py-2"
-          >
-            <button
-              onClick={() => toggleThread(parentId)}
-              className="text-xs text-harbour-500 hover:text-harbour-600 flex items-center gap-1"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              Continue thread ({collapsedCount} more {collapsedCount === 1 ? 'reply' : 'replies'})
-            </button>
-          </div>
-        );
-      } else {
-        result.push(
-          <div
-            key={comment.id}
-            style={{ marginLeft: `${Math.min(effectiveDepth, MAX_VISIBLE_DEPTH) * INDENT_PX}px` }}
-          >
-            <CommentCard
-              comment={comment}
-              isPrivate={showPrivate && comment.isPrivate}
-              isAdmin={isAdmin}
-              onReply={() => setReplyingTo(comment.id)}
-              isReplyFormOpen={replyingTo === comment.id}
-            />
-            {replyingTo === comment.id && (
-              <div className="mt-2 ml-4">
-                <ReplyForm
-                  contentType={contentType}
-                  contentId={contentId}
-                  parentId={comment.id}
-                  turnstileSiteKey={turnstileSiteKey}
-                  onCancel={() => setReplyingTo(null)}
-                  onSuccess={() => setReplyingTo(null)}
-                />
-              </div>
-            )}
-          </div>
-        );
-        i++;
-      }
-    }
-    
-    return result;
-  };
-
   return (
     <div className="border-t border-harbour-200/50 pt-4 mt-6 text-sm">
-      <details className="group">
+      <details className="group" open>
         <summary className="cursor-pointer select-none text-harbour-500 hover:text-harbour-600 list-none flex items-center gap-2">
           <svg 
             className="w-4 h-4 transition-transform group-open:rotate-90" 
@@ -152,16 +99,28 @@ export function CommentSection({
           <span>{summaryText}</span>
         </summary>
 
-        <div className="mt-4 pl-6 flex flex-col gap-2">
+        <div className="mt-4 flex flex-col gap-3">
           {/* Threaded Comments */}
-          {publicComments.length > 0 && (
-            <div className="flex flex-col gap-2">
-              {renderComments(publicComments)}
+          {publicTree.length > 0 && (
+            <div className="flex flex-col">
+              {publicTree.map((node) => (
+                <CommentThread
+                  key={node.id}
+                  node={node}
+                  contentType={contentType}
+                  contentId={contentId}
+                  turnstileSiteKey={turnstileSiteKey}
+                  isAdmin={isAdmin}
+                  replyingTo={replyingTo}
+                  setReplyingTo={setReplyingTo}
+                  isRoot
+                />
+              ))}
             </div>
           )}
 
           {/* Private Comments (Admin Only) */}
-          {isAdmin && privateComments.length > 0 && (
+          {isAdmin && privateTree.length > 0 && (
             <div className="border-t border-harbour-200/50 pt-4 mt-2">
               <p className="text-xs font-medium text-amber-600 mb-2 flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -169,15 +128,28 @@ export function CommentSection({
                 </svg>
                 Private Comments ({privateComments.length})
               </p>
-              <div className="flex flex-col gap-2">
-                {renderComments(privateComments, true)}
+              <div className="flex flex-col">
+                {privateTree.map((node) => (
+                  <CommentThread
+                    key={node.id}
+                    node={node}
+                    contentType={contentType}
+                    contentId={contentId}
+                    turnstileSiteKey={turnstileSiteKey}
+                    isAdmin={isAdmin}
+                    replyingTo={replyingTo}
+                    setReplyingTo={setReplyingTo}
+                    isPrivate
+                    isRoot
+                  />
+                ))}
               </div>
             </div>
           )}
 
           {/* Top-level Comment Form */}
           {hasAnyComments ? (
-            <details className="mt-2">
+            <details className="mt-2" open>
               <summary className="cursor-pointer select-none text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-2 text-xs">
                 <svg 
                   className="w-3 h-3" 
@@ -206,6 +178,97 @@ export function CommentSection({
       </details>
     </div>
   );
+}
+
+interface CommentThreadProps {
+  node: CommentNode;
+  contentType: ContentType;
+  contentId: number;
+  turnstileSiteKey: string | null;
+  isAdmin: boolean;
+  replyingTo: number | null;
+  setReplyingTo: (id: number | null) => void;
+  isPrivate?: boolean;
+  isRoot?: boolean;
+}
+
+function CommentThread({
+  node,
+  contentType,
+  contentId,
+  turnstileSiteKey,
+  isAdmin,
+  replyingTo,
+  setReplyingTo,
+  isPrivate = false,
+  isRoot = false,
+}: CommentThreadProps) {
+  const hasReplies = node.children.length > 0;
+  const replyCount = countReplies(node);
+
+  return (
+    <div className={`${isRoot ? '' : 'ml-4 pl-3 border-l-2 border-harbour-200 hover:border-harbour-400 transition-colors'}`}>
+      <CommentCard
+        comment={node}
+        isPrivate={isPrivate && node.isPrivate}
+        isAdmin={isAdmin}
+        onReply={() => setReplyingTo(node.id)}
+        isReplyFormOpen={replyingTo === node.id}
+      />
+      
+      {replyingTo === node.id && (
+        <div className="mt-2 ml-4">
+          <ReplyForm
+            contentType={contentType}
+            contentId={contentId}
+            parentId={node.id}
+            turnstileSiteKey={turnstileSiteKey}
+            onCancel={() => setReplyingTo(null)}
+            onSuccess={() => setReplyingTo(null)}
+          />
+        </div>
+      )}
+
+      {hasReplies && (
+        <details className="mt-1 group/replies" open>
+          <summary className="cursor-pointer select-none text-xs text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-1 ml-4 py-1">
+            <svg 
+              className="w-3 h-3 transition-transform group-open/replies:rotate-90" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span>{replyCount} {replyCount === 1 ? 'reply' : 'replies'}</span>
+          </summary>
+          <div className="flex flex-col mt-1">
+            {node.children.map((child) => (
+              <CommentThread
+                key={child.id}
+                node={child}
+                contentType={contentType}
+                contentId={contentId}
+                turnstileSiteKey={turnstileSiteKey}
+                isAdmin={isAdmin}
+                replyingTo={replyingTo}
+                setReplyingTo={setReplyingTo}
+                isPrivate={isPrivate}
+              />
+            ))}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function countReplies(node: CommentNode): number {
+  let count = node.children.length;
+  for (const child of node.children) {
+    count += countReplies(child);
+  }
+  return count;
 }
 
 interface TopLevelCommentFormProps {
@@ -431,7 +494,7 @@ function CommentCard({
       className={`p-3 text-sm ${
         isPrivate
           ? "bg-amber-50 ring-1 ring-amber-200"
-          : "ring-1 ring-harbour-200/50"
+          : "bg-white ring-1 ring-harbour-200/50"
       } ${isDeleting ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between mb-1">
