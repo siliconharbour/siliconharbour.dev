@@ -165,26 +165,16 @@ export async function getUserProfiles(usernames: string[]): Promise<GitHubUser[]
 }
 
 /**
- * Search multiple location variations and deduplicate results
+ * Search for GitHub users in Newfoundland
  */
 export async function searchNewfoundlandUsers(
   page: number = 1,
   perPage: number = 30
 ): Promise<{ users: GitHubUser[]; total: number; rateLimit: RateLimitInfo }> {
-  // Search with multiple location terms to catch variations
-  const locations = [
-    "Newfoundland",
-    '"St. John\'s"',
-    '"St John\'s, NL"',
-    '"St. John\'s, NL"',
-    '"NL, Canada"',
-    '"Mount Pearl"',
-    '"Corner Brook"',
-  ];
-  
-  // For pagination, we'll use the primary search term
-  // The multi-term search is really for the first page to cast a wide net
-  const query = encodeURIComponent(`location:Newfoundland OR location:"St. John's" OR location:"NL, Canada" type:user`);
+  // Use simple location search - "Newfoundland" captures most users
+  // GitHub's location field is free-text so this catches variations like:
+  // "St. John's, Newfoundland", "Newfoundland, Canada", etc.
+  const query = encodeURIComponent("location:Newfoundland type:user");
   const url = `https://api.github.com/search/users?q=${query}&page=${page}&per_page=${perPage}`;
   
   const response = await githubFetch(url);
@@ -199,7 +189,8 @@ export async function searchNewfoundlandUsers(
     if (response.status === 403 && rateLimit.remaining === 0) {
       throw new Error(`Rate limited. Resets at ${rateLimit.reset.toLocaleTimeString()}`);
     }
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+    const body = await response.text();
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${body}`);
   }
   
   const data: GitHubSearchResult = await response.json();
