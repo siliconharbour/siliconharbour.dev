@@ -353,6 +353,17 @@ export async function getPaginatedEvents(
   dateFilter?: string // yyyy-MM-dd format
 ): Promise<PaginatedEvents> {
   const now = new Date();
+  const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  
+  // Get recurring events (they're always considered "upcoming" if no end date or end date is in future)
+  const recurringEventsResult = await db
+    .select()
+    .from(events)
+    .where(gte(events.recurrenceRule, ""));
+  const recurringEvents = recurringEventsResult.filter(e => e.recurrenceRule);
+  const recurringEventIds = recurringEvents
+    .filter(e => !e.recurrenceEnd || e.recurrenceEnd > now)
+    .map(e => e.id);
   
   // Get event IDs based on filter
   let filteredEventIds: number[];
@@ -371,27 +382,39 @@ export async function getPaginatedEvents(
         gte(eventDates.startDate, startOfDay),
         lte(eventDates.startDate, endOfDay)
       ));
-    filteredEventIds = dateRows.map(r => r.eventId);
+    
+    // Also check if any recurring events fall on this date
+    const recurringOnDate: number[] = [];
+    for (const event of recurringEvents) {
+      const occurrences = getGeneratedOccurrences(event, startOfDay, endOfDay);
+      if (occurrences.length > 0) {
+        recurringOnDate.push(event.id);
+      }
+    }
+    
+    filteredEventIds = [...new Set([...dateRows.map(r => r.eventId), ...recurringOnDate])];
   } else if (filter === "upcoming") {
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
       .where(gte(eventDates.startDate, now));
-    filteredEventIds = upcomingRows.map(r => r.eventId);
+    
+    // Include recurring events as upcoming
+    filteredEventIds = [...new Set([...upcomingRows.map(r => r.eventId), ...recurringEventIds])];
   } else if (filter === "past") {
-    // Past events: all events that have NO upcoming dates
+    // Past events: all events that have NO upcoming dates AND are not recurring
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
       .where(gte(eventDates.startDate, now));
-    const upcomingIds = new Set(upcomingRows.map(r => r.eventId));
+    const upcomingIds = new Set([...upcomingRows.map(r => r.eventId), ...recurringEventIds]);
     
     const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
     filteredEventIds = allRows.map(r => r.eventId).filter(id => !upcomingIds.has(id));
   } else {
-    // All events
+    // All events - include both one-time and recurring
     const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
-    filteredEventIds = allRows.map(r => r.eventId);
+    filteredEventIds = [...new Set([...allRows.map(r => r.eventId), ...recurringEventIds])];
   }
   
   if (filteredEventIds.length === 0) {
@@ -413,9 +436,42 @@ export async function getPaginatedEvents(
   // Get the paginated slice of event IDs
   const paginatedIds = filteredEventIds.slice(offset, offset + limit);
   
-  // Fetch full event data with dates
+  // Fetch full event data with dates (including generated dates for recurring events)
   const eventsWithDates = await Promise.all(
-    paginatedIds.map(id => getEventById(id))
+    paginatedIds.map(async (id) => {
+      const event = await getEventById(id);
+      if (!event) return null;
+      
+      // For recurring events, generate synthetic dates
+      if (event.recurrenceRule) {
+        const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
+        const syntheticDates: EventDate[] = generatedDates.map((date, i) => {
+          let startDateTime = new Date(date);
+          if (event.defaultStartTime) {
+            const [hour, min] = event.defaultStartTime.split(":").map(Number);
+            startDateTime.setHours(hour, min, 0, 0);
+          }
+          
+          let endDateTime: Date | null = null;
+          if (event.defaultEndTime) {
+            const [hour, min] = event.defaultEndTime.split(":").map(Number);
+            endDateTime = new Date(date);
+            endDateTime.setHours(hour, min, 0, 0);
+          }
+          
+          return {
+            id: -(i + 1),
+            eventId: event.id,
+            startDate: startDateTime,
+            endDate: endDateTime,
+          };
+        });
+        
+        return { ...event, dates: syntheticDates };
+      }
+      
+      return event;
+    })
   );
   
   const items = eventsWithDates.filter((e): e is EventWithDates => e !== null);

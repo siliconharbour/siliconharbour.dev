@@ -148,9 +148,16 @@ export default function EventsIndex() {
                       </div>
                     )}
                     <div className="flex flex-col gap-1">
-                      <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
-                        {event.title}
-                      </h2>
+                      <div className="flex items-center gap-2">
+                        <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
+                          {event.title}
+                        </h2>
+                        {event.recurrenceRule && (
+                          <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
+                            Recurring
+                          </span>
+                        )}
+                      </div>
                       {event.dates[0] && (
                         <p className="text-sm text-harbour-500">
                           {format(event.dates[0].startDate, "EEE, MMM d 'at' h:mm a")}
