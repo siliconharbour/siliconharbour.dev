@@ -78,6 +78,27 @@
       "when": 1768669307488,
       "tag": "0010_sloppy_human_robot",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1768669320000,
+      "tag": "0011_products_fts",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1768675560000,
+      "tag": "0012_learning_directory_flags",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1768684900000,
+      "tag": "0013_import_blocklist",
+      "breakpoints": true
     }
   ]
 }
