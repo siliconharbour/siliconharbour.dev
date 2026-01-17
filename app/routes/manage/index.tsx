@@ -110,7 +110,7 @@ export default function ManageIndex() {
 
         <div className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Import Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link
               to="/manage/import/technl"
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
@@ -124,6 +124,13 @@ export default function ManageIndex() {
             >
               <h3 className="font-medium text-harbour-700">Genesis Centre</h3>
               <p className="text-harbour-400 text-sm">Import companies from the Genesis Centre portfolio</p>
+            </Link>
+            <Link
+              to="/manage/import/github"
+              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
+            >
+              <h3 className="font-medium text-harbour-700">GitHub Users</h3>
+              <p className="text-harbour-400 text-sm">Import people from GitHub by location</p>
             </Link>
           </div>
         </div>

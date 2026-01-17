@@ -39,8 +39,8 @@ export async function action({ request }: Route.ActionArgs) {
     avatar = await processAndSaveIconImage(buffer);
   }
 
+  // Store twitter/linkedin in socialLinks, github is now first-class
   const socialLinks: Record<string, string> = {};
-  if (github) socialLinks.github = github;
   if (twitter) socialLinks.twitter = twitter;
   if (linkedin) socialLinks.linkedin = linkedin;
 
@@ -48,6 +48,7 @@ export async function action({ request }: Route.ActionArgs) {
     name,
     bio,
     website,
+    github,
     avatar,
     socialLinks: Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null,
   });

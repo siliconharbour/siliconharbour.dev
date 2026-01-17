@@ -76,8 +76,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     avatar = null;
   }
 
+  // Store twitter/linkedin in socialLinks, github is now first-class
   const socialLinks: Record<string, string> = {};
-  if (github) socialLinks.github = github;
   if (twitter) socialLinks.twitter = twitter;
   if (linkedin) socialLinks.linkedin = linkedin;
 
@@ -85,6 +85,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     name,
     bio,
     website,
+    github,
     socialLinks: Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null,
     ...(avatar !== undefined && { avatar }),
   });
@@ -178,7 +179,7 @@ export default function EditPerson() {
                 id="github"
                 name="github"
                 placeholder="https://github.com/username"
-                defaultValue={socialLinks.github ?? ""}
+                defaultValue={person.github || socialLinks.github || ""}
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>

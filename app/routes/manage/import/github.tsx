@@ -1,0 +1,462 @@
+import type { Route } from "./+types/github";
+import { Link, useFetcher, useLoaderData } from "react-router";
+import { useState } from "react";
+import { requireAuth } from "~/lib/session.server";
+import { 
+  searchNewfoundlandUsers, 
+  getUserProfiles, 
+  fetchAvatar,
+  type GitHubUser 
+} from "~/lib/github.server";
+import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub } from "~/lib/people.server";
+import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
+
+export function meta({}: Route.MetaArgs) {
+  return [{ title: "Import from GitHub - siliconharbour.dev" }];
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
+  await requireAuth(request);
+  
+  // Get existing people for duplicate detection
+  const existingPeople = await getAllPeople();
+  const existingNames = new Set(existingPeople.map(p => p.name.toLowerCase()));
+  const existingGitHubs = new Set(
+    existingPeople
+      .filter(p => p.github)
+      .map(p => p.github!.toLowerCase())
+  );
+  
+  return { 
+    existingNames: Array.from(existingNames), 
+    existingGitHubs: Array.from(existingGitHubs),
+  };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAuth(request);
+  
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  
+  if (intent === "search") {
+    const page = parseInt(formData.get("page") as string) || 1;
+    
+    try {
+      const result = await searchNewfoundlandUsers(page, 30);
+      
+      // Fetch full profiles for the search results
+      const usernames = result.users.map(u => u.login);
+      const profiles = await getUserProfiles(usernames);
+      
+      return { 
+        intent: "search", 
+        users: profiles, 
+        total: result.total,
+        page,
+        rateLimit: {
+          remaining: result.rateLimit.remaining,
+          limit: result.rateLimit.limit,
+          reset: result.rateLimit.reset.toISOString(),
+        },
+        error: null 
+      };
+    } catch (e) {
+      return { intent: "search", users: [], total: 0, page: 1, rateLimit: null, error: String(e) };
+    }
+  }
+  
+  if (intent === "import") {
+    const usersJson = formData.get("users") as string;
+    const downloadAvatars = formData.get("downloadAvatars") === "true";
+    
+    try {
+      const users: GitHubUser[] = JSON.parse(usersJson);
+      const imported: string[] = [];
+      const errors: string[] = [];
+      
+      for (const user of users) {
+        try {
+          let avatar: string | null = null;
+          
+          // Download and save avatar if requested
+          if (downloadAvatars && user.avatar_url) {
+            const imageBuffer = await fetchAvatar(user.avatar_url);
+            if (imageBuffer) {
+              avatar = await processAndSaveIconImageWithPadding(imageBuffer);
+            }
+          }
+          
+          const githubUrl = user.html_url;
+          const displayName = user.name || user.login;
+          
+          // Check if person already exists by GitHub URL or name
+          const existingByGitHub = await getPersonByGitHub(githubUrl);
+          const existingByName = await getPersonByName(displayName);
+          const existing = existingByGitHub || existingByName;
+          
+          if (existing) {
+            // Merge: update with GitHub data if not already linked
+            if (!existing.github) {
+              await updatePerson(existing.id, {
+                github: githubUrl,
+                // Only fill in missing data
+                website: existing.website || user.blog || null,
+                avatar: existing.avatar || avatar,
+              });
+              imported.push(`${displayName} (merged)`);
+            } else {
+              // Already has GitHub link, skip
+              imported.push(`${displayName} (skipped - already linked)`);
+            }
+          } else {
+            // Create new person
+            const bio = user.bio || `GitHub user from ${user.location || "Newfoundland"}.`;
+            
+            await createPerson({
+              name: displayName,
+              bio,
+              website: user.blog || null,
+              github: githubUrl,
+              avatar,
+            });
+            
+            imported.push(displayName);
+          }
+        } catch (e) {
+          const name = user.name || user.login;
+          errors.push(`${name}: ${String(e)}`);
+        }
+      }
+      
+      return { intent: "import", imported, errors };
+    } catch (e) {
+      return { intent: "import", imported: [], errors: [String(e)] };
+    }
+  }
+  
+  return null;
+}
+
+export default function ImportGitHub() {
+  const { existingNames, existingGitHubs } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  
+  const [fetchedUsers, setFetchedUsers] = useState<GitHubUser[]>([]);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [downloadAvatars, setDownloadAvatars] = useState(true);
+  
+  // Handle fetcher response
+  const fetcherData = fetcher.data;
+  if (fetcherData?.intent === "search" && fetcherData.users) {
+    if (fetchedUsers.length === 0 || fetcherData.page !== currentPage) {
+      if (fetcherData.users.length > 0) {
+        setFetchedUsers(fetcherData.users);
+        setTotalUsers(fetcherData.total);
+        setCurrentPage(fetcherData.page);
+      }
+    }
+  }
+  
+  const isExisting = (user: GitHubUser) => {
+    const githubUrl = user.html_url.toLowerCase();
+    if (existingGitHubs.includes(githubUrl)) return "github";
+    const name = (user.name || user.login).toLowerCase();
+    if (existingNames.includes(name)) return "name";
+    return false;
+  };
+  
+  const toggleSelect = (login: string) => {
+    const newSelected = new Set(selected);
+    if (newSelected.has(login)) {
+      newSelected.delete(login);
+    } else {
+      newSelected.add(login);
+    }
+    setSelected(newSelected);
+  };
+  
+  const selectAll = () => {
+    const selectable = fetchedUsers.filter(u => isExisting(u) !== "github");
+    setSelected(new Set(selectable.map(u => u.login)));
+  };
+  
+  const selectNone = () => {
+    setSelected(new Set());
+  };
+  
+  const handleSearch = (page: number = 1) => {
+    fetcher.submit(
+      { intent: "search", page: String(page) },
+      { method: "post" }
+    );
+  };
+  
+  const handleImport = () => {
+    const toImport = fetchedUsers.filter(u => selected.has(u.login));
+    fetcher.submit(
+      { 
+        intent: "import", 
+        users: JSON.stringify(toImport),
+        downloadAvatars: String(downloadAvatars)
+      },
+      { method: "post" }
+    );
+  };
+  
+  const isSearching = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "search";
+  const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
+  
+  const totalPages = Math.ceil(totalUsers / 30);
+  const rateLimit = fetcherData?.intent === "search" ? fetcherData.rateLimit : null;
+  
+  return (
+    <div className="min-h-screen p-6">
+      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+        <div>
+          <Link
+            to="/manage"
+            className="text-sm text-harbour-400 hover:text-harbour-600"
+          >
+            &larr; Back to Dashboard
+          </Link>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-harbour-700">Import from GitHub</h1>
+        </div>
+        
+        <p className="text-harbour-500">
+          Search for GitHub users in Newfoundland and import them as people. 
+          This searches for users with location set to Newfoundland, St. John's, NL, etc.
+        </p>
+        
+        {/* Rate limit info */}
+        {rateLimit && (
+          <div className="text-sm text-harbour-400">
+            API Rate Limit: {rateLimit.remaining}/{rateLimit.limit} remaining
+            {rateLimit.remaining < 10 && (
+              <span className="text-amber-600 ml-2">
+                (Resets at {new Date(rateLimit.reset).toLocaleTimeString()})
+              </span>
+            )}
+          </div>
+        )}
+        
+        {/* Search button */}
+        {fetchedUsers.length === 0 && (
+          <button
+            type="button"
+            onClick={() => handleSearch(1)}
+            disabled={isSearching}
+            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors self-start"
+          >
+            {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland"}
+          </button>
+        )}
+        
+        {/* Error display */}
+        {fetcherData?.intent === "search" && fetcherData.error && (
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+            {fetcherData.error}
+          </div>
+        )}
+        
+        {/* Import results */}
+        {fetcherData?.intent === "import" && (
+          <div className="flex flex-col gap-2">
+            {fetcherData.imported && fetcherData.imported.length > 0 && (
+              <div className="p-4 bg-green-50 border border-green-200 text-green-700">
+                Successfully processed {fetcherData.imported.length} users
+                <ul className="list-disc list-inside mt-2 text-sm">
+                  {fetcherData.imported.slice(0, 10).map((name, i) => (
+                    <li key={i}>{name}</li>
+                  ))}
+                  {fetcherData.imported.length > 10 && (
+                    <li>...and {fetcherData.imported.length - 10} more</li>
+                  )}
+                </ul>
+              </div>
+            )}
+            {fetcherData.errors && fetcherData.errors.length > 0 && (
+              <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+                <p className="font-medium">Errors:</p>
+                <ul className="list-disc list-inside mt-2">
+                  {fetcherData.errors.map((e, i) => (
+                    <li key={i}>{e}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Users list */}
+        {fetchedUsers.length > 0 && (
+          <>
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-harbour-500">
+                Found {totalUsers} users (showing page {currentPage} of {totalPages})
+              </span>
+              <button
+                type="button"
+                onClick={selectAll}
+                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              >
+                Select all new
+              </button>
+              <button
+                type="button"
+                onClick={selectNone}
+                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              >
+                Select none
+              </button>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={downloadAvatars}
+                  onChange={(e) => setDownloadAvatars(e.target.checked)}
+                  className="rounded"
+                />
+                Download avatars
+              </label>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              {fetchedUsers.map((user) => {
+                const existingStatus = isExisting(user);
+                const displayName = user.name || user.login;
+                return (
+                  <div
+                    key={user.login}
+                    className={`flex items-center gap-4 p-3 border ${
+                      existingStatus === "github"
+                        ? "bg-harbour-50 border-harbour-200 opacity-60" 
+                        : selected.has(user.login)
+                        ? "bg-blue-50 border-blue-300"
+                        : existingStatus === "name"
+                        ? "bg-amber-50 border-amber-200"
+                        : "bg-white border-harbour-200"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(user.login)}
+                      onChange={() => toggleSelect(user.login)}
+                      disabled={existingStatus === "github"}
+                      className="w-5 h-5"
+                    />
+                    
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt=""
+                        className="w-10 h-10 object-cover rounded-full bg-harbour-100"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-harbour-100 rounded-full" />
+                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium">{displayName}</span>
+                        <span className="text-sm text-harbour-400">@{user.login}</span>
+                        {existingStatus === "github" && (
+                          <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
+                            Already imported
+                          </span>
+                        )}
+                        {existingStatus === "name" && (
+                          <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
+                            Will merge
+                          </span>
+                        )}
+                      </div>
+                      {user.bio && (
+                        <p className="text-sm text-harbour-500 truncate">
+                          {user.bio}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-3 text-sm text-harbour-400">
+                        {user.location && <span>{user.location}</span>}
+                        {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
+                        {user.blog && (
+                          <a
+                            href={user.blog.startsWith("http") ? user.blog : `https://${user.blog}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-harbour-600 truncate"
+                          >
+                            {user.blog}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <a
+                      href={user.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-harbour-400 hover:text-harbour-600"
+                    >
+                      View on GitHub
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSearch(currentPage - 1)}
+                  disabled={currentPage <= 1 || isSearching}
+                  className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-harbour-500">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleSearch(currentPage + 1)}
+                  disabled={currentPage >= totalPages || isSearching}
+                  className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={handleImport}
+                disabled={selected.size === 0 || isImporting}
+                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              >
+                {isImporting 
+                  ? "Importing..." 
+                  : `Import ${selected.size} Selected Users`
+                }
+              </button>
+              
+              {selected.size > 0 && (
+                <span className="text-sm text-harbour-500">
+                  {selected.size} users selected
+                </span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

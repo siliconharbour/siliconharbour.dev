@@ -150,9 +150,10 @@ export const people = sqliteTable("people", {
   name: text("name").notNull(),
   bio: text("bio").notNull(), // markdown
   website: text("website"),
+  github: text("github"), // GitHub profile URL
   avatar: text("avatar"), // image filename
   // Social links stored as JSON string
-  socialLinks: text("social_links"), // JSON: { twitter?, github?, linkedin?, etc. }
+  socialLinks: text("social_links"), // JSON: { twitter?, linkedin?, etc. }
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

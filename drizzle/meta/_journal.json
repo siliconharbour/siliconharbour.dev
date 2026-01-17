@@ -57,6 +57,13 @@
       "when": 1768661510688,
       "tag": "0007_wide_captain_universe",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1768664733890,
+      "tag": "0008_worthless_spyke",
+      "breakpoints": true
     }
   ]
 }

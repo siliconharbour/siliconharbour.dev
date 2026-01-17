@@ -140,6 +140,7 @@ export default [
     ...prefix("import", [
       route("technl", "routes/manage/import/technl.tsx"),
       route("genesis", "routes/manage/import/genesis.tsx"),
+      route("github", "routes/manage/import/github.tsx"),
     ]),
   ]),
 ] satisfies RouteConfig;

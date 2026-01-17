@@ -68,6 +68,20 @@ export async function getPersonBySlug(slug: string): Promise<Person | null> {
   return db.select().from(people).where(eq(people.slug, slug)).get() ?? null;
 }
 
+export async function getPersonByName(name: string): Promise<Person | null> {
+  // Case-insensitive search by lowercasing both sides
+  const all = await db.select().from(people);
+  const nameLower = name.toLowerCase();
+  return all.find(p => p.name.toLowerCase() === nameLower) ?? null;
+}
+
+export async function getPersonByGitHub(githubUrl: string): Promise<Person | null> {
+  // Find by GitHub URL
+  const all = await db.select().from(people);
+  const urlLower = githubUrl.toLowerCase();
+  return all.find(p => p.github?.toLowerCase() === urlLower) ?? null;
+}
+
 export async function getAllPeople(): Promise<Person[]> {
   return db.select().from(people).orderBy(desc(people.createdAt));
 }

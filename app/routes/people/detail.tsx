@@ -79,9 +79,9 @@ export default function PersonDetail() {
                   Website
                 </a>
               )}
-              {socialLinks.github && (
+              {(person.github || socialLinks.github) && (
                 <a
-                  href={socialLinks.github}
+                  href={person.github || socialLinks.github}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-harbour-600 hover:text-harbour-700 text-sm"
