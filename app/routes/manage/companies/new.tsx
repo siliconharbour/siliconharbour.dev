@@ -23,6 +23,7 @@ export async function action({ request }: Route.ActionArgs) {
   const description = formData.get("description") as string;
   const website = (formData.get("website") as string) || null;
   const wikipedia = (formData.get("wikipedia") as string) || null;
+  const github = (formData.get("github") as string) || null;
   const location = (formData.get("location") as string) || null;
   const founded = (formData.get("founded") as string) || null;
   const technl = formData.get("technl") === "on";
@@ -56,6 +57,7 @@ export async function action({ request }: Route.ActionArgs) {
     description,
     website,
     wikipedia,
+    github,
     location,
     founded,
     logo,
@@ -138,6 +140,19 @@ export default function NewCompany() {
               id="wikipedia"
               name="wikipedia"
               placeholder="https://en.wikipedia.org/wiki/..."
+              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="github" className="font-medium text-harbour-700">
+              GitHub Organization
+            </label>
+            <input
+              type="url"
+              id="github"
+              name="github"
+              placeholder="https://github.com/org-name"
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>

@@ -15,6 +15,7 @@ export interface GitHubUser {
   avatar_url: string;
   html_url: string;
   name: string | null;
+  company: string | null;
   bio: string | null;
   blog: string | null;
   location: string | null;

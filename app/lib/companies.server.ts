@@ -120,3 +120,160 @@ export async function getPaginatedCompanies(
   
   return { items, total };
 }
+
+// =============================================================================
+// Fuzzy company matching for GitHub import
+// =============================================================================
+
+/**
+ * Normalize a company name for fuzzy matching.
+ * Removes common suffixes, punctuation, and normalizes whitespace.
+ */
+function normalizeCompanyName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[.,'"]/g, "")
+    .replace(/\s+(inc|llc|ltd|co|corp|corporation|limited|incorporated)\.?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Calculate simple similarity score between two strings.
+ * Returns a number between 0 and 1, where 1 is exact match.
+ */
+function similarityScore(a: string, b: string): number {
+  const normA = normalizeCompanyName(a);
+  const normB = normalizeCompanyName(b);
+  
+  // Exact match after normalization
+  if (normA === normB) return 1;
+  
+  // One contains the other (boost score for significant overlap)
+  if (normA.includes(normB) || normB.includes(normA)) {
+    const shorter = normA.length < normB.length ? normA : normB;
+    const longer = normA.length < normB.length ? normB : normA;
+    // Give higher scores for longer partial matches
+    const ratio = shorter.length / longer.length;
+    // If it's a prefix match (shorter is at start of longer), boost significantly
+    if (longer.startsWith(shorter)) {
+      return 0.7 + (ratio * 0.3); // Prefix matches get 0.7-1.0
+    }
+    // Otherwise, still give reasonable score for containment
+    return ratio >= 0.5 ? 0.6 + (ratio * 0.3) : ratio;
+  }
+  
+  // Word overlap - filter out very short words
+  const wordsA = new Set(normA.split(" ").filter(w => w.length > 2));
+  const wordsB = new Set(normB.split(" ").filter(w => w.length > 2));
+  const intersection = [...wordsA].filter(w => wordsB.has(w));
+  
+  // If no significant words overlap, try starts-with matching on words
+  if (intersection.length === 0) {
+    const wordsAArr = [...wordsA];
+    const wordsBArr = [...wordsB];
+    for (const wa of wordsAArr) {
+      for (const wb of wordsBArr) {
+        if (wa.startsWith(wb) || wb.startsWith(wa)) {
+          const shorter = wa.length < wb.length ? wa : wb;
+          const longer = wa.length < wb.length ? wb : wa;
+          if (shorter.length >= 4 && shorter.length / longer.length > 0.6) {
+            return 0.6; // Partial word match
+          }
+        }
+      }
+    }
+  }
+  
+  const union = new Set([...wordsA, ...wordsB]);
+  if (union.size === 0) return 0;
+  
+  // Weight by how many significant words matched
+  const score = intersection.length / union.size;
+  
+  // Bonus if all words from the shorter name are in the longer
+  const shorterWords = wordsA.size < wordsB.size ? wordsA : wordsB;
+  const longerWords = wordsA.size < wordsB.size ? wordsB : wordsA;
+  const allShorterInLonger = [...shorterWords].every(w => longerWords.has(w));
+  
+  return allShorterInLonger ? Math.min(1, score + 0.3) : score;
+}
+
+/**
+ * Find the best matching company by name (fuzzy match).
+ * Returns the company if similarity is above threshold (0.6).
+ */
+export async function findCompanyByFuzzyName(searchName: string): Promise<Company | null> {
+  const allCompanies = await getAllCompanies();
+  
+  let bestMatch: Company | null = null;
+  let bestScore = 0;
+  const threshold = 0.6;
+  
+  for (const company of allCompanies) {
+    const score = similarityScore(searchName, company.name);
+    if (score > bestScore && score >= threshold) {
+      bestScore = score;
+      bestMatch = company;
+    }
+  }
+  
+  return bestMatch;
+}
+
+/**
+ * Parse a GitHub company field to extract company name and optional GitHub org URL.
+ * 
+ * Formats:
+ * - "@orgname" -> { name: "orgname", githubOrg: "https://github.com/orgname" }
+ * - "https://github.com/orgname" -> { name: "orgname", githubOrg: "https://github.com/orgname" }
+ * - "Company Name" -> { name: "Company Name", githubOrg: null }
+ */
+export function parseGitHubCompanyField(company: string): { name: string; githubOrg: string | null } {
+  const trimmed = company.trim();
+  
+  // @orgname format
+  if (trimmed.startsWith("@")) {
+    const orgName = trimmed.slice(1);
+    return {
+      name: orgName,
+      githubOrg: `https://github.com/${orgName}`,
+    };
+  }
+  
+  // GitHub URL format
+  const githubUrlMatch = trimmed.match(/^https?:\/\/github\.com\/([^\/\s]+)/i);
+  if (githubUrlMatch) {
+    return {
+      name: githubUrlMatch[1],
+      githubOrg: `https://github.com/${githubUrlMatch[1]}`,
+    };
+  }
+  
+  // Plain company name
+  return {
+    name: trimmed,
+    githubOrg: null,
+  };
+}
+
+/**
+ * Extract company name from a bio string like "Staff Engineer at CoLab Software".
+ * Returns the company name if found, null otherwise.
+ */
+export function extractCompanyFromBio(bio: string): string | null {
+  // Pattern: "Role at Company" or "works at Company" etc.
+  const patterns = [
+    /(?:^|\s)at\s+([A-Z][A-Za-z0-9\s&.,']+?)(?:\.|,|$|\s*\()/i,  // "... at Company Name"
+    /(?:working|work|employed)\s+(?:at|for)\s+([A-Z][A-Za-z0-9\s&.,']+?)(?:\.|,|$)/i,  // "working at Company"
+  ];
+  
+  for (const pattern of patterns) {
+    const match = bio.match(pattern);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+  
+  return null;
+}

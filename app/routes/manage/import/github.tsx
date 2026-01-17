@@ -9,6 +9,12 @@ import {
   type GitHubUser 
 } from "~/lib/github.server";
 import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub } from "~/lib/people.server";
+import { 
+  findCompanyByFuzzyName, 
+  parseGitHubCompanyField, 
+  extractCompanyFromBio,
+  updateCompany 
+} from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -95,6 +101,49 @@ export async function action({ request }: Route.ActionArgs) {
           const existingByName = await getPersonByName(displayName);
           const existing = existingByGitHub || existingByName;
           
+          // Try to find company from GitHub company field or bio
+          let companyName: string | null = null;
+          let githubOrgUrl: string | null = null;
+          let matchedCompany = null;
+          
+          // First check GitHub company field
+          if (user.company) {
+            const parsed = parseGitHubCompanyField(user.company);
+            companyName = parsed.name;
+            githubOrgUrl = parsed.githubOrg;
+            matchedCompany = await findCompanyByFuzzyName(parsed.name);
+          }
+          
+          // If no company from field, try to extract from bio
+          if (!companyName && user.bio) {
+            const bioCompany = extractCompanyFromBio(user.bio);
+            if (bioCompany) {
+              companyName = bioCompany;
+              matchedCompany = await findCompanyByFuzzyName(bioCompany);
+            }
+          }
+          
+          // If we found a GitHub org and it matches a company, update the company's github field
+          if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
+            await updateCompany(matchedCompany.id, { github: githubOrgUrl });
+          }
+          
+          // Build the bio with company reference
+          let bio = user.bio || "";
+          const companyRefName = matchedCompany?.name || companyName;
+          
+          // Add "Works at [[Company]]" if we have a company and it's not already in the bio
+          if (companyRefName && !bio.toLowerCase().includes(companyRefName.toLowerCase())) {
+            const companyRef = `[[${companyRefName}]]`;
+            if (bio) {
+              bio = `${bio}\n\nWorks at ${companyRef}.`;
+            } else {
+              bio = `GitHub user from ${user.location || "Newfoundland"}. Works at ${companyRef}.`;
+            }
+          } else if (!bio) {
+            bio = `GitHub user from ${user.location || "Newfoundland"}.`;
+          }
+          
           if (existing) {
             // Merge: update with GitHub data if not already linked
             if (!existing.github) {
@@ -103,16 +152,16 @@ export async function action({ request }: Route.ActionArgs) {
                 // Only fill in missing data
                 website: existing.website || user.blog || null,
                 avatar: existing.avatar || avatar,
+                // Update bio if the existing one is generic
+                bio: existing.bio.startsWith("GitHub user from") ? bio : existing.bio,
               });
-              imported.push(`${displayName} (merged)`);
+              imported.push(`${displayName} (merged${matchedCompany ? `, linked to ${matchedCompany.name}` : ""})`);
             } else {
               // Already has GitHub link, skip
               imported.push(`${displayName} (skipped - already linked)`);
             }
           } else {
             // Create new person
-            const bio = user.bio || `GitHub user from ${user.location || "Newfoundland"}.`;
-            
             await createPerson({
               name: displayName,
               bio,
@@ -121,7 +170,7 @@ export async function action({ request }: Route.ActionArgs) {
               avatar,
             });
             
-            imported.push(displayName);
+            imported.push(`${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`);
           }
         } catch (e) {
           const name = user.name || user.login;
@@ -381,7 +430,10 @@ export default function ImportGitHub() {
                           {user.bio}
                         </p>
                       )}
-                      <div className="flex items-center gap-3 text-sm text-harbour-400">
+                      <div className="flex items-center gap-3 text-sm text-harbour-400 flex-wrap">
+                        {user.company && (
+                          <span className="text-harbour-600">{user.company}</span>
+                        )}
                         {user.location && <span>{user.location}</span>}
                         {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
                         {user.blog && (
