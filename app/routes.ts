@@ -5,6 +5,10 @@ export default [
   route("images/:filename", "routes/images.tsx"),
   route("calendar.ics", "routes/calendar-ics.tsx"),
   
+  // OG images for social sharing
+  route("events/:slug.png", "routes/events-og.tsx"),
+  route("news/:slug.png", "routes/news-og.tsx"),
+  
   // RSS feeds (no layout needed)
   route("export.zip", "routes/export.tsx"),
   route("feed.rss", "routes/feed-rss.tsx"),

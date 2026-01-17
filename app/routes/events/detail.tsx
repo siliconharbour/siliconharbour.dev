@@ -6,9 +6,21 @@ import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ data, params }: Route.MetaArgs) {
+  const title = data?.event?.title ?? "Event";
+  const siteUrl = "https://siliconharbour.dev";
+  const ogImageUrl = `${siteUrl}/events/${params.slug}.png`;
+  
   return [
-    { title: `${data?.event?.title ?? "Event"} - siliconharbour.dev` },
+    { title: `${title} - siliconharbour.dev` },
+    { property: "og:title", content: title },
+    { property: "og:type", content: "website" },
+    { property: "og:image", content: ogImageUrl },
+    { property: "og:image:width", content: "1200" },
+    { property: "og:image:height", content: "630" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:image", content: ogImageUrl },
   ];
 }
 

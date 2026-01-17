@@ -10,9 +10,21 @@ import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ data, params }: Route.MetaArgs) {
+  const title = data?.article?.title ?? "News";
+  const siteUrl = "https://siliconharbour.dev";
+  const ogImageUrl = `${siteUrl}/news/${params.slug}.png`;
+  
   return [
-    { title: `${data?.article?.title ?? "News"} - siliconharbour.dev` },
+    { title: `${title} - siliconharbour.dev` },
+    { property: "og:title", content: title },
+    { property: "og:type", content: "article" },
+    { property: "og:image", content: ogImageUrl },
+    { property: "og:image:width", content: "1200" },
+    { property: "og:image:height", content: "630" },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:image", content: ogImageUrl },
   ];
 }
 
