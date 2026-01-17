@@ -51,7 +51,7 @@ export default function PublicLayoutRoute() {
               <Link
                 key={item.href}
                 to={item.href}
-                className={`text-sm hover:text-harbour-700 ${
+                className={`link-inline text-sm hover:text-harbour-700 ${
                   location.pathname.startsWith(item.href) 
                     ? "text-harbour-700 font-medium" 
                     : "text-harbour-500"
@@ -91,7 +91,7 @@ export default function PublicLayoutRoute() {
                   key={item.href}
                   to={item.href}
                   onClick={handleNavClick}
-                  className={`py-3 text-sm border-b border-harbour-100 last:border-0 hover:text-harbour-700 ${
+                  className={`link-inline py-3 text-sm border-b border-harbour-100 last:border-0 hover:text-harbour-700 ${
                     location.pathname.startsWith(item.href)
                       ? "text-harbour-700 font-medium"
                       : "text-harbour-500"
