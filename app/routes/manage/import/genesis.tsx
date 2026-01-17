@@ -125,13 +125,13 @@ export default function ImportGenesis() {
   };
   
   const getStatus = (company: ScrapedCompany) => {
-    return company.categories.find(c => c === "Current Company" || c === "Alumni") || "";
+    return company.categories.find(c => c === "Current Company" || c === "Alumni Company") || "";
   };
   
   const filteredCompanies = fetchedCompanies.filter(c => {
     if (filterStatus === "all") return true;
     if (filterStatus === "current") return getStatus(c) === "Current Company";
-    if (filterStatus === "alumni") return getStatus(c) === "Alumni";
+    if (filterStatus === "alumni") return getStatus(c) === "Alumni Company";
     return true;
   });
   
@@ -250,7 +250,7 @@ export default function ImportGenesis() {
                   Current ({fetchedCompanies.filter(c => getStatus(c) === "Current Company").length})
                 </option>
                 <option value="alumni">
-                  Alumni ({fetchedCompanies.filter(c => getStatus(c) === "Alumni").length})
+                  Alumni ({fetchedCompanies.filter(c => getStatus(c) === "Alumni Company").length})
                 </option>
               </select>
               
@@ -348,10 +348,10 @@ export default function ImportGenesis() {
                       )}
                     </div>
                     
-                    {company.categories.filter(c => c !== "Current Company" && c !== "Alumni").length > 0 && (
+                    {company.categories.filter(c => c !== "Current Company" && c !== "Alumni Company").length > 0 && (
                       <div className="hidden sm:flex gap-1 flex-wrap max-w-xs">
                         {company.categories
-                          .filter(c => c !== "Current Company" && c !== "Alumni")
+                          .filter(c => c !== "Current Company" && c !== "Alumni Company")
                           .slice(0, 2)
                           .map((cat, i) => (
                             <span
