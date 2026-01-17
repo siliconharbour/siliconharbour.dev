@@ -26,6 +26,10 @@ const interBold = readFileSync(
   join(process.cwd(), "app/assets/fonts/Inter-Bold.ttf")
 );
 
+// Load logo SVG and convert to base64
+const logoSvg = readFileSync(join(process.cwd(), "public/siliconharbour.svg"));
+const logoBase64 = `data:image/svg+xml;base64,${logoSvg.toString("base64")}`;
+
 // Harbour color palette
 const colors = {
   harbour50: "#e8f0ff",
@@ -79,19 +83,21 @@ export function getCachedImage(slug: string, data: OGImageData): string | null {
   return null;
 }
 
+
+
 /**
- * Load a cover image and return as base64 data URL
+ * Load cover image for the content area (smaller, for the card style)
  */
-async function loadCoverImageAsBase64(imagePath: string): Promise<string | null> {
+async function loadCoverImageForCard(imagePath: string): Promise<string | null> {
   try {
     const fullPath = join(process.cwd(), "data/images", imagePath);
     if (!existsSync(fullPath)) {
       return null;
     }
     
-    // Resize to OG dimensions and convert to PNG for embedding
+    // Resize for card display area
     const buffer = await sharp(fullPath)
-      .resize(OG_WIDTH, OG_HEIGHT, { fit: "cover" })
+      .resize(400, 300, { fit: "cover" })
       .png()
       .toBuffer();
     
@@ -103,14 +109,17 @@ async function loadCoverImageAsBase64(imagePath: string): Promise<string | null>
 
 /**
  * Generate the OG image SVG using Satori
+ * Design: White background, blue border, dark text, site logo
  */
 async function generateSVG(data: OGImageData): Promise<string> {
   const coverImageBase64 = data.coverImagePath 
-    ? await loadCoverImageAsBase64(data.coverImagePath)
+    ? await loadCoverImageForCard(data.coverImagePath)
     : null;
 
+  const borderWidth = 3;
+  const margin = 24;
+
   // Build the JSX element for Satori
-  // Satori accepts React-like element objects
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const element: any = {
     type: "div",
@@ -119,184 +128,197 @@ async function generateSVG(data: OGImageData): Promise<string> {
         width: "100%",
         height: "100%",
         display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: "48px",
+        padding: `${margin}px`,
         fontFamily: "Inter",
-        backgroundColor: colors.harbour700,
-        position: "relative",
+        backgroundColor: colors.white,
       },
-      children: [
-        // Background image with overlay (if exists)
-        coverImageBase64 && {
-          type: "img",
-          props: {
-            src: coverImageBase64,
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            },
+      children: {
+        type: "div",
+        props: {
+          style: {
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            padding: "48px",
+            border: `${borderWidth}px solid ${colors.harbour600}`,
+            borderRadius: "0",
           },
-        },
-        // Dimming overlay (harbour-200 at 15% like img-tint)
-        coverImageBase64 && {
-          type: "div",
-          props: {
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: colors.harbour200,
-              opacity: 0.15,
-            },
-          },
-        },
-        // Dark overlay for text readability
-        coverImageBase64 && {
-          type: "div",
-          props: {
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-            },
-          },
-        },
-        // Header with logo and site name
-        {
-          type: "div",
-          props: {
-            style: {
-              display: "flex",
-              alignItems: "center",
-              gap: "16px",
-              position: "relative",
-            },
-            children: [
-              {
-                type: "div",
-                props: {
-                  style: {
-                    width: "48px",
-                    height: "48px",
-                    backgroundColor: colors.white,
-                    borderRadius: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "24px",
-                    fontWeight: 700,
-                    color: colors.harbour700,
-                  },
-                  children: "SH",
+          children: [
+            // Header with logo and site name
+            {
+              type: "div",
+              props: {
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 },
-              },
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontSize: "24px",
-                    fontWeight: 600,
-                    color: colors.white,
-                  },
-                  children: "siliconharbour.dev",
-                },
-              },
-            ],
-          },
-        },
-        // Main content area
-        {
-          type: "div",
-          props: {
-            style: {
-              display: "flex",
-              flexDirection: "column",
-              gap: "16px",
-              position: "relative",
-              flex: 1,
-              justifyContent: "center",
-            },
-            children: [
-              // Type badge
-              {
-                type: "div",
-                props: {
-                  style: {
-                    display: "flex",
-                  },
-                  children: {
+                children: [
+                  // Logo and site name
+                  {
                     type: "div",
                     props: {
                       style: {
-                        backgroundColor: colors.harbour400,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "16px",
+                      },
+                      children: [
+                        {
+                          type: "img",
+                          props: {
+                            src: logoBase64,
+                            width: 56,
+                            height: 40,
+                            style: {
+                              objectFit: "contain",
+                            },
+                          },
+                        },
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontSize: "24px",
+                              fontWeight: 600,
+                              color: colors.harbour700,
+                            },
+                            children: "siliconharbour.dev",
+                          },
+                        },
+                      ],
+                    },
+                  },
+                  // Type badge
+                  {
+                    type: "div",
+                    props: {
+                      style: {
+                        backgroundColor: colors.harbour600,
                         color: colors.white,
-                        padding: "8px 16px",
-                        borderRadius: "4px",
-                        fontSize: "16px",
+                        padding: "8px 20px",
+                        fontSize: "14px",
                         fontWeight: 600,
                         textTransform: "uppercase",
-                        letterSpacing: "0.05em",
+                        letterSpacing: "0.1em",
                       },
                       children: data.type === "event" ? "Event" : "News",
                     },
                   },
-                },
+                ],
               },
-              // Title
-              {
-                type: "div",
-                props: {
-                  style: {
-                    fontSize: data.title.length > 60 ? "42px" : "52px",
-                    fontWeight: 700,
-                    color: colors.white,
-                    lineHeight: 1.2,
-                    maxWidth: "90%",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
+            },
+            // Main content area
+            {
+              type: "div",
+              props: {
+                style: {
+                  display: "flex",
+                  flex: 1,
+                  alignItems: "center",
+                  gap: "48px",
+                  marginTop: "32px",
+                },
+                children: [
+                  // Text content
+                  {
+                    type: "div",
+                    props: {
+                      style: {
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "16px",
+                        flex: 1,
+                      },
+                      children: [
+                        // Title
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontSize: data.title.length > 50 ? "40px" : data.title.length > 30 ? "48px" : "56px",
+                              fontWeight: 700,
+                              color: colors.harbour700,
+                              lineHeight: 1.15,
+                            },
+                            children: data.title,
+                          },
+                        },
+                        // Date
+                        data.date && {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontSize: "22px",
+                              color: colors.harbour500,
+                              fontWeight: 500,
+                            },
+                            children: data.date,
+                          },
+                        },
+                        // Location/Subtitle
+                        data.subtitle && {
+                          type: "div",
+                          props: {
+                            style: {
+                              fontSize: "20px",
+                              color: colors.harbour400,
+                            },
+                            children: data.subtitle,
+                          },
+                        },
+                      ].filter(Boolean),
+                    },
                   },
-                  children: data.title,
-                },
-              },
-              // Date and subtitle
-              data.date && {
-                type: "div",
-                props: {
-                  style: {
-                    fontSize: "24px",
-                    color: colors.harbour100,
-                    fontWeight: 500,
+                  // Cover image (if exists)
+                  coverImageBase64 && {
+                    type: "div",
+                    props: {
+                      style: {
+                        width: "280px",
+                        height: "210px",
+                        flexShrink: 0,
+                        overflow: "hidden",
+                        position: "relative",
+                      },
+                      children: [
+                        {
+                          type: "img",
+                          props: {
+                            src: coverImageBase64,
+                            style: {
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            },
+                          },
+                        },
+                        // Harbour tint overlay
+                        {
+                          type: "div",
+                          props: {
+                            style: {
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              width: "100%",
+                              height: "100%",
+                              backgroundColor: colors.harbour200,
+                              opacity: 0.15,
+                            },
+                          },
+                        },
+                      ],
+                    },
                   },
-                  children: data.date,
-                },
+                ].filter(Boolean),
               },
-              data.subtitle && {
-                type: "div",
-                props: {
-                  style: {
-                    fontSize: "20px",
-                    color: colors.harbour200,
-                  },
-                  children: data.subtitle,
-                },
-              },
-            ].filter(Boolean),
-          },
+            },
+          ],
         },
-      ].filter(Boolean),
+      },
     },
   };
 
