@@ -66,7 +66,7 @@ export function Turnstile({
   onVerify,
   onExpire,
   onError,
-  theme = "auto",
+  theme = "light",
   size = "normal",
   className = "",
 }: TurnstileProps) {
@@ -137,7 +137,7 @@ interface TurnstileInputProps {
 export function TurnstileInput({
   siteKey,
   name = "cf-turnstile-response",
-  theme = "auto",
+  theme = "light",
   className = "",
 }: TurnstileInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
