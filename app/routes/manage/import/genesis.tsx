@@ -13,7 +13,6 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   
-  // Get existing companies for duplicate detection
   const existingCompanies = await getAllCompanies();
   const existingNames = new Set(existingCompanies.map(c => c.name.toLowerCase()));
   const existingWebsites = new Set(
@@ -21,24 +20,23 @@ export async function loader({ request }: Route.LoaderArgs) {
       .filter(c => c.website)
       .map(c => normalizeUrl(c.website!))
   );
-  // Track which companies already have Genesis links (already imported)
-  const hasGenesisLink = new Set(
+  // Track which companies already have Genesis flag set
+  const hasGenesis = new Set(
     existingCompanies
-      .filter(c => c.description.includes("genesiscentre.ca"))
+      .filter(c => c.genesis)
       .map(c => c.name.toLowerCase())
   );
   
   return { 
     existingNames: Array.from(existingNames), 
     existingWebsites: Array.from(existingWebsites),
-    hasGenesisLink: Array.from(hasGenesisLink),
+    hasGenesis: Array.from(hasGenesis),
   };
 }
 
 function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    // Remove www, trailing slashes, lowercase
     return parsed.hostname.replace(/^www\./, "").toLowerCase() + parsed.pathname.replace(/\/$/, "");
   } catch {
     return url.toLowerCase();
@@ -52,7 +50,6 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent");
   
   if (intent === "fetch") {
-    // Fetch companies from Genesis
     try {
       const scraped = await scrapeGenesis();
       return { intent: "fetch", companies: scraped, error: null };
@@ -62,7 +59,6 @@ export async function action({ request }: Route.ActionArgs) {
   }
   
   if (intent === "import") {
-    // Import selected companies
     const companiesJson = formData.get("companies") as string;
     const downloadLogos = formData.get("downloadLogos") === "true";
     
@@ -71,13 +67,10 @@ export async function action({ request }: Route.ActionArgs) {
       const imported: string[] = [];
       const errors: string[] = [];
       
-      const genesisLink = "[View in the Genesis Centre Portfolio](https://www.genesiscentre.ca/portfolio)";
-      
       for (const company of companies) {
         try {
           let logo: string | null = null;
           
-          // Download and save logo if requested
           if (downloadLogos && company.logoUrl) {
             const imageBuffer = await fetchImage(company.logoUrl);
             if (imageBuffer) {
@@ -85,41 +78,31 @@ export async function action({ request }: Route.ActionArgs) {
             }
           }
           
-          // Check if company already exists (e.g., imported from TechNL)
+          // Check if company already exists
           const existing = await getCompanyByName(company.name);
           
           if (existing) {
-            // Merge: append Genesis link to existing description if not already there
-            let newDescription = existing.description;
-            if (!newDescription.includes("genesiscentre.ca")) {
-              newDescription = newDescription + "\n\n" + genesisLink;
-            }
-            
-            // Update with Genesis data, but don't overwrite existing values
+            // Update: set genesis flag, fill in missing data
             await updateCompany(existing.id, {
-              description: newDescription,
-              // Only set these if the existing company doesn't have them
+              genesis: true,
               website: existing.website || company.website,
               location: existing.location || "St. John's, NL",
               logo: existing.logo || logo,
+              // Update description if we have one and existing is empty
+              description: existing.description || company.description || "",
             });
-            
-            imported.push(`${company.name} (merged)`);
+            imported.push(`${company.name} (updated)`);
           } else {
-            // Create new company with Genesis link
-            const description = company.description 
-              ? company.description + "\n\n" + genesisLink
-              : genesisLink;
-            
+            // Create new company
             await createCompany({
               name: company.name,
-              description,
+              description: company.description || "",
               website: company.website,
               email: company.email,
               location: "St. John's, NL",
               logo,
+              genesis: true,
             });
-            
             imported.push(company.name);
           }
         } catch (e) {
@@ -137,7 +120,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportGenesis() {
-  const { existingNames, existingWebsites, hasGenesisLink } = useLoaderData<typeof loader>();
+  const { existingNames, existingWebsites, hasGenesis } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   
   const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>([]);
@@ -145,7 +128,6 @@ export default function ImportGenesis() {
   const [downloadLogos, setDownloadLogos] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   
-  // Handle fetcher response
   const fetcherData = fetcher.data;
   if (fetcherData?.intent === "fetch" && fetcherData.companies && fetcherData.companies.length > 0) {
     if (fetchedCompanies.length === 0) {
@@ -153,7 +135,6 @@ export default function ImportGenesis() {
     }
   }
   
-  // Check if company exists in our database
   const isExisting = (company: ScrapedCompany) => {
     const nameLower = company.name.toLowerCase();
     if (existingNames.includes(nameLower)) return true;
@@ -164,9 +145,8 @@ export default function ImportGenesis() {
     return false;
   };
   
-  // Check if already has Genesis link (already imported from Genesis)
   const alreadyHasGenesis = (company: ScrapedCompany) => {
-    return hasGenesisLink.includes(company.name.toLowerCase());
+    return hasGenesis.includes(company.name.toLowerCase());
   };
   
   const getStatus = (company: ScrapedCompany) => {
@@ -191,7 +171,6 @@ export default function ImportGenesis() {
   };
   
   const selectAll = () => {
-    // Select all that don't already have Genesis link
     const selectable = filteredCompanies.filter(c => !alreadyHasGenesis(c));
     setSelected(new Set(selectable.map(c => c.sourceId)));
   };
@@ -232,11 +211,10 @@ export default function ImportGenesis() {
         </div>
         
         <p className="text-harbour-500">
-          Import company data from the Genesis Centre startup portfolio. This is a one-time import - 
-          data will be copied into your site with no ongoing connection to Genesis.
+          Import company data from the Genesis Centre startup portfolio. Companies will be flagged 
+          as Genesis Centre members with a dedicated link to the portfolio.
         </p>
         
-        {/* Fetch button */}
         {fetchedCompanies.length === 0 && (
           <fetcher.Form method="post">
             <input type="hidden" name="intent" value="fetch" />
@@ -250,14 +228,12 @@ export default function ImportGenesis() {
           </fetcher.Form>
         )}
         
-        {/* Error display */}
         {fetcherData?.intent === "fetch" && fetcherData.error && (
           <div className="p-4 bg-red-50 border border-red-200 text-red-600">
             {fetcherData.error}
           </div>
         )}
         
-        {/* Import results */}
         {fetcherData?.intent === "import" && (
           <div className="flex flex-col gap-2">
             {fetcherData.imported && fetcherData.imported.length > 0 && (
@@ -278,7 +254,6 @@ export default function ImportGenesis() {
           </div>
         )}
         
-        {/* Companies list */}
         {fetchedCompanies.length > 0 && (
           <>
             <div className="flex items-center gap-4 flex-wrap">
@@ -328,13 +303,13 @@ export default function ImportGenesis() {
             <div className="flex flex-col gap-2">
               {filteredCompanies.map((company) => {
                 const existing = isExisting(company);
-                const hasGenesis = alreadyHasGenesis(company);
+                const hasGenesisFlag = alreadyHasGenesis(company);
                 const status = getStatus(company);
                 return (
                   <div
                     key={company.sourceId}
                     className={`flex items-center gap-4 p-3 border ${
-                      hasGenesis 
+                      hasGenesisFlag 
                         ? "bg-harbour-50 border-harbour-200 opacity-60" 
                         : selected.has(company.sourceId)
                         ? "bg-blue-50 border-blue-300"
@@ -347,7 +322,7 @@ export default function ImportGenesis() {
                       type="checkbox"
                       checked={selected.has(company.sourceId)}
                       onChange={() => toggleSelect(company.sourceId)}
-                      disabled={hasGenesis}
+                      disabled={hasGenesisFlag}
                       className="w-5 h-5"
                     />
                     
@@ -365,14 +340,14 @@ export default function ImportGenesis() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium truncate">{company.name}</span>
-                        {hasGenesis && (
+                        {hasGenesisFlag && (
                           <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
                             Already imported
                           </span>
                         )}
-                        {existing && !hasGenesis && (
+                        {existing && !hasGenesisFlag && (
                           <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
-                            Will merge
+                            Will update
                           </span>
                         )}
                         {status && (

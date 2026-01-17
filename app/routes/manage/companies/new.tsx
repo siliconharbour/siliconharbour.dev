@@ -25,6 +25,8 @@ export async function action({ request }: Route.ActionArgs) {
   const wikipedia = (formData.get("wikipedia") as string) || null;
   const location = (formData.get("location") as string) || null;
   const founded = (formData.get("founded") as string) || null;
+  const technl = formData.get("technl") === "on";
+  const genesis = formData.get("genesis") === "on";
 
   if (!name || !description) {
     return { error: "Name and description are required" };
@@ -58,6 +60,8 @@ export async function action({ request }: Route.ActionArgs) {
     founded,
     logo,
     coverImage,
+    technl,
+    genesis,
   });
 
   return redirect("/manage/companies");
@@ -180,6 +184,20 @@ export default function NewCompany() {
               previewStyle="cover"
               helpText="Upload cover (16:9)"
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-harbour-700">Directory Listings</span>
+            <div className="flex gap-6">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" name="technl" className="rounded" />
+                <span className="text-sm text-harbour-600">TechNL Member</span>
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" name="genesis" className="rounded" />
+                <span className="text-sm text-harbour-600">Genesis Centre</span>
+              </label>
+            </div>
           </div>
 
           <button

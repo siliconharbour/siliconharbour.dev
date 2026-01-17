@@ -64,6 +64,13 @@
       "when": 1768664733890,
       "tag": "0008_worthless_spyke",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1768666262234,
+      "tag": "0009_abnormal_wiccan",
+      "breakpoints": true
     }
   ]
 }

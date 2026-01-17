@@ -97,6 +97,9 @@ export const companies = sqliteTable("companies", {
   founded: text("founded"), // year as string, flexible format
   logo: text("logo"), // image filename
   coverImage: text("cover_image"),
+  // Directory listings
+  technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
+  genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
