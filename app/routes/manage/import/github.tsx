@@ -1,6 +1,6 @@
 import type { Route } from "./+types/github";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { 
   searchNewfoundlandUsers, 
@@ -16,6 +16,14 @@ import {
   updateCompany 
 } from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
+import {
+  getImportProgress,
+  startImport,
+  processNextBatch,
+  pauseImport,
+  resetImport,
+  type ImportProgress,
+} from "~/lib/github-import.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from GitHub - siliconharbour.dev" }];
@@ -33,9 +41,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       .map(p => p.github!.toLowerCase())
   );
   
+  // Get bulk import progress
+  const importProgress = await getImportProgress();
+  
   return { 
     existingNames: Array.from(existingNames), 
     existingGitHubs: Array.from(existingGitHubs),
+    importProgress,
   };
 }
 
@@ -45,6 +57,34 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent");
   
+  // Bulk import actions
+  if (intent === "bulk-start") {
+    const progress = await startImport();
+    return { intent: "bulk-start", progress, error: null };
+  }
+  
+  if (intent === "bulk-continue") {
+    const downloadAvatars = formData.get("downloadAvatars") !== "false";
+    const result = await processNextBatch(downloadAvatars);
+    return { 
+      intent: "bulk-continue", 
+      progress: result.progress, 
+      processed: result.processed,
+      errors: result.errors,
+    };
+  }
+  
+  if (intent === "bulk-pause") {
+    const progress = await pauseImport();
+    return { intent: "bulk-pause", progress, error: null };
+  }
+  
+  if (intent === "bulk-reset") {
+    const progress = await resetImport();
+    return { intent: "bulk-reset", progress, error: null };
+  }
+  
+  // Original manual search/import actions
   if (intent === "search") {
     const page = parseInt(formData.get("page") as string) || 1;
     
@@ -188,7 +228,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportGitHub() {
-  const { existingNames, existingGitHubs } = useLoaderData<typeof loader>();
+  const { existingNames, existingGitHubs, importProgress: initialProgress } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   
   const [fetchedUsers, setFetchedUsers] = useState<GitHubUser[]>([]);
@@ -196,18 +236,68 @@ export default function ImportGitHub() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadAvatars, setDownloadAvatars] = useState(true);
+  const [bulkProgress, setBulkProgress] = useState<ImportProgress>(initialProgress);
+  const [autoRun, setAutoRun] = useState(false);
+  const [recentActivity, setRecentActivity] = useState<string[]>([]);
   
   // Handle fetcher response
   const fetcherData = fetcher.data;
-  if (fetcherData?.intent === "search" && fetcherData.users) {
-    if (fetchedUsers.length === 0 || fetcherData.page !== currentPage) {
-      if (fetcherData.users.length > 0) {
-        setFetchedUsers(fetcherData.users);
-        setTotalUsers(fetcherData.total);
-        setCurrentPage(fetcherData.page);
+  
+  useEffect(() => {
+    if (fetcherData?.intent === "search" && fetcherData.users) {
+      if (fetchedUsers.length === 0 || fetcherData.page !== currentPage) {
+        if (fetcherData.users.length > 0) {
+          setFetchedUsers(fetcherData.users);
+          setTotalUsers(fetcherData.total);
+          setCurrentPage(fetcherData.page);
+        }
       }
     }
-  }
+    
+    // Update bulk progress from fetcher
+    if (fetcherData?.progress) {
+      setBulkProgress(fetcherData.progress);
+    }
+    
+    // Add recent activity
+    if (fetcherData?.intent === "bulk-continue") {
+      if (fetcherData.processed?.length) {
+        setRecentActivity(prev => [...fetcherData.processed!, ...prev].slice(0, 20));
+      }
+      if (fetcherData.errors?.length) {
+        setRecentActivity(prev => [...fetcherData.errors!.map(e => `ERROR: ${e}`), ...prev].slice(0, 20));
+      }
+    }
+  }, [fetcherData, currentPage, fetchedUsers.length]);
+  
+  // Auto-continue when running and not rate limited
+  useEffect(() => {
+    if (autoRun && bulkProgress.status === "running" && fetcher.state === "idle") {
+      const timer = setTimeout(() => {
+        fetcher.submit(
+          { intent: "bulk-continue", downloadAvatars: String(downloadAvatars) },
+          { method: "post" }
+        );
+      }, 500); // Small delay between batches
+      return () => clearTimeout(timer);
+    }
+  }, [autoRun, bulkProgress.status, fetcher.state, fetcher, downloadAvatars]);
+  
+  // Auto-resume after rate limit
+  useEffect(() => {
+    if (autoRun && bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset) {
+      const waitTime = bulkProgress.rateLimitReset.getTime() - Date.now() + 5000; // 5s buffer
+      if (waitTime > 0 && waitTime < 3600000) { // Max 1 hour wait
+        const timer = setTimeout(() => {
+          fetcher.submit(
+            { intent: "bulk-start" },
+            { method: "post" }
+          );
+        }, waitTime);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [autoRun, bulkProgress.waitingForRateLimit, bulkProgress.rateLimitReset, fetcher]);
   
   const isExisting = (user: GitHubUser) => {
     const githubUrl = user.html_url.toLowerCase();
@@ -255,11 +345,34 @@ export default function ImportGitHub() {
     );
   };
   
+  const handleBulkStart = () => {
+    setAutoRun(true);
+    fetcher.submit({ intent: "bulk-start" }, { method: "post" });
+  };
+  
+  const handleBulkPause = () => {
+    setAutoRun(false);
+    fetcher.submit({ intent: "bulk-pause" }, { method: "post" });
+  };
+  
+  const handleBulkReset = () => {
+    setAutoRun(false);
+    setRecentActivity([]);
+    fetcher.submit({ intent: "bulk-reset" }, { method: "post" });
+  };
+  
   const isSearching = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "search";
   const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
+  const isBulkRunning = fetcher.state !== "idle" && 
+    (fetcher.formData?.get("intent") === "bulk-start" || 
+     fetcher.formData?.get("intent") === "bulk-continue");
   
   const totalPages = Math.ceil(totalUsers / 30);
   const rateLimit = fetcherData?.intent === "search" ? fetcherData.rateLimit : null;
+  
+  const progressPercent = bulkProgress.totalItems > 0 
+    ? Math.round((bulkProgress.processedItems / bulkProgress.totalItems) * 100)
+    : 0;
   
   return (
     <div className="min-h-screen p-6">
@@ -279,8 +392,184 @@ export default function ImportGitHub() {
         
         <p className="text-harbour-500">
           Search for GitHub users in Newfoundland and import them as people. 
-          This searches for users with location set to Newfoundland, St. John's, NL, etc.
+          Use "Import All" for automatic bulk import with rate limit handling.
         </p>
+        
+        {/* Bulk Import Section */}
+        <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
+          <h2 className="font-semibold text-harbour-700">Bulk Import (Recommended)</h2>
+          
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={downloadAvatars}
+                onChange={(e) => setDownloadAvatars(e.target.checked)}
+                className="rounded"
+              />
+              Download avatars
+            </label>
+            
+            {bulkProgress.status === "idle" && (
+              <button
+                type="button"
+                onClick={handleBulkStart}
+                disabled={isBulkRunning}
+                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              >
+                {isBulkRunning ? "Starting..." : "Import All Users"}
+              </button>
+            )}
+            
+            {(bulkProgress.status === "running" || bulkProgress.status === "paused") && (
+              <>
+                {bulkProgress.status === "running" || autoRun ? (
+                  <button
+                    type="button"
+                    onClick={handleBulkPause}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+                  >
+                    Pause
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleBulkStart}
+                    disabled={isBulkRunning}
+                    className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+                  >
+                    {isBulkRunning ? "Resuming..." : "Resume"}
+                  </button>
+                )}
+                
+                <button
+                  type="button"
+                  onClick={handleBulkReset}
+                  className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                >
+                  Reset
+                </button>
+              </>
+            )}
+            
+            {bulkProgress.status === "completed" && (
+              <button
+                type="button"
+                onClick={handleBulkReset}
+                className="px-4 py-2 border border-harbour-300 text-harbour-600 hover:bg-harbour-100 font-medium transition-colors"
+              >
+                Start New Import
+              </button>
+            )}
+            
+            {bulkProgress.status === "error" && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleBulkStart}
+                  disabled={isBulkRunning}
+                  className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+                >
+                  Retry
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkReset}
+                  className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                >
+                  Reset
+                </button>
+              </>
+            )}
+          </div>
+          
+          {/* Progress display */}
+          {bulkProgress.status !== "idle" && (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-4 text-sm">
+                <span className={`px-2 py-0.5 font-medium ${
+                  bulkProgress.status === "running" ? "bg-green-100 text-green-700" :
+                  bulkProgress.status === "paused" ? "bg-amber-100 text-amber-700" :
+                  bulkProgress.status === "completed" ? "bg-blue-100 text-blue-700" :
+                  "bg-red-100 text-red-700"
+                }`}>
+                  {bulkProgress.status.toUpperCase()}
+                  {autoRun && bulkProgress.status === "running" && " (auto)"}
+                </span>
+                
+                <span className="text-harbour-600">
+                  {bulkProgress.processedItems} / {bulkProgress.totalItems} users
+                  ({progressPercent}%)
+                </span>
+                
+                {bulkProgress.rateLimitRemaining !== null && (
+                  <span className="text-harbour-400">
+                    API: {bulkProgress.rateLimitRemaining} remaining
+                  </span>
+                )}
+              </div>
+              
+              {/* Progress bar */}
+              <div className="h-2 bg-harbour-200 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-300 ${
+                    bulkProgress.status === "completed" ? "bg-blue-500" :
+                    bulkProgress.status === "error" ? "bg-red-500" :
+                    "bg-green-500"
+                  }`}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              
+              {/* Stats */}
+              <div className="flex gap-4 text-xs text-harbour-500">
+                <span>Imported: {bulkProgress.importedCount}</span>
+                <span>Skipped: {bulkProgress.skippedCount}</span>
+                <span>Errors: {bulkProgress.errorCount}</span>
+                <span>Page: {bulkProgress.currentPage} / {bulkProgress.totalPages}</span>
+              </div>
+              
+              {/* Rate limit warning */}
+              {bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset && (
+                <div className="text-sm text-amber-600 bg-amber-50 p-2">
+                  Rate limited. {autoRun ? "Will auto-resume" : "Can resume"} at{" "}
+                  {bulkProgress.rateLimitReset.toLocaleTimeString()}
+                </div>
+              )}
+              
+              {/* Error display */}
+              {bulkProgress.lastError && bulkProgress.status === "error" && (
+                <div className="text-sm text-red-600 bg-red-50 p-2">
+                  {bulkProgress.lastError}
+                </div>
+              )}
+              
+              {/* Recent activity log */}
+              {recentActivity.length > 0 && (
+                <details className="text-xs" open={bulkProgress.status === "running"}>
+                  <summary className="cursor-pointer text-harbour-500 hover:text-harbour-700">
+                    Recent activity ({recentActivity.length})
+                  </summary>
+                  <div className="mt-1 max-h-32 overflow-y-auto bg-white border border-harbour-100 p-2 font-mono">
+                    {recentActivity.map((item, i) => (
+                      <div key={i} className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Divider */}
+        <div className="border-t border-harbour-200 pt-4">
+          <h2 className="font-semibold text-harbour-700 mb-2">Manual Import</h2>
+          <p className="text-sm text-harbour-400 mb-4">
+            Or search and select individual users to import.
+          </p>
+        </div>
         
         {/* Rate limit info */}
         {rateLimit && (
@@ -363,15 +652,6 @@ export default function ImportGitHub() {
               >
                 Select none
               </button>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={downloadAvatars}
-                  onChange={(e) => setDownloadAvatars(e.target.checked)}
-                  className="rounded"
-                />
-                Download avatars
-              </label>
             </div>
             
             <div className="flex flex-col gap-2">

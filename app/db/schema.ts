@@ -387,6 +387,34 @@ export type RateLimit = typeof rateLimits.$inferSelect;
 export type NewRateLimit = typeof rateLimits.$inferInsert;
 
 // =============================================================================
+// Import Jobs - Track long-running import operations
+// =============================================================================
+
+export const importJobs = sqliteTable("import_jobs", {
+  id: text("id").primaryKey(), // e.g., "github-import"
+  status: text("status", { enum: ["idle", "running", "paused", "completed", "error"] }).notNull().default("idle"),
+  // Progress tracking
+  totalItems: integer("total_items").default(0),
+  processedItems: integer("processed_items").default(0),
+  currentPage: integer("current_page").default(1),
+  totalPages: integer("total_pages").default(0),
+  // Rate limit tracking
+  rateLimitRemaining: integer("rate_limit_remaining"),
+  rateLimitReset: integer("rate_limit_reset"), // Unix timestamp
+  // Error/status info
+  lastError: text("last_error"),
+  lastActivity: integer("last_activity", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  // Results summary
+  importedCount: integer("imported_count").default(0),
+  skippedCount: integer("skipped_count").default(0),
+  errorCount: integer("error_count").default(0),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+export type ImportJob = typeof importJobs.$inferSelect;
+export type NewImportJob = typeof importJobs.$inferInsert;
+
+// =============================================================================
 // Type exports
 // =============================================================================
 

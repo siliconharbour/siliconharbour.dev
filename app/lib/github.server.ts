@@ -226,3 +226,54 @@ export async function fetchAvatar(avatarUrl: string): Promise<Buffer | null> {
     return null;
   }
 }
+
+/**
+ * Get current rate limit status without making a counting request
+ */
+export async function getRateLimitStatus(): Promise<RateLimitInfo> {
+  const response = await githubFetch("https://api.github.com/rate_limit");
+  
+  if (!response.ok) {
+    return {
+      remaining: 0,
+      limit: 0,
+      reset: new Date(),
+    };
+  }
+  
+  const data = await response.json();
+  return {
+    remaining: data.resources.core.remaining,
+    limit: data.resources.core.limit,
+    reset: new Date(data.resources.core.reset * 1000),
+  };
+}
+
+/**
+ * Get user profile with rate limit info returned
+ */
+export async function getUserProfileWithRateLimit(username: string): Promise<{ 
+  user: GitHubUser; 
+  rateLimit: RateLimitInfo 
+}> {
+  const url = `https://api.github.com/users/${encodeURIComponent(username)}`;
+  const response = await githubFetch(url);
+  
+  const rateLimit: RateLimitInfo = {
+    remaining: parseInt(response.headers.get("x-ratelimit-remaining") || "0"),
+    limit: parseInt(response.headers.get("x-ratelimit-limit") || "0"),
+    reset: new Date(parseInt(response.headers.get("x-ratelimit-reset") || "0") * 1000),
+  };
+  
+  if (!response.ok) {
+    if (response.status === 403 && rateLimit.remaining === 0) {
+      throw new Error(`RATE_LIMITED:${rateLimit.reset.getTime()}`);
+    }
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+  
+  return { user: await response.json(), rateLimit };
+}
+
+// Export the RateLimitInfo type
+export type { RateLimitInfo };
