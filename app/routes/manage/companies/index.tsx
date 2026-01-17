@@ -47,7 +47,9 @@ export default function ManageCompaniesIndex() {
                     className="w-12 h-12 object-contain"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-harbour-100" />
+                  <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
+                    <span className="text-lg text-harbour-400">{company.name.charAt(0)}</span>
+                  </div>
                 )}
 
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">

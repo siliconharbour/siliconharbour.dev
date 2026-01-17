@@ -52,13 +52,17 @@ export default function CompanyDetail() {
         )}
 
         <div className="flex items-start gap-4">
-          {company.logo && (
+          {company.logo ? (
             <div className="w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
               <img
                 src={`/images/${company.logo}`}
                 alt=""
                 className="absolute inset-0 w-full h-full object-contain"
               />
+            </div>
+          ) : (
+            <div className="w-20 h-20 bg-harbour-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-3xl text-harbour-400">{company.name.charAt(0)}</span>
             </div>
           )}
           <div className="flex flex-col gap-1">

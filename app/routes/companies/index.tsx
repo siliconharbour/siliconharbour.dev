@@ -60,13 +60,17 @@ export default function CompaniesIndex() {
                 href={`/companies/${company.slug}`}
                 className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
               >
-                {company.logo && (
+                {company.logo ? (
                   <div className="w-16 h-16 relative overflow-hidden bg-harbour-100">
                     <img
                       src={`/images/${company.logo}`}
                       alt=""
                       className="absolute inset-0 w-full h-full object-contain"
                     />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center">
+                    <span className="text-2xl text-harbour-400">{company.name.charAt(0)}</span>
                   </div>
                 )}
                 <div className="flex flex-col gap-1">
