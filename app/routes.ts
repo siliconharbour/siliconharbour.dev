@@ -49,9 +49,19 @@ export default [
     route("conduct", "routes/conduct.tsx"),
     route("feeds", "routes/feeds.tsx"),
     route("calendar", "routes/calendar.tsx"),
-    // Consolidated pages
-    route("directory", "routes/directory/index.tsx"),
-    route("works", "routes/works/index.tsx"),
+    // Consolidated directory pages (companies, groups, learning)
+    layout("routes/directory/layout.tsx", [
+      route("directory", "routes/directory/companies.tsx", { id: "directory-index" }),
+      route("directory/companies", "routes/directory/companies.tsx"),
+      route("directory/groups", "routes/directory/groups.tsx"),
+      route("directory/learning", "routes/directory/learning.tsx"),
+    ]),
+    // Consolidated works pages (products, projects)
+    layout("routes/works/layout.tsx", [
+      route("works", "routes/works/products.tsx", { id: "works-index" }),
+      route("works/products", "routes/works/products.tsx"),
+      route("works/projects", "routes/works/projects.tsx"),
+    ]),
     ...prefix("events", [
       index("routes/events/index.tsx"),
       route(":slug", "routes/events/detail.tsx"),
