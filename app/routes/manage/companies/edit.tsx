@@ -1,10 +1,11 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getCompanyById, updateCompany } from "~/lib/companies.server";
+import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
 import { convertCompanyToLearning } from "~/lib/learning.server";
 import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { blockItem } from "~/lib/import-blocklist.server";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.company?.name || "Company"} - siliconharbour.dev` }];
@@ -41,6 +42,23 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const formData = await request.formData();
   const intent = formData.get("intent");
+
+  // Handle import block action
+  if (intent === "import-block") {
+    const source = formData.get("source") as string;
+    
+    if (!source) {
+      return { error: "No import source specified" };
+    }
+    
+    // Use website URL as external ID, or name if no website
+    const externalId = existingCompany.website || existingCompany.name;
+    
+    await blockItem(source, externalId, existingCompany.name, "Blocked from edit page");
+    await deleteCompany(id);
+    
+    return redirect("/manage/companies");
+  }
 
   // Handle convert to institution
   if (intent === "convertToLearning") {
@@ -358,6 +376,54 @@ export default function EditCompany() {
             </button>
           </Form>
         </div>
+
+        {/* Import Block section - only show for companies from TechNL or Genesis */}
+        {(company.technl || company.genesis) && (
+          <div className="border-t border-harbour-200 pt-6 mt-6">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-2">Import Block</h2>
+            <p className="text-sm text-harbour-500 mb-4">
+              Add this company to the import block list to prevent it from being re-imported 
+              from {company.technl && company.genesis ? "TechNL or Genesis" : company.technl ? "TechNL" : "Genesis"} in the future. 
+              This will also delete the current record.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {company.technl && (
+                <Form method="post">
+                  <input type="hidden" name="intent" value="import-block" />
+                  <input type="hidden" name="source" value="technl" />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                    onClick={(e) => {
+                      if (!confirm(`Add "${company.name}" to TechNL import block list and delete? This prevents this company from being imported from TechNL again.`)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    Block from TechNL Import
+                  </button>
+                </Form>
+              )}
+              {company.genesis && (
+                <Form method="post">
+                  <input type="hidden" name="intent" value="import-block" />
+                  <input type="hidden" name="source" value="genesis" />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                    onClick={(e) => {
+                      if (!confirm(`Add "${company.name}" to Genesis import block list and delete? This prevents this company from being imported from Genesis again.`)) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
+                    Block from Genesis Import
+                  </button>
+                </Form>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
