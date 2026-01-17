@@ -1,9 +1,11 @@
 import { db } from "~/db";
-import { news, type News, type NewNews } from "~/db/schema";
+import { news, type News, type NewNews, type NewsType, newsTypes } from "~/db/schema";
 import { eq, desc, isNotNull, lte, and, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
+
+export { newsTypes, type NewsType };
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: news.slug }).from(news);
@@ -92,10 +94,18 @@ export interface PaginatedNews {
 export async function getPaginatedNews(
   limit: number,
   offset: number,
-  searchQuery?: string
+  searchQuery?: string,
+  typeFilter?: NewsType
 ): Promise<PaginatedNews> {
   const now = new Date();
-  const publishedCondition = lte(news.publishedAt, now);
+  
+  // Build conditions array
+  const conditions = [lte(news.publishedAt, now)];
+  
+  // Add type filter if specified
+  if (typeFilter) {
+    conditions.push(eq(news.type, typeFilter));
+  }
   
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
@@ -105,11 +115,13 @@ export async function getPaginatedNews(
       return { items: [], total: 0 };
     }
     
-    // Filter to only published articles that match search
+    conditions.push(inArray(news.id, matchingIds));
+    
+    // Filter to only published articles that match search and type
     const items = await db
       .select()
       .from(news)
-      .where(and(publishedCondition, inArray(news.id, matchingIds)))
+      .where(and(...conditions))
       .orderBy(desc(news.publishedAt))
       .limit(limit)
       .offset(offset);
@@ -118,7 +130,7 @@ export async function getPaginatedNews(
     const [{ total }] = await db
       .select({ total: count() })
       .from(news)
-      .where(and(publishedCondition, inArray(news.id, matchingIds)));
+      .where(and(...conditions));
     
     return { items, total };
   }
@@ -127,12 +139,12 @@ export async function getPaginatedNews(
   const [{ total }] = await db
     .select({ total: count() })
     .from(news)
-    .where(publishedCondition);
+    .where(and(...conditions));
   
   const items = await db
     .select()
     .from(news)
-    .where(publishedCondition)
+    .where(and(...conditions))
     .orderBy(desc(news.publishedAt))
     .limit(limit)
     .offset(offset);

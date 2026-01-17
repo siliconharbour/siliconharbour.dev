@@ -393,8 +393,10 @@ async function seedNews() {
   console.log("Seeding news...");
 
   const newsData = [
+    // Announcements (default type)
     {
       title: "NL Tech Community Hits 1,000 Members",
+      type: "announcement" as const,
       content:
         "The NL Tech Slack community has reached a significant milestone, welcoming its 1,000th member this week. What started as a small group of developers has grown into the largest tech community in the province.\n\n## Growing Together\n\nThe community has seen steady growth over the past two years, with members representing companies of all sizes - from solo freelancers to major employers like [[Verafin]] and [[CoLab Software]].\n\n## What's Next\n\nOrganizers are planning special events to celebrate, including a community meetup and the launch of new channels focused on specific technologies and career development.",
       excerpt:
@@ -403,6 +405,7 @@ async function seedNews() {
     },
     {
       title: "Mysa Announces Major Expansion",
+      type: "announcement" as const,
       content:
         "[[Mysa]] has announced plans to double their engineering team over the next 18 months, adding 40 new positions to their St. John's headquarters.\n\n## New Products Coming\n\nThe expansion comes as the company prepares to launch several new smart home products beyond their popular thermostat line. CEO Josh Green cited strong sales and growing demand for Canadian-made smart home technology.\n\n## Hiring Now\n\nThe company is actively hiring for embedded software, mobile development, and cloud infrastructure roles. Interested candidates can check their careers page for open positions.",
       excerpt:
@@ -411,6 +414,7 @@ async function seedNews() {
     },
     {
       title: "Women in Tech NL Launches Mentorship Program",
+      type: "announcement" as const,
       content:
         "[[Women in Tech NL]] is launching a new mentorship program pairing experienced tech professionals with women early in their careers.\n\n## Program Details\n\nThe six-month program will match mentors and mentees based on career goals and technical interests. Monthly check-ins, workshops, and networking events will supplement one-on-one mentorship sessions.\n\n## How to Apply\n\nApplications are now open for both mentors and mentees. Visit the Women in Tech NL website to learn more and apply.",
       excerpt:
@@ -419,6 +423,7 @@ async function seedNews() {
     },
     {
       title: "Genesis Centre Announces Spring Cohort",
+      type: "announcement" as const,
       content:
         "[[Genesis Centre]] has announced the startups selected for their spring accelerator cohort. The program will run for 12 weeks, providing funding, mentorship, and resources to help early-stage tech companies grow.\n\n## This Year's Focus\n\nThe cohort includes companies working on ocean technology, health tech, and B2B software - areas where Newfoundland has particular strengths and opportunities.\n\n## Demo Day\n\nThe program will culminate in a demo day in June where founders will pitch to investors and the community.",
       excerpt:
@@ -427,6 +432,7 @@ async function seedNews() {
     },
     {
       title: "Local Game Studio Releases First Title",
+      type: "announcement" as const,
       content:
         "[[Clockwork Fox Studios]] has released their debut game 'Harbour Lights' on Steam after three years of development. The narrative adventure game is set in a fictional Newfoundland fishing community.\n\n## Critical Reception\n\nEarly reviews praise the game's atmospheric storytelling and authentic depiction of outport life. The soundtrack features local musicians.\n\n## Supporting Local Devs\n\nThe [[NL Game Developers]] community is encouraging locals to support the release and leave reviews to help with visibility.",
       excerpt:
@@ -434,15 +440,46 @@ async function seedNews() {
       publishedAt: daysFromNow(-14),
     },
     {
-      title: "MUN Computer Science Introduces AI Specialization",
+      title: "Kraken Robotics Wins Major Contract",
+      type: "announcement" as const,
       content:
-        "[[Memorial University - Computer Science]] is introducing a new AI and Machine Learning specialization for undergraduate computer science students starting next fall.\n\n## Curriculum Updates\n\nThe specialization includes new courses in deep learning, natural language processing, and AI ethics. Students will have opportunities to work on research projects with faculty.\n\n## Industry Partnerships\n\nThe program includes partnerships with local companies including [[Sequence Bio]] and [[Verafin]] for co-op placements and capstone projects.",
+        "[[Kraken Robotics]] has been awarded a significant contract with the Royal Canadian Navy for their underwater sensing technology.\n\n## Contract Details\n\nThe multi-year agreement will see Kraken supply synthetic aperture sonar systems for mine countermeasure operations. The contract represents one of the largest in the company's history.\n\n## Local Impact\n\nThe work will primarily be done at Kraken's Mount Pearl facility, with plans to add engineering positions to support the program.",
       excerpt:
-        "Memorial University launches new AI and Machine Learning specialization for CS students.",
-      publishedAt: daysFromNow(-20),
+        "Kraken awarded major Royal Canadian Navy contract for underwater sensing technology.",
+      publishedAt: daysFromNow(-30),
+    },
+    // Editorials - op-eds and analysis
+    {
+      title: "Why NL's Tech Scene is Poised for Growth",
+      type: "editorial" as const,
+      content:
+        "Over the past decade, Newfoundland and Labrador has quietly built one of the most interesting tech ecosystems in Atlantic Canada. Here's why I think we're just getting started.\n\n## The Talent Pipeline\n\n[[Memorial University - Computer Science]] continues to produce strong graduates, and increasingly they're choosing to stay. The cost of living advantage compared to Toronto or Vancouver is real, and remote work has made it easier than ever to build a career here.\n\n## Homegrown Success Stories\n\nCompanies like [[Verafin]], [[CoLab Software]], and [[Mysa]] have proven you can build world-class products from St. John's. Their success creates a virtuous cycle - experienced developers who can mentor the next generation, and proof that ambitious founders don't need to relocate.\n\n## What's Missing\n\nWe still need more early-stage capital and a stronger culture of entrepreneurship. But organizations like [[Genesis Centre]] are working on that. The pieces are falling into place.\n\n## Looking Ahead\n\nThe next five years will be crucial. If we can retain talent, attract investment, and keep building community, NL could become a genuine tech hub. The foundation is there.",
+      excerpt:
+        "An analysis of why Newfoundland's tech ecosystem is positioned for significant growth in the coming years.",
+      publishedAt: daysFromNow(-4),
+    },
+    {
+      title: "The Case for Remote-First Companies in NL",
+      type: "editorial" as const,
+      content:
+        "As someone who's worked both in-office and remotely, I've been thinking about what structure works best for Newfoundland tech companies.\n\n## The Geographic Reality\n\nLet's be honest: we're not going to out-compete Toronto for talent if we require everyone to be in the office. But we can compete on quality of life, cost of living, and flexibility.\n\n## What Remote-First Enables\n\nRemote-first doesn't mean never meeting in person. It means designing your company so that remote workers aren't second-class citizens. This opens up hiring across the province and beyond, while keeping your headquarters and culture rooted here.\n\n## The Community Angle\n\nGroups like [[NL Tech]] and [[St. John's JavaScript]] have shown that community doesn't require daily in-person interaction. Monthly meetups and annual conferences can maintain strong connections while respecting everyone's time and geography.\n\n## My Recommendation\n\nIf you're starting a company in NL, consider remote-first from day one. You'll have access to more talent, lower overhead, and happier employees.",
+      excerpt:
+        "Why Newfoundland tech companies should embrace remote-first work structures.",
+      publishedAt: daysFromNow(-18),
+    },
+    // Meta - site updates
+    {
+      title: "Welcome to siliconharbour.dev",
+      type: "meta" as const,
+      content:
+        "We're excited to launch siliconharbour.dev - a community directory for the Newfoundland and Labrador tech scene.\n\n## Why This Exists\n\nWe've always had great tech communities, companies, and events in NL, but no central place to discover them. This site aims to fix that.\n\n## What You'll Find\n\n- **Events**: Meetups, conferences, workshops, and hackathons\n- **Companies**: Local tech companies and startups\n- **Groups**: Community organizations and meetup groups\n- **People**: Community members who want to be listed\n- **Jobs**: Employment opportunities at local companies\n- **Projects**: Open source and community projects\n- **News**: Announcements and editorials about the local scene\n\n## Get Involved\n\nThis is a community resource. If you'd like to add a listing or suggest improvements, reach out via the contact page.\n\nLet's build something great together.",
+      excerpt:
+        "Introducing siliconharbour.dev - a community directory for the NL tech scene.",
+      publishedAt: daysFromNow(-1),
     },
     {
       title: "Tech Salary Survey Results Released",
+      type: "announcement" as const,
       content:
         "[[NL Tech]] has released the results of their annual salary survey, showing continued growth in tech compensation across the province.\n\n## Key Findings\n\n- Average developer salary increased 8% year-over-year\n- Remote work opportunities have expanded significantly\n- Most in-demand skills: React, Python, Cloud/DevOps\n\n## Full Report\n\nThe complete survey results, including breakdowns by experience level, role, and company size, are available on the NL Tech website.",
       excerpt:
@@ -450,12 +487,13 @@ async function seedNews() {
       publishedAt: daysFromNow(-25),
     },
     {
-      title: "Kraken Robotics Wins Major Contract",
+      title: "MUN Computer Science Introduces AI Specialization",
+      type: "announcement" as const,
       content:
-        "[[Kraken Robotics]] has been awarded a significant contract with the Royal Canadian Navy for their underwater sensing technology.\n\n## Contract Details\n\nThe multi-year agreement will see Kraken supply synthetic aperture sonar systems for mine countermeasure operations. The contract represents one of the largest in the company's history.\n\n## Local Impact\n\nThe work will primarily be done at Kraken's Mount Pearl facility, with plans to add engineering positions to support the program.",
+        "[[Memorial University - Computer Science]] is introducing a new AI and Machine Learning specialization for undergraduate computer science students starting next fall.\n\n## Curriculum Updates\n\nThe specialization includes new courses in deep learning, natural language processing, and AI ethics. Students will have opportunities to work on research projects with faculty.\n\n## Industry Partnerships\n\nThe program includes partnerships with local companies including [[Sequence Bio]] and [[Verafin]] for co-op placements and capstone projects.",
       excerpt:
-        "Kraken awarded major Royal Canadian Navy contract for underwater sensing technology.",
-      publishedAt: daysFromNow(-30),
+        "Memorial University launches new AI and Machine Learning specialization for CS students.",
+      publishedAt: daysFromNow(-20),
     },
   ];
 

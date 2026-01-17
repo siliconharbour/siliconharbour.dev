@@ -133,11 +133,15 @@ export const people = sqliteTable("people", {
     .$defaultFn(() => new Date()),
 });
 
-// News - announcements, articles
+// News - announcements, articles, editorials
+export const newsTypes = ["announcement", "editorial", "meta"] as const;
+export type NewsType = typeof newsTypes[number];
+
 export const news = sqliteTable("news", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
+  type: text("type", { enum: newsTypes }).notNull().default("announcement"),
   content: text("content").notNull(), // markdown
   excerpt: text("excerpt"), // short summary for lists/RSS
   coverImage: text("cover_image"),
