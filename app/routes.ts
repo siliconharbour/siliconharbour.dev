@@ -47,8 +47,7 @@ export default [
   layout("routes/public-layout.tsx", [
     route("about", "routes/about.tsx"),
     route("conduct", "routes/conduct.tsx"),
-    route("feeds", "routes/feeds.tsx"),
-    route("calendar", "routes/calendar.tsx"),
+    route("subscribe", "routes/subscribe.tsx"),
     
     // Consolidated directory pages with tab layout
     layout("routes/directory/layout.tsx", [
