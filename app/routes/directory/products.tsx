@@ -58,7 +58,7 @@ export default function DirectoryProducts() {
           {searchQuery ? "No products match your search." : "No products listed yet."}
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 -m-1 p-1">
           {items.map((product) => (
             <a
               key={product.id}

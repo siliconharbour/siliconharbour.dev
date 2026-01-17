@@ -59,7 +59,7 @@ export default function DirectoryProjects() {
           {searchQuery ? "No projects match your search." : "No projects listed yet."}
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 -m-1 p-1">
           {items.map((project) => {
             const links = parseProjectLinks(project.links);
             return (

@@ -41,7 +41,7 @@ export default function DirectoryCompanies() {
           {searchQuery ? "No companies match your search." : "No companies listed yet."}
         </p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 -m-1 p-1">
           {items.map((company) => (
             <a
               key={company.id}
