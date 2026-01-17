@@ -18,6 +18,20 @@ const ftsTableMap: Record<ContentType, string> = {
   product: "products_fts",
 };
 
+// Source table and primary searchable column for LIKE fallback
+// Used when query is too short for trigram (< 3 chars)
+const sourceTableMap: Record<ContentType, { table: string; column: string }> = {
+  event: { table: "events", column: "title" },
+  company: { table: "companies", column: "name" },
+  group: { table: "groups", column: "name" },
+  learning: { table: "learning", column: "name" },
+  person: { table: "people", column: "name" },
+  news: { table: "news", column: "title" },
+  job: { table: "jobs", column: "title" },
+  project: { table: "projects", column: "name" },
+  product: { table: "products", column: "name" },
+};
+
 /**
  * Escape special FTS5 characters in search query
  * FTS5 uses: AND OR NOT ( ) * " ^
@@ -29,6 +43,18 @@ function escapeFtsQuery(query: string): string {
     .replace(/[*"^()]/g, " ") // Remove FTS operators
     .replace(/\s+/g, " ")     // Normalize whitespace
     .trim();
+}
+
+/**
+ * Check if query needs LIKE fallback (any word < 3 chars)
+ * Trigram tokenizer requires at least 3 characters per term
+ */
+function needsLikeFallback(query: string): boolean {
+  const escaped = escapeFtsQuery(query);
+  if (!escaped) return false;
+  
+  const words = escaped.split(" ").filter(w => w.length > 0);
+  return words.some(w => w.length < 3);
 }
 
 /**
@@ -49,13 +75,46 @@ function buildFtsQuery(query: string): string {
 }
 
 /**
- * Search a specific content type using FTS5
+ * Search using LIKE for short queries (< 3 chars)
+ * Falls back to searching the primary column of the source table
+ */
+function searchWithLike(
+  contentType: ContentType,
+  query: string
+): number[] {
+  const source = sourceTableMap[contentType];
+  if (!source) return [];
+  
+  const escaped = escapeFtsQuery(query);
+  if (!escaped) return [];
+  
+  try {
+    // Search with LIKE on the primary column (case-insensitive)
+    const pattern = `%${escaped}%`;
+    const stmt = rawDb.prepare(
+      `SELECT id FROM ${source.table} WHERE ${source.column} LIKE ? COLLATE NOCASE ORDER BY ${source.column} LIMIT 100`
+    );
+    const result = stmt.all(pattern) as Array<{ id: number }>;
+    return result.map(r => r.id);
+  } catch (error) {
+    console.error(`LIKE search error for ${contentType}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Search a specific content type using FTS5 (or LIKE for short queries)
  * Returns matching row IDs
  */
 export function searchContentIds(
   contentType: ContentType,
   query: string
 ): number[] {
+  // For short queries (< 3 chars), use LIKE fallback since trigram needs 3+ chars
+  if (needsLikeFallback(query)) {
+    return searchWithLike(contentType, query);
+  }
+  
   const ftsTable = ftsTableMap[contentType];
   if (!ftsTable) return [];
   
