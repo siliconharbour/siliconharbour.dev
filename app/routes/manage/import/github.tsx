@@ -764,7 +764,7 @@ export default function ImportGitHub() {
                         <span className="text-sm text-harbour-400">@{user.login}</span>
                         {blocked && (
                           <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
-                            Blocked
+                            Import blocked
                           </span>
                         )}
                         {!blocked && existingStatus === "github" && (
@@ -817,15 +817,15 @@ export default function ImportGitHub() {
                           onClick={() => handleUnblock(user)}
                           className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
                         >
-                          Unblock
+                          Remove block
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleBlock(user)}
-                          className="text-xs px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                          className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
                         >
-                          Block
+                          Import block
                         </button>
                       )}
                     </div>

@@ -1,9 +1,10 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getPersonById, updatePerson } from "~/lib/people.server";
+import { getPersonById, updatePerson, deletePerson } from "~/lib/people.server";
 import { processAndSaveIconImage, deleteImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { blockItem } from "~/lib/import-blocklist.server";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.person?.name || "Person"} - siliconharbour.dev` }];
@@ -48,6 +49,19 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  // Handle import block action
+  if (intent === "import-block") {
+    if (!existing.github) {
+      return { error: "Cannot add to import block list without GitHub link" };
+    }
+    
+    await blockItem("github", existing.github, existing.name, "Blocked from edit page");
+    await deletePerson(id);
+    
+    return redirect("/manage/people");
+  }
 
   const name = formData.get("name") as string;
   const bio = formData.get("bio") as string;
@@ -232,6 +246,31 @@ export default function EditPerson() {
             Update Person
           </button>
         </Form>
+
+        {/* Import Block section - only show for GitHub-linked people */}
+        {person.github && (
+          <div className="border-t border-harbour-200 pt-6 mt-6">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-2">Import Block</h2>
+            <p className="text-sm text-harbour-500 mb-4">
+              Add this person to the import block list to prevent them from being re-imported 
+              from GitHub in the future. This will also delete the current record.
+            </p>
+            <Form method="post">
+              <input type="hidden" name="intent" value="import-block" />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                onClick={(e) => {
+                  if (!confirm(`Add "${person.name}" to import block list and delete? This prevents this GitHub user from being imported again.`)) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                Add to Import Block List
+              </button>
+            </Form>
+          </div>
+        )}
       </div>
     </div>
   );

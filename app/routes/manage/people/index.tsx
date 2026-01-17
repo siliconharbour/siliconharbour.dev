@@ -1,8 +1,7 @@
 import type { Route } from "./+types/index";
-import { Link, useLoaderData, useFetcher } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllPeople, deletePerson, getPersonById } from "~/lib/people.server";
-import { blockItem } from "~/lib/import-blocklist.server";
+import { getAllPeople } from "~/lib/people.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage People - siliconharbour.dev" }];
@@ -14,48 +13,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { people };
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
-  
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-  
-  if (intent === "block-and-delete") {
-    const personId = parseInt(formData.get("personId") as string, 10);
-    
-    const person = await getPersonById(personId);
-    if (!person) {
-      return { error: "Person not found" };
-    }
-    
-    if (!person.github) {
-      return { error: "Cannot block person without GitHub link" };
-    }
-    
-    // Add to blocklist
-    await blockItem("github", person.github, person.name, "Blocked from manage page");
-    
-    // Delete the person
-    await deletePerson(personId);
-    
-    return { blocked: person.name };
-  }
-  
-  return null;
-}
-
 export default function ManagePeopleIndex() {
   const { people } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
-
-  const handleBlock = (personId: number, personName: string) => {
-    if (confirm(`Block "${personName}" from future imports and delete? This will prevent this GitHub user from being imported again.`)) {
-      fetcher.submit(
-        { intent: "block-and-delete", personId: String(personId) },
-        { method: "post" }
-      );
-    }
-  };
 
   return (
     <div className="min-h-screen p-6">
@@ -69,18 +28,6 @@ export default function ManagePeopleIndex() {
             New Person
           </Link>
         </div>
-
-        {fetcher.data?.blocked && (
-          <div className="p-4 bg-green-50 border border-green-200 text-green-700">
-            Blocked "{fetcher.data.blocked}" from future imports
-          </div>
-        )}
-
-        {fetcher.data?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {fetcher.data.error}
-          </div>
-        )}
 
         {people.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">
@@ -117,11 +64,6 @@ export default function ManagePeopleIndex() {
                         Hidden
                       </span>
                     )}
-                    {person.github && (
-                      <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-500">
-                        GitHub
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -132,23 +74,12 @@ export default function ManagePeopleIndex() {
                   >
                     Edit
                   </Link>
-                  {person.github ? (
-                    <button
-                      type="button"
-                      onClick={() => handleBlock(person.id, person.name)}
-                      className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                      title="Block from import and delete"
-                    >
-                      Block
-                    </button>
-                  ) : (
-                    <Link
-                      to={`/manage/people/${person.id}/delete`}
-                      className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      Delete
-                    </Link>
-                  )}
+                  <Link
+                    to={`/manage/people/${person.id}/delete`}
+                    className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    Delete
+                  </Link>
                 </div>
               </div>
             ))}
