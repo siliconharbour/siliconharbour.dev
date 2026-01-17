@@ -19,8 +19,29 @@
     {
       "idx": 2,
       "version": "6",
+      "when": 1768599661000,
+      "tag": "0002_add-fts5-search",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1768607000000,
+      "tag": "0003_add-reference-relation",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1768608540000,
+      "tag": "0004_add-news-type",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
       "when": 1768617121183,
-      "tag": "0002_rainy_maddog",
+      "tag": "0005_recurring_events",
       "breakpoints": true
     }
   ]

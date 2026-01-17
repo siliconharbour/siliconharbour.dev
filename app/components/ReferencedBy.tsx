@@ -21,7 +21,6 @@ export function ReferencedBy({ backlinks }: ReferencedByProps) {
 
   return (
     <div className="border-t border-harbour-200/50 pt-6">
-      <h2 className="text-lg font-semibold text-harbour-700 mb-4">Referenced By</h2>
       <div className="flex flex-col gap-6">
         {sortedTypes.map(type => (
           <BacklinkSection key={type} type={type} backlinks={grouped[type]} />
