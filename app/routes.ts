@@ -137,5 +137,9 @@ export default [
       route(":id", "routes/manage/projects/edit.tsx"),
       route(":id/delete", "routes/manage/projects/delete.tsx"),
     ]),
+    ...prefix("import", [
+      route("technl", "routes/manage/import/technl.tsx"),
+      route("genesis", "routes/manage/import/genesis.tsx"),
+    ]),
   ]),
 ] satisfies RouteConfig;

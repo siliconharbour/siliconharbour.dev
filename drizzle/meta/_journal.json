@@ -43,6 +43,13 @@
       "when": 1768617121183,
       "tag": "0005_recurring_events",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1768659890448,
+      "tag": "0006_keen_chronomancer",
+      "breakpoints": true
     }
   ]
 }
