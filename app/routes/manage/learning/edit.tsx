@@ -46,6 +46,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const type = (formData.get("type") as string) || "other";
   const technl = formData.get("technl") === "on";
   const genesis = formData.get("genesis") === "on";
+  const visible = formData.get("visible") === "true";
 
   if (!name || !description) {
     return { error: "Name and description are required" };
@@ -90,6 +91,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     type: type as "university" | "college" | "bootcamp" | "online" | "other",
     technl,
     genesis,
+    visible,
     ...(logo !== undefined && { logo }),
     ...(coverImage !== undefined && { coverImage }),
   });
@@ -224,6 +226,21 @@ export default function EditLearning() {
                 <span className="text-sm text-harbour-600">Genesis Centre</span>
               </label>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-harbour-700">Visibility</span>
+            <label className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                name="visible" 
+                value="true"
+                defaultChecked={institution.visible ?? true}
+                className="rounded" 
+              />
+              <span className="text-sm text-harbour-600">Visible on public site</span>
+            </label>
+            <p className="text-xs text-harbour-400">Uncheck to hide this institution from public listings while you review/edit their profile.</p>
           </div>
 
           <button

@@ -101,6 +101,8 @@ export const companies = sqliteTable("companies", {
   // Directory listings
   technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
   genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
+  // Visibility - false means only visible in manage UI, not public
+  visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -119,6 +121,8 @@ export const groups = sqliteTable("groups", {
   meetingFrequency: text("meeting_frequency"), // e.g., "Weekly", "Monthly", "First Tuesday"
   logo: text("logo"),
   coverImage: text("cover_image"),
+  // Visibility - false means only visible in manage UI, not public
+  visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -142,6 +146,8 @@ export const learning = sqliteTable("learning", {
   // Directory listings (same as companies)
   technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
   genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
+  // Visibility - false means only visible in manage UI, not public
+  visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -161,6 +167,8 @@ export const people = sqliteTable("people", {
   avatar: text("avatar"), // image filename
   // Social links stored as JSON string
   socialLinks: text("social_links"), // JSON: { twitter?, linkedin?, etc. }
+  // Visibility - false means only visible in manage UI, not public
+  visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

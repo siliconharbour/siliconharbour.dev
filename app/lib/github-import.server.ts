@@ -436,13 +436,14 @@ async function importSingleUser(
     return { name: displayName, action: "skipped" };
   }
   
-  // Create new person
+  // Create new person (hidden by default - needs manual review)
   await createPerson({
     name: displayName,
     bio,
     website: user.blog || null,
     github: githubUrl,
     avatar,
+    visible: false, // Imported users start hidden until reviewed
   });
   
   return { name: displayName, action: "imported" };

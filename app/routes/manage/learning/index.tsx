@@ -46,7 +46,11 @@ export default function ManageLearningIndex() {
             {institutions.map((inst) => (
               <div
                 key={inst.id}
-                className="flex items-center gap-4 p-4 bg-white border border-harbour-200"
+                className={`flex items-center gap-4 p-4 border ${
+                  inst.visible 
+                    ? "bg-white border-harbour-200" 
+                    : "bg-amber-50 border-amber-200"
+                }`}
               >
                 {inst.logo ? (
                   <img
@@ -59,7 +63,14 @@ export default function ManageLearningIndex() {
                 )}
 
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <h2 className="font-medium truncate text-harbour-700">{inst.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-medium truncate text-harbour-700">{inst.name}</h2>
+                    {!inst.visible && (
+                      <span className="text-xs px-1.5 py-0.5 bg-amber-200 text-amber-700">
+                        Hidden
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-harbour-400">{typeLabels[inst.type] ?? inst.type}</p>
                 </div>
 

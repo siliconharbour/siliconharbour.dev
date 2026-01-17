@@ -55,6 +55,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const github = (formData.get("github") as string) || null;
   const twitter = (formData.get("twitter") as string) || null;
   const linkedin = (formData.get("linkedin") as string) || null;
+  const visible = formData.get("visible") === "true";
 
   if (!name || !bio) {
     return { error: "Name and bio are required" };
@@ -86,6 +87,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     bio,
     website,
     github,
+    visible,
     socialLinks: Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null,
     ...(avatar !== undefined && { avatar }),
   });
@@ -207,6 +209,21 @@ export default function EditPerson() {
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-harbour-700">Visibility</span>
+            <label className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                name="visible" 
+                value="true"
+                defaultChecked={person.visible ?? true}
+                className="rounded" 
+              />
+              <span className="text-sm text-harbour-600">Visible on public site</span>
+            </label>
+            <p className="text-xs text-harbour-400">Uncheck to hide this person from public listings while you review/edit their profile.</p>
           </div>
 
           <button

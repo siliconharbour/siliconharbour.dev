@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { people, type Person, type NewPerson } from "~/db/schema";
-import { eq, desc, asc, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -98,8 +98,11 @@ export interface PaginatedPeople {
 export async function getPaginatedPeople(
   limit: number,
   offset: number,
-  searchQuery?: string
+  searchQuery?: string,
+  includeHidden: boolean = false
 ): Promise<PaginatedPeople> {
+  const visibilityFilter = includeHidden ? undefined : eq(people.visible, true);
+  
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("person", searchQuery);
@@ -108,23 +111,37 @@ export async function getPaginatedPeople(
       return { items: [], total: 0 };
     }
     
+    const whereClause = visibilityFilter 
+      ? and(inArray(people.id, matchingIds), visibilityFilter)
+      : inArray(people.id, matchingIds);
+    
     const items = await db
       .select()
       .from(people)
-      .where(inArray(people.id, matchingIds))
+      .where(whereClause)
       .orderBy(asc(people.name))
       .limit(limit)
       .offset(offset);
     
-    return { items, total: matchingIds.length };
+    // Get accurate count with visibility filter
+    const allMatching = await db
+      .select({ id: people.id })
+      .from(people)
+      .where(whereClause);
+    
+    return { items, total: allMatching.length };
   }
   
   // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(people);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(people)
+    .where(visibilityFilter);
   
   const items = await db
     .select()
     .from(people)
+    .where(visibilityFilter)
     .orderBy(asc(people.name))
     .limit(limit)
     .offset(offset);

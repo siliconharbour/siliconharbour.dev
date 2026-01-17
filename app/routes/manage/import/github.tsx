@@ -201,13 +201,14 @@ export async function action({ request }: Route.ActionArgs) {
               imported.push(`${displayName} (skipped - already linked)`);
             }
           } else {
-            // Create new person
+            // Create new person (hidden by default - needs review)
             await createPerson({
               name: displayName,
               bio,
               website: user.blog || null,
               github: githubUrl,
               avatar,
+              visible: false, // Imported users start hidden until reviewed
             });
             
             imported.push(`${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`);

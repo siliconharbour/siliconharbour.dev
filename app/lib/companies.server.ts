@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { companies, type Company, type NewCompany } from "~/db/schema";
-import { eq, desc, asc, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -87,8 +87,11 @@ export async function getAllCompanies(): Promise<Company[]> {
 export async function getPaginatedCompanies(
   limit: number,
   offset: number,
-  searchQuery?: string
+  searchQuery?: string,
+  includeHidden: boolean = false
 ): Promise<PaginatedCompanies> {
+  const visibilityFilter = includeHidden ? undefined : eq(companies.visible, true);
+  
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("company", searchQuery);
@@ -97,23 +100,36 @@ export async function getPaginatedCompanies(
       return { items: [], total: 0 };
     }
     
+    const whereClause = visibilityFilter
+      ? and(inArray(companies.id, matchingIds), visibilityFilter)
+      : inArray(companies.id, matchingIds);
+    
     const items = await db
       .select()
       .from(companies)
-      .where(inArray(companies.id, matchingIds))
+      .where(whereClause)
       .orderBy(asc(companies.name))
       .limit(limit)
       .offset(offset);
     
-    return { items, total: matchingIds.length };
+    const allMatching = await db
+      .select({ id: companies.id })
+      .from(companies)
+      .where(whereClause);
+    
+    return { items, total: allMatching.length };
   }
   
   // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(companies);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(companies)
+    .where(visibilityFilter);
   
   const items = await db
     .select()
     .from(companies)
+    .where(visibilityFilter)
     .orderBy(asc(companies.name))
     .limit(limit)
     .offset(offset);

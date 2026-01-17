@@ -38,7 +38,11 @@ export default function ManageCompaniesIndex() {
             {companies.map((company) => (
               <div
                 key={company.id}
-                className="flex items-center gap-4 p-4 bg-white border border-harbour-200"
+                className={`flex items-center gap-4 p-4 border ${
+                  company.visible 
+                    ? "bg-white border-harbour-200" 
+                    : "bg-amber-50 border-amber-200"
+                }`}
               >
                 {company.logo ? (
                   <img
@@ -53,7 +57,14 @@ export default function ManageCompaniesIndex() {
                 )}
 
                 <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <h2 className="font-medium truncate text-harbour-700">{company.name}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-medium truncate text-harbour-700">{company.name}</h2>
+                    {!company.visible && (
+                      <span className="text-xs px-1.5 py-0.5 bg-amber-200 text-amber-700">
+                        Hidden
+                      </span>
+                    )}
+                  </div>
                   {company.location && (
                     <p className="text-sm text-harbour-400">{company.location}</p>
                   )}

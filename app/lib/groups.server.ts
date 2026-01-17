@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { groups, type Group, type NewGroup } from "~/db/schema";
-import { eq, desc, asc, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -84,8 +84,11 @@ export interface PaginatedGroups {
 export async function getPaginatedGroups(
   limit: number,
   offset: number,
-  searchQuery?: string
+  searchQuery?: string,
+  includeHidden: boolean = false
 ): Promise<PaginatedGroups> {
+  const visibilityFilter = includeHidden ? undefined : eq(groups.visible, true);
+  
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("group", searchQuery);
@@ -94,23 +97,36 @@ export async function getPaginatedGroups(
       return { items: [], total: 0 };
     }
     
+    const whereClause = visibilityFilter
+      ? and(inArray(groups.id, matchingIds), visibilityFilter)
+      : inArray(groups.id, matchingIds);
+    
     const items = await db
       .select()
       .from(groups)
-      .where(inArray(groups.id, matchingIds))
+      .where(whereClause)
       .orderBy(asc(groups.name))
       .limit(limit)
       .offset(offset);
     
-    return { items, total: matchingIds.length };
+    const allMatching = await db
+      .select({ id: groups.id })
+      .from(groups)
+      .where(whereClause);
+    
+    return { items, total: allMatching.length };
   }
   
   // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(groups);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(groups)
+    .where(visibilityFilter);
   
   const items = await db
     .select()
     .from(groups)
+    .where(visibilityFilter)
     .orderBy(asc(groups.name))
     .limit(limit)
     .offset(offset);

@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { learning, companies, type Learning, type NewLearning } from "~/db/schema";
-import { eq, desc, asc, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -84,8 +84,11 @@ export interface PaginatedLearning {
 export async function getPaginatedLearning(
   limit: number,
   offset: number,
-  searchQuery?: string
+  searchQuery?: string,
+  includeHidden: boolean = false
 ): Promise<PaginatedLearning> {
+  const visibilityFilter = includeHidden ? undefined : eq(learning.visible, true);
+  
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("learning", searchQuery);
@@ -94,23 +97,36 @@ export async function getPaginatedLearning(
       return { items: [], total: 0 };
     }
     
+    const whereClause = visibilityFilter
+      ? and(inArray(learning.id, matchingIds), visibilityFilter)
+      : inArray(learning.id, matchingIds);
+    
     const items = await db
       .select()
       .from(learning)
-      .where(inArray(learning.id, matchingIds))
+      .where(whereClause)
       .orderBy(asc(learning.name))
       .limit(limit)
       .offset(offset);
     
-    return { items, total: matchingIds.length };
+    const allMatching = await db
+      .select({ id: learning.id })
+      .from(learning)
+      .where(whereClause);
+    
+    return { items, total: allMatching.length };
   }
   
   // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(learning);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(learning)
+    .where(visibilityFilter);
   
   const items = await db
     .select()
     .from(learning)
+    .where(visibilityFilter)
     .orderBy(asc(learning.name))
     .limit(limit)
     .offset(offset);
