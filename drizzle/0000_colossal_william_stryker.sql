@@ -82,7 +82,7 @@ CREATE TABLE `jobs` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `jobs_slug_unique` ON `jobs` (`slug`);--> statement-breakpoint
-CREATE TABLE `learning` (
+CREATE TABLE `education` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,
 	`name` text NOT NULL,
@@ -95,7 +95,7 @@ CREATE TABLE `learning` (
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `learning_slug_unique` ON `learning` (`slug`);--> statement-breakpoint
+CREATE UNIQUE INDEX `education_slug_unique` ON `education` (`slug`);--> statement-breakpoint
 CREATE TABLE `news` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,

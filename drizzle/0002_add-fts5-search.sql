@@ -31,11 +31,11 @@ CREATE VIRTUAL TABLE IF NOT EXISTS groups_fts USING fts5(
 );
 --> statement-breakpoint
 
--- Learning FTS (name, description)
-CREATE VIRTUAL TABLE IF NOT EXISTS learning_fts USING fts5(
+-- Education FTS (name, description)
+CREATE VIRTUAL TABLE IF NOT EXISTS education_fts USING fts5(
   name,
   description,
-  content='learning',
+  content='education',
   content_rowid='id'
 );
 --> statement-breakpoint
@@ -144,23 +144,23 @@ CREATE TRIGGER IF NOT EXISTS groups_au AFTER UPDATE ON groups BEGIN
 END;
 --> statement-breakpoint
 
--- Learning triggers
-CREATE TRIGGER IF NOT EXISTS learning_ai AFTER INSERT ON learning BEGIN
-  INSERT INTO learning_fts(rowid, name, description)
+-- Education triggers
+CREATE TRIGGER IF NOT EXISTS education_ai AFTER INSERT ON education BEGIN
+  INSERT INTO education_fts(rowid, name, description)
   VALUES (NEW.id, NEW.name, NEW.description);
 END;
 --> statement-breakpoint
 
-CREATE TRIGGER IF NOT EXISTS learning_ad AFTER DELETE ON learning BEGIN
-  INSERT INTO learning_fts(learning_fts, rowid, name, description)
+CREATE TRIGGER IF NOT EXISTS education_ad AFTER DELETE ON education BEGIN
+  INSERT INTO education_fts(education_fts, rowid, name, description)
   VALUES ('delete', OLD.id, OLD.name, OLD.description);
 END;
 --> statement-breakpoint
 
-CREATE TRIGGER IF NOT EXISTS learning_au AFTER UPDATE ON learning BEGIN
-  INSERT INTO learning_fts(learning_fts, rowid, name, description)
+CREATE TRIGGER IF NOT EXISTS education_au AFTER UPDATE ON education BEGIN
+  INSERT INTO education_fts(education_fts, rowid, name, description)
   VALUES ('delete', OLD.id, OLD.name, OLD.description);
-  INSERT INTO learning_fts(rowid, name, description)
+  INSERT INTO education_fts(rowid, name, description)
   VALUES (NEW.id, NEW.name, NEW.description);
 END;
 --> statement-breakpoint
@@ -262,8 +262,8 @@ INSERT INTO groups_fts(rowid, name, description)
 SELECT id, name, description FROM groups;
 --> statement-breakpoint
 
-INSERT INTO learning_fts(rowid, name, description)
-SELECT id, name, description FROM learning;
+INSERT INTO education_fts(rowid, name, description)
+SELECT id, name, description FROM education;
 --> statement-breakpoint
 
 INSERT INTO people_fts(rowid, name, bio)

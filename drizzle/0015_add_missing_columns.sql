@@ -1,4 +1,4 @@
--- Add missing columns to companies, groups, learning, and people tables
+-- Add missing columns to companies, groups, education, and people tables
 
 -- Companies: add github and visible columns
 ALTER TABLE companies ADD COLUMN github TEXT;
@@ -10,8 +10,8 @@ ALTER TABLE companies ADD COLUMN visible INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE groups ADD COLUMN visible INTEGER NOT NULL DEFAULT 1;
 --> statement-breakpoint
 
--- Learning: add visible column
-ALTER TABLE learning ADD COLUMN visible INTEGER NOT NULL DEFAULT 1;
+-- Education: add visible column
+ALTER TABLE education ADD COLUMN visible INTEGER NOT NULL DEFAULT 1;
 --> statement-breakpoint
 
 -- People: add visible column

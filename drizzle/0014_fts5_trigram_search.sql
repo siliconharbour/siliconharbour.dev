@@ -26,11 +26,11 @@ DROP TRIGGER IF EXISTS groups_ad;
 DROP TRIGGER IF EXISTS groups_au;
 --> statement-breakpoint
 
-DROP TRIGGER IF EXISTS learning_ai;
+DROP TRIGGER IF EXISTS education_ai;
 --> statement-breakpoint
-DROP TRIGGER IF EXISTS learning_ad;
+DROP TRIGGER IF EXISTS education_ad;
 --> statement-breakpoint
-DROP TRIGGER IF EXISTS learning_au;
+DROP TRIGGER IF EXISTS education_au;
 --> statement-breakpoint
 
 DROP TRIGGER IF EXISTS people_ai;
@@ -78,7 +78,7 @@ DROP TABLE IF EXISTS companies_fts;
 --> statement-breakpoint
 DROP TABLE IF EXISTS groups_fts;
 --> statement-breakpoint
-DROP TABLE IF EXISTS learning_fts;
+DROP TABLE IF EXISTS education_fts;
 --> statement-breakpoint
 DROP TABLE IF EXISTS people_fts;
 --> statement-breakpoint
@@ -128,11 +128,11 @@ CREATE VIRTUAL TABLE groups_fts USING fts5(
 );
 --> statement-breakpoint
 
--- Learning FTS (name, description)
-CREATE VIRTUAL TABLE learning_fts USING fts5(
+-- Education FTS (name, description)
+CREATE VIRTUAL TABLE education_fts USING fts5(
   name,
   description,
-  content='learning',
+  content='education',
   content_rowid='id',
   tokenize='trigram'
 );
@@ -258,23 +258,23 @@ CREATE TRIGGER groups_au AFTER UPDATE ON groups BEGIN
 END;
 --> statement-breakpoint
 
--- Learning triggers
-CREATE TRIGGER learning_ai AFTER INSERT ON learning BEGIN
-  INSERT INTO learning_fts(rowid, name, description)
+-- Education triggers
+CREATE TRIGGER education_ai AFTER INSERT ON education BEGIN
+  INSERT INTO education_fts(rowid, name, description)
   VALUES (NEW.id, NEW.name, NEW.description);
 END;
 --> statement-breakpoint
 
-CREATE TRIGGER learning_ad AFTER DELETE ON learning BEGIN
-  INSERT INTO learning_fts(learning_fts, rowid, name, description)
+CREATE TRIGGER education_ad AFTER DELETE ON education BEGIN
+  INSERT INTO education_fts(education_fts, rowid, name, description)
   VALUES ('delete', OLD.id, OLD.name, OLD.description);
 END;
 --> statement-breakpoint
 
-CREATE TRIGGER learning_au AFTER UPDATE ON learning BEGIN
-  INSERT INTO learning_fts(learning_fts, rowid, name, description)
+CREATE TRIGGER education_au AFTER UPDATE ON education BEGIN
+  INSERT INTO education_fts(education_fts, rowid, name, description)
   VALUES ('delete', OLD.id, OLD.name, OLD.description);
-  INSERT INTO learning_fts(rowid, name, description)
+  INSERT INTO education_fts(rowid, name, description)
   VALUES (NEW.id, NEW.name, NEW.description);
 END;
 --> statement-breakpoint
@@ -400,8 +400,8 @@ INSERT INTO groups_fts(rowid, name, description)
 SELECT id, name, description FROM groups;
 --> statement-breakpoint
 
-INSERT INTO learning_fts(rowid, name, description)
-SELECT id, name, description FROM learning;
+INSERT INTO education_fts(rowid, name, description)
+SELECT id, name, description FROM education;
 --> statement-breakpoint
 
 INSERT INTO people_fts(rowid, name, bio)

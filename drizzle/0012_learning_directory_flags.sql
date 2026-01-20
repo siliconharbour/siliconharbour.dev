@@ -1,4 +1,4 @@
--- Add technl and genesis flags to learning table (same as companies)
-ALTER TABLE learning ADD COLUMN technl INTEGER DEFAULT 0;
+-- Add technl and genesis flags to education table (same as companies)
+ALTER TABLE education ADD COLUMN technl INTEGER DEFAULT 0;
 --> statement-breakpoint
-ALTER TABLE learning ADD COLUMN genesis INTEGER DEFAULT 0;
+ALTER TABLE education ADD COLUMN genesis INTEGER DEFAULT 0;
