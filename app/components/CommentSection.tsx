@@ -88,7 +88,7 @@ export function CommentSection({
 
   return (
     <div className="border-t border-harbour-200/50 pt-4 mt-6 text-sm">
-      <details className="group" open>
+      <details className="group">
         <summary className="cursor-pointer select-none text-harbour-500 hover:text-harbour-600 list-none flex items-center gap-2">
           <svg 
             className="w-4 h-4 transition-transform group-open:rotate-90" 

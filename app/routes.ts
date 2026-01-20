@@ -75,10 +75,16 @@ export default [
     ]),
     
     // News (realtime content, separate from directory)
-    ...prefix("news", [
-      index("routes/news/index.tsx"),
-      route(":slug", "routes/news/detail.tsx"),
+    layout("routes/news/layout.tsx", [
+      route("news", "routes/news/all.tsx", { id: "news-index" }),
+      route("news/announcements", "routes/news/announcements.tsx"),
+      route("news/general", "routes/news/general.tsx"),
+      route("news/editorial", "routes/news/editorial.tsx"),
+      route("news/updates", "routes/news/updates.tsx"),
     ]),
+    
+    // News detail pages (outside layout for full-width content)
+    route("news/:slug", "routes/news/detail.tsx"),
     
     // Jobs (separate from directory)
     ...prefix("jobs", [

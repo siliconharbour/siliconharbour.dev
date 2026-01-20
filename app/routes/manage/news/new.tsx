@@ -4,6 +4,14 @@ import { requireAuth } from "~/lib/session.server";
 import { createNews } from "~/lib/news.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { newsTypes, type NewsType } from "~/db/schema";
+
+const typeLabels: Record<NewsType, string> = {
+  announcement: "Announcement",
+  general: "General",
+  editorial: "Editorial",
+  meta: "Site Update",
+};
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Article - siliconharbour.dev" }];
@@ -22,6 +30,7 @@ export async function action({ request }: Route.ActionArgs) {
   const title = formData.get("title") as string;
   const content = formData.get("content") as string;
   const excerpt = (formData.get("excerpt") as string) || null;
+  const type = (formData.get("type") as NewsType) || "announcement";
   const publishNow = formData.get("publishNow") === "1";
 
   if (!title || !content) {
@@ -41,6 +50,7 @@ export async function action({ request }: Route.ActionArgs) {
     title,
     content,
     excerpt,
+    type,
     coverImage,
     publishedAt: publishNow ? new Date() : null,
   });
@@ -91,6 +101,24 @@ export default function NewNews() {
               required
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label htmlFor="type" className="font-medium text-harbour-700">
+              Type
+            </label>
+            <select
+              id="type"
+              name="type"
+              defaultValue="announcement"
+              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            >
+              {newsTypes.map((t) => (
+                <option key={t} value={t}>
+                  {typeLabels[t]}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-2">

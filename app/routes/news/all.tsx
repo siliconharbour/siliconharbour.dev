@@ -1,7 +1,6 @@
-import type { Route } from "./+types/index";
-import { Link, useLoaderData } from "react-router";
-import { getPaginatedNews, type NewsType } from "~/lib/news.server";
-import { getOptionalUser } from "~/lib/session.server";
+import type { Route } from "./+types/all";
+import { useLoaderData } from "react-router";
+import { getPaginatedNews } from "~/lib/news.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import { format, isAfter, subDays } from "date-fns";
@@ -10,27 +9,16 @@ import type { News } from "~/db/schema";
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "News - siliconharbour.dev" },
-    { name: "description", content: "News and announcements from the St. John's tech community" },
   ];
 }
-
-const validTypes = ["announcement", "editorial", "meta"] as const;
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  const typeParam = url.searchParams.get("type");
   
-  const user = await getOptionalUser(request);
-  const isAdmin = user?.user.role === "admin";
-  
-  // Validate type filter
-  const typeFilter = typeParam && validTypes.includes(typeParam as NewsType) 
-    ? (typeParam as NewsType) 
-    : undefined;
-  
-  const { items: articles, total } = await getPaginatedNews(limit, offset, searchQuery, typeFilter);
+  // No type filter - get all articles
+  const { items: articles, total } = await getPaginatedNews(limit, offset, searchQuery);
   
   // Check if the latest article is from the last 7 days (for headline treatment)
   const oneWeekAgo = subDays(new Date(), 7);
@@ -38,115 +26,74 @@ export async function loader({ request }: Route.LoaderArgs) {
     articles[0].publishedAt && 
     isAfter(articles[0].publishedAt, oneWeekAgo);
   
-  return { articles, total, limit, offset, searchQuery, hasRecentHeadline, typeFilter, isAdmin };
+  return { articles, total, limit, offset, searchQuery, hasRecentHeadline };
 }
 
-export default function NewsIndex() {
-  const { articles, total, limit, offset, searchQuery, hasRecentHeadline, typeFilter, isAdmin } = useLoaderData<typeof loader>();
+export default function NewsAll() {
+  const { articles, total, limit, offset, searchQuery, hasRecentHeadline } = useLoaderData<typeof loader>();
   
   // If we're on the first page and have a recent headline, split articles
   const isFirstPage = offset === 0;
-  const showHeadline = isFirstPage && hasRecentHeadline && !searchQuery && !typeFilter && articles.length > 0;
+  const showHeadline = isFirstPage && hasRecentHeadline && !searchQuery && articles.length > 0;
   
   const headline = showHeadline ? articles[0] : null;
   const secondaryArticles = showHeadline ? articles.slice(1, 3) : [];
   const remainingArticles = showHeadline ? articles.slice(3) : articles;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 py-8">
-      <div className="flex flex-col gap-6">
-        {/* Filter Tabs + Admin Button */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <FilterTab href="/news" active={!typeFilter} label="All" />
-            <FilterTab href="/news?type=announcement" active={typeFilter === "announcement"} label="Announcements" />
-            <FilterTab href="/news?type=editorial" active={typeFilter === "editorial"} label="Editorial" />
-            <FilterTab href="/news?type=meta" active={typeFilter === "meta"} label="Site Updates" />
-          </div>
-          {isAdmin && (
-            <Link
-              to="/manage/news/new"
-              className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
-            >
-              + New Article
-            </Link>
+    <div className="flex flex-col gap-6">
+      {/* Search - only show if pagination is needed */}
+      {(total > limit || searchQuery) && (
+        <div className="flex flex-col gap-2">
+          <SearchInput placeholder="Search news..." />
+          
+          {/* Result count */}
+          {searchQuery && (
+            <p className="text-sm text-harbour-500">
+              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+            </p>
           )}
         </div>
+      )}
 
-        {/* Search - only show if pagination is needed */}
-        {(total > limit || searchQuery) && (
-          <div className="flex flex-col gap-2">
-            <SearchInput placeholder="Search news..." preserveParams={["type"]} />
-            
-            {/* Result count */}
-            {searchQuery && (
-              <p className="text-sm text-harbour-500">
-                {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-              </p>
-            )}
-          </div>
-        )}
-
-        {articles.length === 0 ? (
-          <p className="text-harbour-400">
-            {searchQuery 
-              ? "No news articles match your search." 
-              : typeFilter 
-                ? `No ${typeFilter === "meta" ? "site updates" : typeFilter + "s"} yet.`
-                : "No news articles yet."}
-          </p>
-        ) : (
-          <>
-            {/* Headline + Secondary Articles (newspaper style) */}
-            {showHeadline && headline && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Headline - 2 columns */}
-                <HeadlineArticle article={headline} />
-                
-                {/* Secondary Articles - 1 column */}
-                {secondaryArticles.length > 0 && (
-                  <div className="flex flex-col gap-4">
-                    {secondaryArticles.map((article) => (
-                      <SecondaryArticle key={article.id} article={article} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Remaining Articles Grid */}
-            {remainingArticles.length > 0 && (
-              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-6" : ""}`}>
-                {remainingArticles.map((article) => (
-                  <ArticleCard key={article.id} article={article} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-        
-        <Pagination total={total} limit={limit} offset={offset} />
-      </div>
+      {articles.length === 0 ? (
+        <p className="text-harbour-400">
+          {searchQuery 
+            ? "No news articles match your search." 
+            : "No news articles yet."}
+        </p>
+      ) : (
+        <>
+          {/* Headline + Secondary Articles (newspaper style) */}
+          {showHeadline && headline && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Headline - 2 columns */}
+              <HeadlineArticle article={headline} />
+              
+              {/* Secondary Articles - 1 column */}
+              {secondaryArticles.length > 0 && (
+                <div className="flex flex-col gap-4">
+                  {secondaryArticles.map((article) => (
+                    <SecondaryArticle key={article.id} article={article} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Remaining Articles Grid */}
+          {remainingArticles.length > 0 && (
+            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-6" : ""}`}>
+              {remainingArticles.map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+      
+      <Pagination total={total} limit={limit} offset={offset} />
     </div>
-  );
-}
-
-// =============================================================================
-// Filter Tab Component
-// =============================================================================
-
-function FilterTab({ href, active, label }: { href: string; active: boolean; label: string }) {
-  return (
-    <Link
-      to={href}
-      className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-        active
-          ? "bg-harbour-600 text-white"
-          : "text-harbour-600 hover:bg-harbour-50"
-      }`}
-    >
-      {label}
-    </Link>
   );
 }
 
@@ -158,6 +105,7 @@ function TypeBadge({ type }: { type: string }) {
   if (type === "announcement") return null; // Don't show badge for default type
   
   const labels: Record<string, string> = {
+    general: "General",
     editorial: "Editorial",
     meta: "Site Update",
   };

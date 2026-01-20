@@ -178,7 +178,7 @@ export const people = sqliteTable("people", {
 });
 
 // News - announcements, articles, editorials
-export const newsTypes = ["announcement", "editorial", "meta"] as const;
+export const newsTypes = ["announcement", "general", "editorial", "meta"] as const;
 export type NewsType = typeof newsTypes[number];
 
 export const news = sqliteTable("news", {
@@ -350,6 +350,17 @@ export const sectionKeys = [
   "jobs",
 ] as const;
 export type SectionKey = typeof sectionKeys[number];
+
+// Commentable content keys - pages that can have comments enabled/disabled
+export const commentableKeys = [
+  "companies",
+  "groups",
+  "education",
+  "projects",
+  "products",
+  "news",
+] as const;
+export type CommentableKey = typeof commentableKeys[number];
 
 // =============================================================================
 // References - [[link]] relationships between content

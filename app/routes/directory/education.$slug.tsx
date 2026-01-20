@@ -5,6 +5,7 @@ import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.ser
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
+import { areCommentsEnabled } from "~/lib/config.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -24,19 +25,20 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
   
-  const [resolvedRefs, backlinks, comments] = await Promise.all([
+  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
     prepareRefsForClient(institution.description),
     getDetailedBacklinks("education", institution.id),
     isAdmin ? getAllComments("education", institution.id) : getPublicComments("education", institution.id),
+    areCommentsEnabled("education"),
   ]);
   
   const turnstileSiteKey = getTurnstileSiteKey();
   
-  return { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
+  return { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
 }
 
 export default function EducationDetail() {
-  const { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
+  const { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } = useLoaderData<typeof loader>();
 
   const typeLabels: Record<string, string> = {
     university: "University",
@@ -152,13 +154,15 @@ export default function EducationDetail() {
 
         <ReferencedBy backlinks={backlinks} />
 
-        <CommentSection
-          contentType="education"
-          contentId={institution.id}
-          comments={comments}
-          turnstileSiteKey={turnstileSiteKey}
-          isAdmin={isAdmin}
-        />
+        {commentsEnabled && (
+          <CommentSection
+            contentType="education"
+            contentId={institution.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
+        )}
       </article>
     </div>
   );

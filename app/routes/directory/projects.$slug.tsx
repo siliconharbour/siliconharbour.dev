@@ -6,6 +6,7 @@ import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.ser
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
+import { areCommentsEnabled } from "~/lib/config.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -27,15 +28,16 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
   
-  const [resolvedRefs, backlinks, comments] = await Promise.all([
+  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
     prepareRefsForClient(project.description),
     getDetailedBacklinks("project", project.id),
     isAdmin ? getAllComments("project", project.id) : getPublicComments("project", project.id),
+    areCommentsEnabled("projects"),
   ]);
   
   const turnstileSiteKey = getTurnstileSiteKey();
   
-  return { project, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
+  return { project, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
 }
 
 const typeLabels: Record<ProjectType, string> = {
@@ -139,7 +141,7 @@ const linkConfig: Record<string, { label: string; icon: React.ReactNode }> = {
 };
 
 export default function ProjectDetail() {
-  const { project, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
+  const { project, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } = useLoaderData<typeof loader>();
   const links = parseProjectLinks(project.links);
   const linkEntries = Object.entries(links).filter(([_, url]) => url);
 
@@ -227,13 +229,15 @@ export default function ProjectDetail() {
 
         <ReferencedBy backlinks={backlinks} />
 
-        <CommentSection
-          contentType="project"
-          contentId={project.id}
-          comments={comments}
-          turnstileSiteKey={turnstileSiteKey}
-          isAdmin={isAdmin}
-        />
+        {commentsEnabled && (
+          <CommentSection
+            contentType="project"
+            contentId={project.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
+        )}
       </article>
     </div>
   );

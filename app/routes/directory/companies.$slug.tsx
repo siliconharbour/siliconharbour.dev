@@ -5,6 +5,7 @@ import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.ser
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
+import { areCommentsEnabled } from "~/lib/config.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -24,19 +25,20 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
   
-  const [resolvedRefs, backlinks, comments] = await Promise.all([
+  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
     prepareRefsForClient(company.description),
     getDetailedBacklinks("company", company.id),
     isAdmin ? getAllComments("company", company.id) : getPublicComments("company", company.id),
+    areCommentsEnabled("companies"),
   ]);
   
   const turnstileSiteKey = getTurnstileSiteKey();
   
-  return { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
+  return { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
 }
 
 export default function CompanyDetail() {
-  const { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
+  const { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } = useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
@@ -179,13 +181,15 @@ export default function CompanyDetail() {
 
         <ReferencedBy backlinks={backlinks} />
 
-        <CommentSection
-          contentType="company"
-          contentId={company.id}
-          comments={comments}
-          turnstileSiteKey={turnstileSiteKey}
-          isAdmin={isAdmin}
-        />
+        {commentsEnabled && (
+          <CommentSection
+            contentType="company"
+            contentId={company.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
+        )}
       </article>
     </div>
   );

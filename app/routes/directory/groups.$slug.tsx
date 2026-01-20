@@ -5,6 +5,7 @@ import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.ser
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
+import { areCommentsEnabled } from "~/lib/config.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -24,19 +25,20 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
   
-  const [resolvedRefs, backlinks, comments] = await Promise.all([
+  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
     prepareRefsForClient(group.description),
     getDetailedBacklinks("group", group.id),
     isAdmin ? getAllComments("group", group.id) : getPublicComments("group", group.id),
+    areCommentsEnabled("groups"),
   ]);
   
   const turnstileSiteKey = getTurnstileSiteKey();
   
-  return { group, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
+  return { group, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
 }
 
 export default function GroupDetail() {
-  const { group, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
+  const { group, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } = useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
@@ -116,13 +118,15 @@ export default function GroupDetail() {
 
         <ReferencedBy backlinks={backlinks} />
 
-        <CommentSection
-          contentType="group"
-          contentId={group.id}
-          comments={comments}
-          turnstileSiteKey={turnstileSiteKey}
-          isAdmin={isAdmin}
-        />
+        {commentsEnabled && (
+          <CommentSection
+            contentType="group"
+            contentId={group.id}
+            comments={comments}
+            turnstileSiteKey={turnstileSiteKey}
+            isAdmin={isAdmin}
+          />
+        )}
       </article>
     </div>
   );
