@@ -3,8 +3,7 @@ import { existsSync, mkdirSync } from "fs";
 import { writeFile, unlink } from "fs/promises";
 import { join } from "path";
 import { v4 as uuid } from "uuid";
-
-const IMAGES_DIR = "./data/images";
+import { IMAGES_DIR } from "./paths.server";
 const COVER_MAX_WIDTH = 1200;
 const COVER_MAX_HEIGHT = 630;
 const ICON_SIZE = 256;

@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync 
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
+import { IMAGES_DIR } from "./paths.server";
 
 // OG Image dimensions (standard)
 const OG_WIDTH = 1200;
@@ -90,7 +91,7 @@ export function getCachedImage(slug: string, data: OGImageData): string | null {
  */
 async function loadCoverImageForCard(imagePath: string): Promise<string | null> {
   try {
-    const fullPath = join(process.cwd(), "data/images", imagePath);
+    const fullPath = join(process.cwd(), IMAGES_DIR, imagePath);
     if (!existsSync(fullPath)) {
       return null;
     }

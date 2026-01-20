@@ -15,6 +15,25 @@ import { ImageUpload } from "~/components/ImageUpload";
 import { Toast } from "~/components/Toast";
 import type { Person } from "~/db/schema";
 
+// Safely extract display text from a URL, falling back to the original string
+function getDisplayUrl(url: string): string {
+  try {
+    const parsed = new URL(ensureProtocol(url));
+    return parsed.hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+// Ensure a URL has a protocol prefix
+function ensureProtocol(url: string): string {
+  if (!url) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `https://${url}`;
+}
+
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Review People - siliconharbour.dev" }];
 }
@@ -389,18 +408,18 @@ export default function ReviewPeople() {
                   {currentPerson.website && (
                     <>
                       {currentPerson.github && <span>·</span>}
-                      <a href={currentPerson.website} target="_blank" rel="noopener noreferrer" className="hover:text-harbour-700">
-                        {new URL(currentPerson.website).hostname.replace(/^www\./, "")}
+                      <a href={ensureProtocol(currentPerson.website)} target="_blank" rel="noopener noreferrer" className="hover:text-harbour-700">
+                        {getDisplayUrl(currentPerson.website)}
                       </a>
                     </>
                   )}
                   {socialLinks.twitter && (
-                    <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-harbour-700">
+                    <a href={ensureProtocol(socialLinks.twitter)} target="_blank" rel="noopener noreferrer" className="hover:text-harbour-700">
                       Twitter
                     </a>
                   )}
                   {socialLinks.linkedin && (
-                    <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-harbour-700">
+                    <a href={ensureProtocol(socialLinks.linkedin)} target="_blank" rel="noopener noreferrer" className="hover:text-harbour-700">
                       LinkedIn
                     </a>
                   )}

@@ -123,6 +123,16 @@ export default function Home() {
         </p>
       </header>
 
+      {/* Construction Warning */}
+      <div className="bg-amber-50 border-y border-amber-200">
+        <div className="max-w-6xl mx-auto px-4 py-3 text-center">
+          <p className="text-sm text-amber-800">
+            <span className="font-semibold">Under Construction:</span>{" "}
+            This site is still heavily under development. Content may be incomplete or change frequently.
+          </p>
+        </div>
+      </div>
+
       {/* Main Content */}
       <main className="flex-1">
         <div className="max-w-6xl mx-auto p-4 pb-8">

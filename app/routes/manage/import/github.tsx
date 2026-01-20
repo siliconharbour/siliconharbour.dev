@@ -218,10 +218,10 @@ export async function action({ request }: Route.ActionArgs) {
             if (bio) {
               bio = `${bio}\n\nWorks at ${companyRef}.`;
             } else {
-              bio = `GitHub user from ${user.location || "Newfoundland"}. Works at ${companyRef}.`;
+              bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}. Works at ${companyRef}.`;
             }
           } else if (!bio) {
-            bio = `GitHub user from ${user.location || "Newfoundland"}.`;
+            bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
           }
           
           if (existing) {
@@ -464,7 +464,7 @@ export default function ImportGitHub() {
         </div>
         
         <p className="text-harbour-500">
-          Search for GitHub users in Newfoundland and import them as people. 
+          Search for GitHub users in Newfoundland & Labrador and import them as people. 
           Use "Import All" for automatic bulk import with rate limit handling.
         </p>
         
@@ -664,7 +664,7 @@ export default function ImportGitHub() {
             disabled={isSearching}
             className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors self-start"
           >
-            {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland"}
+            {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland & Labrador"}
           </button>
         )}
         

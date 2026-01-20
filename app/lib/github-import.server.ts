@@ -429,10 +429,10 @@ async function importSingleUser(
     if (bio) {
       bio = `${bio}\n\nWorks at ${companyRef}.`;
     } else {
-      bio = `GitHub user from ${user.location || "Newfoundland"}. Works at ${companyRef}.`;
+      bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}. Works at ${companyRef}.`;
     }
   } else if (!bio) {
-    bio = `GitHub user from ${user.location || "Newfoundland"}.`;
+    bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
   }
   
   // Build social links from GitHub profile

@@ -74,13 +74,64 @@ a:focus {
   opacity: 1;
 }
 
-/* Prose links - apply underline styling to links within prose content */
+/* =============================================================================
+   Prose Styles - For written content like about pages, articles, etc.
+   ============================================================================= */
+
+.prose {
+  @apply text-harbour-600 leading-relaxed;
+}
+
+.prose p {
+  @apply my-4;
+}
+
+.prose p:first-child {
+  @apply mt-0;
+}
+
+.prose p:last-child {
+  @apply mb-0;
+}
+
+.prose h1 {
+  @apply text-3xl font-bold text-harbour-700 mt-8 mb-4;
+}
+
+.prose h2 {
+  @apply text-xl font-semibold text-harbour-700 mt-8 mb-4;
+}
+
+.prose h3 {
+  @apply text-lg font-semibold text-harbour-700 mt-6 mb-3;
+}
+
+.prose ul, .prose ol {
+  @apply my-4 pl-6;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose li {
+  @apply my-1;
+}
+
+.prose strong {
+  @apply font-semibold text-harbour-700;
+}
+
 .prose a {
-  @apply underline decoration-harbour-200 underline-offset-2 transition-colors;
+  @apply text-harbour-600 underline decoration-harbour-200 underline-offset-2 transition-colors;
 }
 
 .prose a:hover {
-  @apply decoration-harbour-500;
+  @apply text-harbour-700 decoration-harbour-500;
 }
 
 /* Prose external links get the indicator */

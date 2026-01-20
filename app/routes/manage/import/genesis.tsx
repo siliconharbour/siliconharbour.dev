@@ -93,7 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
             });
             imported.push(`${company.name} (updated)`);
           } else {
-            // Create new company
+            // Create new company (hidden by default, requires review)
             await createCompany({
               name: company.name,
               description: company.description || "",
@@ -102,6 +102,7 @@ export async function action({ request }: Route.ActionArgs) {
               location: "St. John's, NL",
               logo,
               genesis: true,
+              visible: false,
             });
             imported.push(company.name);
           }

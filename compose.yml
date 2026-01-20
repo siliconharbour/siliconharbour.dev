@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATA_DIR=/app/data
+      - DB_NAME=siliconharbour.db
+      - IMAGES_DIR_NAME=images
+    volumes:
+      - ./data/docker:/app/data
+    restart: unless-stopped
