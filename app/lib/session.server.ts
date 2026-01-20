@@ -1,7 +1,15 @@
 import { createCookieSessionStorage, redirect } from "react-router";
 import { validateSession, invalidateSession } from "./auth.server";
 
-const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-in-production";
+function getSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("SESSION_SECRET environment variable is required in production");
+  }
+  return secret || "dev-secret-change-in-production";
+}
+
+const SESSION_SECRET = getSessionSecret();
 
 export const sessionStorage = createCookieSessionStorage({
   cookie: {

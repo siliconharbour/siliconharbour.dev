@@ -44,7 +44,7 @@ export default function PersonDetail() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
-      {!person.visible && isAdmin && (
+      {!person.visible && (
         <div className="mb-6 p-4 bg-amber-50 border border-amber-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,12 +52,14 @@ export default function PersonDetail() {
             </svg>
             <span className="text-amber-800 font-medium">This page is hidden from public listings</span>
           </div>
-          <Link
-            to={`/manage/people/${person.id}`}
-            className="text-sm px-3 py-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
-          >
-            Edit visibility
-          </Link>
+          {isAdmin && (
+            <Link
+              to={`/manage/people/${person.id}`}
+              className="text-sm px-3 py-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
+            >
+              Edit visibility
+            </Link>
+          )}
         </div>
       )}
       <article className="flex flex-col gap-6">

@@ -55,7 +55,7 @@ export default function SubscribePage() {
         <h1>Stay Connected</h1>
 
         <p className="text-lg">
-          There's a few ways to keep up with what's happening without having to
+          There are a few ways to keep up with what's happening without having to
           check this site constantly.
         </p>
 

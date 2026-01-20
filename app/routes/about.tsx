@@ -116,9 +116,9 @@ export default function AboutPage() {
 
         <h3>Will this always be kept up to date?</h3>
         <p>
-          That's the goal! The site is designed to be low-maintenance, its
+          That's the goal! The site is designed to be low-maintenance. It's
           actually built as a full web application rather than just a collection
-          of markdown files / a Wordpress site.
+          of markdown files or a WordPress site.
         </p>
         <p>
           There's a bit of a bus factor on the site as it currently stands, but
@@ -133,8 +133,8 @@ export default function AboutPage() {
           logo, and any relevant links.
         </p>
         <p>
-          We do reserve the right so say, <i>no</i>, as the intent is for the
-          content be of high quality, see if you can maybe find some PMF before
+          We do reserve the right to say <i>no</i>, as the intent is for the
+          content to be of high quality. See if you can maybe find some PMF before
           submitting your B2B SaaS ChatGPT wrapper.
         </p>
 

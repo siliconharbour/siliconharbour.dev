@@ -10,12 +10,51 @@ import {
   news, 
   jobs,
   projects,
+  products,
   type ContentType,
   type Reference,
   type NewReference,
   contentTypes
 } from "~/db/schema";
 import { eq, and, or, asc, gte } from "drizzle-orm";
+
+// =============================================================================
+// Visibility helpers
+// =============================================================================
+
+/**
+ * Check if an entity is visible (for content types that support visibility)
+ * Returns true for content types without visibility (events, news, jobs)
+ */
+async function isEntityVisible(type: ContentType, id: number): Promise<boolean> {
+  switch (type) {
+    case "company": {
+      const [c] = await db.select({ visible: companies.visible }).from(companies).where(eq(companies.id, id));
+      return c?.visible ?? false;
+    }
+    case "group": {
+      const [g] = await db.select({ visible: groups.visible }).from(groups).where(eq(groups.id, id));
+      return g?.visible ?? false;
+    }
+    case "education": {
+      const [e] = await db.select({ visible: education.visible }).from(education).where(eq(education.id, id));
+      return e?.visible ?? false;
+    }
+    case "person": {
+      const [p] = await db.select({ visible: people.visible }).from(people).where(eq(people.id, id));
+      return p?.visible ?? false;
+    }
+    // These content types don't have visibility - always visible
+    case "event":
+    case "news":
+    case "job":
+    case "project":
+    case "product":
+      return true;
+    default:
+      return true;
+  }
+}
 
 // =============================================================================
 // Reference Parser - Extract [[references]] from markdown
@@ -350,6 +389,7 @@ export interface SerializedRef {
 /**
  * Prepare resolved references for client-side rendering
  * Call this in your loader and pass result to RichMarkdown component
+ * Only includes visible entities (respects visibility settings)
  */
 export async function prepareRefsForClient(content: string): Promise<Record<string, SerializedRef>> {
   const parsed = parseReferences(content);
@@ -368,6 +408,10 @@ export async function prepareRefsForClient(content: string): Promise<Record<stri
   
   for (const [text, resolution] of resolutions) {
     if (resolution.resolved) {
+      // Check visibility - only include visible entities
+      const isVisible = await isEntityVisible(resolution.reference.type, resolution.reference.id);
+      if (!isVisible) continue;
+      
       result[text] = {
         text: resolution.reference.text,
         type: resolution.reference.type,
@@ -516,9 +560,11 @@ export async function getDetailedBacklinks(
           name: companies.name,
           logo: companies.logo,
           location: companies.location,
+          visible: companies.visible,
         }).from(companies).where(eq(companies.id, ref.sourceId));
         
-        if (company) {
+        // Only include visible companies
+        if (company && company.visible) {
           backlinks.push({ type: "company", relation: ref.relation ?? undefined, data: company });
         }
         break;
@@ -529,9 +575,11 @@ export async function getDetailedBacklinks(
           slug: groups.slug,
           name: groups.name,
           logo: groups.logo,
+          visible: groups.visible,
         }).from(groups).where(eq(groups.id, ref.sourceId));
         
-        if (group) {
+        // Only include visible groups
+        if (group && group.visible) {
           backlinks.push({ type: "group", relation: ref.relation ?? undefined, data: group });
         }
         break;
@@ -543,9 +591,11 @@ export async function getDetailedBacklinks(
           name: education.name,
           logo: education.logo,
           type: education.type,
+          visible: education.visible,
         }).from(education).where(eq(education.id, ref.sourceId));
         
-        if (inst) {
+        // Only include visible education
+        if (inst && inst.visible) {
           backlinks.push({ type: "education", relation: ref.relation ?? undefined, data: inst });
         }
         break;
@@ -556,9 +606,11 @@ export async function getDetailedBacklinks(
           slug: people.slug,
           name: people.name,
           avatar: people.avatar,
+          visible: people.visible,
         }).from(people).where(eq(people.id, ref.sourceId));
         
-        if (person) {
+        // Only include visible people
+        if (person && person.visible) {
           backlinks.push({ type: "person", relation: ref.relation ?? undefined, data: person });
         }
         break;

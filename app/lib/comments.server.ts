@@ -1,7 +1,29 @@
 import { db } from "~/db";
-import { comments, type Comment, type NewComment, type ContentType } from "~/db/schema";
+import { comments, contentTypes, type Comment, type NewComment, type ContentType } from "~/db/schema";
 import { eq, and, desc, isNull, sql } from "drizzle-orm";
 import crypto from "crypto";
+
+/**
+ * Validate and sanitize contentType to prevent SQL injection.
+ * Throws if invalid.
+ */
+function validateContentType(contentType: string): ContentType {
+  if (!contentTypes.includes(contentType as ContentType)) {
+    throw new Error(`Invalid content type: ${contentType}`);
+  }
+  return contentType as ContentType;
+}
+
+/**
+ * Validate and sanitize contentId to prevent SQL injection.
+ * Throws if invalid.
+ */
+function validateContentId(contentId: number): number {
+  if (!Number.isInteger(contentId) || contentId <= 0) {
+    throw new Error(`Invalid content ID: ${contentId}`);
+  }
+  return contentId;
+}
 
 /**
  * Comment with depth information for nested display
@@ -60,8 +82,16 @@ export async function getThreadedComments(
   contentId: number,
   includePrivate: boolean = false
 ): Promise<CommentWithDepth[]> {
+  // Validate inputs to prevent SQL injection (even though we use validated types,
+  // this provides defense-in-depth since we use raw SQL below)
+  const safeContentType = validateContentType(contentType);
+  const safeContentId = validateContentId(contentId);
+  
   // Use raw SQL for recursive CTE - Drizzle doesn't support WITH RECURSIVE natively
-  const privateFilter = includePrivate ? "" : "AND is_private = 0";
+  // Note: contentType is validated against a strict enum whitelist above,
+  // and contentId is validated as a positive integer, making injection impossible
+  const privateFilterBase = includePrivate ? "" : "AND is_private = 0";
+  const privateFilterRecursive = includePrivate ? "" : "AND c.is_private = 0";
   
   const result = await db.all<CommentWithDepth>(sql.raw(`
     WITH RECURSIVE comment_tree AS (
@@ -74,10 +104,10 @@ export async function getThreadedComments(
         -- path tracks the thread hierarchy for proper ordering
         printf('%020d', 9999999999999 - created_at) as sort_path
       FROM comments 
-      WHERE content_type = '${contentType}' 
-        AND content_id = ${contentId} 
+      WHERE content_type = '${safeContentType}' 
+        AND content_id = ${safeContentId} 
         AND parent_id IS NULL
-        ${privateFilter}
+        ${privateFilterBase}
       
       UNION ALL
       
@@ -90,9 +120,9 @@ export async function getThreadedComments(
         ct.sort_path || '/' || printf('%020d', c.created_at) as sort_path
       FROM comments c
       JOIN comment_tree ct ON c.parent_id = ct.id
-      WHERE c.content_type = '${contentType}'
-        AND c.content_id = ${contentId}
-        ${privateFilter}
+      WHERE c.content_type = '${safeContentType}'
+        AND c.content_id = ${safeContentId}
+        ${privateFilterRecursive}
     )
     SELECT 
       id, content_type as contentType, content_id as contentId, 

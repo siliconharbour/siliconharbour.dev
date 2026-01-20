@@ -46,6 +46,7 @@ export default [
   // Public routes with shared layout (header/footer with visibility config)
   layout("routes/public-layout.tsx", [
     route("about", "routes/about.tsx"),
+    route("api", "routes/api-docs.tsx"),
     route("conduct", "routes/conduct.tsx"),
     route("stay-connected", "routes/stay-connected.tsx"),
     
@@ -162,5 +163,6 @@ export default [
       route("genesis", "routes/manage/import/genesis.tsx"),
       route("github", "routes/manage/import/github.tsx"),
     ]),
+    route("export", "routes/manage/export.tsx"),
   ]),
 ] satisfies RouteConfig;
