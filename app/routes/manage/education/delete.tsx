@@ -1,7 +1,7 @@
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getLearningById, deleteLearning } from "~/lib/learning.server";
+import { getEducationById, deleteEducation } from "~/lib/education.server";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Delete ${data?.institution?.name || "Institution"} - siliconharbour.dev` }];
@@ -15,7 +15,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Invalid ID", { status: 400 });
   }
 
-  const institution = await getLearningById(id);
+  const institution = await getEducationById(id);
   if (!institution) {
     throw new Response("Institution not found", { status: 404 });
   }
@@ -31,11 +31,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw new Response("Invalid ID", { status: 400 });
   }
 
-  await deleteLearning(id);
-  return redirect("/manage/learning");
+  await deleteEducation(id);
+  return redirect("/manage/education");
 }
 
-export default function DeleteLearning() {
+export default function DeleteEducation() {
   const { institution } = useLoaderData<typeof loader>();
 
   return (
@@ -56,7 +56,7 @@ export default function DeleteLearning() {
             Delete
           </button>
           <Link
-            to="/manage/learning"
+            to="/manage/education"
             className="px-4 py-2 text-harbour-600 hover:bg-harbour-50 font-medium transition-colors"
           >
             Cancel

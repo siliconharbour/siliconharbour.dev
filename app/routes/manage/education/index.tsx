@@ -1,18 +1,18 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getPaginatedLearning } from "~/lib/learning.server";
+import { getPaginatedEducation } from "~/lib/education.server";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Manage Learning - siliconharbour.dev" }];
+  return [{ title: "Manage Education - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: institutions } = await getPaginatedLearning(100, 0, searchQuery, true);
+  const { items: institutions } = await getPaginatedEducation(100, 0, searchQuery, true);
   return { institutions, searchQuery };
 }
 
@@ -24,16 +24,16 @@ const typeLabels: Record<string, string> = {
   other: "Other",
 };
 
-export default function ManageLearningIndex() {
+export default function ManageEducationIndex() {
   const { institutions } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-harbour-700">Learning</h1>
+          <h1 className="text-2xl font-semibold text-harbour-700">Education</h1>
           <Link
-            to="/manage/learning/new"
+            to="/manage/education/new"
             className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
           >
             New Institution
@@ -44,7 +44,7 @@ export default function ManageLearningIndex() {
 
         {institutions.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">
-            No learning institutions yet. Create your first one to get started.
+            No education institutions yet. Create your first one to get started.
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -81,13 +81,13 @@ export default function ManageLearningIndex() {
 
                 <div className="flex items-center gap-2">
                   <Link
-                    to={`/manage/learning/${inst.id}`}
+                    to={`/manage/education/${inst.id}`}
                     className="px-3 py-1.5 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
                   >
                     Edit
                   </Link>
                   <Link
-                    to={`/manage/learning/${inst.id}/delete`}
+                    to={`/manage/education/${inst.id}/delete`}
                     className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                   >
                     Delete

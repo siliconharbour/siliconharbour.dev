@@ -5,7 +5,7 @@ import {
   eventDates,
   companies, 
   groups, 
-  learning, 
+  education, 
   people, 
   news, 
   jobs,
@@ -120,12 +120,12 @@ export async function resolveReference(text: string): Promise<ResolveResult> {
     candidates.push({ type: "group", id: g.id, name: g.name, slug: g.slug });
   }
   
-  // Search learning by name
-  const learningMatches = await db.select({ id: learning.id, name: learning.name, slug: learning.slug })
-    .from(learning)
-    .where(eq(learning.name, text));
-  for (const l of learningMatches) {
-    candidates.push({ type: "learning", id: l.id, name: l.name, slug: l.slug });
+  // Search education by name
+  const educationMatches = await db.select({ id: education.id, name: education.name, slug: education.slug })
+    .from(education)
+    .where(eq(education.name, text));
+  for (const l of educationMatches) {
+    candidates.push({ type: "education", id: l.id, name: l.name, slug: l.slug });
   }
   
   // Search people by name
@@ -311,7 +311,7 @@ const contentTypeRoutes: Record<ContentType, string> = {
   event: "/events",
   company: "/companies",
   group: "/groups",
-  learning: "/learning",
+  education: "/directory/education",
   person: "/people",
   news: "/news",
   job: "/jobs",
@@ -415,9 +415,9 @@ export async function getRichIncomingReferences(
         if (g) { name = g.name; slug = g.slug; }
         break;
       }
-      case "learning": {
-        const [l] = await db.select({ name: learning.name, slug: learning.slug })
-          .from(learning).where(eq(learning.id, ref.sourceId));
+      case "education": {
+        const [l] = await db.select({ name: education.name, slug: education.slug })
+          .from(education).where(eq(education.id, ref.sourceId));
         if (l) { name = l.name; slug = l.slug; }
         break;
       }
@@ -463,7 +463,7 @@ export type DetailedBacklink =
   | { type: "event"; relation?: string; data: { id: number; slug: string; title: string; coverImage: string | null; nextDate: Date | null } }
   | { type: "company"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; location: string | null } }
   | { type: "group"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null } }
-  | { type: "learning"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; type: string | null } }
+  | { type: "education"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; type: string | null } }
   | { type: "person"; relation?: string; data: { id: number; slug: string; name: string; avatar: string | null } }
   | { type: "news"; relation?: string; data: { id: number; slug: string; title: string; coverImage: string | null; excerpt: string | null; publishedAt: Date | null } }
   | { type: "job"; relation?: string; data: { id: number; slug: string; title: string; companyName: string | null; location: string | null; remote: boolean } }
@@ -536,17 +536,17 @@ export async function getDetailedBacklinks(
         }
         break;
       }
-      case "learning": {
+      case "education": {
         const [inst] = await db.select({
-          id: learning.id,
-          slug: learning.slug,
-          name: learning.name,
-          logo: learning.logo,
-          type: learning.type,
-        }).from(learning).where(eq(learning.id, ref.sourceId));
+          id: education.id,
+          slug: education.slug,
+          name: education.name,
+          logo: education.logo,
+          type: education.type,
+        }).from(education).where(eq(education.id, ref.sourceId));
         
         if (inst) {
-          backlinks.push({ type: "learning", relation: ref.relation ?? undefined, data: inst });
+          backlinks.push({ type: "education", relation: ref.relation ?? undefined, data: inst });
         }
         break;
       }

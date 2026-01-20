@@ -28,7 +28,7 @@ const contentTypeRoutes: Record<ContentType, string> = {
   event: "/events",
   company: "/directory/companies",
   group: "/directory/groups",
-  learning: "/directory/learning",
+  education: "/directory/education",
   person: "/directory/people",
   news: "/news",
   job: "/jobs",

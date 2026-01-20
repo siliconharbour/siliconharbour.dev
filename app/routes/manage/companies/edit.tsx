@@ -2,7 +2,7 @@ import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
-import { convertCompanyToLearning } from "~/lib/learning.server";
+import { convertCompanyToEducation } from "~/lib/education.server";
 import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { blockItem } from "~/lib/import-blocklist.server";
@@ -73,14 +73,14 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   // Handle convert to institution
-  if (intent === "convertToLearning") {
+  if (intent === "convertToEducation") {
     const institutionType = formData.get("institutionType") as string || "other";
     try {
-      const institution = await convertCompanyToLearning(
+      const institution = await convertCompanyToEducation(
         id, 
         institutionType as "university" | "college" | "bootcamp" | "online" | "other"
       );
-      return redirect(`/manage/learning/${institution.id}`);
+      return redirect(`/manage/education/${institution.id}`);
     } catch (error) {
       console.error("Failed to convert company to institution:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -352,13 +352,13 @@ export default function EditCompany() {
 
         {/* Convert to Institution section */}
         <div className="border-t border-harbour-200 pt-6 mt-6">
-          <h2 className="text-lg font-semibold text-harbour-700 mb-4">Convert to Learning Institution</h2>
+          <h2 className="text-lg font-semibold text-harbour-700 mb-4">Convert to Education Institution</h2>
           <p className="text-sm text-harbour-500 mb-4">
-            This will move the company to the Learning directory. The company entry will be deleted 
-            and a new learning institution will be created with the same data.
+            This will move the company to the Education directory. The company entry will be deleted 
+            and a new education institution will be created with the same data.
           </p>
           <Form method="post" className="flex flex-wrap items-end gap-4">
-            <input type="hidden" name="intent" value="convertToLearning" />
+            <input type="hidden" name="intent" value="convertToEducation" />
             <div className="flex flex-col gap-2">
               <label htmlFor="institutionType" className="text-sm font-medium text-harbour-700">
                 Institution Type
@@ -379,7 +379,7 @@ export default function EditCompany() {
               type="submit"
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
               onClick={(e) => {
-                if (!confirm(`Are you sure you want to convert "${company.name}" to a learning institution? This will delete the company entry.`)) {
+                if (!confirm(`Are you sure you want to convert "${company.name}" to an education institution? This will delete the company entry.`)) {
                   e.preventDefault();
                 }
               }}

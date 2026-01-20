@@ -5,7 +5,7 @@ import {
   eventDates,
   eventOccurrences,
   groups,
-  learning,
+  education,
   people,
   news,
   jobs,
@@ -16,7 +16,7 @@ import {
 import { createCompany } from "../app/lib/companies.server";
 import { createEvent } from "../app/lib/events.server";
 import { createGroup } from "../app/lib/groups.server";
-import { createLearning } from "../app/lib/learning.server";
+import { createEducation } from "../app/lib/education.server";
 import { createPerson } from "../app/lib/people.server";
 import { createNews } from "../app/lib/news.server";
 import { createJob } from "../app/lib/jobs.server";
@@ -30,7 +30,7 @@ async function checkEmpty(): Promise<boolean> {
   const companyCount = await db.select().from(companies);
   const eventCount = await db.select().from(events);
   const groupCount = await db.select().from(groups);
-  const learningCount = await db.select().from(learning);
+  const educationCount = await db.select().from(education);
   const peopleCount = await db.select().from(people);
   const newsCount = await db.select().from(news);
   const jobCount = await db.select().from(jobs);
@@ -40,7 +40,7 @@ async function checkEmpty(): Promise<boolean> {
     companyCount.length === 0 &&
     eventCount.length === 0 &&
     groupCount.length === 0 &&
-    learningCount.length === 0 &&
+    educationCount.length === 0 &&
     peopleCount.length === 0 &&
     newsCount.length === 0 &&
     jobCount.length === 0 &&
@@ -58,7 +58,7 @@ async function clearAllData(): Promise<void> {
   await db.delete(projects);
   await db.delete(companies);
   await db.delete(groups);
-  await db.delete(learning);
+  await db.delete(education);
   await db.delete(people);
   await db.delete(news);
   await db.delete(jobs);
@@ -226,10 +226,10 @@ async function seedGroups() {
   console.log(`  Created ${groupsData.length} groups`);
 }
 
-async function seedLearning() {
-  console.log("Seeding learning resources...");
+async function seedEducation() {
+  console.log("Seeding education resources...");
 
-  const learningData = [
+  const educationData = [
     {
       name: "Memorial University - Computer Science",
       description:
@@ -267,11 +267,11 @@ async function seedLearning() {
     },
   ];
 
-  for (const item of learningData) {
-    await createLearning(item);
+  for (const item of educationData) {
+    await createEducation(item);
   }
 
-  console.log(`  Created ${learningData.length} learning resources`);
+  console.log(`  Created ${educationData.length} education resources`);
 }
 
 async function seedPeople() {
@@ -889,7 +889,7 @@ async function seed() {
   // Seed in dependency order (companies/groups/learning first since people reference them)
   await seedCompanies();
   await seedGroups();
-  await seedLearning();
+  await seedEducation();
   await seedPeople();
   await seedNews();
   await seedJobs();

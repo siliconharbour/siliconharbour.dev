@@ -7,13 +7,13 @@ const tabs = [
   { path: "/directory/people", label: "People" },
   { path: "/directory/products", label: "Products" },
   { path: "/directory/projects", label: "Projects" },
-  { path: "/directory/learning", label: "Learning" },
+  { path: "/directory/education", label: "Education" },
 ];
 
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Directory - siliconharbour.dev" },
-    { name: "description", content: "Directory of companies, groups, people, products, projects, and learning resources in St. John's tech community" },
+    { name: "description", content: "Directory of companies, groups, people, products, projects, and education resources in St. John's tech community" },
   ];
 }
 

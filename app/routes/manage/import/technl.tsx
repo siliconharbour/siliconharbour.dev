@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeTechNL, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
 import { createCompany, updateCompany, getAllCompanies, getCompanyByName, deleteCompany } from "~/lib/companies.server";
-import { getAllLearning, getLearningByName, deleteLearning } from "~/lib/learning.server";
+import { getAllEducation, getEducationByName, deleteEducation } from "~/lib/education.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
 
@@ -30,21 +30,21 @@ export async function loader({ request }: Route.LoaderArgs) {
       .map(c => c.name.toLowerCase())
   );
   
-  // Get existing learning institutions (TechNL lists some educational orgs too)
-  const existingLearning = await getAllLearning(true); // include hidden
-  const learningNames = new Set(existingLearning.map(l => l.name.toLowerCase()));
-  const learningWithTechNL = new Set(
-    existingLearning
-      .filter(l => l.technl)
-      .map(l => l.name.toLowerCase())
+  // Get existing education institutions (TechNL lists some educational orgs too)
+  const existingEducation = await getAllEducation(true); // include hidden
+  const educationNames = new Set(existingEducation.map(e => e.name.toLowerCase()));
+  const educationWithTechNL = new Set(
+    existingEducation
+      .filter(e => e.technl)
+      .map(e => e.name.toLowerCase())
   );
   
   // Combine names for "already exists" check
-  const existingNames = new Set([...companyNames, ...learningNames]);
+  const existingNames = new Set([...companyNames, ...educationNames]);
   const existingWebsites = companyWebsites; // Only companies have websites typically
   
   // Combine TechNL flags
-  const allTechNL = new Set([...hasTechNL, ...learningWithTechNL]);
+  const allTechNL = new Set([...hasTechNL, ...educationWithTechNL]);
   
   // Get blocked items
   const blockedTechNL = await getBlockedExternalIds("technl");
@@ -87,9 +87,9 @@ export async function action({ request }: Route.ActionArgs) {
         await deleteCompany(existingCompany.id);
       }
       
-      const existingLearning = await getLearningByName(name);
-      if (existingLearning) {
-        await deleteLearning(existingLearning.id);
+      const existingEducation = await getEducationByName(name);
+      if (existingEducation) {
+        await deleteEducation(existingEducation.id);
       }
       
       return { intent: "block", blocked: { externalId, name } };

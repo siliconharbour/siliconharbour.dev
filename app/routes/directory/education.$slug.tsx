@@ -1,6 +1,6 @@
-import type { Route } from "./+types/learning.$slug";
+import type { Route } from "./+types/education.$slug";
 import { Link, useLoaderData } from "react-router";
-import { getLearningBySlug } from "~/lib/learning.server";
+import { getEducationBySlug } from "~/lib/education.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
@@ -11,12 +11,12 @@ import { ReferencedBy } from "~/components/ReferencedBy";
 
 export function meta({ data }: Route.MetaArgs) {
   return [
-    { title: `${data?.institution?.name ?? "Learning"} - siliconharbour.dev` },
+    { title: `${data?.institution?.name ?? "Education"} - siliconharbour.dev` },
   ];
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const institution = await getLearningBySlug(params.slug);
+  const institution = await getEducationBySlug(params.slug);
   if (!institution) {
     throw new Response("Institution not found", { status: 404 });
   }
@@ -26,8 +26,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   
   const [resolvedRefs, backlinks, comments] = await Promise.all([
     prepareRefsForClient(institution.description),
-    getDetailedBacklinks("learning", institution.id),
-    isAdmin ? getAllComments("learning", institution.id) : getPublicComments("learning", institution.id),
+    getDetailedBacklinks("education", institution.id),
+    isAdmin ? getAllComments("education", institution.id) : getPublicComments("education", institution.id),
   ]);
   
   const turnstileSiteKey = getTurnstileSiteKey();
@@ -35,7 +35,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   return { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin };
 }
 
-export default function LearningDetail() {
+export default function EducationDetail() {
   const { institution, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin } = useLoaderData<typeof loader>();
 
   const typeLabels: Record<string, string> = {
@@ -57,7 +57,7 @@ export default function LearningDetail() {
             <span className="text-amber-800 font-medium">This page is hidden from public listings</span>
           </div>
           <Link
-            to={`/manage/learning/${institution.id}`}
+            to={`/manage/education/${institution.id}`}
             className="text-sm px-3 py-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
           >
             Edit visibility
@@ -90,7 +90,7 @@ export default function LearningDetail() {
               <h1 className="text-3xl font-bold text-harbour-700">{institution.name}</h1>
               {isAdmin && (
                 <Link
-                  to={`/manage/learning/${institution.id}`}
+                  to={`/manage/education/${institution.id}`}
                   className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
                   title="Edit"
                 >
@@ -153,7 +153,7 @@ export default function LearningDetail() {
         <ReferencedBy backlinks={backlinks} />
 
         <CommentSection
-          contentType="learning"
+          contentType="education"
           contentId={institution.id}
           comments={comments}
           turnstileSiteKey={turnstileSiteKey}

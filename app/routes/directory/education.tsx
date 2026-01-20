@@ -1,13 +1,13 @@
-import type { Route } from "./+types/learning";
+import type { Route } from "./+types/education";
 import { Link, useLoaderData } from "react-router";
-import { getPaginatedLearning } from "~/lib/learning.server";
+import { getPaginatedEducation } from "~/lib/education.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Learning - Directory - siliconharbour.dev" },
+    { title: "Education - Directory - siliconharbour.dev" },
   ];
 }
 
@@ -19,7 +19,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
   
-  const { items, total } = await getPaginatedLearning(limit, offset, searchQuery);
+  const { items, total } = await getPaginatedEducation(limit, offset, searchQuery);
   return { items, total, limit, offset, searchQuery, isAdmin };
 }
 
@@ -31,7 +31,7 @@ const typeLabels: Record<string, string> = {
   other: "Other",
 };
 
-export default function DirectoryLearning() {
+export default function DirectoryEducation() {
   const { items, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
 
   return (
@@ -39,10 +39,10 @@ export default function DirectoryLearning() {
       {isAdmin && (
         <div className="flex justify-end">
           <Link
-            to="/manage/learning/new"
+            to="/manage/education/new"
             className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
           >
-            + New Learning Resource
+            + New Education Resource
           </Link>
         </div>
       )}
@@ -50,7 +50,7 @@ export default function DirectoryLearning() {
       {/* Search */}
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
-          <SearchInput placeholder="Search learning resources..." />
+          <SearchInput placeholder="Search education resources..." />
           {searchQuery && (
             <p className="text-sm text-harbour-500">
               {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
@@ -61,14 +61,14 @@ export default function DirectoryLearning() {
 
       {items.length === 0 ? (
         <p className="text-harbour-400">
-          {searchQuery ? "No learning resources match your search." : "No learning resources listed yet."}
+          {searchQuery ? "No education resources match your search." : "No education resources listed yet."}
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((item) => (
             <a
               key={item.id}
-              href={`/directory/learning/${item.slug}`}
+              href={`/directory/education/${item.slug}`}
               className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
             >
               {item.logo ? (

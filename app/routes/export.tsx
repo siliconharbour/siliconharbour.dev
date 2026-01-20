@@ -1,7 +1,7 @@
 import type { Route } from "./+types/export";
 import JSZip from "jszip";
 import { db } from "~/db";
-import { events, eventDates, companies, groups, learning, people, news, jobs, projects } from "~/db/schema";
+import { events, eventDates, companies, groups, education, people, news, jobs, projects } from "~/db/schema";
 import { asc, desc } from "drizzle-orm";
 import { format } from "date-fns";
 
@@ -16,7 +16,7 @@ export async function loader({}: Route.LoaderArgs) {
     allEventDates,
     allCompanies,
     allGroups,
-    allLearning,
+    allEducation,
     allPeople,
     allNews,
     allJobs,
@@ -26,7 +26,7 @@ export async function loader({}: Route.LoaderArgs) {
     db.select().from(eventDates),
     db.select().from(companies).orderBy(asc(companies.name)),
     db.select().from(groups).orderBy(asc(groups.name)),
-    db.select().from(learning).orderBy(asc(learning.name)),
+    db.select().from(education).orderBy(asc(education.name)),
     db.select().from(people).orderBy(asc(people.name)),
     db.select().from(news).orderBy(desc(news.publishedAt)),
     db.select().from(jobs).orderBy(desc(jobs.postedAt)),
@@ -96,9 +96,9 @@ export async function loader({}: Route.LoaderArgs) {
     groupsFolder?.file(`${group.slug}.md`, `${frontmatter}\n${group.description}`);
   }
 
-  // Export learning
-  const learningFolder = zip.folder("learning");
-  for (const inst of allLearning) {
+  // Export education
+  const educationFolder = zip.folder("education");
+  for (const inst of allEducation) {
     const frontmatter = buildFrontmatter({
       name: inst.name,
       slug: inst.slug,
@@ -109,7 +109,7 @@ export async function loader({}: Route.LoaderArgs) {
       createdAt: inst.createdAt.toISOString(),
       updatedAt: inst.updatedAt.toISOString(),
     });
-    learningFolder?.file(`${inst.slug}.md`, `${frontmatter}\n${inst.description}`);
+    educationFolder?.file(`${inst.slug}.md`, `${frontmatter}\n${inst.description}`);
   }
 
   // Export people

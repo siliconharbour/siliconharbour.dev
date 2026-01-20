@@ -29,8 +29,8 @@ export default [
   route("api/groups/:slug", "routes/api/groups.$slug.tsx"),
   route("api/jobs", "routes/api/jobs.tsx"),
   route("api/jobs/:slug", "routes/api/jobs.$slug.tsx"),
-  route("api/learning", "routes/api/learning.tsx"),
-  route("api/learning/:slug", "routes/api/learning.$slug.tsx"),
+  route("api/education", "routes/api/education.tsx"),
+  route("api/education/:slug", "routes/api/education.$slug.tsx"),
   route("api/news", "routes/api/news.tsx"),
   route("api/news/:slug", "routes/api/news.$slug.tsx"),
   route("api/people", "routes/api/people.tsx"),
@@ -57,7 +57,7 @@ export default [
       route("directory/people", "routes/directory/people.tsx"),
       route("directory/products", "routes/directory/products.tsx"),
       route("directory/projects", "routes/directory/projects.tsx"),
-      route("directory/learning", "routes/directory/learning.tsx"),
+      route("directory/education", "routes/directory/education.tsx"),
     ]),
     
     // Directory detail pages (outside tab layout for full-width content)
@@ -66,7 +66,7 @@ export default [
     route("directory/people/:slug", "routes/directory/people.$slug.tsx"),
     route("directory/products/:slug", "routes/directory/products.$slug.tsx"),
     route("directory/projects/:slug", "routes/directory/projects.$slug.tsx"),
-    route("directory/learning/:slug", "routes/directory/learning.$slug.tsx"),
+    route("directory/education/:slug", "routes/directory/education.$slug.tsx"),
     
     // Events (realtime content, separate from directory)
     ...prefix("events", [
@@ -114,11 +114,11 @@ export default [
       route(":id", "routes/manage/groups/edit.tsx"),
       route(":id/delete", "routes/manage/groups/delete.tsx"),
     ]),
-    ...prefix("learning", [
-      index("routes/manage/learning/index.tsx"),
-      route("new", "routes/manage/learning/new.tsx"),
-      route(":id", "routes/manage/learning/edit.tsx"),
-      route(":id/delete", "routes/manage/learning/delete.tsx"),
+    ...prefix("education", [
+      index("routes/manage/education/index.tsx"),
+      route("new", "routes/manage/education/new.tsx"),
+      route(":id", "routes/manage/education/edit.tsx"),
+      route(":id/delete", "routes/manage/education/delete.tsx"),
     ]),
     ...prefix("people", [
       index("routes/manage/people/index.tsx"),

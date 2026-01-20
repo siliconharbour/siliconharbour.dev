@@ -14,7 +14,7 @@ export async function loader({}: Route.LoaderArgs) {
 // Items without keys are always shown
 const navItems: { href: string; label: string; keys?: SectionKey[] }[] = [
   { href: "/events", label: "Events", keys: ["events"] },
-  { href: "/directory", label: "Directory", keys: ["companies", "groups", "people", "products", "projects", "learning"] },
+  { href: "/directory", label: "Directory", keys: ["companies", "groups", "people", "products", "projects", "education"] },
   { href: "/news", label: "News", keys: ["news"] },
   { href: "/jobs", label: "Jobs", keys: ["jobs"] },
 ];

@@ -27,7 +27,7 @@ export const sessions = sqliteTable("sessions", {
 // =============================================================================
 
 // Content type enum for the references table
-export const contentTypes = ["event", "company", "group", "learning", "person", "news", "job", "project", "product"] as const;
+export const contentTypes = ["event", "company", "group", "education", "person", "news", "job", "project", "product"] as const;
 export type ContentType = typeof contentTypes[number];
 
 // Events - tech meetups, conferences, workshops
@@ -131,8 +131,8 @@ export const groups = sqliteTable("groups", {
     .$defaultFn(() => new Date()),
 });
 
-// Learning - educational institutions and resources
-export const learning = sqliteTable("learning", {
+// Education - educational institutions and resources
+export const education = sqliteTable("education", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
@@ -344,7 +344,7 @@ export const sectionKeys = [
   "groups",
   "projects",
   "products",
-  "learning",
+  "education",
   "people",
   "news",
   "jobs",
@@ -462,8 +462,8 @@ export type NewCompany = typeof companies.$inferInsert;
 export type Group = typeof groups.$inferSelect;
 export type NewGroup = typeof groups.$inferInsert;
 
-export type Learning = typeof learning.$inferSelect;
-export type NewLearning = typeof learning.$inferInsert;
+export type Education = typeof education.$inferSelect;
+export type NewEducation = typeof education.$inferInsert;
 
 export type Person = typeof people.$inferSelect;
 export type NewPerson = typeof people.$inferInsert;

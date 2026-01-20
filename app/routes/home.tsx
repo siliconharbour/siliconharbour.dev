@@ -2,9 +2,6 @@ import type { Route } from "./+types/home";
 import { Link, useLoaderData } from "react-router";
 import { getEventsThisWeek, getUpcomingEvents } from "~/lib/events.server";
 import { getAllCompanies } from "~/lib/companies.server";
-import { getAllGroups } from "~/lib/groups.server";
-import { getAllPeople } from "~/lib/people.server";
-import { getAllLearning } from "~/lib/learning.server";
 import { getPublishedNews } from "~/lib/news.server";
 import { getActiveJobs } from "~/lib/jobs.server";
 import { getAllProjects } from "~/lib/projects.server";
@@ -25,13 +22,10 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({}: Route.LoaderArgs) {
-  const [thisWeek, upcoming, companies, groups, people, learning, news, jobs, projects, visibility] = await Promise.all([
+  const [thisWeek, upcoming, companies, news, jobs, projects, visibility] = await Promise.all([
     getEventsThisWeek(),
     getUpcomingEvents(),
     getAllCompanies(),
-    getAllGroups(),
-    getAllPeople(),
-    getAllLearning(),
     getPublishedNews(),
     getActiveJobs(),
     getAllProjects(),
@@ -54,38 +48,20 @@ export async function loader({}: Route.LoaderArgs) {
     futureEvents, 
     allEvents: upcoming,
     companies,
-    groups,
-    people,
-    learning,
     news: news.slice(0, 3), // Latest 3 news articles
     jobs: jobs.slice(0, 4), // Latest 4 jobs
     projects: projects.slice(0, 4), // Latest 4 projects
     eventRefs,
     visibility,
-    counts: {
-      companies: companies.length,
-      groups: groups.length,
-      people: people.length,
-      learning: learning.length,
-      news: news.length,
-      jobs: jobs.length,
-      events: upcoming.length,
-      projects: projects.length,
-      products: 0, // Not shown in quick links yet
-    }
   };
 }
 
-// Quick links config with section keys
-const quickLinks: { to: string; label: string; key: SectionKey }[] = [
-  { to: "/events", label: "Events", key: "events" },
-  { to: "/directory/companies", label: "Companies", key: "companies" },
-  { to: "/directory/projects", label: "Projects", key: "projects" },
-  { to: "/jobs", label: "Jobs", key: "jobs" },
-  { to: "/news", label: "News", key: "news" },
-  { to: "/directory/groups", label: "Groups", key: "groups" },
-  { to: "/directory/people", label: "People", key: "people" },
-  { to: "/directory/learning", label: "Learning", key: "learning" },
+// Main nav items (matching the header nav)
+const navItems: { href: string; label: string; keys: SectionKey[] }[] = [
+  { href: "/events", label: "Events", keys: ["events"] },
+  { href: "/directory", label: "Directory", keys: ["companies", "groups", "people", "products", "projects", "education"] },
+  { href: "/news", label: "News", keys: ["news"] },
+  { href: "/jobs", label: "Jobs", keys: ["jobs"] },
 ];
 
 export default function Home() {
@@ -97,7 +73,6 @@ export default function Home() {
     news, 
     jobs,
     projects,
-    counts,
     eventRefs,
     visibility,
   } = useLoaderData<typeof loader>();
@@ -106,8 +81,10 @@ export default function Home() {
   const featuredCompanies = companies.slice(0, 4);
   const featuredProjects = projects.slice(0, 4);
   
-  // Filter quick links based on visibility
-  const visibleQuickLinks = quickLinks.filter(link => visibility[link.key]);
+  // Filter nav items based on visibility
+  const visibleNavItems = navItems.filter((item) => {
+    return item.keys.some(key => visibility[key]);
+  });
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -132,6 +109,21 @@ export default function Home() {
           </p>
         </div>
       </div>
+
+      {/* Navigation Buttons */}
+      <nav className="max-w-6xl mx-auto px-4 py-6">
+        <div className="flex flex-wrap justify-center gap-3">
+          {visibleNavItems.map((item) => (
+            <Link
+              key={item.href}
+              to={item.href}
+              className="px-6 py-3 text-lg font-medium text-harbour-600 ring-1 ring-harbour-200 hover:ring-harbour-400 hover:text-harbour-700 transition-all"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </nav>
 
       {/* Main Content */}
       <main className="flex-1">
@@ -352,21 +344,6 @@ export default function Home() {
               <div className="sticky top-8 flex flex-col gap-6">
                 {/* Calendar */}
                 {visibility.events && <Calendar events={allEvents} />}
-
-                {/* Quick Links */}
-                <div className="flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50">
-                  <h3 className="text-sm font-semibold text-harbour-700">Explore</h3>
-                  <nav className="flex flex-col gap-2">
-                    {visibleQuickLinks.map((link) => (
-                      <QuickLink 
-                        key={link.to}
-                        to={link.to} 
-                        label={link.label} 
-                        count={counts[link.key]} 
-                      />
-                    ))}
-                  </nav>
-                </div>
               </div>
             </aside>
           </div>
@@ -375,17 +352,5 @@ export default function Home() {
 
       <Footer />
     </div>
-  );
-}
-
-function QuickLink({ to, label, count }: { to: string; label: string; count: number }) {
-  return (
-    <Link
-      to={to}
-      className="flex items-center justify-between py-1 text-sm text-harbour-600 hover:text-harbour-700"
-    >
-      <span>{label}</span>
-      <span className="text-harbour-400">{count}</span>
-    </Link>
   );
 }

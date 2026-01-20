@@ -4,7 +4,7 @@ import { requireAuth } from "~/lib/session.server";
 import { getAllEvents } from "~/lib/events.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { getAllGroups } from "~/lib/groups.server";
-import { getAllLearning } from "~/lib/learning.server";
+import { getAllEducation } from "~/lib/education.server";
 import { getAllPeople } from "~/lib/people.server";
 import { getAllNews } from "~/lib/news.server";
 import { getAllJobs } from "~/lib/jobs.server";
@@ -20,11 +20,11 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
-  const [events, companies, groups, learning, people, news, jobs, projects, products, commentsCount] = await Promise.all([
+  const [events, companies, groups, education, people, news, jobs, projects, products, commentsCount] = await Promise.all([
     getAllEvents(),
     getAllCompanies(),
     getAllGroups(),
-    getAllLearning(),
+    getAllEducation(),
     getAllPeople(),
     getAllNews(),
     getAllJobs(),
@@ -38,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       events: events.length,
       companies: companies.length,
       groups: groups.length,
-      learning: learning.length,
+      education: education.length,
       people: people.length,
       news: news.length,
       jobs: jobs.length,
@@ -53,7 +53,7 @@ const contentTypes = [
   { key: "events", label: "Events", href: "/manage/events" },
   { key: "companies", label: "Companies", href: "/manage/companies" },
   { key: "groups", label: "Groups", href: "/manage/groups" },
-  { key: "learning", label: "Learning", href: "/manage/learning" },
+  { key: "education", label: "Education", href: "/manage/education" },
   { key: "people", label: "People", href: "/manage/people" },
   { key: "news", label: "News", href: "/manage/news" },
   { key: "jobs", label: "Jobs", href: "/manage/jobs" },

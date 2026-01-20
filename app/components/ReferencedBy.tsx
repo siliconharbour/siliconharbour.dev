@@ -16,7 +16,7 @@ export function ReferencedBy({ backlinks }: ReferencedByProps) {
     return acc;
   }, {} as Record<string, DetailedBacklink[]>);
 
-  const typeOrder = ["event", "news", "job", "company", "project", "group", "person", "learning"] as const;
+  const typeOrder = ["event", "news", "job", "company", "project", "group", "person", "education"] as const;
   const sortedTypes = typeOrder.filter(t => grouped[t]?.length > 0);
 
   return (
@@ -39,7 +39,7 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
     project: "Projects",
     group: "Groups",
     person: "People",
-    learning: "Learning",
+    education: "Education",
   };
 
   return (
@@ -70,8 +70,8 @@ function BacklinkCard({ backlink }: { backlink: DetailedBacklink }) {
       return <GroupCard data={backlink.data} />;
     case "person":
       return <PersonCard data={backlink.data} relation={backlink.relation} />;
-    case "learning":
-      return <LearningCard data={backlink.data} />;
+    case "education":
+      return <EducationCard data={backlink.data} />;
     default:
       return null;
   }
@@ -284,10 +284,10 @@ function PersonCard({ data, relation }: { data: DetailedBacklink & { type: "pers
   );
 }
 
-function LearningCard({ data }: { data: DetailedBacklink & { type: "learning" } extends { data: infer D } ? D : never }) {
+function EducationCard({ data }: { data: DetailedBacklink & { type: "education" } extends { data: infer D } ? D : never }) {
   return (
     <Link
-      to={`/directory/learning/${data.slug}`}
+      to={`/directory/education/${data.slug}`}
       className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
