@@ -54,7 +54,7 @@ export default function NewsDetail() {
   const { article, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
+    <div className="max-w-[60ch] mx-auto p-4 py-8">
       <article className="flex flex-col gap-6">
         {article.coverImage && (
           <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
