@@ -449,14 +449,14 @@ export async function resolveOrganizers(organizer: string | null): Promise<Array
 
 const contentTypeRoutes: Record<ContentType, string> = {
   event: "/events",
-  company: "/companies",
-  group: "/groups",
+  company: "/directory/companies",
+  group: "/directory/groups",
   education: "/directory/education",
-  person: "/people",
+  person: "/directory/people",
   news: "/news",
   job: "/jobs",
-  project: "/projects",
-  product: "/products",
+  project: "/directory/projects",
+  product: "/directory/products",
 };
 
 export function getContentUrl(type: ContentType, slug: string): string {
