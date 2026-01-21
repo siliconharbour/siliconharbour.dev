@@ -604,8 +604,29 @@ export async function getRichIncomingReferences(
 // Detailed Backlinks - Full entity data for rich display
 // =============================================================================
 
+// Full event data for backlinks - matches Event & { dates: EventDate[] }
+export type EventBacklinkData = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  location: string | null;
+  link: string;
+  organizer: string | null;
+  coverImage: string | null;
+  iconImage: string | null;
+  requiresSignup: boolean;
+  recurrenceRule: string | null;
+  recurrenceEnd: Date | null;
+  defaultStartTime: string | null;
+  defaultEndTime: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  dates: Array<{ id: number; eventId: number; startDate: Date; endDate: Date | null }>;
+};
+
 export type DetailedBacklink = 
-  | { type: "event"; relation?: string; data: { id: number; slug: string; title: string; coverImage: string | null; nextDate: Date | null } }
+  | { type: "event"; relation?: string; data: EventBacklinkData }
   | { type: "company"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; location: string | null } }
   | { type: "group"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null } }
   | { type: "education"; relation?: string; data: { id: number; slug: string; name: string; logo: string | null; type: string | null } }
@@ -628,28 +649,22 @@ export async function getDetailedBacklinks(
   for (const ref of refs) {
     switch (ref.sourceType) {
       case "event": {
-        const [event] = await db.select({
-          id: events.id,
-          slug: events.slug,
-          title: events.title,
-          coverImage: events.coverImage,
-        }).from(events).where(eq(events.id, ref.sourceId));
+        const [event] = await db.select().from(events).where(eq(events.id, ref.sourceId));
         
         if (event) {
-          // Get next upcoming date
-          const [nextDate] = await db.select({ startDate: eventDates.startDate })
+          // Get upcoming dates for this event
+          const dates = await db.select()
             .from(eventDates)
             .where(and(
               eq(eventDates.eventId, event.id),
               gte(eventDates.startDate, now)
             ))
-            .orderBy(asc(eventDates.startDate))
-            .limit(1);
+            .orderBy(asc(eventDates.startDate));
           
           backlinks.push({
             type: "event",
             relation: ref.relation ?? undefined,
-            data: { ...event, nextDate: nextDate?.startDate ?? null }
+            data: { ...event, dates }
           });
         }
         break;

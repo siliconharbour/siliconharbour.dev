@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { format } from "date-fns";
 import type { DetailedBacklink } from "~/lib/references.server";
 import { formatInTimezone } from "~/lib/timezone";
+import { EventCard } from "./EventCard";
 
 interface ReferencedByProps {
   backlinks: DetailedBacklink[];
@@ -43,10 +44,15 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
     education: "Education",
   };
 
+  // Events use full-width EventCard, others use 2-column grid
+  const gridClass = type === "event" 
+    ? "flex flex-col gap-4" 
+    : "grid grid-cols-1 sm:grid-cols-2 gap-3";
+
   return (
     <div>
       <h3 className="text-sm font-medium text-harbour-500 mb-3">{labels[type] || type}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className={gridClass}>
         {backlinks.map(link => (
           <BacklinkCard key={`${link.type}-${link.data.id}`} backlink={link} />
         ))}
@@ -58,7 +64,7 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
 function BacklinkCard({ backlink }: { backlink: DetailedBacklink }) {
   switch (backlink.type) {
     case "event":
-      return <EventCard data={backlink.data} />;
+      return <EventCard event={backlink.data} />;
     case "news":
       return <NewsCard data={backlink.data} />;
     case "job":
@@ -78,40 +84,7 @@ function BacklinkCard({ backlink }: { backlink: DetailedBacklink }) {
   }
 }
 
-function EventCard({ data }: { data: DetailedBacklink & { type: "event" } extends { data: infer D } ? D : never }) {
-  return (
-    <Link
-      to={`/events/${data.slug}`}
-      className="group flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
-    >
-      {data.coverImage ? (
-        <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">
-          <img
-            src={`/images/${data.coverImage}`}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        </div>
-      ) : (
-        <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-          <svg className="w-6 h-6 text-harbour-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
-          {data.title}
-        </h4>
-        {data.nextDate && (
-          <p className="text-sm text-harbour-500 mt-1">
-            {formatInTimezone(data.nextDate, "MMM d, yyyy")}
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-}
+
 
 function NewsCard({ data }: { data: DetailedBacklink & { type: "news" } extends { data: infer D } ? D : never }) {
   return (
