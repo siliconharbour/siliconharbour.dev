@@ -44,9 +44,9 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
     education: "Education",
   };
 
-  // Events use full-width EventCard, others use 2-column grid
+  // Events use single column with max-width, others use 2-column grid
   const gridClass = type === "event" 
-    ? "flex flex-col gap-4" 
+    ? "flex flex-col gap-4 max-w-md" 
     : "grid grid-cols-1 sm:grid-cols-2 gap-3";
 
   return (
