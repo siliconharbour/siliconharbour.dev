@@ -88,7 +88,9 @@ export default function NewsDetail() {
           )}
         </div>
 
-        <RichMarkdown content={article.content} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={article.content} resolvedRefs={resolvedRefs} />
+        </div>
 
         <ReferencedBy backlinks={backlinks} />
 

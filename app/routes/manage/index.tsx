@@ -130,11 +130,18 @@ export default function ManageIndex() {
               <p className="text-harbour-400 text-sm">Import companies from the Genesis Centre portfolio</p>
             </Link>
             <Link
-              to="/manage/import/github"
+              to="/manage/import/github-by-location"
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
             >
-              <h3 className="font-medium text-harbour-700">GitHub Users</h3>
-              <p className="text-harbour-400 text-sm">Import people from GitHub by location</p>
+              <h3 className="font-medium text-harbour-700">GitHub by Location</h3>
+              <p className="text-harbour-400 text-sm">Search GitHub for users with Newfoundland in their location field</p>
+            </Link>
+            <Link
+              to="/manage/import/github-following"
+              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
+            >
+              <h3 className="font-medium text-harbour-700">GitHub Connections</h3>
+              <p className="text-harbour-400 text-sm">Import from a user's following/followers - useful for finding local devs who don't list their location</p>
             </Link>
           </div>
         </div>

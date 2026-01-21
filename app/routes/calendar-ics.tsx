@@ -1,6 +1,8 @@
 import type { Route } from "./+types/calendar-ics";
 import { createEvents, type EventAttributes } from "ics";
 import { getUpcomingEvents } from "~/lib/events.server";
+import { toZonedTime } from "date-fns-tz";
+import { SITE_TIMEZONE } from "~/lib/timezone";
 
 export async function loader({}: Route.LoaderArgs) {
   const events = await getUpcomingEvents();
@@ -9,8 +11,10 @@ export async function loader({}: Route.LoaderArgs) {
 
   for (const event of events) {
     for (const date of event.dates) {
-      const start = date.startDate;
-      const end = date.endDate || new Date(start.getTime() + 60 * 60 * 1000); // Default 1 hour if no end
+      // Convert to Newfoundland timezone for display
+      const start = toZonedTime(date.startDate, SITE_TIMEZONE);
+      const endDate = date.endDate || new Date(date.startDate.getTime() + 60 * 60 * 1000);
+      const end = toZonedTime(endDate, SITE_TIMEZONE);
 
       icsEvents.push({
         title: event.title,
@@ -25,6 +29,8 @@ export async function loader({}: Route.LoaderArgs) {
           start.getHours(),
           start.getMinutes(),
         ],
+        startInputType: "local",
+        startOutputType: "local",
         end: [
           end.getFullYear(),
           end.getMonth() + 1,
@@ -32,6 +38,8 @@ export async function loader({}: Route.LoaderArgs) {
           end.getHours(),
           end.getMinutes(),
         ],
+        endInputType: "local",
+        endOutputType: "local",
         uid: `${event.id}-${date.id}@siliconharbour.dev`,
       });
     }

@@ -109,7 +109,9 @@ export default function CompanyDetail() {
           </div>
         </div>
 
-        <RichMarkdown content={company.description} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={company.description} resolvedRefs={resolvedRefs} />
+        </div>
 
         {(company.website || company.wikipedia || company.github || company.technl || company.genesis) && (
           <div className="flex flex-wrap gap-3">

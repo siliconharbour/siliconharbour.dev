@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { format } from "date-fns";
 import type { DetailedBacklink } from "~/lib/references.server";
+import { formatInTimezone } from "~/lib/timezone";
 
 interface ReferencedByProps {
   backlinks: DetailedBacklink[];
@@ -104,7 +105,7 @@ function EventCard({ data }: { data: DetailedBacklink & { type: "event" } extend
         </h4>
         {data.nextDate && (
           <p className="text-sm text-harbour-500 mt-1">
-            {format(data.nextDate, "MMM d, yyyy")}
+            {formatInTimezone(data.nextDate, "MMM d, yyyy")}
           </p>
         )}
       </div>

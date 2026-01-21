@@ -111,7 +111,9 @@ export default function ProductDetail() {
           </div>
         </div>
 
-        <RichMarkdown content={product.description} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={product.description} resolvedRefs={resolvedRefs} />
+        </div>
 
         {/* Links */}
         {product.website && (

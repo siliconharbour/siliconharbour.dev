@@ -1,8 +1,6 @@
 import type { Route } from "./+types/stay-connected";
 import { useState } from "react";
 import { useLoaderData } from "react-router";
-import { getUpcomingEvents } from "~/lib/events.server";
-import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -18,7 +16,6 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({}: Route.LoaderArgs) {
   const siteUrl = process.env.SITE_URL || "https://siliconharbour.dev";
   const calendarUrl = `${siteUrl}/calendar.ics`;
-  const events = await getUpcomingEvents();
 
   const feeds = [
     {
@@ -43,15 +40,15 @@ export async function loader({}: Route.LoaderArgs) {
     },
   ];
 
-  return { calendarUrl, events: events.slice(0, 3), feeds };
+  return { calendarUrl, feeds };
 }
 
 export default function SubscribePage() {
-  const { calendarUrl, events, feeds } = useLoaderData<typeof loader>();
+  const { calendarUrl, feeds } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-3xl mx-auto p-4 py-8">
-      <article className="prose">
+    <div className="max-w-4xl mx-auto p-4 py-8">
+      <article className="prose mx-auto">
         <h1>Stay Connected</h1>
 
         <p className="text-lg">
@@ -75,32 +72,6 @@ export default function SubscribePage() {
         </p>
 
         <CopyUrlCard url={calendarUrl} />
-
-        {events.length > 0 && (
-          <div className="not-prose flex flex-col gap-2 my-4">
-            <p className="text-sm text-harbour-500">Coming up:</p>
-            <div className="flex flex-col gap-2">
-              {events.map((event) => {
-                const nextDate = event.dates[0];
-                if (!nextDate) return null;
-                return (
-                  <a
-                    key={event.id}
-                    href={`/events/${event.slug}`}
-                    className="group flex items-center gap-3 p-2 text-sm ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
-                  >
-                    <span className="text-harbour-500 tabular-nums">
-                      {format(nextDate.startDate, "MMM d")}
-                    </span>
-                    <span className="link-title text-harbour-700">
-                      {event.title}
-                    </span>
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         <p>
           Need help? See instructions for{" "}

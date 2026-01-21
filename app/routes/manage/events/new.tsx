@@ -4,6 +4,7 @@ import { requireAuth } from "~/lib/session.server";
 import { createEvent } from "~/lib/events.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
+import { parseAsTimezone } from "~/lib/timezone";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Event - siliconharbour.dev" }];
@@ -25,6 +26,7 @@ export async function action({ request }: Route.ActionArgs) {
   const location = (formData.get("location") as string) || null;
   const organizer = (formData.get("organizer") as string) || null;
   const eventType = formData.get("eventType") as string;
+  const requiresSignup = formData.get("requiresSignup") === "on";
 
   if (!title || !description || !link) {
     return { error: "Title, description, and link are required" };
@@ -73,6 +75,7 @@ export async function action({ request }: Route.ActionArgs) {
         organizer,
         coverImage,
         iconImage,
+        requiresSignup,
         recurrenceRule,
         recurrenceEnd,
         defaultStartTime,
@@ -90,14 +93,15 @@ export async function action({ request }: Route.ActionArgs) {
       const startTime = formData.get(`dates[${dateIndex}][startTime]`) as string;
       const hasEnd = formData.get(`dates[${dateIndex}][hasEnd]`) === "1";
 
-      const startDate = new Date(`${startDateStr}T${startTime}`);
+      // Parse as Newfoundland timezone
+      const startDate = parseAsTimezone(startDateStr, startTime);
       let endDate: Date | null = null;
 
       if (hasEnd) {
         const endDateStr = formData.get(`dates[${dateIndex}][endDate]`) as string;
         const endTime = formData.get(`dates[${dateIndex}][endTime]`) as string;
         if (endDateStr && endTime) {
-          endDate = new Date(`${endDateStr}T${endTime}`);
+          endDate = parseAsTimezone(endDateStr, endTime);
         }
       }
 
@@ -118,6 +122,7 @@ export async function action({ request }: Route.ActionArgs) {
         organizer,
         coverImage,
         iconImage,
+        requiresSignup,
       },
       dates
     );

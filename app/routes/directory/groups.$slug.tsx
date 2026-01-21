@@ -102,7 +102,9 @@ export default function GroupDetail() {
           </div>
         </div>
 
-        <RichMarkdown content={group.description} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={group.description} resolvedRefs={resolvedRefs} />
+        </div>
 
         {group.website && (
           <a

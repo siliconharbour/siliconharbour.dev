@@ -4,6 +4,7 @@ import { requireAuth } from "~/lib/session.server";
 import { getEventById, updateEvent } from "~/lib/events.server";
 import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
+import { parseAsTimezone } from "~/lib/timezone";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.event?.title || "Event"} - siliconharbour.dev` }];
@@ -46,6 +47,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const location = (formData.get("location") as string) || null;
   const organizer = (formData.get("organizer") as string) || null;
   const eventType = formData.get("eventType") as string;
+  const requiresSignup = formData.get("requiresSignup") === "on";
 
   if (!title || !description || !link) {
     return { error: "Title, description, and link are required" };
@@ -116,6 +118,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         link,
         location,
         organizer,
+        requiresSignup,
         ...(coverImage !== undefined && { coverImage }),
         ...(iconImage !== undefined && { iconImage }),
         recurrenceRule,
@@ -135,14 +138,15 @@ export async function action({ request, params }: Route.ActionArgs) {
       const startTime = formData.get(`dates[${dateIndex}][startTime]`) as string;
       const hasEnd = formData.get(`dates[${dateIndex}][hasEnd]`) === "1";
 
-      const startDate = new Date(`${startDateStr}T${startTime}`);
+      // Parse as Newfoundland timezone
+      const startDate = parseAsTimezone(startDateStr, startTime);
       let endDate: Date | null = null;
 
       if (hasEnd) {
         const endDateStr = formData.get(`dates[${dateIndex}][endDate]`) as string;
         const endTime = formData.get(`dates[${dateIndex}][endTime]`) as string;
         if (endDateStr && endTime) {
-          endDate = new Date(`${endDateStr}T${endTime}`);
+          endDate = parseAsTimezone(endDateStr, endTime);
         }
       }
 
@@ -162,6 +166,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         link,
         location,
         organizer,
+        requiresSignup,
         ...(coverImage !== undefined && { coverImage }),
         ...(iconImage !== undefined && { iconImage }),
         // Clear recurrence when switching to one-time

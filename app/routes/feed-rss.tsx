@@ -3,6 +3,7 @@ import { getUpcomingEvents } from "~/lib/events.server";
 import { getPublishedNews } from "~/lib/news.server";
 import { getActiveJobs } from "~/lib/jobs.server";
 import { format } from "date-fns";
+import { formatInTimezone } from "~/lib/timezone";
 
 export async function loader({}: Route.LoaderArgs) {
   const [events, newsArticles, jobs] = await Promise.all([
@@ -22,16 +23,20 @@ export async function loader({}: Route.LoaderArgs) {
   };
 
   const items: FeedItem[] = [
-    ...events.map((event) => ({
-      title: event.title,
-      link: `https://siliconharbour.dev/events/${event.slug}`,
-      description: event.description.slice(0, 500) + (event.description.length > 500 ? "..." : ""),
-      pubDate: event.createdAt,
-      guid: `event-${event.id}`,
-      category: "Events",
-    })),
+    ...events.map((event) => {
+      const nextDate = event.dates[0];
+      const dateStr = nextDate ? formatInTimezone(nextDate.startDate, "MMM d, yyyy") : "";
+      return {
+        title: `Event - ${event.title}${dateStr ? ` - ${dateStr}` : ""}`,
+        link: `https://siliconharbour.dev/events/${event.slug}`,
+        description: event.description.slice(0, 500) + (event.description.length > 500 ? "..." : ""),
+        pubDate: event.createdAt,
+        guid: `event-${event.id}`,
+        category: "Events",
+      };
+    }),
     ...newsArticles.map((article) => ({
-      title: article.title,
+      title: `News - ${article.title}`,
       link: `https://siliconharbour.dev/news/${article.slug}`,
       description: article.excerpt ?? article.content.slice(0, 500) + (article.content.length > 500 ? "..." : ""),
       pubDate: article.publishedAt ?? article.createdAt,
@@ -39,7 +44,7 @@ export async function loader({}: Route.LoaderArgs) {
       category: "News",
     })),
     ...jobs.map((job) => ({
-      title: `${job.title}${job.companyName ? ` at ${job.companyName}` : ""}`,
+      title: `Job - ${job.title}${job.companyName ? ` at ${job.companyName}` : ""}`,
       link: `https://siliconharbour.dev/jobs/${job.slug}`,
       description: job.description.slice(0, 500) + (job.description.length > 500 ? "..." : ""),
       pubDate: job.postedAt,

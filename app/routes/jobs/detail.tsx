@@ -69,7 +69,9 @@ export default function JobDetail() {
           </div>
         </div>
 
-        <RichMarkdown content={job.description} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={job.description} resolvedRefs={resolvedRefs} />
+        </div>
 
         <a
           href={job.applyLink}

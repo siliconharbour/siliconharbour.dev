@@ -6,7 +6,7 @@ import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.se
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
-import { format } from "date-fns";
+import { formatInTimezone } from "~/lib/timezone";
 
 export function meta({ data, params }: Route.MetaArgs) {
   const title = data?.event?.title ?? "Event";
@@ -55,42 +55,73 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   return { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin };
 }
 
+function getEventLinkDomain(link: string): string {
+  try {
+    const url = new URL(link);
+    return url.hostname.replace(/^www\./, "");
+  } catch {
+    return "external site";
+  }
+}
+
 export default function EventDetail() {
   const { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin } = useLoaderData<typeof loader>();
   const isRecurring = !!event.recurrenceRule;
+  const eventLinkDomain = getEventLinkDomain(event.link);
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
       <article className="flex flex-col gap-6">
-        {event.coverImage && (
-          <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
-            <img
-              src={`/images/${event.coverImage}`}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+        {/* Hero section with cover image as backdrop */}
+        <div className="relative">
+          {event.coverImage && (
+            <div className="aspect-[3/1] relative overflow-hidden bg-harbour-100">
+              <img
+                src={`/images/${event.coverImage}`}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </div>
+          )}
+          
+          {/* Event title card overlapping the cover */}
+          <div className={`relative ${event.coverImage ? "-mt-12 mx-4" : ""}`}>
+            <div className={`bg-white p-4 ring-1 ring-harbour-200/50`}>
+              <div className="flex items-start gap-4">
+                {event.iconImage && (
+                  <div className="relative w-20 h-20 flex-shrink-0">
+                    <img
+                      src={`/images/${event.iconImage}`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-3xl font-bold text-harbour-700">{event.title}</h1>
+                    {isAdmin && (
+                      <Link
+                        to={`/manage/events/${event.id}`}
+                        className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                        title="Edit"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </Link>
+                    )}
+                  </div>
+                  {event.organizer && (
+                    <p className="text-harbour-500 mt-1">Organized by {event.organizer}</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-harbour-700">{event.title}</h1>
-            {isAdmin && (
-              <Link
-                to={`/manage/events/${event.id}`}
-                className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
-                title="Edit"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </Link>
-            )}
-          </div>
-          
-          {event.organizer && (
-            <p className="text-harbour-500">Organized by {event.organizer}</p>
-          )}
 
           {/* Recurring event badge and description */}
           {isRecurring && recurrenceDescription && (
@@ -105,67 +136,73 @@ export default function EventDetail() {
             </div>
           )}
 
-          {/* Show dates - either explicit dates or generated occurrences */}
+          {/* When */}
           <div className="flex flex-col gap-2">
-            {isRecurring ? (
-              // Show upcoming occurrences for recurring events
-              occurrences.length > 0 ? (
-                <>
-                  <h3 className="text-sm font-medium text-harbour-500">Upcoming Dates</h3>
-                  {occurrences.slice(0, 8).map((occ, i) => (
-                    <div key={i} className={`text-harbour-600 ${occ.cancelled ? 'line-through text-harbour-400' : ''}`}>
-                      <time dateTime={occ.date.toISOString()}>
-                        {format(occ.date, "EEEE, MMMM d, yyyy 'at' h:mm a")}
-                      </time>
-                      {occ.endDate && (
-                        <>
-                          {" - "}
-                          <time dateTime={occ.endDate.toISOString()}>
-                            {format(occ.endDate, "h:mm a")}
+            <div className="flex gap-2">
+              <span className="text-harbour-500">When:</span>
+              <div className="flex flex-col gap-1">
+                {isRecurring ? (
+                  // Show upcoming occurrences for recurring events
+                  occurrences.length > 0 ? (
+                    <>
+                      {occurrences.slice(0, 8).map((occ, i) => (
+                        <div key={i} className={`${occ.cancelled ? 'line-through text-harbour-400' : ''}`}>
+                          <time dateTime={occ.date.toISOString()} className="font-semibold text-harbour-700">
+                            {formatInTimezone(occ.date, "EEEE, MMMM d, yyyy 'at' h:mm a")}
                           </time>
-                        </>
+                          {occ.endDate && (
+                            <span className="font-semibold text-harbour-700">
+                              {" - "}
+                              {formatInTimezone(occ.endDate, "h:mm a")}
+                            </span>
+                          )}
+                          {occ.cancelled && <span className="ml-2 text-red-500">(Cancelled)</span>}
+                          {occ.location && occ.location !== event.location && (
+                            <span className="ml-2 text-harbour-400">at {occ.location}</span>
+                          )}
+                        </div>
+                      ))}
+                      {occurrences.length > 8 && (
+                        <p className="text-sm text-harbour-400">
+                          + {occurrences.length - 8} more dates
+                        </p>
                       )}
-                      {occ.cancelled && <span className="ml-2 text-red-500">(Cancelled)</span>}
-                      {occ.location && occ.location !== event.location && (
-                        <span className="ml-2 text-harbour-400">at {occ.location}</span>
+                    </>
+                  ) : (
+                    <p className="text-harbour-400">No upcoming dates scheduled</p>
+                  )
+                ) : (
+                  // Show explicit dates for one-time events
+                  event.dates.map((date, i) => (
+                    <div key={i}>
+                      <time dateTime={date.startDate.toISOString()} className="font-semibold text-harbour-700">
+                        {formatInTimezone(date.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")}
+                      </time>
+                      {date.endDate && (
+                        <span className="font-semibold text-harbour-700">
+                          {" - "}
+                          {formatInTimezone(date.endDate, "h:mm a")}
+                        </span>
                       )}
                     </div>
-                  ))}
-                  {occurrences.length > 8 && (
-                    <p className="text-sm text-harbour-400">
-                      + {occurrences.length - 8} more dates
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p className="text-harbour-400">No upcoming dates scheduled</p>
-              )
-            ) : (
-              // Show explicit dates for one-time events
-              event.dates.map((date, i) => (
-                <div key={i} className="text-harbour-600">
-                  <time dateTime={date.startDate.toISOString()}>
-                    {format(date.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")}
-                  </time>
-                  {date.endDate && (
-                    <>
-                      {" - "}
-                      <time dateTime={date.endDate.toISOString()}>
-                        {format(date.endDate, "h:mm a")}
-                      </time>
-                    </>
-                  )}
-                </div>
-              ))
-            )}
+                  ))
+                )}
+              </div>
+            </div>
           </div>
 
+          {/* Where */}
           {event.location && (
-            <p className="text-harbour-500">{event.location}</p>
+            <div className="flex gap-2">
+              <span className="text-harbour-500">Where:</span>
+              <span className="font-semibold text-harbour-700">{event.location}</span>
+            </div>
           )}
         </div>
 
-        <RichMarkdown content={event.description} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={event.description} resolvedRefs={resolvedRefs} />
+        </div>
 
         <a
           href={event.link}
@@ -173,7 +210,7 @@ export default function EventDetail() {
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors self-start"
         >
-          View Event Details
+          {event.requiresSignup ? "Signup for" : "View"} event on {eventLinkDomain}
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>

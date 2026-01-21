@@ -5,6 +5,7 @@ import { getOptionalUser } from "~/lib/session.server";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import { Calendar } from "~/components/Calendar";
+import { EventCard } from "~/components/EventCard";
 import { format, parse } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -148,41 +149,7 @@ export default function EventsIndex() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {events.map((event) => (
-                  <a
-                    key={event.id}
-                    href={`/events/${event.slug}`}
-                    className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
-                  >
-                    {event.coverImage && (
-                      <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
-                        <img
-                          src={`/images/${event.coverImage}`}
-                          alt=""
-                          className="absolute inset-0 w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
-                          {event.title}
-                        </h2>
-                        {event.recurrenceRule && (
-                          <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
-                            Recurring
-                          </span>
-                        )}
-                      </div>
-                      {event.dates[0] && (
-                        <p className="text-sm text-harbour-500">
-                          {format(event.dates[0].startDate, "EEE, MMM d 'at' h:mm a")}
-                        </p>
-                      )}
-                      {event.location && (
-                        <p className="text-sm text-harbour-400">{event.location}</p>
-                      )}
-                    </div>
-                  </a>
+                  <EventCard key={event.id} event={event} />
                 ))}
               </div>
             )}

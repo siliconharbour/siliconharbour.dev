@@ -192,7 +192,9 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        <RichMarkdown content={project.description} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={project.description} resolvedRefs={resolvedRefs} />
+        </div>
 
         {/* Image Gallery */}
         {project.images.length > 0 && (

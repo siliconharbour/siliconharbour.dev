@@ -138,7 +138,9 @@ export default function PersonDetail() {
           </div>
         </div>
 
-        <RichMarkdown content={person.bio} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={person.bio} resolvedRefs={resolvedRefs} />
+        </div>
 
         <ReferencedBy backlinks={backlinks} />
       </article>

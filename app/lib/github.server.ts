@@ -142,6 +142,21 @@ export async function searchUsersByLocation(
 }
 
 /**
+ * Custom error class for rate limiting
+ */
+export class GitHubRateLimitError extends Error {
+  resetTime: Date;
+  remaining: number;
+  
+  constructor(resetTime: Date, remaining: number = 0) {
+    super(`GitHub API rate limited. Resets at ${resetTime.toLocaleTimeString()}`);
+    this.name = "GitHubRateLimitError";
+    this.resetTime = resetTime;
+    this.remaining = remaining;
+  }
+}
+
+/**
  * Get full user profile details
  */
 export async function getUserProfile(username: string): Promise<GitHubUser> {
@@ -149,7 +164,16 @@ export async function getUserProfile(username: string): Promise<GitHubUser> {
   
   const response = await githubFetch(url);
   
+  const rateLimit: RateLimitInfo = {
+    remaining: parseInt(response.headers.get("x-ratelimit-remaining") || "0"),
+    limit: parseInt(response.headers.get("x-ratelimit-limit") || "0"),
+    reset: new Date(parseInt(response.headers.get("x-ratelimit-reset") || "0") * 1000),
+  };
+  
   if (!response.ok) {
+    if (response.status === 403) {
+      throw new GitHubRateLimitError(rateLimit.reset, rateLimit.remaining);
+    }
     throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
   }
   
@@ -306,6 +330,134 @@ export async function getUserProfileWithRateLimit(username: string): Promise<{
     user: { ...user, socialAccounts }, 
     rateLimit 
   };
+}
+
+/**
+ * Get users that a given user is following
+ */
+export async function getUserFollowing(
+  username: string,
+  page: number = 1,
+  perPage: number = 100
+): Promise<{ users: GitHubUser[]; rateLimit: RateLimitInfo }> {
+  const url = `https://api.github.com/users/${encodeURIComponent(username)}/following?page=${page}&per_page=${perPage}`;
+  
+  const response = await githubFetch(url);
+  
+  const rateLimit: RateLimitInfo = {
+    remaining: parseInt(response.headers.get("x-ratelimit-remaining") || "0"),
+    limit: parseInt(response.headers.get("x-ratelimit-limit") || "0"),
+    reset: new Date(parseInt(response.headers.get("x-ratelimit-reset") || "0") * 1000),
+  };
+  
+  if (!response.ok) {
+    if (response.status === 403 && rateLimit.remaining === 0) {
+      throw new Error(`Rate limited. Resets at ${rateLimit.reset.toLocaleTimeString()}`);
+    }
+    if (response.status === 404) {
+      throw new Error(`User "${username}" not found`);
+    }
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+  
+  const users: GitHubUser[] = await response.json();
+  
+  return { users, rateLimit };
+}
+
+/**
+ * Get users that follow a given user (their followers)
+ */
+export async function getUserFollowers(
+  username: string,
+  page: number = 1,
+  perPage: number = 100
+): Promise<{ users: GitHubUser[]; rateLimit: RateLimitInfo }> {
+  const url = `https://api.github.com/users/${encodeURIComponent(username)}/followers?page=${page}&per_page=${perPage}`;
+  
+  const response = await githubFetch(url);
+  
+  const rateLimit: RateLimitInfo = {
+    remaining: parseInt(response.headers.get("x-ratelimit-remaining") || "0"),
+    limit: parseInt(response.headers.get("x-ratelimit-limit") || "0"),
+    reset: new Date(parseInt(response.headers.get("x-ratelimit-reset") || "0") * 1000),
+  };
+  
+  if (!response.ok) {
+    if (response.status === 403 && rateLimit.remaining === 0) {
+      throw new Error(`Rate limited. Resets at ${rateLimit.reset.toLocaleTimeString()}`);
+    }
+    if (response.status === 404) {
+      throw new Error(`User "${username}" not found`);
+    }
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+  
+  const users: GitHubUser[] = await response.json();
+  
+  return { users, rateLimit };
+}
+
+/**
+ * Get all users that a given user is following (handles pagination)
+ */
+export async function getAllUserFollowing(username: string): Promise<{ 
+  users: GitHubUser[]; 
+  rateLimit: RateLimitInfo 
+}> {
+  const allUsers: GitHubUser[] = [];
+  let page = 1;
+  let rateLimit: RateLimitInfo = { remaining: 0, limit: 0, reset: new Date() };
+  
+  while (true) {
+    const result = await getUserFollowing(username, page, 100);
+    rateLimit = result.rateLimit;
+    
+    if (result.users.length === 0) {
+      break;
+    }
+    
+    allUsers.push(...result.users);
+    
+    if (result.users.length < 100) {
+      break;
+    }
+    
+    page++;
+  }
+  
+  return { users: allUsers, rateLimit };
+}
+
+/**
+ * Get all followers of a given user (handles pagination)
+ */
+export async function getAllUserFollowers(username: string): Promise<{ 
+  users: GitHubUser[]; 
+  rateLimit: RateLimitInfo 
+}> {
+  const allUsers: GitHubUser[] = [];
+  let page = 1;
+  let rateLimit: RateLimitInfo = { remaining: 0, limit: 0, reset: new Date() };
+  
+  while (true) {
+    const result = await getUserFollowers(username, page, 100);
+    rateLimit = result.rateLimit;
+    
+    if (result.users.length === 0) {
+      break;
+    }
+    
+    allUsers.push(...result.users);
+    
+    if (result.users.length < 100) {
+      break;
+    }
+    
+    page++;
+  }
+  
+  return { users: allUsers, rateLimit };
 }
 
 // Export the RateLimitInfo type

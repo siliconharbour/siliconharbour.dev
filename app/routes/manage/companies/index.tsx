@@ -1,7 +1,7 @@
 import type { Route } from "./+types/index";
-import { Link, useLoaderData } from "react-router";
+import { Link, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getPaginatedCompanies, getHiddenCompaniesCount } from "~/lib/companies.server";
+import { getPaginatedCompanies, getHiddenCompaniesCount, getVisibleCompaniesCount, hideAllVisibleCompanies } from "~/lib/companies.server";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,15 +12,29 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const [{ items: companies }, hiddenCount] = await Promise.all([
+  const [{ items: companies }, hiddenCount, visibleCount] = await Promise.all([
     getPaginatedCompanies(100, 0, searchQuery, true),
-    getHiddenCompaniesCount()
+    getHiddenCompaniesCount(),
+    getVisibleCompaniesCount()
   ]);
-  return { companies, searchQuery, hiddenCount };
+  return { companies, searchQuery, hiddenCount, visibleCount };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAuth(request);
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "hide-all") {
+    const count = await hideAllVisibleCompanies();
+    return { success: true, hidden: count };
+  }
+
+  return { success: false };
 }
 
 export default function ManageCompaniesIndex() {
-  const { companies, hiddenCount } = useLoaderData<typeof loader>();
+  const { companies, hiddenCount, visibleCount } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-6">
@@ -28,6 +42,22 @@ export default function ManageCompaniesIndex() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Companies</h1>
           <div className="flex items-center gap-3">
+            {visibleCount > 0 && (
+              <Form method="post" onSubmit={(e) => {
+                if (!confirm(`Hide all ${visibleCount} visible companies? This will let you re-review them.`)) {
+                  e.preventDefault();
+                }
+              }}>
+                <input type="hidden" name="intent" value="hide-all" />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white font-medium transition-colors flex items-center gap-2"
+                >
+                  Hide All
+                  <span className="px-1.5 py-0.5 bg-slate-600 text-xs rounded-full">{visibleCount}</span>
+                </button>
+              </Form>
+            )}
             {hiddenCount > 0 && (
               <Link
                 to="/manage/companies/review"

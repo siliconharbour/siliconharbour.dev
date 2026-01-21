@@ -108,7 +108,9 @@ export default function EducationDetail() {
           </div>
         </div>
 
-        <RichMarkdown content={institution.description} resolvedRefs={resolvedRefs} />
+        <div className="prose">
+          <RichMarkdown content={institution.description} resolvedRefs={resolvedRefs} />
+        </div>
 
         {(institution.website || institution.technl || institution.genesis) && (
           <div className="flex flex-wrap gap-3">

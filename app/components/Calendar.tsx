@@ -1,8 +1,9 @@
 import { useDatePicker } from "@rehookify/datepicker";
 import { useState, useMemo } from "react";
-import { format, isSameDay, addMonths, subMonths } from "date-fns";
+import { isSameDay, addMonths, subMonths } from "date-fns";
 import { useNavigate } from "react-router";
 import type { Event, EventDate } from "~/db/schema";
+import { formatInTimezone } from "~/lib/timezone";
 
 type CalendarProps = {
   events: (Event & { dates: EventDate[] })[];
@@ -43,7 +44,7 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
         const startDate = eventDate.startDate instanceof Date 
           ? eventDate.startDate 
           : new Date(eventDate.startDate);
-        const dateKey = format(startDate, "yyyy-MM-dd");
+        const dateKey = formatInTimezone(startDate, "yyyy-MM-dd");
         const existing = map.get(dateKey) || [];
         if (!existing.find((e) => e.id === event.id)) {
           map.set(dateKey, [...existing, event]);
@@ -55,7 +56,7 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
   }, [events]);
 
   const handleDayClick = (date: Date) => {
-    const dateKey = format(date, "yyyy-MM-dd");
+    const dateKey = formatInTimezone(date, "yyyy-MM-dd");
     const dayEvents = eventDateMap.get(dateKey) || [];
     
     // If custom handler provided, use it
@@ -142,7 +143,7 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
       {/* Days grid */}
       <div className="grid grid-cols-7 gap-1">
         {days.map((dpDay) => {
-          const dateKey = format(dpDay.$date, "yyyy-MM-dd");
+          const dateKey = formatInTimezone(dpDay.$date, "yyyy-MM-dd");
           const dayEvents = eventDateMap.get(dateKey) || [];
           const hasEvents = dayEvents.length > 0;
           const isToday = isSameDay(dpDay.$date, new Date());

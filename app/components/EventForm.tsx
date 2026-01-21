@@ -2,9 +2,9 @@ import { useState, useCallback } from "react";
 import { Form } from "react-router";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
-import { format } from "date-fns";
 import { ImageCropper } from "./ImageCropper";
 import type { Event, EventDate } from "~/db/schema";
+import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/timezone";
 
 type EventFormProps = {
   event?: Event & { dates: EventDate[] };
@@ -99,6 +99,7 @@ export function EventForm({ event, error }: EventFormProps) {
   const [hasEndTime, setHasEndTime] = useState(!!event?.defaultEndTime);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(event?.recurrenceEnd || null);
   const [showRecurrenceEndPicker, setShowRecurrenceEndPicker] = useState(false);
+  const [requiresSignup, setRequiresSignup] = useState(event?.requiresSignup ?? false);
 
   // One-time event dates
   const [dates, setDates] = useState<DateEntry[]>(() => {
@@ -106,9 +107,9 @@ export function EventForm({ event, error }: EventFormProps) {
       return event.dates.map((d, i) => ({
         id: `existing-${i}`,
         startDate: d.startDate,
-        startTime: format(d.startDate, "HH:mm"),
+        startTime: getTimeInTimezone(d.startDate),
         endDate: d.endDate,
-        endTime: d.endDate ? format(d.endDate, "HH:mm") : "",
+        endTime: d.endDate ? getTimeInTimezone(d.endDate) : "",
         isRange: !!d.endDate,
       }));
     }
@@ -273,6 +274,21 @@ export function EventForm({ event, error }: EventFormProps) {
           />
         </div>
 
+        {/* Requires Signup */}
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="requiresSignup"
+            name="requiresSignup"
+            checked={requiresSignup}
+            onChange={(e) => setRequiresSignup(e.target.checked)}
+            className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+          />
+          <label htmlFor="requiresSignup" className="text-sm text-harbour-700">
+            Requires signup (changes button text to "Signup for event")
+          </label>
+        </div>
+
         {/* Location */}
         <div>
           <label htmlFor="location" className="block text-sm font-medium mb-1 text-harbour-700">
@@ -331,7 +347,7 @@ export function EventForm({ event, error }: EventFormProps) {
                 <svg className="w-8 h-8 text-harbour-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                <span className="mt-2 text-sm text-harbour-400">Upload cover (16:9)</span>
+                <span className="mt-2 text-sm text-harbour-400">Upload cover (3:1)</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -476,7 +492,7 @@ export function EventForm({ event, error }: EventFormProps) {
                         }
                         className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
                       >
-                        {format(dateEntry.startDate, "MMM d, yyyy")}
+                        {formatInTimezone(dateEntry.startDate, "MMM d, yyyy")}
                       </button>
                       {activeDatePicker === `${dateEntry.id}-start` && (
                         <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
@@ -544,7 +560,7 @@ export function EventForm({ event, error }: EventFormProps) {
                           className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
                         >
                           {dateEntry.endDate
-                            ? format(dateEntry.endDate, "MMM d, yyyy")
+                            ? formatInTimezone(dateEntry.endDate, "MMM d, yyyy")
                             : "Select date"}
                         </button>
                         {activeDatePicker === `${dateEntry.id}-end` && (
@@ -583,7 +599,7 @@ export function EventForm({ event, error }: EventFormProps) {
                   <input
                     type="hidden"
                     name={`dates[${index}][startDate]`}
-                    value={dateEntry.startDate.toISOString().split("T")[0]}
+                    value={getDateInTimezone(dateEntry.startDate)}
                   />
                   <input
                     type="hidden"
@@ -600,7 +616,7 @@ export function EventForm({ event, error }: EventFormProps) {
                       <input
                         type="hidden"
                         name={`dates[${index}][endDate]`}
-                        value={dateEntry.endDate.toISOString().split("T")[0]}
+                        value={getDateInTimezone(dateEntry.endDate)}
                       />
                       <input
                         type="hidden"
@@ -711,7 +727,7 @@ export function EventForm({ event, error }: EventFormProps) {
                   className="w-full md:w-auto px-3 py-2 text-left border border-harbour-200 bg-white"
                 >
                   {recurrenceEndDate
-                    ? format(recurrenceEndDate, "MMM d, yyyy")
+                    ? formatInTimezone(recurrenceEndDate, "MMM d, yyyy")
                     : "No end date"}
                 </button>
                 {recurrenceEndDate && (
@@ -762,7 +778,7 @@ export function EventForm({ event, error }: EventFormProps) {
                 {" at "}
                 {defaultStartTime}
                 {hasEndTime && ` - ${defaultEndTime}`}
-                {recurrenceEndDate && ` until ${format(recurrenceEndDate, "MMM d, yyyy")}`}
+                {recurrenceEndDate && ` until ${formatInTimezone(recurrenceEndDate, "MMM d, yyyy")}`}
               </p>
             </div>
           </div>
@@ -782,7 +798,7 @@ export function EventForm({ event, error }: EventFormProps) {
       {cropperState && (
         <ImageCropper
           imageSrc={cropperState.src}
-          aspect={cropperState.type === "cover" ? 16 / 9 : 1}
+          aspect={cropperState.type === "cover" ? 3 / 1 : 1}
           onCropComplete={handleCropComplete}
           onCancel={() => setCropperState(null)}
         />

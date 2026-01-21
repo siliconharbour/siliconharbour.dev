@@ -98,6 +98,19 @@ export async function getHiddenPeopleCount(): Promise<number> {
   return total;
 }
 
+export async function getVisiblePeopleCount(): Promise<number> {
+  const [{ total }] = await db.select({ total: count() }).from(people).where(eq(people.visible, true));
+  return total;
+}
+
+export async function hideAllVisiblePeople(): Promise<number> {
+  const result = await db
+    .update(people)
+    .set({ visible: false, updatedAt: new Date() })
+    .where(eq(people.visible, true));
+  return result.changes;
+}
+
 // =============================================================================
 // Paginated queries with search
 // =============================================================================

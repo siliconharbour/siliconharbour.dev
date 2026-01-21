@@ -41,6 +41,7 @@ export const events = sqliteTable("events", {
   organizer: text("organizer"),
   coverImage: text("cover_image"),
   iconImage: text("icon_image"),
+  requiresSignup: integer("requires_signup", { mode: "boolean" }).notNull().default(false),
   // Recurrence fields
   recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
   recurrenceEnd: integer("recurrence_end", { mode: "timestamp" }), // When recurrence stops (null = indefinite)

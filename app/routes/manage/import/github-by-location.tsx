@@ -1,4 +1,4 @@
-import type { Route } from "./+types/github";
+import type { Route } from "./+types/github-by-location";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";

@@ -96,6 +96,19 @@ export async function getHiddenCompaniesCount(): Promise<number> {
   return total;
 }
 
+export async function getVisibleCompaniesCount(): Promise<number> {
+  const [{ total }] = await db.select({ total: count() }).from(companies).where(eq(companies.visible, true));
+  return total;
+}
+
+export async function hideAllVisibleCompanies(): Promise<number> {
+  const result = await db
+    .update(companies)
+    .set({ visible: false, updatedAt: new Date() })
+    .where(eq(companies.visible, true));
+  return result.changes;
+}
+
 export async function getPaginatedCompanies(
   limit: number,
   offset: number,

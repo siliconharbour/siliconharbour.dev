@@ -16,6 +16,7 @@ import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
 import { parseRecurrenceRule, generateOccurrences } from "./recurrence.server";
+import { parseAsTimezone, getDateInTimezone } from "./timezone";
 
 export type EventWithDates = Event & { dates: EventDate[] };
 
@@ -236,17 +237,16 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
         const generatedDates = getGeneratedOccurrences(eventData, now, threeMonthsFromNow);
         // Convert generated dates to EventDate format for consistency
         const syntheticDates: EventDate[] = generatedDates.map((date, i) => {
-          let startDateTime = new Date(date);
-          if (eventData.defaultStartTime) {
-            const [hour, min] = eventData.defaultStartTime.split(":").map(Number);
-            startDateTime.setHours(hour, min, 0, 0);
-          }
+          // Get the date string in Newfoundland timezone
+          const dateStr = getDateInTimezone(date);
+          
+          // Parse the date with the time as Newfoundland timezone
+          const startTime = eventData.defaultStartTime || "00:00";
+          const startDateTime = parseAsTimezone(dateStr, startTime);
           
           let endDateTime: Date | null = null;
           if (eventData.defaultEndTime) {
-            const [hour, min] = eventData.defaultEndTime.split(":").map(Number);
-            endDateTime = new Date(date);
-            endDateTime.setHours(hour, min, 0, 0);
+            endDateTime = parseAsTimezone(dateStr, eventData.defaultEndTime);
           }
           
           return {
@@ -446,17 +446,16 @@ export async function getPaginatedEvents(
       if (event.recurrenceRule) {
         const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
         const syntheticDates: EventDate[] = generatedDates.map((date, i) => {
-          let startDateTime = new Date(date);
-          if (event.defaultStartTime) {
-            const [hour, min] = event.defaultStartTime.split(":").map(Number);
-            startDateTime.setHours(hour, min, 0, 0);
-          }
+          // Get the date string in Newfoundland timezone
+          const dateStr = getDateInTimezone(date);
+          
+          // Parse the date with the time as Newfoundland timezone
+          const startTime = event.defaultStartTime || "00:00";
+          const startDateTime = parseAsTimezone(dateStr, startTime);
           
           let endDateTime: Date | null = null;
           if (event.defaultEndTime) {
-            const [hour, min] = event.defaultEndTime.split(":").map(Number);
-            endDateTime = new Date(date);
-            endDateTime.setHours(hour, min, 0, 0);
+            endDateTime = parseAsTimezone(dateStr, event.defaultEndTime);
           }
           
           return {
@@ -620,17 +619,18 @@ export async function getEventWithOccurrences(
     const generatedDates = getGeneratedOccurrences(event, rangeStart, rangeEnd);
     const overrides = await getEventOccurrenceOverrides(eventId);
     
-    // Create a map of overrides by date (normalized to start of day)
+    // Create a map of overrides by date (normalized to Newfoundland timezone date)
     const overrideMap = new Map<string, EventOccurrence>();
     for (const override of overrides) {
-      const dateKey = override.occurrenceDate.toISOString().split("T")[0];
+      const dateKey = getDateInTimezone(override.occurrenceDate);
       overrideMap.set(dateKey, override);
     }
     
     // Build occurrences from generated dates with any overrides applied
     for (const date of generatedDates) {
-      const dateKey = date.toISOString().split("T")[0];
-      const override = overrideMap.get(dateKey);
+      // Get the date string in Newfoundland timezone for both the key and for parsing
+      const dateStr = getDateInTimezone(date);
+      const override = overrideMap.get(dateStr);
       
       // Calculate start and end times
       let startTime = event.defaultStartTime || "18:00";
@@ -639,16 +639,12 @@ export async function getEventWithOccurrences(
       if (override?.startTime) startTime = override.startTime;
       if (override?.endTime) endTime = override.endTime;
       
-      // Parse time and combine with date
-      const [startHour, startMin] = startTime.split(":").map(Number);
-      const startDateTime = new Date(date);
-      startDateTime.setHours(startHour, startMin, 0, 0);
+      // Parse time as Newfoundland timezone
+      const startDateTime = parseAsTimezone(dateStr, startTime);
       
       let endDateTime: Date | null = null;
       if (endTime) {
-        const [endHour, endMin] = endTime.split(":").map(Number);
-        endDateTime = new Date(date);
-        endDateTime.setHours(endHour, endMin, 0, 0);
+        endDateTime = parseAsTimezone(dateStr, endTime);
       }
       
       occurrences.push({

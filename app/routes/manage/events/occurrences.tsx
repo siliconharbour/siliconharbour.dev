@@ -8,7 +8,7 @@ import {
   deleteOccurrenceOverride,
 } from "~/lib/events.server";
 import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.server";
-import { format } from "date-fns";
+import { formatInTimezone } from "~/lib/timezone";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Manage Occurrences - ${data?.event?.title || "Event"} - siliconharbour.dev` }];
@@ -148,11 +148,11 @@ export default function ManageOccurrences() {
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
                     <div className={`font-medium ${occurrence.cancelled ? "line-through text-harbour-400" : "text-harbour-700"}`}>
-                      {format(occurrence.date, "EEEE, MMMM d, yyyy")}
+                      {formatInTimezone(occurrence.date, "EEEE, MMMM d, yyyy")}
                     </div>
                     <div className="text-sm text-harbour-500">
-                      {format(occurrence.date, "h:mm a")}
-                      {occurrence.endDate && ` - ${format(occurrence.endDate, "h:mm a")}`}
+                      {formatInTimezone(occurrence.date, "h:mm a")}
+                      {occurrence.endDate && ` - ${formatInTimezone(occurrence.endDate, "h:mm a")}`}
                     </div>
                     {occurrence.location && (
                       <div className="text-sm text-harbour-400">
@@ -228,7 +228,7 @@ export default function ManageOccurrences() {
                                   <input
                                     type="time"
                                     name="startTime"
-                                    defaultValue={format(occurrence.date, "HH:mm")}
+                                    defaultValue={formatInTimezone(occurrence.date, "HH:mm")}
                                     className="w-full px-2 py-1 text-sm border border-harbour-200"
                                   />
                                 </div>
@@ -239,7 +239,7 @@ export default function ManageOccurrences() {
                                   <input
                                     type="time"
                                     name="endTime"
-                                    defaultValue={occurrence.endDate ? format(occurrence.endDate, "HH:mm") : ""}
+                                    defaultValue={occurrence.endDate ? formatInTimezone(occurrence.endDate, "HH:mm") : ""}
                                     className="w-full px-2 py-1 text-sm border border-harbour-200"
                                   />
                                 </div>

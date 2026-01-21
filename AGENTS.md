@@ -4,43 +4,65 @@
 
 When given a set of tasks, **continue working until ALL tasks are complete**. Do not stop to ask for confirmation between tasks. Execute the full plan.
 
-## Issue Tracking
+## Database Migrations
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+This project uses Drizzle ORM with SQLite. When adding/modifying database schema:
 
-## Quick Reference
+### 1. Update the Schema
 
-```bash
-bd ready              # Find available work
-bd show <id>          # View issue details
-bd update <id> --status in_progress  # Claim work
-bd close <id>         # Complete work
-bd sync               # Sync with git
+Edit `app/db/schema.ts` with your changes.
+
+### 2. Create Migration SQL File
+
+Create a new file in `drizzle/` with the naming pattern `NNNN_description.sql` (e.g., `0018_add_event_requires_signup.sql`).
+
+**Important SQL syntax rules:**
+- Use backticks around table and column names: `` ALTER TABLE `events` ADD `column_name` ... ``
+- NOT double quotes (those will cause "no such column" errors)
+- Follow the style of existing migrations in `drizzle/`
+
+Example:
+```sql
+ALTER TABLE `events` ADD `requires_signup` integer NOT NULL DEFAULT 0;
 ```
 
-## Landing the Plane (Session Completion)
+### 3. Register in Journal
+
+Add an entry to `drizzle/meta/_journal.json`:
+```json
+{
+  "idx": 18,
+  "version": "6", 
+  "when": 1768703000000,
+  "tag": "0018_add_event_requires_signup",
+  "breakpoints": true
+}
+```
+- `idx`: Next sequential number
+- `tag`: Must match the SQL filename (without `.sql`)
+- `when`: Timestamp (can increment from previous)
+
+### 4. Run Migration
+
+```bash
+npm run db:migrate
+```
+
+## Session Completion
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+1. **Run quality gates** (if code changed) - Tests, linters, builds
+2. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+3. **Verify** - All changes committed AND pushed
 
 **CRITICAL RULES:**
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
-

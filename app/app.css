@@ -79,7 +79,7 @@ a:focus {
    ============================================================================= */
 
 .prose {
-  @apply text-harbour-600 leading-relaxed;
+  @apply text-harbour-600 leading-relaxed max-w-[60ch] mx-auto;
 }
 
 .prose p {

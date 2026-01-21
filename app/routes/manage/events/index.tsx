@@ -3,7 +3,7 @@ import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getPaginatedEvents } from "~/lib/events.server";
 import { SearchInput } from "~/components/SearchInput";
-import { format } from "date-fns";
+import { formatInTimezone } from "~/lib/timezone";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Events - siliconharbour.dev" }];
@@ -72,7 +72,7 @@ export default function ManageEventsIndex() {
                     </p>
                   ) : event.dates.length > 0 ? (
                     <p className="text-sm text-harbour-400">
-                      {format(event.dates[0].startDate, "MMM d, yyyy")}
+                      {formatInTimezone(event.dates[0].startDate, "MMM d, yyyy")}
                       {event.dates.length > 1 && ` (+${event.dates.length - 1} more)`}
                     </p>
                   ) : null}
