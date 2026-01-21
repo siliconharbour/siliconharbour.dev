@@ -13,7 +13,7 @@ import {
 import { eq, gte, and, lte, asc, desc, count, inArray } from "drizzle-orm";
 import { deleteImage } from "./images.server";
 import { generateSlug, makeSlugUnique } from "./slug";
-import { syncReferences } from "./references.server";
+import { syncReferences, syncOrganizerReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
 import { parseRecurrenceRule, generateOccurrences } from "./recurrence.server";
 import { parseAsTimezone, getDateInTimezone } from "./timezone";
@@ -88,7 +88,10 @@ export async function createEvent(
   );
 
   // Sync references from description
-  await syncReferences("event", newEvent.id, newEvent.description);
+  await syncReferences("event", newEvent.id, newEvent.description, "description");
+  
+  // Sync organizer references
+  await syncOrganizerReferences(newEvent.id, newEvent.organizer);
 
   return { ...newEvent, dates: newDates };
 }
@@ -114,7 +117,12 @@ export async function updateEvent(
 
   // Sync references if description changed
   if (event.description) {
-    await syncReferences("event", id, event.description);
+    await syncReferences("event", id, event.description, "description");
+  }
+  
+  // Sync organizer references if organizer changed
+  if (event.organizer !== undefined) {
+    await syncOrganizerReferences(id, event.organizer);
   }
 
   if (dates) {

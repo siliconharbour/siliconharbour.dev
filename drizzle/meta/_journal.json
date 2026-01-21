@@ -134,6 +134,13 @@
       "when": 1768703000000,
       "tag": "0018_add_event_requires_signup",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1768704000000,
+      "tag": "0019_add_reference_field",
+      "breakpoints": true
     }
   ]
 }

@@ -269,16 +269,27 @@ export async function getIncomingReferences(
 
 /**
  * Delete all references from a source entity
+ * If field is specified, only delete references from that field
  */
 export async function deleteReferencesFrom(
   sourceType: ContentType, 
-  sourceId: number
+  sourceId: number,
+  field?: string
 ): Promise<void> {
-  await db.delete(references)
-    .where(and(
-      eq(references.sourceType, sourceType),
-      eq(references.sourceId, sourceId)
-    ));
+  if (field) {
+    await db.delete(references)
+      .where(and(
+        eq(references.sourceType, sourceType),
+        eq(references.sourceId, sourceId),
+        eq(references.field, field)
+      ));
+  } else {
+    await db.delete(references)
+      .where(and(
+        eq(references.sourceType, sourceType),
+        eq(references.sourceId, sourceId)
+      ));
+  }
 }
 
 /**
@@ -288,7 +299,8 @@ export async function deleteReferencesFrom(
 export async function syncReferences(
   sourceType: ContentType,
   sourceId: number,
-  content: string
+  content: string,
+  field: string = "description"
 ): Promise<{ resolved: ResolvedReference[]; unresolved: UnresolvedReference[] }> {
   // Parse references from content
   const parsed = parseReferences(content);
@@ -310,8 +322,8 @@ export async function syncReferences(
   // Resolve all references
   const resolutions = await resolveReferences(texts);
   
-  // Delete existing references from this source
-  await deleteReferencesFrom(sourceType, sourceId);
+  // Delete existing references from this source for this field only
+  await deleteReferencesFrom(sourceType, sourceId, field);
   
   const resolved: ResolvedReference[] = [];
   const unresolved: UnresolvedReference[] = [];
@@ -333,6 +345,7 @@ export async function syncReferences(
         targetId: result.reference.id,
         referenceText: text,
         relation: relationMap.get(text) || null,
+        field,
       });
     } else {
       unresolved.push(result.reference);
@@ -340,6 +353,94 @@ export async function syncReferences(
   }
   
   return { resolved, unresolved };
+}
+
+/**
+ * Sync organizer references for an event
+ * Parses comma-separated organizer names and creates references for any that match entities
+ */
+export async function syncOrganizerReferences(
+  eventId: number,
+  organizer: string | null
+): Promise<{ resolved: ResolvedReference[]; unresolved: string[] }> {
+  // Delete existing organizer references
+  await deleteReferencesFrom("event", eventId, "organizer");
+  
+  if (!organizer || !organizer.trim()) {
+    return { resolved: [], unresolved: [] };
+  }
+  
+  // Split by comma and trim each name
+  const names = organizer.split(",").map(n => n.trim()).filter(n => n.length > 0);
+  
+  // Resolve all names
+  const resolutions = await resolveReferences(names);
+  
+  const resolved: ResolvedReference[] = [];
+  const unresolved: string[] = [];
+  
+  for (const [text, result] of resolutions) {
+    if (result.resolved) {
+      resolved.push(result.reference);
+      
+      await db.insert(references).values({
+        sourceType: "event",
+        sourceId: eventId,
+        targetType: result.reference.type,
+        targetId: result.reference.id,
+        referenceText: text,
+        relation: "Organizer",
+        field: "organizer",
+      });
+    } else {
+      unresolved.push(text);
+    }
+  }
+  
+  return { resolved, unresolved };
+}
+
+/**
+ * Resolve organizer text to links for display
+ * Returns an array of organizer items, each either resolved (with link data) or unresolved (plain text)
+ * Note: This returns url directly so the client doesn't need to import server-only code
+ */
+export async function resolveOrganizers(organizer: string | null): Promise<Array<{
+  text: string;
+  resolved: boolean;
+  url?: string;
+  name?: string;
+}>> {
+  if (!organizer || !organizer.trim()) {
+    return [];
+  }
+  
+  const names = organizer.split(",").map(n => n.trim()).filter(n => n.length > 0);
+  const resolutions = await resolveReferences(names);
+  
+  const items: Array<{ text: string; resolved: boolean; url?: string; name?: string }> = [];
+  
+  for (const name of names) {
+    const result = resolutions.get(name);
+    if (result?.resolved) {
+      // Check visibility
+      const isVisible = await isEntityVisible(result.reference.type, result.reference.id);
+      if (isVisible) {
+        items.push({
+          text: name,
+          resolved: true,
+          url: getContentUrl(result.reference.type, result.reference.slug),
+          name: result.reference.name,
+        });
+      } else {
+        items.push({ text: name, resolved: false });
+      }
+    } else {
+      items.push({ text: name, resolved: false });
+    }
+  }
+  
+  return items;
 }
 
 // =============================================================================

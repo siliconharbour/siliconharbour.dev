@@ -1,7 +1,7 @@
 import type { Route } from "./+types/detail";
 import { Link, useLoaderData } from "react-router";
 import { getEventBySlug, getEventWithOccurrences, type EventOccurrenceDisplay } from "~/lib/events.server";
-import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
+import { prepareRefsForClient, getDetailedBacklinks, resolveOrganizers } from "~/lib/references.server";
 import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
@@ -37,6 +37,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   
   const resolvedRefs = await prepareRefsForClient(event.description);
   const backlinks = await getDetailedBacklinks("event", event.id);
+  const organizers = await resolveOrganizers(event.organizer);
   
   // For recurring events, get generated occurrences
   let occurrences: EventOccurrenceDisplay[] = [];
@@ -52,7 +53,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     }
   }
   
-  return { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin };
+  return { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin, organizers };
 }
 
 function getEventLinkDomain(link: string): string {
@@ -64,8 +65,35 @@ function getEventLinkDomain(link: string): string {
   }
 }
 
+type OrganizerItem = { text: string; resolved: boolean; url?: string; name?: string };
+
+function OrganizerLinks({ organizers }: { organizers: OrganizerItem[] }) {
+  if (organizers.length === 0) return null;
+  
+  return (
+    <p className="text-harbour-500 mt-1">
+      Organized by{" "}
+      {organizers.map((org, i) => (
+        <span key={org.text}>
+          {i > 0 && ", "}
+          {org.resolved && org.url ? (
+            <Link 
+              to={org.url}
+              className="text-harbour-600 hover:text-harbour-700 underline decoration-harbour-200 hover:decoration-harbour-500 underline-offset-2"
+            >
+              {org.name || org.text}
+            </Link>
+          ) : (
+            <span>{org.text}</span>
+          )}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export default function EventDetail() {
-  const { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin } = useLoaderData<typeof loader>();
+  const { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin, organizers } = useLoaderData<typeof loader>();
   const isRecurring = !!event.recurrenceRule;
   const eventLinkDomain = getEventLinkDomain(event.link);
 
@@ -115,8 +143,8 @@ export default function EventDetail() {
                     </Link>
                   )}
                 </div>
-                {event.organizer && (
-                  <p className="text-harbour-500 mt-1">Organized by {event.organizer}</p>
+                {organizers.length > 0 && (
+                  <OrganizerLinks organizers={organizers} />
                 )}
               </div>
             </div>

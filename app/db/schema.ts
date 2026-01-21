@@ -382,6 +382,8 @@ export const references = sqliteTable("references", {
   // Optional relation metadata (e.g., "CEO", "Founder", "Organizer")
   // Used with syntax: [[{CEO} at {CoLab Software}]]
   relation: text("relation"),
+  // Which field the reference came from (e.g., "description", "organizer")
+  field: text("field").default("description"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
