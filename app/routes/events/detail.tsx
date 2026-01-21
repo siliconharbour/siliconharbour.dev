@@ -86,7 +86,7 @@ export default function EventDetail() {
         )}
 
         {/* Content container - 60ch centered */}
-        <div className="max-w-[60ch] mx-auto w-full px-4 flex flex-col gap-6">
+        <div className={`max-w-[60ch] mx-auto w-full px-4 flex flex-col gap-6 ${event.coverImage ? "-mt-12" : ""}`}>
           {/* Event info card with ring border */}
           <div className="bg-white p-4 ring-1 ring-harbour-200/50 flex flex-col gap-4">
             {/* Title with icon */}
