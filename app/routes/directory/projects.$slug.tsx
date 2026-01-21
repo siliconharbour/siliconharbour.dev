@@ -146,7 +146,7 @@ export default function ProjectDetail() {
   const linkEntries = Object.entries(links).filter(([_, url]) => url);
 
   return (
-    <div className="max-w-[60ch] mx-auto p-4 py-8">
+    <div className="max-w-4xl mx-auto p-4 py-8">
       <article className="flex flex-col gap-6">
         {project.coverImage && (
           <div className="aspect-video relative overflow-hidden bg-harbour-100">
