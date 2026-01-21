@@ -5,9 +5,11 @@ import * as readline from "readline";
 
 const REMOTE_HOST = "jack@jackharrhy.dev";
 const REMOTE_PATH = "~/cookie-ops/core/volumes/siliconharbour/";
+const REMOTE_DB_FILE = "~/cookie-ops/core/volumes/siliconharbour/siliconharbour.db";
 const REMOTE_COMPOSE_DIR = "~/cookie-ops/core";
 const SERVICE_NAME = "siliconharbour";
 const LOCAL_DATA_PATH = "./data/";
+const LOCAL_DB_FILE = "./data/siliconharbour.db";
 const BACKUP_DIR = "./tmp/backup/";
 
 type Mode = "sync" | "backup" | "migrate";
@@ -52,14 +54,15 @@ function sync(destPath: string) {
   );
 }
 
-function pushToRemote(sourcePath: string) {
-  const dest = `${REMOTE_HOST}:${REMOTE_PATH}`;
+function pushDatabaseToRemote() {
+  const dest = `${REMOTE_HOST}:${REMOTE_DB_FILE}`;
   
-  console.log(`Pushing from ${sourcePath} to ${dest}...`);
+  console.log(`Pushing database from ${LOCAL_DB_FILE} to ${dest}...`);
   console.log("");
 
+  // Use rsync with sudo on remote via --rsync-path
   execSync(
-    `rsync -avz --progress "${sourcePath}" "${dest}"`,
+    `rsync -avz --progress --rsync-path="sudo rsync" "${LOCAL_DB_FILE}" "${dest}"`,
     { stdio: "inherit" }
   );
 }
@@ -249,9 +252,9 @@ async function runMigrate() {
   }
   console.log("");
 
-  // Step 5: Push back to production
+  // Step 5: Push back to production (database only)
   console.log("[5/6] Pushing migrated database back to production...");
-  pushToRemote(LOCAL_DATA_PATH);
+  pushDatabaseToRemote();
   console.log("");
 
   // Step 6: Start container
