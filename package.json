@@ -14,7 +14,8 @@
     "create-user": "tsx scripts/create-user.ts",
     "db:seed": "tsx scripts/seed.ts",
     "sync-prod": "tsx scripts/sync-prod.ts",
-    "backup-prod": "tsx scripts/sync-prod.ts backup"
+    "backup-prod": "tsx scripts/sync-prod.ts backup",
+    "migrate-prod": "tsx scripts/sync-prod.ts migrate"
   },
   "dependencies": {
     "@react-router/node": "7.12.0",
