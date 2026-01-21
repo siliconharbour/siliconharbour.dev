@@ -8,3 +8,6 @@
 
 # Database
 /data/
+
+# Backups
+/tmp/
