@@ -1,0 +1,61 @@
+---
+title: API
+description: Public JSON API for accessing St. John's tech community data
+---
+
+import { Callout, Code, CodeBlock, ApiTable } from "../components/content";
+
+# API
+
+A read-only JSON API for accessing community data. No authentication required. CORS enabled.
+
+<Callout type="warning">
+  While this site is under construction, I wouldn't build against this API
+  if I were you - this is all subject to change heavily!
+</Callout>
+
+## Base URL
+
+<Code>https://siliconharbour.dev</Code>
+
+## Endpoints
+
+<ApiTable />
+
+## Pagination
+
+List endpoints support pagination:
+
+- `limit` - Number of items (default: 20, max: 100)
+- `offset` - Items to skip (default: 0)
+
+Responses include a `pagination` object:
+
+<CodeBlock>{`{
+  "data": [...],
+  "pagination": {
+    "total": 42,
+    "limit": 20,
+    "offset": 0,
+    "hasMore": true
+  }
+}`}</CodeBlock>
+
+Responses also include [RFC 5988](https://tools.ietf.org/html/rfc5988) `Link` headers for navigation:
+
+<CodeBlock>{`Link: <https://siliconharbour.dev/api/companies?limit=20&offset=20>; rel="next",
+      <https://siliconharbour.dev/api/companies?limit=20&offset=0>; rel="first"`}</CodeBlock>
+
+## OpenAPI Specification
+
+[View OpenAPI Spec](/openapi.json)
+
+## Feeds
+
+RSS feeds and an iCal calendar are also available. See [Stay Connected](/stay-connected) for details.
+
+- `/feed.rss` - Combined RSS feed
+- `/events.rss` - Events RSS feed
+- `/news.rss` - News RSS feed
+- `/jobs.rss` - Jobs RSS feed
+- `/calendar.ics` - iCal calendar subscription
