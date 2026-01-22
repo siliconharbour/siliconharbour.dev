@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import type { ResolvedRef } from "~/components/RichMarkdown";
 import type { SectionKey } from "~/db/schema";
 import { Footer } from "~/components/Footer";
+import { randomSelect } from "~/lib/array";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -65,12 +66,12 @@ const navItems: { href: string; label: string; keys: SectionKey[] }[] = [
 ];
 
 export default function Home() {
-  const { 
-    thisWeek, 
-    futureEvents, 
-    allEvents, 
-    companies, 
-    news, 
+  const {
+    thisWeek,
+    futureEvents,
+    allEvents,
+    companies,
+    news,
     jobs,
     projects,
     eventRefs,
@@ -78,8 +79,8 @@ export default function Home() {
   } = useLoaderData<typeof loader>();
 
   const hasEvents = allEvents.length > 0;
-  const featuredCompanies = companies.slice(0, 4);
-  const featuredProjects = projects.slice(0, 4);
+  const featuredCompanies = randomSelect(companies, 4);
+  const featuredProjects = randomSelect(projects, 4);
   
   // Filter nav items based on visibility
   const visibleNavItems = navItems.filter((item) => {
