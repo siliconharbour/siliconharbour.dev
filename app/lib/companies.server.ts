@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { companies, type Company, type NewCompany } from "~/db/schema";
-import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, and, isNotNull } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -94,6 +94,39 @@ export async function getHiddenCompanies(): Promise<Company[]> {
 export async function getHiddenCompaniesCount(): Promise<number> {
   const [{ total }] = await db.select({ total: count() }).from(companies).where(eq(companies.visible, false));
   return total;
+}
+
+/**
+ * Get a deterministic "random" selection of companies based on a daily seed.
+ * Only returns companies that have logos for better visual presentation.
+ * The same seed will always return the same companies in the same order.
+ */
+export async function getRandomCompanies(count: number, seed?: number): Promise<Company[]> {
+  // Default seed is today's date as YYYYMMDD
+  const dateSeed = seed ?? parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ""), 10);
+  
+  // Get all visible companies with logos
+  const allCompanies = await db
+    .select()
+    .from(companies)
+    .where(and(eq(companies.visible, true), isNotNull(companies.logo)));
+  
+  if (allCompanies.length <= count) {
+    return allCompanies;
+  }
+  
+  // Use a simple seeded shuffle: hash each id with the seed and sort by that
+  // Knuth multiplicative hash for good distribution
+  const shuffled = allCompanies
+    .map(c => ({
+      company: c,
+      hash: ((c.id + dateSeed) * 2654435761) >>> 0, // unsigned 32-bit
+    }))
+    .sort((a, b) => a.hash - b.hash)
+    .slice(0, count)
+    .map(x => x.company);
+  
+  return shuffled;
 }
 
 export async function getVisibleCompaniesCount(): Promise<number> {

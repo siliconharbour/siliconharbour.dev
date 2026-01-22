@@ -7,7 +7,7 @@ import {
   type ProjectImage,
   type NewProjectImage,
 } from "~/db/schema";
-import { eq, desc, asc, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, isNotNull } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -85,6 +85,39 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 
 export async function getAllProjects(): Promise<Project[]> {
   return db.select().from(projects).orderBy(desc(projects.createdAt));
+}
+
+/**
+ * Get a deterministic "random" selection of projects based on a daily seed.
+ * Only returns projects that have logos for better visual presentation.
+ * The same seed will always return the same projects in the same order.
+ */
+export async function getRandomProjects(count: number, seed?: number): Promise<Project[]> {
+  // Default seed is today's date as YYYYMMDD
+  const dateSeed = seed ?? parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ""), 10);
+  
+  // Get all projects with logos
+  const allProjects = await db
+    .select()
+    .from(projects)
+    .where(isNotNull(projects.logo));
+  
+  if (allProjects.length <= count) {
+    return allProjects;
+  }
+  
+  // Use a simple seeded shuffle: hash each id with the seed and sort by that
+  // Knuth multiplicative hash for good distribution
+  const shuffled = allProjects
+    .map(p => ({
+      project: p,
+      hash: ((p.id + dateSeed) * 2654435761) >>> 0, // unsigned 32-bit
+    }))
+    .sort((a, b) => a.hash - b.hash)
+    .slice(0, count)
+    .map(x => x.project);
+  
+  return shuffled;
 }
 
 // =============================================================================

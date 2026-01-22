@@ -1,10 +1,10 @@
 import type { Route } from "./+types/home";
 import { Link, useLoaderData } from "react-router";
 import { getEventsThisWeek, getUpcomingEvents } from "~/lib/events.server";
-import { getAllCompanies } from "~/lib/companies.server";
+import { getRandomCompanies } from "~/lib/companies.server";
 import { getPublishedNews } from "~/lib/news.server";
 import { getActiveJobs } from "~/lib/jobs.server";
-import { getAllProjects } from "~/lib/projects.server";
+import { getRandomProjects } from "~/lib/projects.server";
 import { prepareRefsForClient } from "~/lib/references.server";
 import { getSectionVisibility } from "~/lib/config.server";
 import { Calendar } from "~/components/Calendar";
@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import type { ResolvedRef } from "~/components/RichMarkdown";
 import type { SectionKey } from "~/db/schema";
 import { Footer } from "~/components/Footer";
-import { randomSelect } from "~/lib/array";
+
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -23,13 +23,13 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({}: Route.LoaderArgs) {
-  const [thisWeek, upcoming, companies, news, jobs, projects, visibility] = await Promise.all([
+  const [thisWeek, upcoming, featuredCompanies, news, jobs, featuredProjects, visibility] = await Promise.all([
     getEventsThisWeek(),
     getUpcomingEvents(),
-    getAllCompanies(),
+    getRandomCompanies(4),
     getPublishedNews(),
     getActiveJobs(),
-    getAllProjects(),
+    getRandomProjects(4),
     getSectionVisibility(),
   ]);
   
@@ -48,10 +48,10 @@ export async function loader({}: Route.LoaderArgs) {
     thisWeek, 
     futureEvents, 
     allEvents: upcoming,
-    companies,
+    featuredCompanies,
     news: news.slice(0, 3), // Latest 3 news articles
     jobs: jobs.slice(0, 4), // Latest 4 jobs
-    projects: projects.slice(0, 4), // Latest 4 projects
+    featuredProjects,
     eventRefs,
     visibility,
   };
@@ -70,17 +70,15 @@ export default function Home() {
     thisWeek,
     futureEvents,
     allEvents,
-    companies,
+    featuredCompanies,
     news,
     jobs,
-    projects,
+    featuredProjects,
     eventRefs,
     visibility,
   } = useLoaderData<typeof loader>();
 
   const hasEvents = allEvents.length > 0;
-  const featuredCompanies = randomSelect(companies, 4);
-  const featuredProjects = randomSelect(projects, 4);
   
   // Filter nav items based on visibility
   const visibleNavItems = navItems.filter((item) => {
