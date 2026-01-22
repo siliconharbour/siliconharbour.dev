@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api-docs";
 import { useLoaderData } from "react-router";
 import { loadContentPage } from "~/lib/content.server";
-import Markdown from "react-markdown";
+import { Markdown } from "~/components/Markdown";
 
 export function meta({ data }: Route.MetaArgs) {
   return [

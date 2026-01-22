@@ -1,5 +1,6 @@
 import { Link } from "react-router";
-import Markdown from "react-markdown";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ContentType } from "~/db/schema";
 
 // =============================================================================
@@ -109,7 +110,8 @@ export function RichMarkdown({ content, resolvedRefs, className }: RichMarkdownP
   
   return (
     <div className={`prose prose-sm max-w-none ${className ?? ""}`}>
-      <Markdown
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
         components={{
           // Override link rendering to use React Router Link for internal links
           a: ({ href, children, ...props }) => {
@@ -129,7 +131,7 @@ export function RichMarkdown({ content, resolvedRefs, className }: RichMarkdownP
         }}
       >
         {processedContent}
-      </Markdown>
+      </ReactMarkdown>
     </div>
   );
 }
