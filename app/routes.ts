@@ -16,6 +16,40 @@ export default [
   route("news.rss", "routes/news-rss.tsx"),
   route("jobs.rss", "routes/jobs-rss.tsx"),
   
+  // LLM-friendly markdown endpoints
+  route("llms.txt", "routes/llms-txt.tsx"),
+  route("index.md", "routes/home.md.tsx"),
+  route("about.md", "routes/about.md.tsx"),
+  route("api.md", "routes/api-docs.md.tsx"),
+  route("conduct.md", "routes/conduct.md.tsx"),
+  route("stay-connected.md", "routes/stay-connected.md.tsx"),
+  
+  // Directory markdown routes
+  route("directory/companies.md", "routes/directory/companies.md.tsx"),
+  route("directory/companies/:slug.md", "routes/directory/companies.$slug.md.tsx"),
+  route("directory/groups.md", "routes/directory/groups.md.tsx"),
+  route("directory/groups/:slug.md", "routes/directory/groups.$slug.md.tsx"),
+  route("directory/people.md", "routes/directory/people.md.tsx"),
+  route("directory/people/:slug.md", "routes/directory/people.$slug.md.tsx"),
+  route("directory/products.md", "routes/directory/products.md.tsx"),
+  route("directory/products/:slug.md", "routes/directory/products.$slug.md.tsx"),
+  route("directory/projects.md", "routes/directory/projects.md.tsx"),
+  route("directory/projects/:slug.md", "routes/directory/projects.$slug.md.tsx"),
+  route("directory/education.md", "routes/directory/education.md.tsx"),
+  route("directory/education/:slug.md", "routes/directory/education.$slug.md.tsx"),
+  
+  // Events markdown routes
+  route("events.md", "routes/events/index.md.tsx"),
+  route("events/:slug.md", "routes/events/detail.md.tsx"),
+  
+  // News markdown routes
+  route("news.md", "routes/news/index.md.tsx"),
+  route("news/:slug.md", "routes/news/detail.md.tsx"),
+  
+  // Jobs markdown routes
+  route("jobs.md", "routes/jobs/index.md.tsx"),
+  route("jobs/:slug.md", "routes/jobs/detail.md.tsx"),
+  
   // API routes
   route("api/comments", "routes/api.comments.tsx"),
   route("api/comments/delete", "routes/api.comments.delete.tsx"),
