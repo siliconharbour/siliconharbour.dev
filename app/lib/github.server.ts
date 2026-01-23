@@ -228,14 +228,58 @@ export async function getUserProfiles(
 }
 
 /**
- * Search for GitHub users in Newfoundland.
+ * Location search terms for Newfoundland & Labrador.
+ * These cover the various ways people write their location on GitHub.
+ * Note: GitHub search is case-insensitive and does partial matching.
+ */
+export const NEWFOUNDLAND_LOCATION_TERMS = [
+  // Primary - catches most variations like "Newfoundland, Canada", "St. John's, Newfoundland", etc.
+  "Newfoundland",
+  // NL abbreviation - catches "St. John's, NL", "NL, Canada", etc.
+  '"NL"',  // Quoted to avoid matching "NL" as part of other words
+  // Labrador specifically
+  "Labrador",
+];
+
+/**
+ * Search for GitHub users in Newfoundland & Labrador.
+ * Searches multiple location terms and combines results.
  * Returns basic user info - use getUserProfile for full details.
  */
 export async function searchNewfoundlandUsers(
   page: number = 1,
   perPage: number = 30
 ): Promise<{ users: GitHubUserBasic[]; total: number; rateLimit: RateLimitInfo }> {
-  return searchUsersByLocation("Newfoundland", page, perPage);
+  // Use OR query to search multiple locations at once
+  // GitHub search syntax: location:term1 OR location:term2
+  const locationQuery = NEWFOUNDLAND_LOCATION_TERMS
+    .map(term => `location:${term}`)
+    .join(" OR ");
+  
+  const octokit = getOctokit();
+  
+  const response = await octokit.rest.search.users({
+    q: `(${locationQuery}) type:user`,
+    page,
+    per_page: perPage,
+  });
+  
+  const rateLimit: RateLimitInfo = {
+    remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
+    limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
+    reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
+  };
+  
+  return {
+    users: response.data.items.map(item => ({
+      login: item.login,
+      id: item.id,
+      avatar_url: item.avatar_url,
+      html_url: item.html_url,
+    })),
+    total: response.data.total_count,
+    rateLimit,
+  };
 }
 
 /**
