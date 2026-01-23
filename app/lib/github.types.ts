@@ -41,3 +41,30 @@ export interface RateLimitInfo {
   limit: number;
   reset: Date;
 }
+
+/**
+ * Import job status - matches the DB schema
+ */
+export type ImportJobStatus = "idle" | "running" | "paused" | "completed" | "error";
+
+/**
+ * Import progress state for bulk GitHub import
+ * Used by both server (github-import.server.ts) and client (github-by-location.tsx)
+ */
+export interface ImportProgress {
+  status: ImportJobStatus;
+  totalItems: number;
+  processedItems: number;
+  currentPage: number;
+  totalPages: number;
+  importedCount: number;
+  skippedCount: number;
+  blockedCount: number;
+  errorCount: number;
+  rateLimitRemaining: number | null;
+  rateLimitReset: Date | null;
+  lastError: string | null;
+  lastActivity: Date | null;
+  canResume: boolean;
+  waitingForRateLimit: boolean;
+}

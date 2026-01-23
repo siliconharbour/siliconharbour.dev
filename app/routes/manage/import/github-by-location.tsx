@@ -6,9 +6,8 @@ import {
   searchNewfoundlandUsers, 
   getUserProfiles, 
   fetchAvatar,
-  getRateLimitStatus,
 } from "~/lib/github.server";
-import type { GitHubUser, GitHubUserBasic } from "~/lib/github.types";
+import type { GitHubUser, GitHubUserBasic, ImportProgress } from "~/lib/github.types";
 import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub, deletePerson } from "~/lib/people.server";
 import { 
   findCompanyByFuzzyName, 
@@ -23,7 +22,6 @@ import {
   processNextBatch,
   pauseImport,
   resetImport,
-  type ImportProgress,
 } from "~/lib/github-import.server";
 import {
   getBlockedExternalIds,

@@ -6,7 +6,7 @@
  */
 
 import { db } from "~/db";
-import { importJobs, type ImportJob } from "~/db/schema";
+import { importJobs } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { 
   searchNewfoundlandUsers, 
@@ -19,28 +19,14 @@ import { createPerson, updatePerson, getPersonByName, getPersonByGitHub } from "
 import { findCompanyByFuzzyName, parseGitHubCompanyField, extractCompanyFromBio, updateCompany } from "./companies.server";
 import { processAndSaveIconImageWithPadding } from "./images.server";
 import { isBlocked } from "./import-blocklist.server";
+import type { ImportProgress, ImportJobStatus } from "./github.types";
+
+// Re-export for convenience
+export type { ImportProgress };
 
 const GITHUB_IMPORT_JOB_ID = "github-newfoundland";
 const USERS_PER_PAGE = 30;
 const BATCH_SIZE = 5; // Process 5 users per action call to stay responsive
-
-export interface ImportProgress {
-  status: ImportJob["status"];
-  totalItems: number;
-  processedItems: number;
-  currentPage: number;
-  totalPages: number;
-  importedCount: number;
-  skippedCount: number;
-  blockedCount: number;
-  errorCount: number;
-  rateLimitRemaining: number | null;
-  rateLimitReset: Date | null;
-  lastError: string | null;
-  lastActivity: Date | null;
-  canResume: boolean;
-  waitingForRateLimit: boolean;
-}
 
 /**
  * Get current import job status
@@ -76,7 +62,7 @@ export async function getImportProgress(): Promise<ImportProgress> {
     resetTime > now;
   
   return {
-    status: job.status as ImportJob["status"],
+    status: job.status as ImportJobStatus,
     totalItems: job.totalItems ?? 0,
     processedItems: job.processedItems ?? 0,
     currentPage: job.currentPage ?? 1,
