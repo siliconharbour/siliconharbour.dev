@@ -655,8 +655,21 @@ export default function ImportGitHubFollowing() {
               })}
             </div>
             
-            {/* Import button */}
-            <div className="flex items-center gap-4">
+            {/* Bottom actions */}
+            <div className="flex items-center gap-4 flex-wrap">
+              {/* Fetch more button */}
+              {canContinue && (
+                <button
+                  type="button"
+                  onClick={handleContinue}
+                  disabled={isWorking}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+                >
+                  {isWorking ? "Fetching..." : `Fetch Next Batch (${progress.fetchedProfiles}/${progress.totalUsers})`}
+                </button>
+              )}
+              
+              {/* Import button */}
               <button
                 type="button"
                 onClick={handleImport}
