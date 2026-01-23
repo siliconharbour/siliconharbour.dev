@@ -358,7 +358,9 @@ export default function ImportGitHubFollowing() {
           <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-harbour-700">
-                {progress.sourceUsername ? `@${progress.sourceUsername}'s ${progress.mode}` : "Fetching profiles..."}
+                {progress.sourceUsername 
+                  ? `@${progress.sourceUsername}'s ${progress.mode}` 
+                  : "Stale job (server restarted?)"}
               </h2>
               
               <div className="flex items-center gap-2">
@@ -456,6 +458,13 @@ export default function ImportGitHubFollowing() {
             {progress.waitingForRateLimit && progress.rateLimitReset && (
               <div className="text-sm text-amber-600 bg-amber-50 p-2">
                 Rate limited. Can resume at {new Date(progress.rateLimitReset).toLocaleTimeString()}
+              </div>
+            )}
+            
+            {/* Stale job warning */}
+            {!progress.sourceUsername && (
+              <div className="text-sm text-amber-700 bg-amber-50 p-2">
+                This job lost its data (server restarted). Click "Reset" to start fresh.
               </div>
             )}
             
