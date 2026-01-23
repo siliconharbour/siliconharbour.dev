@@ -267,7 +267,7 @@ export async function getUserProfiles(
  *   St. john's, Newfoundland & Labrador (1)
  *   Upper Island Cove, Newfoundland Canada (1)
  */
-export const NEWFOUNDLAND_LOCATION_TERMS = [
+const NEWFOUNDLAND_LOCATION_TERMS = [
   // Primary - catches most variations like "Newfoundland, Canada", "St. John's, Newfoundland", etc.
   "Newfoundland",
   // NL abbreviation - catches "St. John's, NL", "NL, Canada", etc.
