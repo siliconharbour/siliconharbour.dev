@@ -1,6 +1,6 @@
 import type { Route } from "./+types/github-following";
-import { Link, useFetcher, useLoaderData } from "react-router";
-import { useState, useMemo } from "react";
+import { Link, useFetcher, useLoaderData, useRevalidator } from "react-router";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { 
   fetchAvatar,
@@ -40,7 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       .map(p => p.github!.toLowerCase())
   );
   
-  // Get current job progress
+  // Get current job progress - this is the source of truth
   const progress = await getFollowingImportProgress();
   
   return { 
@@ -64,32 +64,32 @@ export async function action({ request }: Route.ActionArgs) {
       return { intent, error: "Username is required" };
     }
     
-    const progress = await startFollowingImport(username, mode);
-    return { intent, progress, error: null };
+    await startFollowingImport(username, mode);
+    return { intent, error: null };
   }
   
-  // Continue processing profiles
+  // Continue processing profiles - this is the key action for auto-run
   if (intent === "continue") {
-    const progress = await processFollowingBatch();
-    return { intent, progress, error: null };
+    await processFollowingBatch();
+    return { intent, error: null };
   }
   
   // Resume a paused job
   if (intent === "resume") {
-    const progress = await resumeFollowingImport();
-    return { intent, progress, error: null };
+    await resumeFollowingImport();
+    return { intent, error: null };
   }
   
   // Pause the job
   if (intent === "pause") {
-    const progress = await pauseFollowingImport();
-    return { intent, progress, error: null };
+    await pauseFollowingImport();
+    return { intent, error: null };
   }
   
   // Reset/cancel the job
   if (intent === "reset") {
-    const progress = await resetFollowingImport();
-    return { intent, progress, error: null };
+    await resetFollowingImport();
+    return { intent, error: null };
   }
   
   // Import selected users
@@ -189,8 +189,9 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportGitHubFollowing() {
-  const { existingGitHubs, progress: initialProgress } = useLoaderData<typeof loader>();
+  const { existingGitHubs, progress } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const revalidator = useRevalidator();
   
   const [username, setUsername] = useState("");
   const [mode, setMode] = useState<"following" | "followers" | "both">("following");
@@ -198,17 +199,63 @@ export default function ImportGitHubFollowing() {
   const [downloadAvatars, setDownloadAvatars] = useState(true);
   const [autoRun, setAutoRun] = useState(false);
   
-  // Get progress from fetcher response or fall back to loader data
-  const progress: FollowingImportProgress = fetcher.data?.progress ?? initialProgress;
+  // Track recent activity for display
+  const [recentActivity, setRecentActivity] = useState<string[]>([]);
+  const lastFetchedCount = useRef(0);
   
-  // Auto-continue when running - triggered by button clicks, not useEffect
-  const handleContinue = () => {
-    fetcher.submit({ intent: "continue" }, { method: "post" });
-  };
+  // Update recent activity when profiles are fetched
+  if (progress.fetchedProfiles > lastFetchedCount.current && progress.profiles.length > 0) {
+    const newProfiles = progress.profiles.slice(lastFetchedCount.current);
+    const newActivity = newProfiles.map(p => `Fetched: ${p.name || p.login}`);
+    if (newActivity.length > 0) {
+      setRecentActivity(prev => [...newActivity, ...prev].slice(0, 20));
+    }
+    lastFetchedCount.current = progress.fetchedProfiles;
+  }
+  
+  // Reset activity tracking when job resets
+  if (progress.status === "idle" && lastFetchedCount.current > 0) {
+    lastFetchedCount.current = 0;
+  }
+  
+  // Auto-polling using useRevalidator - controlled by autoRun state
+  // This is the safe way to poll: revalidate loader data on an interval
+  useEffect(() => {
+    if (!autoRun) return;
+    if (progress.status !== "running") return;
+    if (revalidator.state !== "idle") return;
+    if (fetcher.state !== "idle") return;
+    
+    // Submit next batch and then revalidate to get fresh progress
+    const timer = setTimeout(() => {
+      fetcher.submit({ intent: "continue" }, { method: "post" });
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [autoRun, progress.status, revalidator.state, fetcher.state]);
+  
+  // Revalidate after fetcher completes to get fresh data
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data && autoRun) {
+      // Small delay then revalidate to get fresh progress from loader
+      const timer = setTimeout(() => {
+        if (revalidator.state === "idle") {
+          revalidator.revalidate();
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [fetcher.state, fetcher.data, autoRun, revalidator]);
   
   const handleStart = () => {
     setAutoRun(true);
+    setRecentActivity([]);
+    lastFetchedCount.current = 0;
     fetcher.submit({ intent: "start", username, mode }, { method: "post" });
+  };
+  
+  const handleContinue = () => {
+    fetcher.submit({ intent: "continue" }, { method: "post" });
   };
   
   const handlePause = () => {
@@ -224,15 +271,10 @@ export default function ImportGitHubFollowing() {
   const handleReset = () => {
     setAutoRun(false);
     setSelected(new Set());
+    setRecentActivity([]);
+    lastFetchedCount.current = 0;
     fetcher.submit({ intent: "reset" }, { method: "post" });
   };
-  
-  // When fetch completes and we're in auto-run mode, continue
-  // This is explicit user-triggered continuation, not a useEffect cascade
-  const shouldContinue = autoRun && 
-    progress.status === "running" && 
-    fetcher.state === "idle" &&
-    progress.fetchedProfiles < progress.totalUsers;
   
   const isExisting = (user: GitHubUserBasic) => {
     return existingGitHubs.includes(user.html_url.toLowerCase());
@@ -269,8 +311,8 @@ export default function ImportGitHubFollowing() {
     );
   };
   
-  const isWorking = fetcher.state !== "idle";
-  const isImporting = isWorking && fetcher.formData?.get("intent") === "import";
+  const isWorking = fetcher.state !== "idle" || revalidator.state !== "idle";
+  const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
   
   // Group users by location
   const locationGroups = useMemo(() => {
@@ -319,7 +361,7 @@ export default function ImportGitHubFollowing() {
             API Rate Limit: {progress.rateLimitRemaining} remaining
             {progress.rateLimitRemaining < 50 && progress.rateLimitReset && (
               <span className="text-amber-600 ml-2">
-                (Resets at {progress.rateLimitReset.toLocaleTimeString()})
+                (Resets at {new Date(progress.rateLimitReset).toLocaleTimeString()})
               </span>
             )}
           </div>
@@ -382,14 +424,24 @@ export default function ImportGitHubFollowing() {
                         Pause
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={handleContinue}
-                        disabled={isWorking}
-                        className="px-3 py-1.5 text-sm bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
-                      >
-                        {isWorking ? "..." : "Continue"}
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setAutoRun(true)}
+                          disabled={isWorking}
+                          className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+                        >
+                          Auto
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleContinue}
+                          disabled={isWorking}
+                          className="px-3 py-1.5 text-sm bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+                        >
+                          {isWorking ? "..." : "Next Batch"}
+                        </button>
+                      </>
                     )}
                   </>
                 )}
@@ -403,6 +455,12 @@ export default function ImportGitHubFollowing() {
                   >
                     Resume
                   </button>
+                )}
+                
+                {progress.status === "completed" && (
+                  <span className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 font-medium">
+                    Complete!
+                  </span>
                 )}
                 
                 <button
@@ -437,6 +495,12 @@ export default function ImportGitHubFollowing() {
                   {progress.errorCount} errors
                 </span>
               )}
+              
+              {isWorking && (
+                <span className="text-harbour-400 animate-pulse">
+                  Working...
+                </span>
+              )}
             </div>
             
             {/* Progress bar */}
@@ -454,7 +518,7 @@ export default function ImportGitHubFollowing() {
             {/* Rate limit warning */}
             {progress.waitingForRateLimit && progress.rateLimitReset && (
               <div className="text-sm text-amber-600 bg-amber-50 p-2">
-                Rate limited. Can resume at {progress.rateLimitReset.toLocaleTimeString()}
+                Rate limited. Can resume at {new Date(progress.rateLimitReset).toLocaleTimeString()}
               </div>
             )}
             
@@ -465,21 +529,20 @@ export default function ImportGitHubFollowing() {
               </div>
             )}
             
-            {/* Auto-continue button when running */}
-            {shouldContinue && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleContinue}
-                  disabled={isWorking}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
-                >
-                  {isWorking ? "Fetching..." : "Fetch Next Batch"}
-                </button>
-                <span className="text-sm text-harbour-500">
-                  Click to continue fetching profiles
-                </span>
-              </div>
+            {/* Recent activity log */}
+            {recentActivity.length > 0 && (
+              <details className="text-xs" open={progress.status === "running"}>
+                <summary className="cursor-pointer text-harbour-500 hover:text-harbour-700">
+                  Recent activity ({recentActivity.length})
+                </summary>
+                <div className="mt-1 max-h-32 overflow-y-auto bg-white border border-harbour-100 p-2 font-mono">
+                  {recentActivity.map((item, i) => (
+                    <div key={i} className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </details>
             )}
           </div>
         )}

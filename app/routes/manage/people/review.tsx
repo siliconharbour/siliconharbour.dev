@@ -252,14 +252,6 @@ export default function ReviewPeople() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentPerson, editMode]);
 
-  // Handle fetcher response
-  useEffect(() => {
-    if (fetcher.data?.success && fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
-      // Action completed, advance to next
-      advanceToNext();
-    }
-  }, [fetcher.data]);
-
   const advanceToNext = useCallback(() => {
     setPeople(prev => {
       const newPeople = [...prev];
@@ -268,6 +260,14 @@ export default function ReviewPeople() {
     });
     // Index stays the same since we removed an item
   }, [currentIndex]);
+
+  // Handle fetcher response
+  useEffect(() => {
+    if (fetcher.data?.success && fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
+      // Action completed, advance to next
+      advanceToNext();
+    }
+  }, [fetcher.data, advanceToNext]);
 
   const handleApprove = () => {
     if (!currentPerson) return;

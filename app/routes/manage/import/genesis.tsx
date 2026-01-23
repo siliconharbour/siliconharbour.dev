@@ -1,6 +1,6 @@
 import type { Route } from "./+types/genesis";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeGenesis, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
 import { createCompany, updateCompany, getAllCompanies, getCompanyByName } from "~/lib/companies.server";
@@ -129,12 +129,15 @@ export default function ImportGenesis() {
   const [downloadLogos, setDownloadLogos] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   
+  // Sync fetcher data to local state - using useEffect to avoid setState during render
   const fetcherData = fetcher.data;
-  if (fetcherData?.intent === "fetch" && fetcherData.companies && fetcherData.companies.length > 0) {
-    if (fetchedCompanies.length === 0) {
-      setFetchedCompanies(fetcherData.companies);
+  useEffect(() => {
+    if (fetcherData?.intent === "fetch" && fetcherData.companies && fetcherData.companies.length > 0) {
+      if (fetchedCompanies.length === 0) {
+        setFetchedCompanies(fetcherData.companies);
+      }
     }
-  }
+  }, [fetcherData, fetchedCompanies.length]);
   
   const isExisting = (company: ScrapedCompany) => {
     const nameLower = company.name.toLowerCase();

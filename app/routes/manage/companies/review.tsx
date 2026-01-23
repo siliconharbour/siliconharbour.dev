@@ -276,14 +276,6 @@ export default function ReviewCompanies() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentCompany, editMode]);
 
-  // Handle fetcher response
-  useEffect(() => {
-    if (fetcher.data?.success && fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
-      // Action completed, advance to next
-      advanceToNext();
-    }
-  }, [fetcher.data]);
-
   const advanceToNext = useCallback(() => {
     setCompanies(prev => {
       const newCompanies = [...prev];
@@ -292,6 +284,14 @@ export default function ReviewCompanies() {
     });
     // Index stays the same since we removed an item
   }, [currentIndex]);
+
+  // Handle fetcher response
+  useEffect(() => {
+    if (fetcher.data?.success && fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
+      // Action completed, advance to next
+      advanceToNext();
+    }
+  }, [fetcher.data, advanceToNext]);
 
   const handleApprove = () => {
     if (!currentCompany) return;
