@@ -1,6 +1,6 @@
 import type { Route } from "./+types/github-following";
-import { Link, useFetcher, useLoaderData, useRevalidator } from "react-router";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { Link, useFetcher, useLoaderData } from "react-router";
+import { useState, useMemo } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { 
   fetchAvatar,
@@ -64,32 +64,32 @@ export async function action({ request }: Route.ActionArgs) {
       return { intent, error: "Username is required" };
     }
     
-    await startFollowingImport(username, mode);
-    return { intent, error: null };
+    const progress = await startFollowingImport(username, mode);
+    return { intent, progress, error: null };
   }
   
-  // Continue processing profiles - this is the key action for auto-run
+  // Continue processing profiles
   if (intent === "continue") {
-    await processFollowingBatch();
-    return { intent, error: null };
+    const progress = await processFollowingBatch();
+    return { intent, progress, error: null };
   }
   
   // Resume a paused job
   if (intent === "resume") {
-    await resumeFollowingImport();
-    return { intent, error: null };
+    const progress = await resumeFollowingImport();
+    return { intent, progress, error: null };
   }
   
   // Pause the job
   if (intent === "pause") {
-    await pauseFollowingImport();
-    return { intent, error: null };
+    const progress = await pauseFollowingImport();
+    return { intent, progress, error: null };
   }
   
   // Reset/cancel the job
   if (intent === "reset") {
-    await resetFollowingImport();
-    return { intent, error: null };
+    const progress = await resetFollowingImport();
+    return { intent, progress, error: null };
   }
   
   // Import selected users
@@ -189,68 +189,20 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportGitHubFollowing() {
-  const { existingGitHubs, progress } = useLoaderData<typeof loader>();
+  const { existingGitHubs, progress: loaderProgress } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
-  const revalidator = useRevalidator();
   
   const [username, setUsername] = useState("");
   const [mode, setMode] = useState<"following" | "followers" | "both">("following");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadAvatars, setDownloadAvatars] = useState(true);
-  const [autoRun, setAutoRun] = useState(false);
   
-  // Track recent activity for display
-  const [recentActivity, setRecentActivity] = useState<string[]>([]);
-  const lastFetchedCount = useRef(0);
+  // Progress comes from fetcher response (most recent) or loader (initial)
+  const progress: FollowingImportProgress = fetcher.data?.progress ?? loaderProgress;
   
-  // Update recent activity when profiles are fetched
-  if (progress.fetchedProfiles > lastFetchedCount.current && progress.profiles.length > 0) {
-    const newProfiles = progress.profiles.slice(lastFetchedCount.current);
-    const newActivity = newProfiles.map(p => `Fetched: ${p.name || p.login}`);
-    if (newActivity.length > 0) {
-      setRecentActivity(prev => [...newActivity, ...prev].slice(0, 20));
-    }
-    lastFetchedCount.current = progress.fetchedProfiles;
-  }
-  
-  // Reset activity tracking when job resets
-  if (progress.status === "idle" && lastFetchedCount.current > 0) {
-    lastFetchedCount.current = 0;
-  }
-  
-  // Auto-polling using useRevalidator - controlled by autoRun state
-  // This is the safe way to poll: revalidate loader data on an interval
-  useEffect(() => {
-    if (!autoRun) return;
-    if (progress.status !== "running") return;
-    if (revalidator.state !== "idle") return;
-    if (fetcher.state !== "idle") return;
-    
-    // Submit next batch and then revalidate to get fresh progress
-    const timer = setTimeout(() => {
-      fetcher.submit({ intent: "continue" }, { method: "post" });
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [autoRun, progress.status, revalidator.state, fetcher.state]);
-  
-  // Revalidate after fetcher completes to get fresh data
-  useEffect(() => {
-    if (fetcher.state === "idle" && fetcher.data && autoRun) {
-      // Small delay then revalidate to get fresh progress from loader
-      const timer = setTimeout(() => {
-        if (revalidator.state === "idle") {
-          revalidator.revalidate();
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [fetcher.state, fetcher.data, autoRun, revalidator]);
-  
+  // Simple handlers - NO useEffects, NO auto-run
+  // User clicks a button, action runs, fetcher.data updates with new progress
   const handleStart = () => {
-    setAutoRun(true);
-    setRecentActivity([]);
-    lastFetchedCount.current = 0;
     fetcher.submit({ intent: "start", username, mode }, { method: "post" });
   };
   
@@ -259,20 +211,15 @@ export default function ImportGitHubFollowing() {
   };
   
   const handlePause = () => {
-    setAutoRun(false);
     fetcher.submit({ intent: "pause" }, { method: "post" });
   };
   
   const handleResume = () => {
-    setAutoRun(true);
     fetcher.submit({ intent: "resume" }, { method: "post" });
   };
   
   const handleReset = () => {
-    setAutoRun(false);
     setSelected(new Set());
-    setRecentActivity([]);
-    lastFetchedCount.current = 0;
     fetcher.submit({ intent: "reset" }, { method: "post" });
   };
   
@@ -311,8 +258,8 @@ export default function ImportGitHubFollowing() {
     );
   };
   
-  const isWorking = fetcher.state !== "idle" || revalidator.state !== "idle";
-  const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
+  const isWorking = fetcher.state !== "idle";
+  const isImporting = isWorking && fetcher.formData?.get("intent") === "import";
   
   // Group users by location
   const locationGroups = useMemo(() => {
@@ -334,6 +281,8 @@ export default function ImportGitHubFollowing() {
     ? Math.round((progress.fetchedProfiles / progress.totalUsers) * 100)
     : 0;
   
+  const canContinue = progress.status === "running" && !isWorking && progress.fetchedProfiles < progress.totalUsers;
+  
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
@@ -352,7 +301,7 @@ export default function ImportGitHubFollowing() {
         
         <p className="text-harbour-500">
           Enter a GitHub username to fetch their following/followers and import them as people.
-          The process fetches full profiles which requires one API call per user.
+          Click "Fetch Next Batch" repeatedly to fetch profiles (10 at a time).
         </p>
         
         {/* Rate limit indicator */}
@@ -377,7 +326,7 @@ export default function ImportGitHubFollowing() {
               placeholder="GitHub username"
               className="px-4 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none w-64"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && username.trim()) {
+                if (e.key === "Enter" && username.trim() && !isWorking) {
                   handleStart();
                 }
               }}
@@ -413,37 +362,25 @@ export default function ImportGitHubFollowing() {
               </h2>
               
               <div className="flex items-center gap-2">
-                {progress.status === "running" && (
-                  <>
-                    {autoRun ? (
-                      <button
-                        type="button"
-                        onClick={handlePause}
-                        className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
-                      >
-                        Pause
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setAutoRun(true)}
-                          disabled={isWorking}
-                          className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
-                        >
-                          Auto
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleContinue}
-                          disabled={isWorking}
-                          className="px-3 py-1.5 text-sm bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
-                        >
-                          {isWorking ? "..." : "Next Batch"}
-                        </button>
-                      </>
-                    )}
-                  </>
+                {canContinue && (
+                  <button
+                    type="button"
+                    onClick={handleContinue}
+                    disabled={isWorking}
+                    className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+                  >
+                    {isWorking ? "Fetching..." : "Fetch Next Batch"}
+                  </button>
+                )}
+                
+                {progress.status === "running" && !canContinue && !isWorking && (
+                  <button
+                    type="button"
+                    onClick={handlePause}
+                    className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+                  >
+                    Pause
+                  </button>
                 )}
                 
                 {progress.status === "paused" && (
@@ -466,6 +403,7 @@ export default function ImportGitHubFollowing() {
                 <button
                   type="button"
                   onClick={handleReset}
+                  disabled={isWorking}
                   className="px-3 py-1.5 text-sm border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
                 >
                   Reset
@@ -482,7 +420,6 @@ export default function ImportGitHubFollowing() {
                 "bg-red-100 text-red-700"
               }`}>
                 {progress.status.toUpperCase()}
-                {autoRun && progress.status === "running" && " (auto)"}
               </span>
               
               <span className="text-harbour-600">
@@ -529,20 +466,12 @@ export default function ImportGitHubFollowing() {
               </div>
             )}
             
-            {/* Recent activity log */}
-            {recentActivity.length > 0 && (
-              <details className="text-xs" open={progress.status === "running"}>
-                <summary className="cursor-pointer text-harbour-500 hover:text-harbour-700">
-                  Recent activity ({recentActivity.length})
-                </summary>
-                <div className="mt-1 max-h-32 overflow-y-auto bg-white border border-harbour-100 p-2 font-mono">
-                  {recentActivity.map((item, i) => (
-                    <div key={i} className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}>
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </details>
+            {/* Instruction for manual fetching */}
+            {canContinue && (
+              <div className="text-sm text-harbour-500 bg-harbour-100 p-2">
+                Click "Fetch Next Batch" to fetch the next 10 profiles. 
+                Each click makes ~10 API calls.
+              </div>
             )}
           </div>
         )}
