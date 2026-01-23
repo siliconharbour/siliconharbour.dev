@@ -2,11 +2,8 @@ import type { Route } from "./+types/github-following";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useState, useMemo } from "react";
 import { requireAuth } from "~/lib/session.server";
-import { 
-  fetchAvatar,
-  type GitHubUser,
-  type GitHubUserBasic,
-} from "~/lib/github.server";
+import { fetchAvatar } from "~/lib/github.server";
+import type { GitHubUser, GitHubUserBasic } from "~/lib/github.types";
 import {
   getFollowingImportProgress,
   startFollowingImport,

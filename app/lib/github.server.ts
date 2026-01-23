@@ -13,48 +13,25 @@ import { throttling } from "@octokit/plugin-throttling";
 import { retry } from "@octokit/plugin-retry";
 import { execSync } from "child_process";
 
+// Re-export types from the shared types file
+export type {
+  GitHubUserBasic,
+  GitHubUser,
+  GitHubSocialAccount,
+  GitHubUserWithSocials,
+  RateLimitInfo,
+} from "./github.types";
+
+import type {
+  GitHubUserBasic,
+  GitHubUser,
+  GitHubSocialAccount,
+  GitHubUserWithSocials,
+  RateLimitInfo,
+} from "./github.types";
+
 // Create Octokit with throttling and retry plugins
 const ThrottledOctokit = Octokit.plugin(throttling, retry);
-
-/**
- * Minimal user info returned by search and list endpoints.
- * These endpoints only return basic profile data.
- */
-export interface GitHubUserBasic {
-  login: string;
-  id: number;
-  avatar_url: string;
-  html_url: string;
-}
-
-/**
- * Full user profile returned by the users/:username endpoint.
- * Includes all the detailed fields.
- */
-export interface GitHubUser extends GitHubUserBasic {
-  name: string | null;
-  company: string | null;
-  bio: string | null;
-  blog: string | null;
-  location: string | null;
-  public_repos: number;
-  twitter_username: string | null;
-}
-
-export interface GitHubSocialAccount {
-  provider: string;
-  url: string;
-}
-
-export interface GitHubUserWithSocials extends GitHubUser {
-  socialAccounts: GitHubSocialAccount[];
-}
-
-export interface RateLimitInfo {
-  remaining: number;
-  limit: number;
-  reset: Date;
-}
 
 let cachedOctokit: InstanceType<typeof ThrottledOctokit> | null = null;
 let tokenSource: string | null = null;
