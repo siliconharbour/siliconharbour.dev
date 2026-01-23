@@ -6,7 +6,9 @@ import {
   searchNewfoundlandUsers, 
   getUserProfiles, 
   fetchAvatar,
-  type GitHubUser 
+  getRateLimitStatus,
+  type GitHubUser,
+  type GitHubUserBasic,
 } from "~/lib/github.server";
 import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub, deletePerson } from "~/lib/people.server";
 import { 

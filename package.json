@@ -20,6 +20,8 @@
   "dependencies": {
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",
+    "@octokit/plugin-retry": "^8.0.3",
+    "@octokit/plugin-throttling": "^11.0.3",
     "@react-router/node": "7.12.0",
     "@react-router/serve": "7.12.0",
     "@rehookify/datepicker": "^6.6.8",
@@ -32,6 +34,7 @@
     "isbot": "^5.1.33",
     "jszip": "^3.10.1",
     "linkedom": "^0.18.12",
+    "octokit": "^5.0.5",
     "react": "^19.2.3",
     "react-day-picker": "^9.13.0",
     "react-dom": "^19.2.3",
