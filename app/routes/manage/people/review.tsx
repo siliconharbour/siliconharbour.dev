@@ -51,8 +51,38 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent") as string;
   const id = parseInt(formData.get("id") as string, 10);
   
-  if (isNaN(id) && intent !== "undo-reject") {
+  if (isNaN(id) && intent !== "undo-reject" && intent !== "bulk-reject") {
     return { error: "Invalid person ID" };
+  }
+  
+  // Bulk reject by pattern match
+  if (intent === "bulk-reject") {
+    const pattern = (formData.get("pattern") as string)?.toLowerCase().trim();
+    if (!pattern) {
+      return { error: "Pattern is required" };
+    }
+    
+    const allHidden = await getHiddenPeople();
+    const toReject = allHidden.filter(p => {
+      const searchText = `${p.name} ${p.bio || ""}`.toLowerCase();
+      return searchText.includes(pattern);
+    });
+    
+    let rejectedCount = 0;
+    for (const person of toReject) {
+      if (person.github) {
+        await blockItem("github", person.github, person.name, `Bulk rejected: "${pattern}"`);
+      }
+      await deletePerson(person.id);
+      rejectedCount++;
+    }
+    
+    return { 
+      success: true, 
+      action: "bulk-rejected",
+      bulkRejectedCount: rejectedCount,
+      pattern,
+    };
   }
 
   // Get person data for undo support (before any modifications)
@@ -270,9 +300,15 @@ export default function ReviewPeople() {
 
   // Handle fetcher response
   useEffect(() => {
-    if (fetcher.data?.success && fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
-      // Action completed, advance to next
-      advanceToNext();
+    if (fetcher.data?.success) {
+      if (fetcher.data.action === "bulk-rejected") {
+        // Reload to get fresh list after bulk reject
+        setToastMessage(`Rejected ${fetcher.data.bulkRejectedCount} people matching "${fetcher.data.pattern}"`);
+        setTimeout(() => window.location.reload(), 1500);
+      } else if (fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
+        // Action completed, advance to next
+        advanceToNext();
+      }
     }
   }, [fetcher.data, advanceToNext]);
 
@@ -384,6 +420,33 @@ export default function ReviewPeople() {
             {remaining} remaining
           </div>
         </div>
+
+        {/* Bulk Reject Tool */}
+        <details className="border border-harbour-200 bg-harbour-50">
+          <summary className="px-4 py-2 cursor-pointer text-sm font-medium text-harbour-600 hover:text-harbour-800">
+            Bulk Reject Tool
+          </summary>
+          <div className="p-4 border-t border-harbour-200">
+            <fetcher.Form method="post" className="flex gap-2">
+              <input type="hidden" name="intent" value="bulk-reject" />
+              <input
+                type="text"
+                name="pattern"
+                placeholder="e.g. Eindhoven, Amsterdam, Netherlands..."
+                className="flex-1 px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+              >
+                Reject Matching
+              </button>
+            </fetcher.Form>
+            <p className="mt-2 text-xs text-harbour-500">
+              This will reject all people whose name or bio contains the pattern (case-insensitive).
+            </p>
+          </div>
+        </details>
 
         {/* Person Card */}
         <div className="bg-white border border-harbour-200 shadow-sm">
