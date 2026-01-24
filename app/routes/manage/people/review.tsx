@@ -592,6 +592,29 @@ export default function ReviewPeople() {
           <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">E</kbd> Edit · 
           <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">Esc</kbd> Cancel edit
         </div>
+
+        {/* GitHub Profile Preview */}
+        {currentPerson.github && (
+          <div className="border border-harbour-200 bg-white">
+            <div className="p-3 bg-harbour-50 border-b border-harbour-200 flex items-center justify-between">
+              <span className="text-sm font-medium text-harbour-600">GitHub Profile</span>
+              <a 
+                href={currentPerson.github} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-harbour-500 hover:text-harbour-700"
+              >
+                Open in new tab &rarr;
+              </a>
+            </div>
+            <iframe
+              src={currentPerson.github}
+              title={`GitHub profile for ${currentPerson.name}`}
+              className="w-full h-[600px] border-0"
+              sandbox="allow-scripts allow-same-origin"
+            />
+          </div>
+        )}
       </div>
 
       {/* Toast notification */}
