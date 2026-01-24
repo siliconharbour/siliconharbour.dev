@@ -9,7 +9,8 @@ import { db } from "~/db";
 import { importJobs } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { 
-  searchNewfoundlandUsers, 
+  searchNewfoundlandUsers,
+  clearNewfoundlandUsersCache,
   getUserProfileWithRateLimit,
   fetchAvatar,
   type GitHubUserWithSocials,
@@ -345,6 +346,8 @@ export async function pauseImport(): Promise<ImportProgress> {
  */
 export async function resetImport(): Promise<ImportProgress> {
   await db.delete(importJobs).where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
+  // Clear the cached search results so we fetch fresh data
+  clearNewfoundlandUsersCache();
   return getImportProgress();
 }
 

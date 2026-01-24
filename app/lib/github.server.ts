@@ -253,43 +253,122 @@ const NEWFOUNDLAND_LOCATION_TERMS = [
   "Labrador",
 ];
 
+// Cache for combined search results to avoid re-fetching on pagination
+let cachedNewfoundlandUsers: GitHubUserBasic[] | null = null;
+let cachedNewfoundlandUsersTimestamp: number = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Fetch ALL Newfoundland users by running separate searches for each location term.
+ * Results are deduplicated by user ID and cached for pagination.
+ * This uses more API calls but produces more accurate results than OR queries.
+ */
+async function fetchAllNewfoundlandUsers(): Promise<{ 
+  users: GitHubUserBasic[]; 
+  rateLimit: RateLimitInfo 
+}> {
+  // Check cache first
+  if (cachedNewfoundlandUsers && (Date.now() - cachedNewfoundlandUsersTimestamp) < CACHE_TTL_MS) {
+    const rateLimit = await getRateLimitStatus();
+    return { users: cachedNewfoundlandUsers, rateLimit };
+  }
+  
+  const octokit = getOctokit();
+  const seenIds = new Set<number>();
+  const allUsers: GitHubUserBasic[] = [];
+  let latestRateLimit: RateLimitInfo = {
+    remaining: 0,
+    limit: 0,
+    reset: new Date(),
+  };
+  
+  // Search each location term separately
+  for (const term of NEWFOUNDLAND_LOCATION_TERMS) {
+    console.log(`GitHub: Searching for users with location "${term}"...`);
+    
+    // Paginate through all results for this term
+    let page = 1;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const response = await octokit.rest.search.users({
+        q: `location:${term} type:user`,
+        page,
+        per_page: 100, // Max per page
+      });
+      
+      latestRateLimit = {
+        remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
+        limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
+        reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
+      };
+      
+      // Add users we haven't seen yet (deduplicate)
+      for (const item of response.data.items) {
+        if (!seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          allUsers.push({
+            login: item.login,
+            id: item.id,
+            avatar_url: item.avatar_url,
+            html_url: item.html_url,
+          });
+        }
+      }
+      
+      // Check if there are more pages
+      const totalPages = Math.ceil(response.data.total_count / 100);
+      hasMore = page < totalPages && response.data.items.length > 0;
+      page++;
+      
+      // Safety: GitHub search API only returns first 1000 results
+      if (page > 10) {
+        console.log(`GitHub: Reached 1000 result limit for "${term}"`);
+        hasMore = false;
+      }
+    }
+    
+    console.log(`GitHub: Found ${seenIds.size} unique users so far (after "${term}")`);
+  }
+  
+  // Cache the results
+  cachedNewfoundlandUsers = allUsers;
+  cachedNewfoundlandUsersTimestamp = Date.now();
+  
+  console.log(`GitHub: Total unique Newfoundland users found: ${allUsers.length}`);
+  
+  return { users: allUsers, rateLimit: latestRateLimit };
+}
+
+/**
+ * Clear the Newfoundland users cache.
+ * Call this when starting a fresh import.
+ */
+export function clearNewfoundlandUsersCache(): void {
+  cachedNewfoundlandUsers = null;
+  cachedNewfoundlandUsersTimestamp = 0;
+}
+
 /**
  * Search for GitHub users in Newfoundland & Labrador.
- * Searches multiple location terms and combines results.
- * Returns basic user info - use getUserProfile for full details.
+ * Runs separate searches for each location term and deduplicates results.
+ * Returns paginated results from the combined, deduplicated user list.
  */
 export async function searchNewfoundlandUsers(
   page: number = 1,
   perPage: number = 30
 ): Promise<{ users: GitHubUserBasic[]; total: number; rateLimit: RateLimitInfo }> {
-  // Use OR query to search multiple locations at once
-  // GitHub search syntax: location:term1 OR location:term2
-  const locationQuery = NEWFOUNDLAND_LOCATION_TERMS
-    .map(term => `location:${term}`)
-    .join(" OR ");
+  // Fetch all users (uses cache if available)
+  const { users: allUsers, rateLimit } = await fetchAllNewfoundlandUsers();
   
-  const octokit = getOctokit();
-  
-  const response = await octokit.rest.search.users({
-    q: `(${locationQuery}) type:user`,
-    page,
-    per_page: perPage,
-  });
-  
-  const rateLimit: RateLimitInfo = {
-    remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
-    limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
-    reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
-  };
+  // Paginate the results
+  const startIndex = (page - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  const paginatedUsers = allUsers.slice(startIndex, endIndex);
   
   return {
-    users: response.data.items.map(item => ({
-      login: item.login,
-      id: item.id,
-      avatar_url: item.avatar_url,
-      html_url: item.html_url,
-    })),
-    total: response.data.total_count,
+    users: paginatedUsers,
+    total: allUsers.length,
     rateLimit,
   };
 }
