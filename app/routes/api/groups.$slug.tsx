@@ -5,15 +5,12 @@ import { eq } from "drizzle-orm";
 import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const [group] = await db
-    .select()
-    .from(groups)
-    .where(eq(groups.slug, params.slug));
-  
+  const [group] = await db.select().from(groups).where(eq(groups.slug, params.slug));
+
   if (!group) {
     return jsonResponse({ error: "Group not found" }, { status: 404 });
   }
-  
+
   return jsonResponse({
     id: group.id,
     slug: group.slug,

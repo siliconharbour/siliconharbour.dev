@@ -1,5 +1,11 @@
 import { db } from "~/db";
-import { comments, contentTypes, type Comment, type NewComment, type ContentType } from "~/db/schema";
+import {
+  comments,
+  contentTypes,
+  type Comment,
+  type NewComment,
+  type ContentType,
+} from "~/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 
@@ -44,7 +50,7 @@ export function hashIP(ip: string): string {
  */
 export async function createComment(
   comment: Omit<NewComment, "ipHash" | "ipAddress" | "userAgent">,
-  metadata?: { ip?: string; userAgent?: string }
+  metadata?: { ip?: string; userAgent?: string },
 ): Promise<Comment> {
   const [newComment] = await db
     .insert(comments)
@@ -65,7 +71,7 @@ export async function createComment(
  */
 export async function getPublicComments(
   contentType: ContentType,
-  contentId: number
+  contentId: number,
 ): Promise<CommentWithDepth[]> {
   return getThreadedComments(contentType, contentId, false);
 }
@@ -80,20 +86,21 @@ export async function getPublicComments(
 export async function getThreadedComments(
   contentType: ContentType,
   contentId: number,
-  includePrivate: boolean = false
+  includePrivate: boolean = false,
 ): Promise<CommentWithDepth[]> {
   // Validate inputs to prevent SQL injection (even though we use validated types,
   // this provides defense-in-depth since we use raw SQL below)
   const safeContentType = validateContentType(contentType);
   const safeContentId = validateContentId(contentId);
-  
+
   // Use raw SQL for recursive CTE - Drizzle doesn't support WITH RECURSIVE natively
   // Note: contentType is validated against a strict enum whitelist above,
   // and contentId is validated as a positive integer, making injection impossible
   const privateFilterBase = includePrivate ? "" : "AND is_private = 0";
   const privateFilterRecursive = includePrivate ? "" : "AND c.is_private = 0";
-  
-  const result = await db.all<CommentWithDepth>(sql.raw(`
+
+  const result = await db.all<CommentWithDepth>(
+    sql.raw(`
     WITH RECURSIVE comment_tree AS (
       -- Base case: top-level comments (no parent)
       SELECT 
@@ -131,12 +138,13 @@ export async function getThreadedComments(
       user_agent as userAgent, created_at as createdAt, depth
     FROM comment_tree 
     ORDER BY sort_path
-  `));
-  
+  `),
+  );
+
   // Convert timestamps and booleans from SQLite format
-  return result.map(row => ({
+  return result.map((row) => ({
     ...row,
-    createdAt: new Date(row.createdAt as unknown as number * 1000),
+    createdAt: new Date((row.createdAt as unknown as number) * 1000),
     isPrivate: Boolean(row.isPrivate),
     parentId: row.parentId || null,
   }));
@@ -148,7 +156,7 @@ export async function getThreadedComments(
  */
 export async function getAllComments(
   contentType: ContentType,
-  contentId: number
+  contentId: number,
 ): Promise<CommentWithDepth[]> {
   return getThreadedComments(contentType, contentId, true);
 }
@@ -186,10 +194,10 @@ export async function getRecentCommentCount(
   contentType: ContentType,
   contentId: number,
   ipHash: string,
-  windowMinutes: number = 60
+  windowMinutes: number = 60,
 ): Promise<number> {
   const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000);
-  
+
   const result = await db
     .select()
     .from(comments)
@@ -197,12 +205,12 @@ export async function getRecentCommentCount(
       and(
         eq(comments.contentType, contentType),
         eq(comments.contentId, contentId),
-        eq(comments.ipHash, ipHash)
-      )
+        eq(comments.ipHash, ipHash),
+      ),
     );
-  
+
   // Filter by time in JS since SQLite timestamp comparison is tricky
-  return result.filter(c => c.createdAt >= windowStart).length;
+  return result.filter((c) => c.createdAt >= windowStart).length;
 }
 
 /**
@@ -210,25 +218,18 @@ export async function getRecentCommentCount(
  */
 export async function getPaginatedComments(
   page: number = 1,
-  perPage: number = 20
+  perPage: number = 20,
 ): Promise<{ comments: Comment[]; total: number; totalPages: number }> {
   const offset = (page - 1) * perPage;
-  
+
   const [allComments, countResult] = await Promise.all([
-    db
-      .select()
-      .from(comments)
-      .orderBy(desc(comments.createdAt))
-      .limit(perPage)
-      .offset(offset),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(comments),
+    db.select().from(comments).orderBy(desc(comments.createdAt)).limit(perPage).offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(comments),
   ]);
-  
+
   const total = countResult[0]?.count ?? 0;
   const totalPages = Math.ceil(total / perPage);
-  
+
   return { comments: allComments, total, totalPages };
 }
 
@@ -236,8 +237,6 @@ export async function getPaginatedComments(
  * Get total comment count
  */
 export async function getCommentCount(): Promise<number> {
-  const result = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(comments);
+  const result = await db.select({ count: sql<number>`count(*)` }).from(comments);
   return result[0]?.count ?? 0;
 }

@@ -2,7 +2,11 @@ import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getEventById, updateEvent } from "~/lib/events.server";
-import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import {
+  processAndSaveCoverImage,
+  processAndSaveIconImage,
+  deleteImage,
+} from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
 import { parseAsTimezone } from "~/lib/timezone";
 
@@ -126,7 +130,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         defaultStartTime,
         defaultEndTime,
       },
-      [] // Clear explicit dates for recurring events
+      [], // Clear explicit dates for recurring events
     );
   } else {
     // Handle one-time event with explicit dates
@@ -175,7 +179,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         defaultStartTime: null,
         defaultEndTime: null,
       },
-      dates
+      dates,
     );
   }
 
@@ -191,10 +195,7 @@ export default function EditEvent() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/events"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/events" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Events
           </Link>
         </div>

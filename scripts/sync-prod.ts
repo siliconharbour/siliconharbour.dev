@@ -23,10 +23,7 @@ function getMode(): Mode {
 
 function getTimestamp(): string {
   const now = new Date();
-  return now.toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .slice(0, 19);
+  return now.toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
 }
 
 function ssh(command: string, options?: { stdio?: "inherit" | "pipe" }): string {
@@ -39,7 +36,7 @@ function ssh(command: string, options?: { stdio?: "inherit" | "pipe" }): string 
 
 function sync(destPath: string) {
   const source = `${REMOTE_HOST}:${REMOTE_PATH}`;
-  
+
   console.log(`Syncing from ${source} to ${destPath}...`);
   console.log("");
 
@@ -48,23 +45,19 @@ function sync(destPath: string) {
   // -v: verbose
   // -z: compress during transfer
   // --progress: show progress
-  execSync(
-    `rsync -avz --progress "${source}" "${destPath}"`,
-    { stdio: "inherit" }
-  );
+  execSync(`rsync -avz --progress "${source}" "${destPath}"`, { stdio: "inherit" });
 }
 
 function pushDatabaseToRemote() {
   const dest = `${REMOTE_HOST}:${REMOTE_DB_FILE}`;
-  
+
   console.log(`Pushing database from ${LOCAL_DB_FILE} to ${dest}...`);
   console.log("");
 
   // Use rsync with sudo on remote via --rsync-path
-  execSync(
-    `rsync -avz --progress --rsync-path="sudo rsync" "${LOCAL_DB_FILE}" "${dest}"`,
-    { stdio: "inherit" }
-  );
+  execSync(`rsync -avz --progress --rsync-path="sudo rsync" "${LOCAL_DB_FILE}" "${dest}"`, {
+    stdio: "inherit",
+  });
 }
 
 function runSync() {
@@ -101,14 +94,14 @@ function runBackup(): string {
   try {
     // Sync to temp directory
     sync(tempDir);
-    
+
     console.log("");
     console.log(`Creating archive: ${zipFile}...`);
-    
+
     // Create zip archive
     execSync(
       `cd "${BACKUP_DIR}" && zip -r "siliconharbour_${timestamp}.zip" "siliconharbour_${timestamp}"`,
-      { stdio: "inherit" }
+      { stdio: "inherit" },
     );
 
     // Clean up temp directory
@@ -156,7 +149,9 @@ function startContainer() {
 
 function checkContainerStatus(): boolean {
   try {
-    const result = ssh(`cd ${REMOTE_COMPOSE_DIR} && docker compose ps --format json ${SERVICE_NAME}`);
+    const result = ssh(
+      `cd ${REMOTE_COMPOSE_DIR} && docker compose ps --format json ${SERVICE_NAME}`,
+    );
     if (result.includes('"State":"running"') || result.includes('"Status":"Up')) {
       return true;
     }
@@ -243,7 +238,7 @@ async function runMigrate() {
     console.error("The migrations failed. Production data has NOT been modified.");
     console.error(`A backup is available at: ${backupFile}`);
     console.error("");
-    
+
     const restart = await prompt("Do you want to restart the production container? Type 'yes': ");
     if (restart === "yes") {
       startContainer();

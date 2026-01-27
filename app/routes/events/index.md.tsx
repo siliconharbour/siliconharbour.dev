@@ -14,7 +14,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const content = listPageToMarkdown({
     title: "Events",
     description: "Tech events, meetups, and workshops in St. John's.",
-    items: items.map(e => ({ slug: e.slug, name: e.title, description: e.description })),
+    items: items.map((e) => ({ slug: e.slug, name: e.title, description: e.description })),
     entityType: "event",
     basePath: "/events",
     total,

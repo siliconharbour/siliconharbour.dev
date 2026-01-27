@@ -55,7 +55,7 @@ export async function action({ request }: Route.ActionArgs) {
     name,
     description,
     website,
-    type: type as typeof productTypes[number],
+    type: type as (typeof productTypes)[number],
     companyId: companyId ? parseInt(companyId, 10) : null,
     logo,
     coverImage,
@@ -80,10 +80,7 @@ export default function NewProduct() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/products"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/products" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Products
           </Link>
         </div>
@@ -91,9 +88,7 @@ export default function NewProduct() {
         <h1 className="text-2xl font-semibold text-harbour-700">New Product</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -149,7 +144,9 @@ export default function NewProduct() {
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {productTypes.map((t) => (
-                  <option key={t} value={t}>{typeLabels[t]}</option>
+                  <option key={t} value={t}>
+                    {typeLabels[t]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -166,7 +163,9 @@ export default function NewProduct() {
               >
                 <option value="">None</option>
                 {companies.map((company) => (
-                  <option key={company.id} value={company.id}>{company.name}</option>
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
                 ))}
               </select>
             </div>

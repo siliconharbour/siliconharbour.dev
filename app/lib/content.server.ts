@@ -1,6 +1,6 @@
 /**
  * Content loading utilities for static markdown/MDX pages
- * 
+ *
  * MDX files are used for rich HTML rendering with React components.
  * We also extract plain markdown for the .md API endpoints.
  */
@@ -24,14 +24,14 @@ export interface ContentPage {
 function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; content: string } {
   const frontmatterRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
   const match = raw.match(frontmatterRegex);
-  
+
   if (!match) {
     return { frontmatter: {}, content: raw };
   }
-  
+
   const [, frontmatterStr, content] = match;
   const frontmatter: Record<string, unknown> = {};
-  
+
   // Simple YAML parser for key: value pairs
   for (const line of frontmatterStr.split("\n")) {
     const colonIndex = line.indexOf(":");
@@ -41,7 +41,7 @@ function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; 
       frontmatter[key] = value;
     }
   }
-  
+
   return { frontmatter, content: content.trim() };
 }
 
@@ -53,26 +53,23 @@ function parseFrontmatter(raw: string): { frontmatter: Record<string, unknown>; 
 function mdxToMarkdown(content: string): string {
   // Remove import statements
   let markdown = content.replace(/^import\s+.*?;?\s*$/gm, "");
-  
+
   // Convert <ObfuscatedEmail /> to plain text
   markdown = markdown.replace(/<ObfuscatedEmail\s*\/>/g, "admin [at] siliconharbour [dot] dev");
-  
+
   // Convert <Callout type="warning">...</Callout> to blockquote
   markdown = markdown.replace(
     /<Callout[^>]*type="warning"[^>]*>([\s\S]*?)<\/Callout>/g,
-    "> **Warning:** $1"
+    "> **Warning:** $1",
   );
-  markdown = markdown.replace(
-    /<Callout[^>]*>([\s\S]*?)<\/Callout>/g,
-    "> $1"
-  );
-  
+  markdown = markdown.replace(/<Callout[^>]*>([\s\S]*?)<\/Callout>/g, "> $1");
+
   // Convert <Code>...</Code> to inline code block
   markdown = markdown.replace(/<Code>([\s\S]*?)<\/Code>/g, "```\n$1\n```");
-  
+
   // Convert <CodeBlock>{`...`}</CodeBlock> to fenced code block
   markdown = markdown.replace(/<CodeBlock>\{`([\s\S]*?)`\}<\/CodeBlock>/g, "```\n$1\n```");
-  
+
   // Convert <ApiTable /> to the markdown table (hardcoded for now)
   const apiTableMarkdown = `| Endpoint | Description |
 |----------|-------------|
@@ -95,10 +92,10 @@ function mdxToMarkdown(content: string): string {
 | \`GET /api/products\` | List products |
 | \`GET /api/products/:slug\` | Get product |`;
   markdown = markdown.replace(/<ApiTable\s*\/>/g, apiTableMarkdown);
-  
+
   // Clean up extra blank lines
   markdown = markdown.replace(/\n{3,}/g, "\n\n");
-  
+
   return markdown.trim();
 }
 
@@ -108,19 +105,19 @@ function mdxToMarkdown(content: string): string {
  */
 export function loadContentPage(name: string): ContentPage {
   const contentDir = join(process.cwd(), "app", "content");
-  
+
   // Try .mdx first, then .md
   let filePath = join(contentDir, `${name}.mdx`);
   let isMdx = true;
-  
+
   if (!existsSync(filePath)) {
     filePath = join(contentDir, `${name}.md`);
     isMdx = false;
   }
-  
+
   const raw = readFileSync(filePath, "utf-8");
   const { frontmatter, content } = parseFrontmatter(raw);
-  
+
   return {
     frontmatter: frontmatter as ContentPage["frontmatter"],
     content: isMdx ? mdxToMarkdown(content) : content,
@@ -135,7 +132,7 @@ function rebuildRawMarkdown(frontmatter: Record<string, unknown>, content: strin
   const frontmatterLines = Object.entries(frontmatter)
     .map(([key, value]) => `${key}: ${value}`)
     .join("\n");
-  
+
   return `---\n${frontmatterLines}\n---\n\n${content}`;
 }
 

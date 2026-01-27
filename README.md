@@ -39,6 +39,7 @@ npm run db:seed       # Seed database
 ```bash
 docker compose up --build
 ```
+
 App runs at `http://localhost:3000`
 
 Data is persisted to `./data/docker/`.
@@ -52,8 +53,8 @@ docker run -p 3000:3000 -v ./data:/app/data siliconharbour
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATA_DIR` | Directory for database and uploads | `./data` |
-| `DB_NAME` | SQLite database filename | `siliconharbour.db` |
-| `IMAGES_DIR_NAME` | Subdirectory for uploaded images | `images` |
+| Variable          | Description                        | Default             |
+| ----------------- | ---------------------------------- | ------------------- |
+| `DATA_DIR`        | Directory for database and uploads | `./data`            |
+| `DB_NAME`         | SQLite database filename           | `siliconharbour.db` |
+| `IMAGES_DIR_NAME` | Subdirectory for uploaded images   | `images`            |

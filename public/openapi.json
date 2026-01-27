@@ -42,9 +42,7 @@
       "get": {
         "summary": "Get company",
         "description": "Get a single company by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -82,9 +80,7 @@
       "get": {
         "summary": "Get event",
         "description": "Get a single event by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -122,9 +118,7 @@
       "get": {
         "summary": "Get group",
         "description": "Get a single group by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -162,9 +156,7 @@
       "get": {
         "summary": "Get job",
         "description": "Get a single job by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -202,9 +194,7 @@
       "get": {
         "summary": "Get learning resource",
         "description": "Get a single learning resource by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -242,9 +232,7 @@
       "get": {
         "summary": "Get news article",
         "description": "Get a single news article by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -282,9 +270,7 @@
       "get": {
         "summary": "Get person",
         "description": "Get a single person by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -322,9 +308,7 @@
       "get": {
         "summary": "Get project",
         "description": "Get a single project by slug",
-        "parameters": [
-          { "$ref": "#/components/parameters/slug" }
-        ],
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
@@ -508,7 +492,10 @@
           "slug": { "type": "string" },
           "name": { "type": "string" },
           "description": { "type": "string" },
-          "type": { "type": "string", "enum": ["university", "college", "bootcamp", "online", "other"] },
+          "type": {
+            "type": "string",
+            "enum": ["university", "college", "bootcamp", "online", "other"]
+          },
           "website": { "type": "string", "nullable": true },
           "logo": { "type": "string", "nullable": true },
           "coverImage": { "type": "string", "nullable": true },
@@ -575,7 +562,10 @@
           "slug": { "type": "string" },
           "name": { "type": "string" },
           "description": { "type": "string" },
-          "type": { "type": "string", "enum": ["game", "webapp", "library", "tool", "hardware", "other"] },
+          "type": {
+            "type": "string",
+            "enum": ["game", "webapp", "library", "tool", "hardware", "other"]
+          },
           "status": { "type": "string", "enum": ["active", "completed", "archived", "on-hold"] },
           "links": { "type": "object", "nullable": true },
           "logo": { "type": "string", "nullable": true },

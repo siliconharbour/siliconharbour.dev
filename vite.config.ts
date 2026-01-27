@@ -11,9 +11,16 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     // MDX must run with enforce: 'pre' so it transforms .mdx files before Vite's import analysis
-    { enforce: "pre", ...mdx({
-      remarkPlugins: [remarkGfm, remarkFrontmatter, [remarkMdxFrontmatter, { name: "frontmatter" }]],
-    }) },
+    {
+      enforce: "pre",
+      ...mdx({
+        remarkPlugins: [
+          remarkGfm,
+          remarkFrontmatter,
+          [remarkMdxFrontmatter, { name: "frontmatter" }],
+        ],
+      }),
+    },
     reactRouter(),
     tsconfigPaths(),
   ],

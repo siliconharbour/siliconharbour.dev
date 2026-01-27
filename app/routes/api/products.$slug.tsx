@@ -5,15 +5,12 @@ import { eq } from "drizzle-orm";
 import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const [product] = await db
-    .select()
-    .from(products)
-    .where(eq(products.slug, params.slug));
-  
+  const [product] = await db.select().from(products).where(eq(products.slug, params.slug));
+
   if (!product) {
     return jsonResponse({ error: "Product not found" }, { status: 404 });
   }
-  
+
   let company = null;
   if (product.companyId) {
     const [c] = await db
@@ -29,7 +26,7 @@ export async function loader({ params }: Route.LoaderArgs) {
       };
     }
   }
-  
+
   return jsonResponse({
     id: product.id,
     slug: product.slug,

@@ -6,19 +6,17 @@ import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Education - Directory - siliconharbour.dev" },
-  ];
+  return [{ title: "Education - Directory - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const { items, total } = await getPaginatedEducation(limit, offset, searchQuery);
   return { items, total, limit, offset, searchQuery, isAdmin };
 }
@@ -61,7 +59,9 @@ export default function DirectoryEducation() {
 
       {items.length === 0 ? (
         <p className="text-harbour-400">
-          {searchQuery ? "No education resources match your search." : "No education resources listed yet."}
+          {searchQuery
+            ? "No education resources match your search."
+            : "No education resources listed yet."}
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -94,7 +94,7 @@ export default function DirectoryEducation() {
           ))}
         </div>
       )}
-      
+
       <Pagination total={total} limit={limit} offset={offset} />
     </div>
   );

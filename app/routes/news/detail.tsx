@@ -15,7 +15,7 @@ export function meta({ data, params }: Route.MetaArgs) {
   const title = data?.article?.title ?? "News";
   const siteUrl = "https://siliconharbour.dev";
   const ogImageUrl = `${siteUrl}/news/${params.slug}.png`;
-  
+
   return [
     { title: `${title} - siliconharbour.dev` },
     { property: "og:title", content: title },
@@ -34,24 +34,25 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (!article) {
     throw new Response("Article not found", { status: 404 });
   }
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
     prepareRefsForClient(article.content),
     getDetailedBacklinks("news", article.id),
     isAdmin ? getAllComments("news", article.id) : getPublicComments("news", article.id),
     areCommentsEnabled("news"),
   ]);
-  
+
   const turnstileSiteKey = getTurnstileSiteKey();
-  
+
   return { article, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
 }
 
 export default function NewsDetail() {
-  const { article, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } = useLoaderData<typeof loader>();
+  const { article, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } =
+    useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-[60ch] mx-auto p-4 py-8">
@@ -76,15 +77,18 @@ export default function NewsDetail() {
                 title="Edit"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
                 </svg>
               </Link>
             )}
           </div>
           {article.publishedAt && (
-            <p className="text-harbour-500">
-              {format(article.publishedAt, "MMMM d, yyyy")}
-            </p>
+            <p className="text-harbour-500">{format(article.publishedAt, "MMMM d, yyyy")}</p>
           )}
         </div>
 

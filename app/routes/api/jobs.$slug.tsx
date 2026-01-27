@@ -5,15 +5,12 @@ import { eq } from "drizzle-orm";
 import { jsonResponse, contentUrl } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const [job] = await db
-    .select()
-    .from(jobs)
-    .where(eq(jobs.slug, params.slug));
-  
+  const [job] = await db.select().from(jobs).where(eq(jobs.slug, params.slug));
+
   if (!job) {
     return jsonResponse({ error: "Job not found" }, { status: 404 });
   }
-  
+
   return jsonResponse({
     id: job.id,
     slug: job.slug,

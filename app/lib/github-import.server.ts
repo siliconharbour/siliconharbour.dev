@@ -1,6 +1,6 @@
 /**
  * GitHub Import Job Service
- * 
+ *
  * Handles incremental, rate-limit-aware importing of GitHub users.
  * Progress is persisted to allow resuming interrupted imports.
  */
@@ -8,7 +8,7 @@
 import { db } from "~/db";
 import { importJobs } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { 
+import {
   searchNewfoundlandUsers,
   clearNewfoundlandUsersCache,
   getUserProfileWithRateLimit,
@@ -17,7 +17,12 @@ import {
   type RateLimitInfo,
 } from "./github.server";
 import { createPerson, updatePerson, getPersonByName, getPersonByGitHub } from "./people.server";
-import { findCompanyByFuzzyName, parseGitHubCompanyField, extractCompanyFromBio, updateCompany } from "./companies.server";
+import {
+  findCompanyByFuzzyName,
+  parseGitHubCompanyField,
+  extractCompanyFromBio,
+  updateCompany,
+} from "./companies.server";
 import { processAndSaveIconImageWithPadding } from "./images.server";
 import { isBlocked } from "./import-blocklist.server";
 import type { ImportProgress, ImportJobStatus } from "./github.types";
@@ -33,8 +38,12 @@ const BATCH_SIZE = 5; // Process 5 users per action call to stay responsive
  * Get current import job status
  */
 export async function getImportProgress(): Promise<ImportProgress> {
-  const job = await db.select().from(importJobs).where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID)).get();
-  
+  const job = await db
+    .select()
+    .from(importJobs)
+    .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID))
+    .get();
+
   if (!job) {
     return {
       status: "idle",
@@ -54,14 +63,15 @@ export async function getImportProgress(): Promise<ImportProgress> {
       waitingForRateLimit: false,
     };
   }
-  
+
   const now = Date.now();
   const resetTime = job.rateLimitReset ? job.rateLimitReset * 1000 : null;
-  const waitingForRateLimit = job.status === "paused" && 
-    job.rateLimitRemaining === 0 && 
-    resetTime !== null && 
+  const waitingForRateLimit =
+    job.status === "paused" &&
+    job.rateLimitRemaining === 0 &&
+    resetTime !== null &&
     resetTime > now;
-  
+
   return {
     status: job.status as ImportJobStatus,
     totalItems: job.totalItems ?? 0,
@@ -85,20 +95,25 @@ export async function getImportProgress(): Promise<ImportProgress> {
  * Start or resume the GitHub import job
  */
 export async function startImport(): Promise<ImportProgress> {
-  const existing = await db.select().from(importJobs).where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID)).get();
-  
+  const existing = await db
+    .select()
+    .from(importJobs)
+    .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID))
+    .get();
+
   if (existing?.status === "running") {
     // Already running
     return getImportProgress();
   }
-  
+
   // Check if we need to wait for rate limit
   if (existing?.rateLimitRemaining === 0 && existing?.rateLimitReset) {
     const resetTime = existing.rateLimitReset * 1000;
     if (resetTime > Date.now()) {
       // Still rate limited, update status but can't proceed
-      await db.update(importJobs)
-        .set({ 
+      await db
+        .update(importJobs)
+        .set({
           status: "paused",
           lastError: `Rate limited until ${new Date(resetTime).toLocaleTimeString()}`,
           lastActivity: new Date(),
@@ -107,13 +122,13 @@ export async function startImport(): Promise<ImportProgress> {
       return getImportProgress();
     }
   }
-  
+
   if (!existing) {
     // First run - get total count
     try {
       const searchResult = await searchNewfoundlandUsers(1, 1);
       const totalPages = Math.ceil(searchResult.total / USERS_PER_PAGE);
-      
+
       await db.insert(importJobs).values({
         id: GITHUB_IMPORT_JOB_ID,
         status: "running",
@@ -142,15 +157,16 @@ export async function startImport(): Promise<ImportProgress> {
     }
   } else {
     // Resume existing job
-    await db.update(importJobs)
-      .set({ 
+    await db
+      .update(importJobs)
+      .set({
         status: "running",
         lastError: null,
         lastActivity: new Date(),
       })
       .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
   }
-  
+
   return getImportProgress();
 }
 
@@ -163,8 +179,12 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
   processed: string[];
   errors: string[];
 }> {
-  const job = await db.select().from(importJobs).where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID)).get();
-  
+  const job = await db
+    .select()
+    .from(importJobs)
+    .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID))
+    .get();
+
   if (!job || job.status !== "running") {
     return {
       progress: await getImportProgress(),
@@ -172,19 +192,20 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
       errors: ["Import job is not running"],
     };
   }
-  
+
   const processed: string[] = [];
   const errors: string[] = [];
   let rateLimit: RateLimitInfo | null = null;
-  
+
   try {
     // Fetch current page of users
     const searchResult = await searchNewfoundlandUsers(job.currentPage ?? 1, USERS_PER_PAGE);
     rateLimit = searchResult.rateLimit;
-    
+
     if (searchResult.users.length === 0) {
       // No more users, we're done
-      await db.update(importJobs)
+      await db
+        .update(importJobs)
         .set({
           status: "completed",
           lastActivity: new Date(),
@@ -192,32 +213,35 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
           rateLimitReset: Math.floor(rateLimit.reset.getTime() / 1000),
         })
         .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-      
+
       return {
         progress: await getImportProgress(),
         processed: ["Import completed!"],
         errors: [],
       };
     }
-    
+
     // Process up to BATCH_SIZE users from this page
     const startIdx = (job.processedItems ?? 0) % USERS_PER_PAGE;
     const usersToProcess = searchResult.users.slice(startIdx, startIdx + BATCH_SIZE);
-    
+
     let importedCount = job.importedCount ?? 0;
     let skippedCount = job.skippedCount ?? 0;
     let errorCount = job.errorCount ?? 0;
     let processedItems = job.processedItems ?? 0;
-    
+
     for (const searchUser of usersToProcess) {
       try {
         // Fetch full profile
-        const { user, rateLimit: profileRateLimit } = await getUserProfileWithRateLimit(searchUser.login);
+        const { user, rateLimit: profileRateLimit } = await getUserProfileWithRateLimit(
+          searchUser.login,
+        );
         rateLimit = profileRateLimit;
-        
+
         if (rateLimit.remaining < 5) {
           // Getting low, pause and wait
-          await db.update(importJobs)
+          await db
+            .update(importJobs)
             .set({
               status: "paused",
               processedItems,
@@ -230,17 +254,17 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
               lastActivity: new Date(),
             })
             .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-          
+
           return {
             progress: await getImportProgress(),
             processed,
             errors: [...errors, `Paused due to rate limit (${rateLimit.remaining} remaining)`],
           };
         }
-        
+
         const result = await importSingleUser(user, downloadAvatars);
         processedItems++;
-        
+
         if (result.action === "imported" || result.action === "merged") {
           importedCount++;
           processed.push(`${result.name} (${result.action})`);
@@ -255,7 +279,8 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
         const errorMsg = String(e);
         if (errorMsg.startsWith("RATE_LIMITED:")) {
           const resetTime = parseInt(errorMsg.split(":")[1]);
-          await db.update(importJobs)
+          await db
+            .update(importJobs)
             .set({
               status: "paused",
               processedItems,
@@ -268,31 +293,32 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
               lastActivity: new Date(),
             })
             .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-          
+
           return {
             progress: await getImportProgress(),
             processed,
             errors: [...errors, `Rate limited until ${new Date(resetTime).toLocaleTimeString()}`],
           };
         }
-        
+
         errorCount++;
         processedItems++;
         errors.push(`${searchUser.login}: ${errorMsg}`);
       }
     }
-    
+
     // Check if we need to move to next page
     let currentPage = job.currentPage ?? 1;
     if (processedItems >= currentPage * USERS_PER_PAGE) {
       currentPage++;
     }
-    
+
     // Check if we're done
-    const isComplete = currentPage > (job.totalPages ?? 0) || 
-      processedItems >= (job.totalItems ?? 0);
-    
-    await db.update(importJobs)
+    const isComplete =
+      currentPage > (job.totalPages ?? 0) || processedItems >= (job.totalItems ?? 0);
+
+    await db
+      .update(importJobs)
       .set({
         status: isComplete ? "completed" : "running",
         processedItems,
@@ -306,20 +332,20 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
         lastError: null,
       })
       .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-    
   } catch (e) {
     const errorMsg = String(e);
-    await db.update(importJobs)
+    await db
+      .update(importJobs)
       .set({
         status: "error",
         lastError: errorMsg,
         lastActivity: new Date(),
       })
       .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-    
+
     errors.push(errorMsg);
   }
-  
+
   return {
     progress: await getImportProgress(),
     processed,
@@ -331,13 +357,14 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
  * Pause the import job
  */
 export async function pauseImport(): Promise<ImportProgress> {
-  await db.update(importJobs)
+  await db
+    .update(importJobs)
     .set({
       status: "paused",
       lastActivity: new Date(),
     })
     .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-  
+
   return getImportProgress();
 }
 
@@ -356,25 +383,25 @@ export async function resetImport(): Promise<ImportProgress> {
  */
 async function importSingleUser(
   user: GitHubUserWithSocials,
-  downloadAvatars: boolean
+  downloadAvatars: boolean,
 ): Promise<{ name: string; action: "imported" | "merged" | "skipped" | "blocked" }> {
   const githubUrl = user.html_url;
   const displayName = user.name || user.login;
-  
+
   // Check if blocked from import
   const blocked = await isBlocked("github", githubUrl);
   if (blocked) {
     return { name: displayName, action: "blocked" };
   }
-  
+
   // Check if person already exists
   const existingByGitHub = await getPersonByGitHub(githubUrl);
   if (existingByGitHub) {
     return { name: displayName, action: "skipped" };
   }
-  
+
   const existingByName = await getPersonByName(displayName);
-  
+
   // Download avatar if requested
   let avatar: string | null = null;
   if (downloadAvatars && user.avatar_url) {
@@ -383,19 +410,19 @@ async function importSingleUser(
       avatar = await processAndSaveIconImageWithPadding(imageBuffer);
     }
   }
-  
+
   // Try to find company from GitHub company field or bio
   let companyName: string | null = null;
   let githubOrgUrl: string | null = null;
   let matchedCompany = null;
-  
+
   if (user.company) {
     const parsed = parseGitHubCompanyField(user.company);
     companyName = parsed.name;
     githubOrgUrl = parsed.githubOrg;
     matchedCompany = await findCompanyByFuzzyName(parsed.name);
   }
-  
+
   if (!companyName && user.bio) {
     const bioCompany = extractCompanyFromBio(user.bio);
     if (bioCompany) {
@@ -403,16 +430,16 @@ async function importSingleUser(
       matchedCompany = await findCompanyByFuzzyName(bioCompany);
     }
   }
-  
+
   // Update company's github field if we found a match
   if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
     await updateCompany(matchedCompany.id, { github: githubOrgUrl });
   }
-  
+
   // Build bio with company reference
   let bio = user.bio || "";
   const companyRefName = matchedCompany?.name || companyName;
-  
+
   if (companyRefName && !bio.toLowerCase().includes(companyRefName.toLowerCase())) {
     const companyRef = `[[${companyRefName}]]`;
     if (bio) {
@@ -423,16 +450,16 @@ async function importSingleUser(
   } else if (!bio) {
     bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
   }
-  
+
   // Build social links from GitHub profile
   // GitHub provides twitter_username directly, and social_accounts for others
   const socialLinks: Record<string, string> = {};
-  
+
   // Twitter can come from twitter_username field or social accounts
   if (user.twitter_username) {
     socialLinks.twitter = `https://twitter.com/${user.twitter_username}`;
   }
-  
+
   // Process social accounts (instagram, linkedin, etc.)
   for (const account of user.socialAccounts || []) {
     const provider = account.provider.toLowerCase();
@@ -451,11 +478,9 @@ async function importSingleUser(
     }
     // Other providers can be added as needed
   }
-  
-  const socialLinksJson = Object.keys(socialLinks).length > 0 
-    ? JSON.stringify(socialLinks) 
-    : null;
-  
+
+  const socialLinksJson = Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null;
+
   if (existingByName) {
     // Merge with existing person
     if (!existingByName.github) {
@@ -468,13 +493,12 @@ async function importSingleUser(
           // ignore
         }
       }
-      
+
       // Merge social links (prefer existing values)
       const mergedSocialLinks = { ...socialLinks, ...existingSocialLinks };
-      const mergedSocialLinksJson = Object.keys(mergedSocialLinks).length > 0 
-        ? JSON.stringify(mergedSocialLinks) 
-        : null;
-      
+      const mergedSocialLinksJson =
+        Object.keys(mergedSocialLinks).length > 0 ? JSON.stringify(mergedSocialLinks) : null;
+
       await updatePerson(existingByName.id, {
         github: githubUrl,
         website: existingByName.website || user.blog || null,
@@ -486,7 +510,7 @@ async function importSingleUser(
     }
     return { name: displayName, action: "skipped" };
   }
-  
+
   // Create new person (hidden by default - needs manual review)
   await createPerson({
     name: displayName,
@@ -497,6 +521,6 @@ async function importSingleUser(
     socialLinks: socialLinksJson,
     visible: false, // Imported users start hidden until reviewed
   });
-  
+
   return { name: displayName, action: "imported" };
 }

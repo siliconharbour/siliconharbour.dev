@@ -56,10 +56,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (!existing.github) {
       return { error: "Cannot add to import block list without GitHub link" };
     }
-    
+
     await blockItem("github", existing.github, existing.name, "Blocked from edit page");
     await deletePerson(id);
-    
+
     return redirect("/manage/people");
   }
 
@@ -117,10 +117,7 @@ export default function EditPerson() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/people"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/people" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to People
           </Link>
         </div>
@@ -128,9 +125,7 @@ export default function EditPerson() {
         <h1 className="text-2xl font-semibold text-harbour-700">Edit Person</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -186,9 +181,11 @@ export default function EditPerson() {
 
           <div className="flex flex-col gap-4">
             <h3 className="font-medium text-harbour-700">Social Links</h3>
-            
+
             <div className="flex flex-col gap-2">
-              <label htmlFor="github" className="text-sm text-harbour-600">GitHub</label>
+              <label htmlFor="github" className="text-sm text-harbour-600">
+                GitHub
+              </label>
               <input
                 type="url"
                 id="github"
@@ -200,7 +197,9 @@ export default function EditPerson() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="twitter" className="text-sm text-harbour-600">Twitter</label>
+              <label htmlFor="twitter" className="text-sm text-harbour-600">
+                Twitter
+              </label>
               <input
                 type="url"
                 id="twitter"
@@ -212,7 +211,9 @@ export default function EditPerson() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="linkedin" className="text-sm text-harbour-600">LinkedIn</label>
+              <label htmlFor="linkedin" className="text-sm text-harbour-600">
+                LinkedIn
+              </label>
               <input
                 type="url"
                 id="linkedin"
@@ -227,16 +228,18 @@ export default function EditPerson() {
           <div className="flex flex-col gap-2">
             <span className="font-medium text-harbour-700">Visibility</span>
             <label className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                name="visible" 
+              <input
+                type="checkbox"
+                name="visible"
                 value="true"
                 defaultChecked={person.visible ?? true}
-                className="rounded" 
+                className="rounded"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>
-            <p className="text-xs text-harbour-400">Uncheck to hide this person from public listings while you review/edit their profile.</p>
+            <p className="text-xs text-harbour-400">
+              Uncheck to hide this person from public listings while you review/edit their profile.
+            </p>
           </div>
 
           <button
@@ -252,8 +255,8 @@ export default function EditPerson() {
           <div className="border-t border-harbour-200 pt-6 mt-6">
             <h2 className="text-lg font-semibold text-harbour-700 mb-2">Import Block</h2>
             <p className="text-sm text-harbour-500 mb-4">
-              Add this person to the import block list to prevent them from being re-imported 
-              from GitHub in the future. This will also delete the current record.
+              Add this person to the import block list to prevent them from being re-imported from
+              GitHub in the future. This will also delete the current record.
             </p>
             <Form method="post">
               <input type="hidden" name="intent" value="import-block" />
@@ -261,7 +264,11 @@ export default function EditPerson() {
                 type="submit"
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
                 onClick={(e) => {
-                  if (!confirm(`Add "${person.name}" to import block list and delete? This prevents this GitHub user from being imported again.`)) {
+                  if (
+                    !confirm(
+                      `Add "${person.name}" to import block list and delete? This prevents this GitHub user from being imported again.`,
+                    )
+                  ) {
                     e.preventDefault();
                   }
                 }}

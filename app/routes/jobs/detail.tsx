@@ -8,9 +8,7 @@ import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
 
 export function meta({ data }: Route.MetaArgs) {
-  return [
-    { title: `${data?.job?.title ?? "Job"} - siliconharbour.dev` },
-  ];
+  return [{ title: `${data?.job?.title ?? "Job"} - siliconharbour.dev` }];
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -18,13 +16,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (!job) {
     throw new Response("Job not found", { status: 404 });
   }
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const resolvedRefs = await prepareRefsForClient(job.description);
   const backlinks = await getDetailedBacklinks("job", job.id);
-  
+
   return { job, resolvedRefs, backlinks, isAdmin };
 }
 
@@ -44,27 +42,28 @@ export default function JobDetail() {
                 title="Edit"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                  />
                 </svg>
               </Link>
             )}
           </div>
-          
+
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-harbour-500">
             {job.companyName && <span className="font-medium">{job.companyName}</span>}
             {job.location && <span>{job.location}</span>}
             {job.remote && (
-              <span className="px-2 py-0.5 bg-harbour-100 text-harbour-600 text-sm">
-                Remote
-              </span>
+              <span className="px-2 py-0.5 bg-harbour-100 text-harbour-600 text-sm">Remote</span>
             )}
           </div>
-          
+
           <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-harbour-400">
             <span>Posted {format(job.postedAt, "MMMM d, yyyy")}</span>
-            {job.expiresAt && (
-              <span>Expires {format(job.expiresAt, "MMMM d, yyyy")}</span>
-            )}
+            {job.expiresAt && <span>Expires {format(job.expiresAt, "MMMM d, yyyy")}</span>}
             {job.salaryRange && <span>{job.salaryRange}</span>}
           </div>
         </div>
@@ -81,7 +80,12 @@ export default function JobDetail() {
         >
           Apply Now
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
           </svg>
         </a>
 

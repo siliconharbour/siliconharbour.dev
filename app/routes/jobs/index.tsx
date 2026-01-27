@@ -17,12 +17,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const { items: jobs, total } = await getPaginatedJobs(limit, offset, searchQuery);
-  
+
   return { jobs, total, limit, offset, searchQuery, isAdmin };
 }
 
@@ -47,12 +47,12 @@ export default function JobsIndex() {
             </div>
             <p className="text-harbour-500">Tech job opportunities in the community</p>
           </div>
-          
+
           {/* Search - only show if pagination is needed */}
           {(total > limit || searchQuery) && (
             <>
               <SearchInput placeholder="Search jobs..." />
-              
+
               {/* Result count */}
               {searchQuery && (
                 <p className="text-sm text-harbour-500">
@@ -101,7 +101,7 @@ export default function JobsIndex() {
             ))}
           </div>
         )}
-        
+
         <Pagination total={total} limit={limit} offset={offset} />
       </div>
     </div>

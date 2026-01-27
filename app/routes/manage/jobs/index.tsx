@@ -50,7 +50,9 @@ export default function ManageJobsIndex() {
                   <div className="flex items-center gap-2">
                     <h2 className="font-medium truncate text-harbour-700">{job.title}</h2>
                     {job.remote && (
-                      <span className="text-xs px-2 py-0.5 bg-harbour-100 text-harbour-600">Remote</span>
+                      <span className="text-xs px-2 py-0.5 bg-harbour-100 text-harbour-600">
+                        Remote
+                      </span>
                     )}
                   </div>
                   <p className="text-sm text-harbour-400">
@@ -79,10 +81,7 @@ export default function ManageJobsIndex() {
         )}
 
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>

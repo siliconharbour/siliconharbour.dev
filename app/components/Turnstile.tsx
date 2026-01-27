@@ -3,10 +3,7 @@ import { useEffect, useRef, useCallback } from "react";
 declare global {
   interface Window {
     turnstile?: {
-      render: (
-        container: string | HTMLElement,
-        options: TurnstileOptions
-      ) => string;
+      render: (container: string | HTMLElement, options: TurnstileOptions) => string;
       reset: (widgetId: string) => void;
       remove: (widgetId: string) => void;
     };
@@ -50,7 +47,7 @@ function loadTurnstileScript(): Promise<void> {
     script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad";
     script.async = true;
     script.defer = true;
-    
+
     window.onTurnstileLoad = () => {
       resolve();
     };
@@ -73,9 +70,12 @@ export function Turnstile({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
 
-  const handleVerify = useCallback((token: string) => {
-    onVerify(token);
-  }, [onVerify]);
+  const handleVerify = useCallback(
+    (token: string) => {
+      onVerify(token);
+    },
+    [onVerify],
+  );
 
   useEffect(() => {
     let mounted = true;

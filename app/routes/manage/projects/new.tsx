@@ -62,8 +62,8 @@ export async function action({ request }: Route.ActionArgs) {
   await createProject({
     name,
     description,
-    type: type as typeof projectTypes[number],
-    status: status as typeof projectStatuses[number],
+    type: type as (typeof projectTypes)[number],
+    status: status as (typeof projectStatuses)[number],
     links: links || null,
     logo,
     coverImage,
@@ -95,10 +95,7 @@ export default function NewProject() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/projects"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/projects" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Projects
           </Link>
         </div>
@@ -106,9 +103,7 @@ export default function NewProject() {
         <h1 className="text-2xl font-semibold text-harbour-700">New Project</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -151,7 +146,9 @@ export default function NewProject() {
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectTypes.map((t) => (
-                  <option key={t} value={t}>{typeLabels[t]}</option>
+                  <option key={t} value={t}>
+                    {typeLabels[t]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -167,7 +164,9 @@ export default function NewProject() {
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectStatuses.map((s) => (
-                  <option key={s} value={s}>{statusLabels[s]}</option>
+                  <option key={s} value={s}>
+                    {statusLabels[s]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -177,7 +176,9 @@ export default function NewProject() {
             <legend className="font-medium text-harbour-700 px-2">Links</legend>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label htmlFor="github" className="text-sm text-harbour-600">GitHub</label>
+                <label htmlFor="github" className="text-sm text-harbour-600">
+                  GitHub
+                </label>
                 <input
                   type="url"
                   id="github"
@@ -187,7 +188,9 @@ export default function NewProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="website" className="text-sm text-harbour-600">Website</label>
+                <label htmlFor="website" className="text-sm text-harbour-600">
+                  Website
+                </label>
                 <input
                   type="url"
                   id="website"
@@ -197,7 +200,9 @@ export default function NewProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="demo" className="text-sm text-harbour-600">Live Demo</label>
+                <label htmlFor="demo" className="text-sm text-harbour-600">
+                  Live Demo
+                </label>
                 <input
                   type="url"
                   id="demo"
@@ -207,7 +212,9 @@ export default function NewProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="itchio" className="text-sm text-harbour-600">itch.io</label>
+                <label htmlFor="itchio" className="text-sm text-harbour-600">
+                  itch.io
+                </label>
                 <input
                   type="url"
                   id="itchio"
@@ -217,7 +224,9 @@ export default function NewProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="npm" className="text-sm text-harbour-600">npm</label>
+                <label htmlFor="npm" className="text-sm text-harbour-600">
+                  npm
+                </label>
                 <input
                   type="url"
                   id="npm"
@@ -227,7 +236,9 @@ export default function NewProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="steam" className="text-sm text-harbour-600">Steam</label>
+                <label htmlFor="steam" className="text-sm text-harbour-600">
+                  Steam
+                </label>
                 <input
                   type="url"
                   id="steam"

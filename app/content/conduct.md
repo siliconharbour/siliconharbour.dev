@@ -38,4 +38,4 @@ When you submit a comment, we collect your IP address and browser information. T
 
 ---
 
-*These guidelines are adapted from the [CTS-NL Code of Conduct](https://ctsnl.ca/conduct/), licensed under [Creative Commons Attribution 3.0](http://creativecommons.org/licenses/by/3.0/deed.en_US).*
+_These guidelines are adapted from the [CTS-NL Code of Conduct](https://ctsnl.ca/conduct/), licensed under [Creative Commons Attribution 3.0](http://creativecommons.org/licenses/by/3.0/deed.en_US)._

@@ -1,7 +1,14 @@
 import type { Route } from "./+types/settings";
 import { Form, Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getSectionVisibility, updateSectionVisibility, getCommentVisibility, updateCommentVisibility, type SectionVisibility, type CommentVisibility } from "~/lib/config.server";
+import {
+  getSectionVisibility,
+  updateSectionVisibility,
+  getCommentVisibility,
+  updateCommentVisibility,
+  type SectionVisibility,
+  type CommentVisibility,
+} from "~/lib/config.server";
 import { sectionKeys, type SectionKey, commentableKeys, type CommentableKey } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
@@ -20,19 +27,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
   const formData = await request.formData();
-  
+
   const sectionUpdates: Partial<SectionVisibility> = {};
   for (const section of sectionKeys) {
     // Checkbox is only present in form data if checked
     sectionUpdates[section] = formData.has(section);
   }
-  
+
   const commentUpdates: Partial<CommentVisibility> = {};
   for (const contentType of commentableKeys) {
     // Checkbox is only present in form data if checked
     commentUpdates[contentType] = formData.has(`comments_${contentType}`);
   }
-  
+
   await Promise.all([
     updateSectionVisibility(sectionUpdates),
     updateCommentVisibility(commentUpdates),
@@ -91,28 +98,21 @@ export default function Settings() {
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-semibold text-harbour-700">Settings</h1>
-            <p className="text-harbour-400 text-sm">
-              Configure site visibility and features
-            </p>
+            <p className="text-harbour-400 text-sm">Configure site visibility and features</p>
           </div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             Back to Dashboard
           </Link>
         </div>
 
         <Form method="post" className="flex flex-col gap-6">
           <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-              Section Visibility
-            </h2>
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Section Visibility</h2>
             <p className="text-sm text-harbour-400 mb-6">
-              Toggle which sections appear in navigation and on the home page. 
-              Hidden sections will still be accessible via direct URL.
+              Toggle which sections appear in navigation and on the home page. Hidden sections will
+              still be accessible via direct URL.
             </p>
-            
+
             <div className="flex flex-col gap-4">
               {sectionKeys.map((section) => (
                 <label
@@ -126,12 +126,8 @@ export default function Settings() {
                     className="mt-1 h-4 w-4 text-harbour-600 border-harbour-300 rounded focus:ring-harbour-500"
                   />
                   <div className="flex flex-col gap-1">
-                    <span className="font-medium text-harbour-700">
-                      {sectionLabels[section]}
-                    </span>
-                    <span className="text-sm text-harbour-400">
-                      {sectionDescriptions[section]}
-                    </span>
+                    <span className="font-medium text-harbour-700">{sectionLabels[section]}</span>
+                    <span className="text-sm text-harbour-400">{sectionDescriptions[section]}</span>
                   </div>
                 </label>
               ))}
@@ -139,14 +135,12 @@ export default function Settings() {
           </div>
 
           <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-              Comments
-            </h2>
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Comments</h2>
             <p className="text-sm text-harbour-400 mb-6">
-              Toggle which pages allow user comments. Disabling comments hides
-              the comment section from public view but preserves existing comments.
+              Toggle which pages allow user comments. Disabling comments hides the comment section
+              from public view but preserves existing comments.
             </p>
-            
+
             <div className="flex flex-col gap-4">
               {commentableKeys.map((contentType) => (
                 <label

@@ -41,7 +41,7 @@ function buildCommentTree(comments: CommentWithDepth[]): CommentNode[] {
 
   // Sort roots by date (newest first) and children by date (oldest first)
   roots.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  
+
   function sortChildren(node: CommentNode) {
     node.children.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     node.children.forEach(sortChildren);
@@ -72,16 +72,12 @@ export function CommentSection({
   // Build summary text
   let summaryText: string;
   if (isAdmin) {
-    const publicText = publicCount === 0 
-      ? "No Comments" 
-      : `${publicCount} Comment${publicCount === 1 ? "" : "s"}`;
-    summaryText = privateCount > 0 
-      ? `${publicText} (${privateCount} Private)` 
-      : publicText;
+    const publicText =
+      publicCount === 0 ? "No Comments" : `${publicCount} Comment${publicCount === 1 ? "" : "s"}`;
+    summaryText = privateCount > 0 ? `${publicText} (${privateCount} Private)` : publicText;
   } else {
-    summaryText = publicCount === 0 
-      ? "No Comments" 
-      : `${publicCount} Comment${publicCount === 1 ? "" : "s"}`;
+    summaryText =
+      publicCount === 0 ? "No Comments" : `${publicCount} Comment${publicCount === 1 ? "" : "s"}`;
   }
 
   const hasAnyComments = publicCount > 0 || (isAdmin && privateCount > 0);
@@ -90,10 +86,10 @@ export function CommentSection({
     <div className="border-t border-harbour-200/50 pt-4 mt-6 text-sm">
       <details className="group">
         <summary className="cursor-pointer select-none text-harbour-500 hover:text-harbour-600 list-none flex items-center gap-2">
-          <svg 
-            className="w-4 h-4 transition-transform group-open:rotate-90" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className="w-4 h-4 transition-transform group-open:rotate-90"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -126,7 +122,12 @@ export function CommentSection({
             <div className="border-t border-harbour-200/50 pt-4 mt-2">
               <p className="text-xs font-medium text-amber-600 mb-2 flex items-center gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                  />
                 </svg>
                 Private Comments ({privateComments.length})
               </p>
@@ -153,13 +154,13 @@ export function CommentSection({
           {hasAnyComments ? (
             <details className="mt-2" open>
               <summary className="cursor-pointer select-none text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-2 text-xs">
-                <svg 
-                  className="w-3 h-3" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
                 <span>Leave a comment</span>
               </summary>
@@ -213,7 +214,9 @@ function CommentThread({
   const atMaxDepth = depth >= MAX_INLINE_DEPTH;
 
   return (
-    <div className={`${isRoot ? '' : 'ml-4 pl-3 border-l-2 border-harbour-200 hover:border-harbour-400 transition-colors'}`}>
+    <div
+      className={`${isRoot ? "" : "ml-4 pl-3 border-l-2 border-harbour-200 hover:border-harbour-400 transition-colors"}`}
+    >
       <CommentCard
         comment={node}
         isPrivate={isPrivate && node.isPrivate}
@@ -221,7 +224,7 @@ function CommentThread({
         onReply={() => setReplyingTo(node.id)}
         isReplyFormOpen={replyingTo === node.id}
       />
-      
+
       {replyingTo === node.id && (
         <div className="mt-2 ml-4">
           <ReplyForm
@@ -240,15 +243,22 @@ function CommentThread({
         <div className="mt-2 ml-4">
           <details className="group/continue">
             <summary className="cursor-pointer select-none text-xs text-harbour-500 hover:text-harbour-600 list-none flex items-center gap-1 py-1">
-              <svg 
-                className="w-3 h-3 transition-transform group-open/continue:rotate-90" 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className="w-3 h-3 transition-transform group-open/continue:rotate-90"
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
-              <span>Continue thread ({replyCount} more {replyCount === 1 ? 'reply' : 'replies'})</span>
+              <span>
+                Continue thread ({replyCount} more {replyCount === 1 ? "reply" : "replies"})
+              </span>
             </summary>
             {/* Reset depth to 0 when expanding "continue thread" */}
             <div className="flex flex-col mt-1 pt-2 border-t border-harbour-100">
@@ -274,15 +284,17 @@ function CommentThread({
         // Normal inline replies
         <details className="mt-1 group/replies" open>
           <summary className="cursor-pointer select-none text-xs text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-1 ml-4 py-1">
-            <svg 
-              className="w-3 h-3 transition-transform group-open/replies:rotate-90" 
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className="w-3 h-3 transition-transform group-open/replies:rotate-90"
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <span>{replyCount} {replyCount === 1 ? 'reply' : 'replies'}</span>
+            <span>
+              {replyCount} {replyCount === 1 ? "reply" : "replies"}
+            </span>
           </summary>
           <div className="flex flex-col mt-1">
             {node.children.map((child) => (
@@ -387,9 +399,7 @@ function TopLevelCommentForm({
             className="w-3 h-3 border-harbour-300 text-harbour-600 focus:ring-harbour-500"
             disabled={isSubmitting}
           />
-          <span className="text-xs text-harbour-500">
-            Send as private feedback to webmasters
-          </span>
+          <span className="text-xs text-harbour-500">Send as private feedback to webmasters</span>
         </label>
         {showPrivateOption && (
           <p className="text-xs text-harbour-400 ml-5">
@@ -402,12 +412,11 @@ function TopLevelCommentForm({
         By submitting, you agree to our{" "}
         <a href="/conduct" className="link-inline text-harbour-500">
           community guidelines
-        </a>.
+        </a>
+        .
       </p>
 
-      {turnstileSiteKey && (
-        <TurnstileInput siteKey={turnstileSiteKey} className="mt-1" />
-      )}
+      {turnstileSiteKey && <TurnstileInput siteKey={turnstileSiteKey} className="mt-1" />}
 
       {(fetcher.data as { error?: string } | undefined)?.error && (
         <p className="text-red-600 text-xs">{(fetcher.data as { error: string }).error}</p>
@@ -487,9 +496,7 @@ function ReplyForm({
         autoFocus
       />
 
-      {turnstileSiteKey && (
-        <TurnstileInput siteKey={turnstileSiteKey} className="mt-1" />
-      )}
+      {turnstileSiteKey && <TurnstileInput siteKey={turnstileSiteKey} className="mt-1" />}
 
       {(fetcher.data as { error?: string } | undefined)?.error && (
         <p className="text-red-600 text-xs">{(fetcher.data as { error: string }).error}</p>
@@ -516,14 +523,14 @@ function ReplyForm({
   );
 }
 
-function CommentCard({ 
-  comment, 
+function CommentCard({
+  comment,
   isPrivate = false,
   isAdmin = false,
   onReply,
   isReplyFormOpen,
-}: { 
-  comment: CommentWithDepth; 
+}: {
+  comment: CommentWithDepth;
   isPrivate?: boolean;
   isAdmin?: boolean;
   onReply: () => void;
@@ -535,9 +542,7 @@ function CommentCard({
   return (
     <div
       className={`p-3 text-sm ${
-        isPrivate
-          ? "bg-amber-50 ring-1 ring-amber-200"
-          : "bg-white ring-1 ring-harbour-200/50"
+        isPrivate ? "bg-amber-50 ring-1 ring-amber-200" : "bg-white ring-1 ring-harbour-200/50"
       } ${isDeleting ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between mb-1">
@@ -558,7 +563,12 @@ function CommentCard({
                 title="Delete comment"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </fetcher.Form>
@@ -573,15 +583,18 @@ function CommentCard({
             className="text-xs text-harbour-400 hover:text-harbour-600 flex items-center gap-1"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+              />
             </svg>
             reply
           </button>
         )}
         {isPrivate && (
-          <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
-            Private
-          </span>
+          <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">Private</span>
         )}
       </div>
     </div>

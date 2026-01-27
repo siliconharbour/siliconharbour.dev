@@ -1,5 +1,11 @@
 import { db } from "~/db";
-import { siteConfig, sectionKeys, type SectionKey, commentableKeys, type CommentableKey } from "~/db/schema";
+import {
+  siteConfig,
+  sectionKeys,
+  type SectionKey,
+  commentableKeys,
+  type CommentableKey,
+} from "~/db/schema";
 import { eq } from "drizzle-orm";
 
 // Section visibility configuration
@@ -12,12 +18,8 @@ const VISIBILITY_PREFIX = "section_visible_";
  */
 export async function isSectionVisible(section: SectionKey): Promise<boolean> {
   const key = `${VISIBILITY_PREFIX}${section}`;
-  const result = await db
-    .select()
-    .from(siteConfig)
-    .where(eq(siteConfig.key, key))
-    .get();
-  
+  const result = await db.select().from(siteConfig).where(eq(siteConfig.key, key)).get();
+
   // Default to visible if not set
   if (!result) return true;
   return result.value === "true";
@@ -27,13 +29,10 @@ export async function isSectionVisible(section: SectionKey): Promise<boolean> {
  * Get visibility settings for all sections
  */
 export async function getSectionVisibility(): Promise<SectionVisibility> {
-  const results = await db
-    .select()
-    .from(siteConfig)
-    .all();
-  
-  const configMap = new Map(results.map(r => [r.key, r.value]));
-  
+  const results = await db.select().from(siteConfig).all();
+
+  const configMap = new Map(results.map((r) => [r.key, r.value]));
+
   const visibility: SectionVisibility = {} as SectionVisibility;
   for (const section of sectionKeys) {
     const key = `${VISIBILITY_PREFIX}${section}`;
@@ -41,17 +40,14 @@ export async function getSectionVisibility(): Promise<SectionVisibility> {
     // Default to visible if not set
     visibility[section] = value === undefined ? true : value === "true";
   }
-  
+
   return visibility;
 }
 
 /**
  * Set visibility for a single section
  */
-export async function setSectionVisibility(
-  section: SectionKey,
-  visible: boolean
-): Promise<void> {
+export async function setSectionVisibility(section: SectionKey, visible: boolean): Promise<void> {
   const key = `${VISIBILITY_PREFIX}${section}`;
   await db
     .insert(siteConfig)
@@ -65,9 +61,7 @@ export async function setSectionVisibility(
 /**
  * Set visibility for multiple sections at once
  */
-export async function updateSectionVisibility(
-  updates: Partial<SectionVisibility>
-): Promise<void> {
+export async function updateSectionVisibility(updates: Partial<SectionVisibility>): Promise<void> {
   for (const [section, visible] of Object.entries(updates)) {
     if (sectionKeys.includes(section as SectionKey)) {
       await setSectionVisibility(section as SectionKey, visible as boolean);
@@ -80,7 +74,7 @@ export async function updateSectionVisibility(
  */
 export async function getVisibleSections(): Promise<SectionKey[]> {
   const visibility = await getSectionVisibility();
-  return sectionKeys.filter(section => visibility[section]);
+  return sectionKeys.filter((section) => visibility[section]);
 }
 
 // =============================================================================
@@ -96,12 +90,8 @@ const COMMENT_VISIBILITY_PREFIX = "comments_enabled_";
  */
 export async function areCommentsEnabled(contentType: CommentableKey): Promise<boolean> {
   const key = `${COMMENT_VISIBILITY_PREFIX}${contentType}`;
-  const result = await db
-    .select()
-    .from(siteConfig)
-    .where(eq(siteConfig.key, key))
-    .get();
-  
+  const result = await db.select().from(siteConfig).where(eq(siteConfig.key, key)).get();
+
   // Default to enabled if not set
   if (!result) return true;
   return result.value === "true";
@@ -111,13 +101,10 @@ export async function areCommentsEnabled(contentType: CommentableKey): Promise<b
  * Get comment visibility settings for all commentable content types
  */
 export async function getCommentVisibility(): Promise<CommentVisibility> {
-  const results = await db
-    .select()
-    .from(siteConfig)
-    .all();
-  
-  const configMap = new Map(results.map(r => [r.key, r.value]));
-  
+  const results = await db.select().from(siteConfig).all();
+
+  const configMap = new Map(results.map((r) => [r.key, r.value]));
+
   const visibility: CommentVisibility = {} as CommentVisibility;
   for (const contentType of commentableKeys) {
     const key = `${COMMENT_VISIBILITY_PREFIX}${contentType}`;
@@ -125,7 +112,7 @@ export async function getCommentVisibility(): Promise<CommentVisibility> {
     // Default to enabled if not set
     visibility[contentType] = value === undefined ? true : value === "true";
   }
-  
+
   return visibility;
 }
 
@@ -134,7 +121,7 @@ export async function getCommentVisibility(): Promise<CommentVisibility> {
  */
 export async function setCommentVisibility(
   contentType: CommentableKey,
-  enabled: boolean
+  enabled: boolean,
 ): Promise<void> {
   const key = `${COMMENT_VISIBILITY_PREFIX}${contentType}`;
   await db
@@ -149,9 +136,7 @@ export async function setCommentVisibility(
 /**
  * Set comment visibility for multiple content types at once
  */
-export async function updateCommentVisibility(
-  updates: Partial<CommentVisibility>
-): Promise<void> {
+export async function updateCommentVisibility(updates: Partial<CommentVisibility>): Promise<void> {
   for (const [contentType, enabled] of Object.entries(updates)) {
     if (commentableKeys.includes(contentType as CommentableKey)) {
       await setCommentVisibility(contentType as CommentableKey, enabled as boolean);

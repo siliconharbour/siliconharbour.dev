@@ -47,7 +47,7 @@ For complete site documentation and API info, see [/llms.txt](/llms.txt).
   if (thisWeek.length > 0) {
     content += `## This Week\n\n`;
     for (const event of thisWeek) {
-      const dateStr = event.dates[0] 
+      const dateStr = event.dates[0]
         ? formatInTimezone(event.dates[0].startDate, "EEEE, MMMM d 'at' h:mm a")
         : "";
       content += `- [${event.title}](/events/${event.slug}.md)${dateStr ? `: ${dateStr}` : ""}\n`;
@@ -56,13 +56,11 @@ For complete site documentation and API info, see [/llms.txt](/llms.txt).
   }
 
   // Upcoming Events
-  const futureEvents = upcoming.filter(e => !thisWeek.some(tw => tw.id === e.id)).slice(0, 4);
+  const futureEvents = upcoming.filter((e) => !thisWeek.some((tw) => tw.id === e.id)).slice(0, 4);
   if (futureEvents.length > 0) {
     content += `## Upcoming Events\n\n`;
     for (const event of futureEvents) {
-      const dateStr = event.dates[0]
-        ? formatInTimezone(event.dates[0].startDate, "MMM d")
-        : "";
+      const dateStr = event.dates[0] ? formatInTimezone(event.dates[0].startDate, "MMM d") : "";
       content += `- [${event.title}](/events/${event.slug}.md)${dateStr ? ` (${dateStr})` : ""}\n`;
     }
     content += `\n[View all events](/events.md)\n\n`;

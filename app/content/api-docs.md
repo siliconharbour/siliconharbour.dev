@@ -17,26 +17,26 @@ https://siliconharbour.dev
 
 ## Endpoints
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/companies` | List companies |
-| `GET /api/companies/:slug` | Get company |
-| `GET /api/events` | List events |
-| `GET /api/events/:slug` | Get event |
-| `GET /api/groups` | List groups |
-| `GET /api/groups/:slug` | Get group |
-| `GET /api/jobs` | List jobs |
-| `GET /api/jobs/:slug` | Get job |
-| `GET /api/education` | List education |
-| `GET /api/education/:slug` | Get education |
-| `GET /api/news` | List news |
-| `GET /api/news/:slug` | Get news article |
-| `GET /api/people` | List people |
-| `GET /api/people/:slug` | Get person |
-| `GET /api/projects` | List projects |
-| `GET /api/projects/:slug` | Get project |
-| `GET /api/products` | List products |
-| `GET /api/products/:slug` | Get product |
+| Endpoint                   | Description      |
+| -------------------------- | ---------------- |
+| `GET /api/companies`       | List companies   |
+| `GET /api/companies/:slug` | Get company      |
+| `GET /api/events`          | List events      |
+| `GET /api/events/:slug`    | Get event        |
+| `GET /api/groups`          | List groups      |
+| `GET /api/groups/:slug`    | Get group        |
+| `GET /api/jobs`            | List jobs        |
+| `GET /api/jobs/:slug`      | Get job          |
+| `GET /api/education`       | List education   |
+| `GET /api/education/:slug` | Get education    |
+| `GET /api/news`            | List news        |
+| `GET /api/news/:slug`      | Get news article |
+| `GET /api/people`          | List people      |
+| `GET /api/people/:slug`    | Get person       |
+| `GET /api/projects`        | List projects    |
+| `GET /api/projects/:slug`  | Get project      |
+| `GET /api/products`        | List products    |
+| `GET /api/products/:slug`  | Get product      |
 
 ## Pagination
 

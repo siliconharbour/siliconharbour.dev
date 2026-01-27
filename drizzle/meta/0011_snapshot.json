@@ -89,24 +89,17 @@
       "indexes": {
         "comments_content_idx": {
           "name": "comments_content_idx",
-          "columns": [
-            "content_type",
-            "content_id"
-          ],
+          "columns": ["content_type", "content_id"],
           "isUnique": false
         },
         "comments_ip_idx": {
           "name": "comments_ip_idx",
-          "columns": [
-            "ip_address"
-          ],
+          "columns": ["ip_address"],
           "isUnique": false
         },
         "comments_parent_idx": {
           "name": "comments_parent_idx",
-          "columns": [
-            "parent_id"
-          ],
+          "columns": ["parent_id"],
           "isUnique": false
         }
       },
@@ -244,9 +237,7 @@
       "indexes": {
         "companies_slug_unique": {
           "name": "companies_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -293,12 +284,8 @@
           "name": "event_dates_event_id_events_id_fk",
           "tableFrom": "event_dates",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -385,10 +372,7 @@
       "indexes": {
         "event_occurrences_event_date_idx": {
           "name": "event_occurrences_event_date_idx",
-          "columns": [
-            "event_id",
-            "occurrence_date"
-          ],
+          "columns": ["event_id", "occurrence_date"],
           "isUnique": false
         }
       },
@@ -397,12 +381,8 @@
           "name": "event_occurrences_event_id_events_id_fk",
           "tableFrom": "event_occurrences",
           "tableTo": "events",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -523,9 +503,7 @@
       "indexes": {
         "events_slug_unique": {
           "name": "events_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -619,9 +597,7 @@
       "indexes": {
         "groups_slug_unique": {
           "name": "groups_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -679,10 +655,7 @@
       "indexes": {
         "blocklist_source_external_idx": {
           "name": "blocklist_source_external_idx",
-          "columns": [
-            "source",
-            "external_id"
-          ],
+          "columns": ["source", "external_id"],
           "isUnique": false
         }
       },
@@ -906,9 +879,7 @@
       "indexes": {
         "jobs_slug_unique": {
           "name": "jobs_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -1019,9 +990,7 @@
       "indexes": {
         "learning_slug_unique": {
           "name": "learning_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -1108,9 +1077,7 @@
       "indexes": {
         "news_slug_unique": {
           "name": "news_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -1204,9 +1171,7 @@
       "indexes": {
         "people_slug_unique": {
           "name": "people_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -1300,16 +1265,12 @@
       "indexes": {
         "products_slug_unique": {
           "name": "products_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         },
         "products_company_idx": {
           "name": "products_company_idx",
-          "columns": [
-            "company_id"
-          ],
+          "columns": ["company_id"],
           "isUnique": false
         }
       },
@@ -1318,12 +1279,8 @@
           "name": "products_company_id_companies_id_fk",
           "tableFrom": "products",
           "tableTo": "companies",
-          "columnsFrom": [
-            "company_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["company_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
@@ -1382,9 +1339,7 @@
       "indexes": {
         "project_images_project_idx": {
           "name": "project_images_project_idx",
-          "columns": [
-            "project_id"
-          ],
+          "columns": ["project_id"],
           "isUnique": false
         }
       },
@@ -1393,12 +1348,8 @@
           "name": "project_images_project_id_projects_id_fk",
           "tableFrom": "project_images",
           "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1493,9 +1444,7 @@
       "indexes": {
         "projects_slug_unique": {
           "name": "projects_slug_unique",
-          "columns": [
-            "slug"
-          ],
+          "columns": ["slug"],
           "isUnique": true
         }
       },
@@ -1540,9 +1489,7 @@
       "indexes": {
         "rate_limits_expires_idx": {
           "name": "rate_limits_expires_idx",
-          "columns": [
-            "expires_at"
-          ],
+          "columns": ["expires_at"],
           "isUnique": false
         }
       },
@@ -1614,18 +1561,12 @@
       "indexes": {
         "references_source_idx": {
           "name": "references_source_idx",
-          "columns": [
-            "source_type",
-            "source_id"
-          ],
+          "columns": ["source_type", "source_id"],
           "isUnique": false
         },
         "references_target_idx": {
           "name": "references_target_idx",
-          "columns": [
-            "target_type",
-            "target_id"
-          ],
+          "columns": ["target_type", "target_id"],
           "isUnique": false
         }
       },
@@ -1665,12 +1606,8 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1753,9 +1690,7 @@
       "indexes": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },

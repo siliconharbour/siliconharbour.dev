@@ -7,35 +7,33 @@ import { format, isAfter, subDays } from "date-fns";
 import type { News } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "News - siliconharbour.dev" },
-  ];
+  return [{ title: "News - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
+
   // No type filter - get all articles
   const { items: articles, total } = await getPaginatedNews(limit, offset, searchQuery);
-  
+
   // Check if the latest article is from the last 7 days (for headline treatment)
   const oneWeekAgo = subDays(new Date(), 7);
-  const hasRecentHeadline = articles.length > 0 && 
-    articles[0].publishedAt && 
-    isAfter(articles[0].publishedAt, oneWeekAgo);
-  
+  const hasRecentHeadline =
+    articles.length > 0 && articles[0].publishedAt && isAfter(articles[0].publishedAt, oneWeekAgo);
+
   return { articles, total, limit, offset, searchQuery, hasRecentHeadline };
 }
 
 export default function NewsAll() {
-  const { articles, total, limit, offset, searchQuery, hasRecentHeadline } = useLoaderData<typeof loader>();
-  
+  const { articles, total, limit, offset, searchQuery, hasRecentHeadline } =
+    useLoaderData<typeof loader>();
+
   // If we're on the first page and have a recent headline, split articles
   const isFirstPage = offset === 0;
   const showHeadline = isFirstPage && hasRecentHeadline && !searchQuery && articles.length > 0;
-  
+
   const headline = showHeadline ? articles[0] : null;
   const secondaryArticles = showHeadline ? articles.slice(1, 3) : [];
   const remainingArticles = showHeadline ? articles.slice(3) : articles;
@@ -46,7 +44,7 @@ export default function NewsAll() {
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
           <SearchInput placeholder="Search news..." />
-          
+
           {/* Result count */}
           {searchQuery && (
             <p className="text-sm text-harbour-500">
@@ -58,9 +56,7 @@ export default function NewsAll() {
 
       {articles.length === 0 ? (
         <p className="text-harbour-400">
-          {searchQuery 
-            ? "No news articles match your search." 
-            : "No news articles yet."}
+          {searchQuery ? "No news articles match your search." : "No news articles yet."}
         </p>
       ) : (
         <>
@@ -69,7 +65,7 @@ export default function NewsAll() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Headline - 2 columns */}
               <HeadlineArticle article={headline} />
-              
+
               {/* Secondary Articles - 1 column */}
               {secondaryArticles.length > 0 && (
                 <div className="flex flex-col gap-4">
@@ -80,10 +76,12 @@ export default function NewsAll() {
               )}
             </div>
           )}
-          
+
           {/* Remaining Articles Grid */}
           {remainingArticles.length > 0 && (
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-6" : ""}`}>
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-6" : ""}`}
+            >
               {remainingArticles.map((article) => (
                 <ArticleCard key={article.id} article={article} />
               ))}
@@ -91,7 +89,7 @@ export default function NewsAll() {
           )}
         </>
       )}
-      
+
       <Pagination total={total} limit={limit} offset={offset} />
     </div>
   );
@@ -103,13 +101,13 @@ export default function NewsAll() {
 
 function TypeBadge({ type }: { type: string }) {
   if (type === "announcement") return null; // Don't show badge for default type
-  
+
   const labels: Record<string, string> = {
     general: "General",
     editorial: "Editorial",
     meta: "Site Update",
   };
-  
+
   return (
     <span className="text-xs uppercase tracking-wide text-harbour-500 font-medium">
       {labels[type] || type}
@@ -119,10 +117,7 @@ function TypeBadge({ type }: { type: string }) {
 
 function HeadlineArticle({ article }: { article: News }) {
   return (
-    <a
-      href={`/news/${article.slug}`}
-      className="group lg:col-span-2 flex flex-col gap-4"
-    >
+    <a href={`/news/${article.slug}`} className="group lg:col-span-2 flex flex-col gap-4">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -142,9 +137,7 @@ function HeadlineArticle({ article }: { article: News }) {
             {format(article.publishedAt, "EEEE, MMMM d, yyyy")}
           </p>
         )}
-        {article.excerpt && (
-          <p className="text-harbour-600 line-clamp-3">{article.excerpt}</p>
-        )}
+        {article.excerpt && <p className="text-harbour-600 line-clamp-3">{article.excerpt}</p>}
       </div>
     </a>
   );
@@ -171,9 +164,7 @@ function SecondaryArticle({ article }: { article: News }) {
           {article.title}
         </h3>
         {article.publishedAt && (
-          <p className="text-xs text-harbour-400">
-            {format(article.publishedAt, "MMM d, yyyy")}
-          </p>
+          <p className="text-xs text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
         )}
       </div>
     </a>
@@ -182,10 +173,7 @@ function SecondaryArticle({ article }: { article: News }) {
 
 function ArticleCard({ article }: { article: News }) {
   return (
-    <a
-      href={`/news/${article.slug}`}
-      className="group flex flex-col gap-3"
-    >
+    <a href={`/news/${article.slug}`} className="group flex flex-col gap-3">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -201,9 +189,7 @@ function ArticleCard({ article }: { article: News }) {
           {article.title}
         </h3>
         {article.publishedAt && (
-          <p className="text-xs text-harbour-400">
-            {format(article.publishedAt, "MMM d, yyyy")}
-          </p>
+          <p className="text-xs text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
         )}
         {article.excerpt && (
           <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>

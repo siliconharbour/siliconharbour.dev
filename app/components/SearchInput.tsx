@@ -9,58 +9,58 @@ interface SearchInputProps {
   preserveParams?: string[];
 }
 
-export function SearchInput({ 
-  placeholder = "Search...", 
+export function SearchInput({
+  placeholder = "Search...",
   debounceMs = 300,
-  preserveParams = []
+  preserveParams = [],
 }: SearchInputProps) {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialQuery = searchParams.get("q") || "";
   const [value, setValue] = useState(initialQuery);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // Update local state if URL changes externally (e.g., back button)
   useEffect(() => {
     setValue(searchParams.get("q") || "");
   }, [searchParams]);
-  
+
   const performSearch = (query: string) => {
     const params = new URLSearchParams();
-    
+
     // Preserve specified params
     for (const param of preserveParams) {
       const val = searchParams.get(param);
       if (val) params.set(param, val);
     }
-    
+
     // Set search query (or remove if empty)
     if (query.trim()) {
       params.set("q", query.trim());
     }
-    
+
     // Reset to first page when searching
     params.delete("offset");
-    
+
     const queryString = params.toString();
     navigate(queryString ? `?${queryString}` : "", { replace: true });
   };
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
-    
+
     // Clear existing timeout
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    
+
     // Set new debounced search
     timeoutRef.current = setTimeout(() => {
       performSearch(newValue);
     }, debounceMs);
   };
-  
+
   const handleClear = () => {
     setValue("");
     if (timeoutRef.current) {
@@ -68,7 +68,7 @@ export function SearchInput({
     }
     performSearch("");
   };
-  
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -77,7 +77,7 @@ export function SearchInput({
       }
     };
   }, []);
-  
+
   return (
     <div className="flex gap-2">
       <div className="relative flex-1">
@@ -96,7 +96,12 @@ export function SearchInput({
             aria-label="Clear search"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}

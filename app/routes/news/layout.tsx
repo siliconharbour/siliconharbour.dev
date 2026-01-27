@@ -35,7 +35,7 @@ export default function NewsLayout() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
             {filters.map((filter) => {
-              const isActive = filter.exact 
+              const isActive = filter.exact
                 ? location.pathname === filter.path
                 : location.pathname.startsWith(filter.path);
               return (
@@ -43,9 +43,7 @@ export default function NewsLayout() {
                   key={filter.path}
                   to={filter.path}
                   className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-harbour-600 text-white"
-                      : "text-harbour-600 hover:bg-harbour-50"
+                    isActive ? "bg-harbour-600 text-white" : "text-harbour-600 hover:bg-harbour-50"
                   }`}
                 >
                   {filter.label}

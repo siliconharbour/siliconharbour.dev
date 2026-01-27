@@ -16,15 +16,16 @@ type ImageCropperProps = {
 function calculatePaddingForAspect(
   imgWidth: number,
   imgHeight: number,
-  aspect: number
+  aspect: number,
 ): { top: number; left: number; totalWidth: number; totalHeight: number } | null {
   const imgAspect = imgWidth / imgHeight;
-  
+
   // If the image already matches or exceeds the aspect ratio in the right direction, no padding needed
   // Only add padding if the image is "wrong" for the aspect ratio
-  
-  let padTop = 0, padLeft = 0;
-  
+
+  let padTop = 0,
+    padLeft = 0;
+
   if (aspect > imgAspect) {
     // Image is taller than needed (e.g., portrait image for 1:1 crop)
     // Add horizontal padding
@@ -41,7 +42,7 @@ function calculatePaddingForAspect(
     // Perfect match, no padding needed
     return null;
   }
-  
+
   return {
     top: padTop,
     left: padLeft,
@@ -56,7 +57,7 @@ function calculatePaddingForAspect(
  */
 async function createPaddedImage(
   originalSrc: string,
-  padding: { top: number; left: number; totalWidth: number; totalHeight: number }
+  padding: { top: number; left: number; totalWidth: number; totalHeight: number },
 ): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -70,20 +71,20 @@ async function createPaddedImage(
         reject(new Error("Could not get canvas context"));
         return;
       }
-      
+
       // Draw checkerboard pattern for transparency indication
       const checkSize = 10;
       for (let y = 0; y < canvas.height; y += checkSize) {
         for (let x = 0; x < canvas.width; x += checkSize) {
-          const isEven = ((x / checkSize) + (y / checkSize)) % 2 === 0;
+          const isEven = (x / checkSize + y / checkSize) % 2 === 0;
           ctx.fillStyle = isEven ? "#f0f0f0" : "#d0d0d0";
           ctx.fillRect(x, y, checkSize, checkSize);
         }
       }
-      
+
       // Draw the original image centered
       ctx.drawImage(img, padding.left, padding.top);
-      
+
       resolve({
         dataUrl: canvas.toDataURL("image/png"),
         originalWidth: img.naturalWidth,
@@ -95,12 +96,7 @@ async function createPaddedImage(
   });
 }
 
-export function ImageCropper({
-  imageSrc,
-  aspect,
-  onCropComplete,
-  onCancel,
-}: ImageCropperProps) {
+export function ImageCropper({ imageSrc, aspect, onCropComplete, onCancel }: ImageCropperProps) {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const [paddedImageSrc, setPaddedImageSrc] = useState<string | null>(null);
@@ -127,11 +123,14 @@ export function ImageCropper({
     img.onload = async () => {
       originalImgRef.current = img;
       const padding = calculatePaddingForAspect(img.naturalWidth, img.naturalHeight, aspect);
-      
+
       if (padding) {
         // Need to pad the image
         try {
-          const { dataUrl, originalWidth, originalHeight } = await createPaddedImage(imageSrc, padding);
+          const { dataUrl, originalWidth, originalHeight } = await createPaddedImage(
+            imageSrc,
+            padding,
+          );
           setPaddedImageSrc(dataUrl);
           setPaddingInfo({
             top: padding.top,
@@ -160,7 +159,7 @@ export function ImageCropper({
       // Set initial crop to center of image, covering as much as possible
       let cropWidth: number;
       let cropHeight: number;
-      
+
       if (aspect) {
         // For aspect-constrained crops, start with the largest possible crop
         // that fits within the image bounds
@@ -189,7 +188,7 @@ export function ImageCropper({
         height: Math.min(cropHeight, height),
       });
     },
-    [aspect]
+    [aspect],
   );
 
   const handleSave = useCallback(async () => {
@@ -211,29 +210,29 @@ export function ImageCropper({
     if (paddingInfo && originalImgRef.current) {
       // We're working with a padded image - need to extract from original with transparency
       const originalImg = originalImgRef.current;
-      
+
       // Crop coordinates in the padded image's natural size
       const cropX = completedCrop.x * scaleX;
       const cropY = completedCrop.y * scaleY;
       const cropW = canvas.width;
       const cropH = canvas.height;
-      
+
       // Original image position within padded image (in padded image's natural coordinates)
       // These are already at natural resolution from when we created the padded image
       const origX = paddingInfo.left;
       const origY = paddingInfo.top;
       const origW = paddingInfo.originalWidth;
       const origH = paddingInfo.originalHeight;
-      
+
       // Clear canvas (transparent)
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
+
       // Calculate the intersection between the crop area and the original image
       const intersectLeft = Math.max(cropX, origX);
       const intersectTop = Math.max(cropY, origY);
       const intersectRight = Math.min(cropX + cropW, origX + origW);
       const intersectBottom = Math.min(cropY + cropH, origY + origH);
-      
+
       if (intersectRight > intersectLeft && intersectBottom > intersectTop) {
         // There is an intersection - draw the visible portion of the original image
         // Source coordinates (where to read from the original image)
@@ -241,39 +240,26 @@ export function ImageCropper({
         const srcY = intersectTop - origY;
         const srcW = intersectRight - intersectLeft;
         const srcH = intersectBottom - intersectTop;
-        
+
         // Destination coordinates (where to draw on the output canvas)
         const destX = intersectLeft - cropX;
         const destY = intersectTop - cropY;
-        
-        ctx.drawImage(
-          originalImg,
-          srcX,
-          srcY,
-          srcW,
-          srcH,
-          destX,
-          destY,
-          srcW,
-          srcH
-        );
+
+        ctx.drawImage(originalImg, srcX, srcY, srcW, srcH, destX, destY, srcW, srcH);
       }
-      
+
       // Output as PNG for transparency
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            onCropComplete(blob, {
-              ...completedCrop,
-              x: completedCrop.x * scaleX,
-              y: completedCrop.y * scaleY,
-              width: completedCrop.width * scaleX,
-              height: completedCrop.height * scaleY,
-            });
-          }
-        },
-        "image/png"
-      );
+      canvas.toBlob((blob) => {
+        if (blob) {
+          onCropComplete(blob, {
+            ...completedCrop,
+            x: completedCrop.x * scaleX,
+            y: completedCrop.y * scaleY,
+            width: completedCrop.width * scaleX,
+            height: completedCrop.height * scaleY,
+          });
+        }
+      }, "image/png");
     } else {
       // Standard crop without padding
       ctx.drawImage(
@@ -285,7 +271,7 @@ export function ImageCropper({
         0,
         0,
         canvas.width,
-        canvas.height
+        canvas.height,
       );
 
       canvas.toBlob(
@@ -301,7 +287,7 @@ export function ImageCropper({
           }
         },
         "image/jpeg",
-        0.95
+        0.95,
       );
     }
   }, [completedCrop, onCropComplete, paddingInfo]);
@@ -312,7 +298,7 @@ export function ImageCropper({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="bg-white p-4 flex flex-col max-w-[90vw] max-h-[90vh]">
         <h3 className="text-lg font-semibold mb-4 text-harbour-700">Crop Image</h3>
-        
+
         {paddingInfo && (
           <p className="text-sm text-harbour-500 mb-2">
             The checkered area will be transparent in the final image.
@@ -331,7 +317,7 @@ export function ImageCropper({
               src={displaySrc}
               alt="Crop preview"
               onLoad={onImageLoad}
-              style={{ maxWidth: '80vw', maxHeight: '70vh', display: 'block' }}
+              style={{ maxWidth: "80vw", maxHeight: "70vh", display: "block" }}
             />
           </ReactCrop>
         </div>

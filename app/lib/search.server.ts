@@ -41,7 +41,7 @@ function escapeFtsQuery(query: string): string {
   // Keep alphanumeric, spaces, and common punctuation
   return query
     .replace(/[*"^()]/g, " ") // Remove FTS operators
-    .replace(/\s+/g, " ")     // Normalize whitespace
+    .replace(/\s+/g, " ") // Normalize whitespace
     .trim();
 }
 
@@ -52,9 +52,9 @@ function escapeFtsQuery(query: string): string {
 function needsLikeFallback(query: string): boolean {
   const escaped = escapeFtsQuery(query);
   if (!escaped) return false;
-  
-  const words = escaped.split(" ").filter(w => w.length > 0);
-  return words.some(w => w.length < 3);
+
+  const words = escaped.split(" ").filter((w) => w.length > 0);
+  return words.some((w) => w.length < 3);
 }
 
 /**
@@ -64,38 +64,35 @@ function needsLikeFallback(query: string): boolean {
 function buildFtsQuery(query: string): string {
   const escaped = escapeFtsQuery(query);
   if (!escaped) return "";
-  
+
   // With trigram tokenizer, just quote each term for exact substring matching
   // Split into words and quote each one
-  const words = escaped.split(" ").filter(w => w.length > 0);
-  
+  const words = escaped.split(" ").filter((w) => w.length > 0);
+
   // Quote each word for exact matching
   // For multi-word queries, all terms must match (implicit AND)
-  return words.map(w => `"${w}"`).join(" ");
+  return words.map((w) => `"${w}"`).join(" ");
 }
 
 /**
  * Search using LIKE for short queries (< 3 chars)
  * Falls back to searching the primary column of the source table
  */
-function searchWithLike(
-  contentType: ContentType,
-  query: string
-): number[] {
+function searchWithLike(contentType: ContentType, query: string): number[] {
   const source = sourceTableMap[contentType];
   if (!source) return [];
-  
+
   const escaped = escapeFtsQuery(query);
   if (!escaped) return [];
-  
+
   try {
     // Search with LIKE on the primary column (case-insensitive)
     const pattern = `%${escaped}%`;
     const stmt = rawDb.prepare(
-      `SELECT id FROM ${source.table} WHERE ${source.column} LIKE ? COLLATE NOCASE ORDER BY ${source.column} LIMIT 100`
+      `SELECT id FROM ${source.table} WHERE ${source.column} LIKE ? COLLATE NOCASE ORDER BY ${source.column} LIMIT 100`,
     );
     const result = stmt.all(pattern) as Array<{ id: number }>;
-    return result.map(r => r.id);
+    return result.map((r) => r.id);
   } catch (error) {
     console.error(`LIKE search error for ${contentType}:`, error);
     return [];
@@ -106,25 +103,24 @@ function searchWithLike(
  * Search a specific content type using FTS5 (or LIKE for short queries)
  * Returns matching row IDs
  */
-export function searchContentIds(
-  contentType: ContentType,
-  query: string
-): number[] {
+export function searchContentIds(contentType: ContentType, query: string): number[] {
   // For short queries (< 3 chars), use LIKE fallback since trigram needs 3+ chars
   if (needsLikeFallback(query)) {
     return searchWithLike(contentType, query);
   }
-  
+
   const ftsTable = ftsTableMap[contentType];
   if (!ftsTable) return [];
-  
+
   const ftsQuery = buildFtsQuery(query);
   if (!ftsQuery) return [];
-  
+
   try {
-    const stmt = rawDb.prepare(`SELECT rowid FROM ${ftsTable} WHERE ${ftsTable} MATCH ? ORDER BY rank`);
+    const stmt = rawDb.prepare(
+      `SELECT rowid FROM ${ftsTable} WHERE ${ftsTable} MATCH ? ORDER BY rank`,
+    );
     const result = stmt.all(ftsQuery) as Array<{ rowid: number }>;
-    return result.map(r => r.rowid);
+    return result.map((r) => r.rowid);
   } catch (error) {
     console.error(`FTS5 search error for ${contentType}:`, error);
     return [];
@@ -134,10 +130,7 @@ export function searchContentIds(
 /**
  * Check if a query would match any results (for validation)
  */
-export function hasSearchResults(
-  contentType: ContentType,
-  query: string
-): boolean {
+export function hasSearchResults(contentType: ContentType, query: string): boolean {
   const ids = searchContentIds(contentType, query);
   return ids.length > 0;
 }
@@ -149,14 +142,14 @@ export function hasSearchResults(
 export function searchWithSnippets(
   contentType: ContentType,
   query: string,
-  snippetColumn: number = 1 // 0-indexed column to get snippet from
+  snippetColumn: number = 1, // 0-indexed column to get snippet from
 ): Array<{ rowid: number; snippet: string }> {
   const ftsTable = ftsTableMap[contentType];
   if (!ftsTable) return [];
-  
+
   const ftsQuery = buildFtsQuery(query);
   if (!ftsQuery) return [];
-  
+
   try {
     const stmt = rawDb.prepare(`
       SELECT rowid, snippet(${ftsTable}, ${snippetColumn}, '<mark>', '</mark>', '...', 32) as snippet
@@ -179,7 +172,7 @@ export function searchWithSnippets(
 export function rebuildFtsIndex(contentType: ContentType): void {
   const ftsTable = ftsTableMap[contentType];
   if (!ftsTable) return;
-  
+
   try {
     rawDb.exec(`INSERT INTO ${ftsTable}(${ftsTable}) VALUES('rebuild')`);
   } catch (error) {

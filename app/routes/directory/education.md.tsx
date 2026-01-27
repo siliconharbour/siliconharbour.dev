@@ -13,7 +13,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const content = listPageToMarkdown({
     title: "Education",
     description: "Educational institutions and programs in Newfoundland & Labrador.",
-    items: items.map(e => ({ slug: e.slug, name: e.name, description: e.description })),
+    items: items.map((e) => ({ slug: e.slug, name: e.name, description: e.description })),
     entityType: "education",
     basePath: "/directory/education",
     total,

@@ -41,7 +41,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (project.coverImage) {
       await deleteImage(project.coverImage);
     }
-    
+
     // Delete gallery images
     const galleryImages = await getProjectImages(id);
     for (const img of galleryImages) {
@@ -62,8 +62,8 @@ export default function DeleteProject() {
         <h1 className="text-xl font-semibold text-harbour-700">Delete Project</h1>
 
         <p className="text-harbour-500">
-          Are you sure you want to delete <strong>{project.name}</strong>? This
-          action cannot be undone and will also delete all gallery images.
+          Are you sure you want to delete <strong>{project.name}</strong>? This action cannot be
+          undone and will also delete all gallery images.
         </p>
 
         <Form method="post" className="flex gap-4">

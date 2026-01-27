@@ -5,21 +5,18 @@ import { eq, asc } from "drizzle-orm";
 import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const [event] = await db
-    .select()
-    .from(events)
-    .where(eq(events.slug, params.slug));
-  
+  const [event] = await db.select().from(events).where(eq(events.slug, params.slug));
+
   if (!event) {
     return jsonResponse({ error: "Event not found" }, { status: 404 });
   }
-  
+
   const dates = await db
     .select()
     .from(eventDates)
     .where(eq(eventDates.eventId, event.id))
     .orderBy(asc(eventDates.startDate));
-  
+
   return jsonResponse({
     id: event.id,
     slug: event.slug,
@@ -29,7 +26,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     location: event.location,
     link: event.link,
     coverImage: imageUrl(event.coverImage),
-    dates: dates.map(d => ({
+    dates: dates.map((d) => ({
       startDate: d.startDate.toISOString(),
       endDate: d.endDate?.toISOString() || null,
     })),

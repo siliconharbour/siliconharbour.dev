@@ -1,6 +1,6 @@
 /**
  * Recurrence rule utilities for generating event occurrences.
- * 
+ *
  * Supports a simplified RRULE format:
  * - FREQ=WEEKLY;BYDAY=TH (every Thursday)
  * - FREQ=WEEKLY;INTERVAL=2;BYDAY=TH (every other Thursday)
@@ -18,7 +18,13 @@ export interface RecurrenceRule {
 
 // Day mapping
 const DAY_TO_JS_INDEX: Record<string, number> = {
-  SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6,
+  SU: 0,
+  MO: 1,
+  TU: 2,
+  WE: 3,
+  TH: 4,
+  FR: 5,
+  SA: 6,
 };
 
 /**
@@ -26,16 +32,16 @@ const DAY_TO_JS_INDEX: Record<string, number> = {
  */
 export function parseRecurrenceRule(rule: string): RecurrenceRule | null {
   if (!rule) return null;
-  
+
   const parts = rule.split(";");
   const result: RecurrenceRule = {
     freq: "WEEKLY",
     interval: 1,
   };
-  
+
   for (const part of parts) {
     const [key, value] = part.split("=");
-    
+
     switch (key) {
       case "FREQ":
         if (value === "WEEKLY" || value === "MONTHLY") {
@@ -44,11 +50,11 @@ export function parseRecurrenceRule(rule: string): RecurrenceRule | null {
           return null; // Unsupported frequency
         }
         break;
-      
+
       case "INTERVAL":
         result.interval = parseInt(value, 10) || 1;
         break;
-      
+
       case "BYDAY":
         // Parse BYDAY which can be "TH" or "1TH" or "-1TH"
         const byDayMatch = value.match(/^(-?\d)?([A-Z]{2})$/);
@@ -63,7 +69,7 @@ export function parseRecurrenceRule(rule: string): RecurrenceRule | null {
         break;
     }
   }
-  
+
   return result;
 }
 
@@ -72,16 +78,16 @@ export function parseRecurrenceRule(rule: string): RecurrenceRule | null {
  */
 export function serializeRecurrenceRule(rule: RecurrenceRule): string {
   const parts: string[] = [`FREQ=${rule.freq}`];
-  
+
   if (rule.interval > 1) {
     parts.push(`INTERVAL=${rule.interval}`);
   }
-  
+
   if (rule.byDay) {
     const position = rule.byDayPosition ? rule.byDayPosition.toString() : "";
     parts.push(`BYDAY=${position}${rule.byDay}`);
   }
-  
+
   return parts.join(";");
 }
 
@@ -92,25 +98,25 @@ export function generateOccurrences(
   rule: RecurrenceRule,
   startDate: Date,
   endDate: Date | null,
-  maxOccurrences: number = 52 // Default to ~1 year of weekly events
+  maxOccurrences: number = 52, // Default to ~1 year of weekly events
 ): Date[] {
   const occurrences: Date[] = [];
-  
+
   // Default end date is 3 months from now
   const effectiveEnd = endDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-  
+
   let current = new Date(startDate);
   current.setHours(0, 0, 0, 0);
-  
+
   if (rule.freq === "WEEKLY") {
     // For weekly, find the first occurrence on the target day
     const targetDay = rule.byDay ? DAY_TO_JS_INDEX[rule.byDay] : current.getDay();
-    
+
     // Advance to the first occurrence
     while (current.getDay() !== targetDay) {
       current.setDate(current.getDate() + 1);
     }
-    
+
     // Generate occurrences
     while (current <= effectiveEnd && occurrences.length < maxOccurrences) {
       occurrences.push(new Date(current));
@@ -120,23 +126,23 @@ export function generateOccurrences(
     // For monthly with BYDAY (e.g., "first Thursday")
     const targetDay = rule.byDay ? DAY_TO_JS_INDEX[rule.byDay] : current.getDay();
     const position = rule.byDayPosition || 1;
-    
+
     // Start from the beginning of the start month
     current.setDate(1);
-    
+
     while (current <= effectiveEnd && occurrences.length < maxOccurrences) {
       const occurrence = getNthWeekdayOfMonth(current, targetDay, position);
-      
+
       if (occurrence && occurrence >= startDate && occurrence <= effectiveEnd) {
         occurrences.push(occurrence);
       }
-      
+
       // Move to next month
       current.setMonth(current.getMonth() + rule.interval);
       current.setDate(1);
     }
   }
-  
+
   return occurrences;
 }
 
@@ -149,41 +155,41 @@ export function generateOccurrences(
 function getNthWeekdayOfMonth(monthDate: Date, weekday: number, n: number): Date | null {
   const year = monthDate.getFullYear();
   const month = monthDate.getMonth();
-  
+
   if (n > 0) {
     // Find nth occurrence from start of month
     const firstOfMonth = new Date(year, month, 1);
     const firstWeekday = firstOfMonth.getDay();
-    
+
     // Calculate the first occurrence of the target weekday
     let dayOfMonth = 1 + ((weekday - firstWeekday + 7) % 7);
-    
+
     // Add weeks to get to the nth occurrence
     dayOfMonth += (n - 1) * 7;
-    
+
     // Check if this date is still in the same month
     const result = new Date(year, month, dayOfMonth);
     if (result.getMonth() !== month) {
       return null; // The nth occurrence doesn't exist in this month
     }
-    
+
     return result;
   } else {
     // Find nth occurrence from end of month (n = -1 means last)
     const lastOfMonth = new Date(year, month + 1, 0);
     const lastDay = lastOfMonth.getDate();
     const lastWeekday = lastOfMonth.getDay();
-    
+
     // Calculate the last occurrence of the target weekday
     let dayOfMonth = lastDay - ((lastWeekday - weekday + 7) % 7);
-    
+
     // Subtract weeks for -2, -3, etc.
     dayOfMonth += (n + 1) * 7;
-    
+
     if (dayOfMonth < 1) {
       return null; // The nth-from-last occurrence doesn't exist
     }
-    
+
     return new Date(year, month, dayOfMonth);
   }
 }
@@ -193,7 +199,7 @@ function getNthWeekdayOfMonth(monthDate: Date, weekday: number, n: number): Date
  */
 export function describeRecurrenceRule(rule: RecurrenceRule): string {
   const dayName = rule.byDay ? getDayName(rule.byDay) : "day";
-  
+
   if (rule.freq === "WEEKLY") {
     if (rule.interval === 1) {
       return `Every ${dayName}`;
@@ -210,7 +216,7 @@ export function describeRecurrenceRule(rule: RecurrenceRule): string {
       return `${positionText} ${dayName} every ${rule.interval} months`;
     }
   }
-  
+
   return "Custom recurrence";
 }
 
@@ -252,7 +258,7 @@ export function buildRecurrenceRule(options: {
     const position = options.monthlyPosition || 1;
     return `FREQ=MONTHLY;BYDAY=${position}${options.dayOfWeek}`;
   }
-  
+
   return "";
 }
 
@@ -265,7 +271,7 @@ export function extractRecurrenceOptions(rule: string): {
   monthlyPosition: number;
 } {
   const parsed = parseRecurrenceRule(rule);
-  
+
   if (!parsed) {
     return {
       frequency: "none",
@@ -273,15 +279,15 @@ export function extractRecurrenceOptions(rule: string): {
       monthlyPosition: 1,
     };
   }
-  
+
   let frequency: "weekly" | "biweekly" | "monthly" | "none" = "none";
-  
+
   if (parsed.freq === "WEEKLY") {
     frequency = parsed.interval === 2 ? "biweekly" : "weekly";
   } else if (parsed.freq === "MONTHLY") {
     frequency = "monthly";
   }
-  
+
   return {
     frequency,
     dayOfWeek: parsed.byDay || "TH",

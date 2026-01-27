@@ -1,6 +1,6 @@
 /**
  * GitHub Following Import Job Service
- * 
+ *
  * Handles fetching full profiles for a user's following/followers list.
  * Progress is persisted to allow resuming and prevent hammering the API.
  */
@@ -8,7 +8,7 @@
 import { db } from "~/db";
 import { importJobs, type ImportJob } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { 
+import {
   getAllUserFollowing,
   getAllUserFollowers,
   getUserProfile,
@@ -55,7 +55,7 @@ let jobData: {
  */
 export async function getFollowingImportProgress(): Promise<FollowingImportProgress> {
   const job = await db.select().from(importJobs).where(eq(importJobs.id, JOB_ID)).get();
-  
+
   if (!job) {
     return {
       status: "idle",
@@ -74,14 +74,15 @@ export async function getFollowingImportProgress(): Promise<FollowingImportProgr
       errors: [],
     };
   }
-  
+
   const now = Date.now();
   const resetTime = job.rateLimitReset ? job.rateLimitReset * 1000 : null;
-  const waitingForRateLimit = job.status === "paused" && 
-    job.rateLimitRemaining === 0 && 
-    resetTime !== null && 
+  const waitingForRateLimit =
+    job.status === "paused" &&
+    job.rateLimitRemaining === 0 &&
+    resetTime !== null &&
     resetTime > now;
-  
+
   return {
     status: job.status as ImportJob["status"],
     sourceUsername: jobData?.sourceUsername ?? null,
@@ -105,27 +106,27 @@ export async function getFollowingImportProgress(): Promise<FollowingImportProgr
  */
 export async function startFollowingImport(
   username: string,
-  mode: "following" | "followers" | "both"
+  mode: "following" | "followers" | "both",
 ): Promise<FollowingImportProgress> {
   // Clear any existing job
   await db.delete(importJobs).where(eq(importJobs.id, JOB_ID));
   jobData = null;
-  
+
   try {
     // Fetch the user list (this is cheap - paginated list endpoints)
     let allUsers: GitHubUserBasic[] = [];
     let rateLimit: RateLimitInfo = { remaining: 0, limit: 0, reset: new Date() };
-    
+
     if (mode === "following" || mode === "both") {
       const result = await getAllUserFollowing(username);
       allUsers.push(...result.users);
       rateLimit = result.rateLimit;
     }
-    
+
     if (mode === "followers" || mode === "both") {
       const result = await getAllUserFollowers(username);
       // Dedupe by login
-      const existingLogins = new Set(allUsers.map(u => u.login));
+      const existingLogins = new Set(allUsers.map((u) => u.login));
       for (const user of result.users) {
         if (!existingLogins.has(user.login)) {
           allUsers.push(user);
@@ -133,7 +134,7 @@ export async function startFollowingImport(
       }
       rateLimit = result.rateLimit;
     }
-    
+
     if (allUsers.length === 0) {
       return {
         status: "completed",
@@ -152,17 +153,17 @@ export async function startFollowingImport(
         errors: [],
       };
     }
-    
+
     // Store job data in memory
     jobData = {
       sourceUsername: username,
       mode,
       users: allUsers,
-      pendingUsernames: allUsers.map(u => u.login),
+      pendingUsernames: allUsers.map((u) => u.login),
       profiles: [],
       errors: [],
     };
-    
+
     // Create job record in DB
     await db.insert(importJobs).values({
       id: JOB_ID,
@@ -175,7 +176,7 @@ export async function startFollowingImport(
       lastActivity: new Date(),
       createdAt: new Date(),
     });
-    
+
     return getFollowingImportProgress();
   } catch (e) {
     const errorMsg = e instanceof Error ? e.message : String(e);
@@ -195,16 +196,17 @@ export async function startFollowingImport(
  */
 export async function processFollowingBatch(): Promise<FollowingImportProgress> {
   const job = await db.select().from(importJobs).where(eq(importJobs.id, JOB_ID)).get();
-  
+
   if (!job || job.status !== "running" || !jobData) {
     return getFollowingImportProgress();
   }
-  
+
   // Check rate limit before starting
   const currentRateLimit = await getRateLimitStatus();
   if (currentRateLimit.remaining < BATCH_SIZE + 5) {
     // Not enough requests, pause
-    await db.update(importJobs)
+    await db
+      .update(importJobs)
       .set({
         status: "paused",
         rateLimitRemaining: currentRateLimit.remaining,
@@ -215,12 +217,13 @@ export async function processFollowingBatch(): Promise<FollowingImportProgress> 
       .where(eq(importJobs.id, JOB_ID));
     return getFollowingImportProgress();
   }
-  
+
   // Get next batch of usernames
   const batch = jobData.pendingUsernames.slice(0, BATCH_SIZE);
   if (batch.length === 0) {
     // All done!
-    await db.update(importJobs)
+    await db
+      .update(importJobs)
       .set({
         status: "completed",
         lastActivity: new Date(),
@@ -228,10 +231,10 @@ export async function processFollowingBatch(): Promise<FollowingImportProgress> 
       .where(eq(importJobs.id, JOB_ID));
     return getFollowingImportProgress();
   }
-  
+
   // Fetch profiles for this batch
   let errorCount = job.errorCount ?? 0;
-  
+
   for (const username of batch) {
     try {
       const profile = await getUserProfile(username);
@@ -243,18 +246,19 @@ export async function processFollowingBatch(): Promise<FollowingImportProgress> 
       console.error(`Failed to fetch profile for ${username}:`, e);
     }
   }
-  
+
   // Remove processed usernames from pending
   jobData.pendingUsernames = jobData.pendingUsernames.slice(BATCH_SIZE);
-  
+
   // Update progress in DB
   const processedItems = (job.processedItems ?? 0) + batch.length;
   const isComplete = jobData.pendingUsernames.length === 0;
-  
+
   // Get updated rate limit
   const newRateLimit = await getRateLimitStatus();
-  
-  await db.update(importJobs)
+
+  await db
+    .update(importJobs)
     .set({
       status: isComplete ? "completed" : "running",
       processedItems,
@@ -265,7 +269,7 @@ export async function processFollowingBatch(): Promise<FollowingImportProgress> 
       lastActivity: new Date(),
     })
     .where(eq(importJobs.id, JOB_ID));
-  
+
   return getFollowingImportProgress();
 }
 
@@ -274,13 +278,14 @@ export async function processFollowingBatch(): Promise<FollowingImportProgress> 
  */
 export async function resumeFollowingImport(): Promise<FollowingImportProgress> {
   const job = await db.select().from(importJobs).where(eq(importJobs.id, JOB_ID)).get();
-  
+
   if (!job || !jobData) {
     return getFollowingImportProgress();
   }
-  
+
   if (job.status === "paused" || job.status === "error") {
-    await db.update(importJobs)
+    await db
+      .update(importJobs)
       .set({
         status: "running",
         lastError: null,
@@ -288,7 +293,7 @@ export async function resumeFollowingImport(): Promise<FollowingImportProgress> 
       })
       .where(eq(importJobs.id, JOB_ID));
   }
-  
+
   return getFollowingImportProgress();
 }
 
@@ -296,13 +301,14 @@ export async function resumeFollowingImport(): Promise<FollowingImportProgress> 
  * Pause the job
  */
 export async function pauseFollowingImport(): Promise<FollowingImportProgress> {
-  await db.update(importJobs)
+  await db
+    .update(importJobs)
     .set({
       status: "paused",
       lastActivity: new Date(),
     })
     .where(eq(importJobs.id, JOB_ID));
-  
+
   return getFollowingImportProgress();
 }
 

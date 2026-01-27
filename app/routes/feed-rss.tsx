@@ -29,7 +29,8 @@ export async function loader({}: Route.LoaderArgs) {
       return {
         title: `Event - ${event.title}${dateStr ? ` - ${dateStr}` : ""}`,
         link: `https://siliconharbour.dev/events/${event.slug}`,
-        description: event.description.slice(0, 500) + (event.description.length > 500 ? "..." : ""),
+        description:
+          event.description.slice(0, 500) + (event.description.length > 500 ? "..." : ""),
         pubDate: event.createdAt,
         guid: `event-${event.id}`,
         category: "Events",
@@ -38,7 +39,9 @@ export async function loader({}: Route.LoaderArgs) {
     ...newsArticles.map((article) => ({
       title: `News - ${article.title}`,
       link: `https://siliconharbour.dev/news/${article.slug}`,
-      description: article.excerpt ?? article.content.slice(0, 500) + (article.content.length > 500 ? "..." : ""),
+      description:
+        article.excerpt ??
+        article.content.slice(0, 500) + (article.content.length > 500 ? "..." : ""),
       pubDate: article.publishedAt ?? article.createdAt,
       guid: `news-${article.id}`,
       category: "News",
@@ -85,7 +88,7 @@ ${recentItems
       <pubDate>${format(item.pubDate, "EEE, dd MMM yyyy HH:mm:ss xx")}</pubDate>
       <guid isPermaLink="false">${item.guid}</guid>
       <category>${item.category}</category>
-    </item>`
+    </item>`,
   )
   .join("\n")}
   </channel>

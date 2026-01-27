@@ -2,7 +2,11 @@ import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getEducationById, updateEducation } from "~/lib/education.server";
-import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import {
+  processAndSaveCoverImage,
+  processAndSaveIconImage,
+  deleteImage,
+} from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({ data }: Route.MetaArgs) {
@@ -107,10 +111,7 @@ export default function EditEducation() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/education"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/education" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Education
           </Link>
         </div>
@@ -118,9 +119,7 @@ export default function EditEducation() {
         <h1 className="text-2xl font-semibold text-harbour-700">Edit Institution</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -207,20 +206,20 @@ export default function EditEducation() {
             <span className="font-medium text-harbour-700">Directory Listings</span>
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  name="technl" 
+                <input
+                  type="checkbox"
+                  name="technl"
                   defaultChecked={institution.technl ?? false}
-                  className="rounded" 
+                  className="rounded"
                 />
                 <span className="text-sm text-harbour-600">TechNL Member</span>
               </label>
               <label className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  name="genesis" 
+                <input
+                  type="checkbox"
+                  name="genesis"
                   defaultChecked={institution.genesis ?? false}
-                  className="rounded" 
+                  className="rounded"
                 />
                 <span className="text-sm text-harbour-600">Genesis Centre</span>
               </label>
@@ -230,16 +229,19 @@ export default function EditEducation() {
           <div className="flex flex-col gap-2">
             <span className="font-medium text-harbour-700">Visibility</span>
             <label className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                name="visible" 
+              <input
+                type="checkbox"
+                name="visible"
                 value="true"
                 defaultChecked={institution.visible ?? true}
-                className="rounded" 
+                className="rounded"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>
-            <p className="text-xs text-harbour-400">Uncheck to hide this institution from public listings while you review/edit their profile.</p>
+            <p className="text-xs text-harbour-400">
+              Uncheck to hide this institution from public listings while you review/edit their
+              profile.
+            </p>
           </div>
 
           <button

@@ -28,7 +28,7 @@ export function ImageUpload({
   helpText,
 }: ImageUploadProps) {
   const [preview, setPreview] = useState<string | null>(
-    existingImage ? `/images/${existingImage}` : null
+    existingImage ? `/images/${existingImage}` : null,
   );
   const [imageData, setImageData] = useState<string | null>(null);
   const [cropperState, setCropperState] = useState<{
@@ -70,29 +70,20 @@ export function ImageUpload({
   return (
     <>
       <div>
-        <label className="block text-sm font-medium mb-2 text-harbour-700">
-          {label}
-        </label>
+        <label className="block text-sm font-medium mb-2 text-harbour-700">{label}</label>
         {preview ? (
           <div className={`relative ${isSquare ? "w-32" : "w-full"}`}>
             <img
               src={preview}
               alt="Preview"
-              className={`${
-                isSquare ? "w-32 h-32" : "w-full aspect-video"
-              } object-cover`}
+              className={`${isSquare ? "w-32 h-32" : "w-full aspect-video"} object-cover`}
             />
             <button
               type="button"
               onClick={handleRemove}
               className="absolute top-2 right-2 p-1 bg-red-600 text-white"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -124,12 +115,7 @@ export function ImageUpload({
             <span className="mt-2 text-sm text-harbour-400">
               {helpText || (isSquare ? "Upload (1:1)" : "Upload (16:9)")}
             </span>
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
+            <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
           </label>
         )}
       </div>

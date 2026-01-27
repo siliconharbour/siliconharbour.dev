@@ -5,15 +5,12 @@ import { eq } from "drizzle-orm";
 import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.slug, params.slug));
-  
+  const [project] = await db.select().from(projects).where(eq(projects.slug, params.slug));
+
   if (!project) {
     return jsonResponse({ error: "Project not found" }, { status: 404 });
   }
-  
+
   return jsonResponse({
     id: project.id,
     slug: project.slug,

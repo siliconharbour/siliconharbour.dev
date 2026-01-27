@@ -4,18 +4,18 @@ export default [
   // Static routes (no layout needed)
   route("images/:filename", "routes/images.tsx"),
   route("calendar.ics", "routes/calendar-ics.tsx"),
-  
+
   // OG images for social sharing
   route("events/:slug.png", "routes/events-og.tsx"),
   route("news/:slug.png", "routes/news-og.tsx"),
-  
+
   // RSS feeds (no layout needed)
   route("export.zip", "routes/export.tsx"),
   route("feed.rss", "routes/feed-rss.tsx"),
   route("events.rss", "routes/events-rss.tsx"),
   route("news.rss", "routes/news-rss.tsx"),
   route("jobs.rss", "routes/jobs-rss.tsx"),
-  
+
   // LLM-friendly markdown endpoints
   route("llms.txt", "routes/llms-txt.tsx"),
   route("index.md", "routes/home.md.tsx"),
@@ -23,7 +23,7 @@ export default [
   route("api.md", "routes/api-docs.md.tsx"),
   route("conduct.md", "routes/conduct.md.tsx"),
   route("stay-connected.md", "routes/stay-connected.md.tsx"),
-  
+
   // Directory markdown routes
   route("directory/companies.md", "routes/directory/companies.md.tsx"),
   route("directory/companies/:slug.md", "routes/directory/companies.$slug.md.tsx"),
@@ -37,23 +37,23 @@ export default [
   route("directory/projects/:slug.md", "routes/directory/projects.$slug.md.tsx"),
   route("directory/education.md", "routes/directory/education.md.tsx"),
   route("directory/education/:slug.md", "routes/directory/education.$slug.md.tsx"),
-  
+
   // Events markdown routes
   route("events.md", "routes/events/index.md.tsx"),
   route("events/:slug.md", "routes/events/detail.md.tsx"),
-  
+
   // News markdown routes
   route("news.md", "routes/news/index.md.tsx"),
   route("news/:slug.md", "routes/news/detail.md.tsx"),
-  
+
   // Jobs markdown routes
   route("jobs.md", "routes/jobs/index.md.tsx"),
   route("jobs/:slug.md", "routes/jobs/detail.md.tsx"),
-  
+
   // API routes
   route("api/comments", "routes/api.comments.tsx"),
   route("api/comments/delete", "routes/api.comments.delete.tsx"),
-  
+
   // Public JSON API
   route("api/companies", "routes/api/companies.tsx"),
   route("api/companies/:slug", "routes/api/companies.$slug.tsx"),
@@ -73,17 +73,17 @@ export default [
   route("api/projects/:slug", "routes/api/projects.$slug.tsx"),
   route("api/products", "routes/api/products.tsx"),
   route("api/products/:slug", "routes/api/products.$slug.tsx"),
-  
+
   // Home page has its own hero header design
   index("routes/home.tsx"),
-  
+
   // Public routes with shared layout (header/footer with visibility config)
   layout("routes/public-layout.tsx", [
     route("about", "routes/about.tsx"),
     route("api", "routes/api-docs.tsx"),
     route("conduct", "routes/conduct.tsx"),
     route("stay-connected", "routes/stay-connected.tsx"),
-    
+
     // Consolidated directory pages with tab layout
     layout("routes/directory/layout.tsx", [
       route("directory", "routes/directory/companies.tsx", { id: "directory-index" }),
@@ -94,7 +94,7 @@ export default [
       route("directory/projects", "routes/directory/projects.tsx"),
       route("directory/education", "routes/directory/education.tsx"),
     ]),
-    
+
     // Directory detail pages (outside tab layout for full-width content)
     route("directory/companies/:slug", "routes/directory/companies.$slug.tsx"),
     route("directory/groups/:slug", "routes/directory/groups.$slug.tsx"),
@@ -102,13 +102,13 @@ export default [
     route("directory/products/:slug", "routes/directory/products.$slug.tsx"),
     route("directory/projects/:slug", "routes/directory/projects.$slug.tsx"),
     route("directory/education/:slug", "routes/directory/education.$slug.tsx"),
-    
+
     // Events (realtime content, separate from directory)
     ...prefix("events", [
       index("routes/events/index.tsx"),
       route(":slug", "routes/events/detail.tsx"),
     ]),
-    
+
     // News (realtime content, separate from directory)
     layout("routes/news/layout.tsx", [
       route("news", "routes/news/all.tsx", { id: "news-index" }),
@@ -117,17 +117,14 @@ export default [
       route("news/editorial", "routes/news/editorial.tsx"),
       route("news/updates", "routes/news/updates.tsx"),
     ]),
-    
+
     // News detail pages (outside layout for full-width content)
     route("news/:slug", "routes/news/detail.tsx"),
-    
+
     // Jobs (separate from directory)
-    ...prefix("jobs", [
-      index("routes/jobs/index.tsx"),
-      route(":slug", "routes/jobs/detail.tsx"),
-    ]),
+    ...prefix("jobs", [index("routes/jobs/index.tsx"), route(":slug", "routes/jobs/detail.tsx")]),
   ]),
-  
+
   // Admin routes
   ...prefix("manage", [
     route("login", "routes/manage/login.tsx"),

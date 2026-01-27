@@ -14,39 +14,42 @@ import type { ResolvedRef } from "~/components/RichMarkdown";
 import type { SectionKey } from "~/db/schema";
 import { Footer } from "~/components/Footer";
 
-
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "siliconharbour.dev" },
-    { name: "description", content: "Discover St. John's tech, events, companies, people, and more." },
+    {
+      name: "description",
+      content: "Discover St. John's tech, events, companies, people, and more.",
+    },
   ];
 }
 
 export async function loader({}: Route.LoaderArgs) {
-  const [thisWeek, upcoming, featuredCompanies, news, jobs, featuredProjects, visibility] = await Promise.all([
-    getEventsThisWeek(),
-    getUpcomingEvents(),
-    getRandomCompanies(4),
-    getPublishedNews(),
-    getActiveJobs(),
-    getRandomProjects(4),
-    getSectionVisibility(),
-  ]);
-  
-  const thisWeekIds = new Set(thisWeek.map(e => e.id));
-  const futureEvents = upcoming.filter(e => !thisWeekIds.has(e.id));
+  const [thisWeek, upcoming, featuredCompanies, news, jobs, featuredProjects, visibility] =
+    await Promise.all([
+      getEventsThisWeek(),
+      getUpcomingEvents(),
+      getRandomCompanies(4),
+      getPublishedNews(),
+      getActiveJobs(),
+      getRandomProjects(4),
+      getSectionVisibility(),
+    ]);
+
+  const thisWeekIds = new Set(thisWeek.map((e) => e.id));
+  const futureEvents = upcoming.filter((e) => !thisWeekIds.has(e.id));
 
   // Prepare refs for featured events (thisWeek events that show descriptions)
   const eventRefs: Record<number, Record<string, ResolvedRef>> = {};
   await Promise.all(
     thisWeek.map(async (event) => {
       eventRefs[event.id] = await prepareRefsForClient(event.description);
-    })
+    }),
   );
 
-  return { 
-    thisWeek, 
-    futureEvents, 
+  return {
+    thisWeek,
+    futureEvents,
     allEvents: upcoming,
     featuredCompanies,
     news: news.slice(0, 3), // Latest 3 news articles
@@ -60,7 +63,11 @@ export async function loader({}: Route.LoaderArgs) {
 // Main nav items (matching the header nav)
 const navItems: { href: string; label: string; keys: SectionKey[] }[] = [
   { href: "/events", label: "Events", keys: ["events"] },
-  { href: "/directory", label: "Directory", keys: ["companies", "groups", "people", "products", "projects", "education"] },
+  {
+    href: "/directory",
+    label: "Directory",
+    keys: ["companies", "groups", "people", "products", "projects", "education"],
+  },
   { href: "/news", label: "News", keys: ["news"] },
   { href: "/jobs", label: "Jobs", keys: ["jobs"] },
 ];
@@ -79,19 +86,19 @@ export default function Home() {
   } = useLoaderData<typeof loader>();
 
   const hasEvents = allEvents.length > 0;
-  
+
   // Filter nav items based on visibility
   const visibleNavItems = navItems.filter((item) => {
-    return item.keys.some(key => visibility[key]);
+    return item.keys.some((key) => visibility[key]);
   });
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero Header */}
       <header className="h-[40vh] min-h-[320px] flex flex-col items-center justify-center p-4">
-        <img 
-          src="/siliconharbour.svg" 
-          alt="Silicon Harbour" 
+        <img
+          src="/siliconharbour.svg"
+          alt="Silicon Harbour"
           className="h-32 md:h-40 lg:h-48 w-auto"
         />
         <p className="text-2xl md:text-3xl lg:text-3xl font-bold text-harbour-600 tracking-wide pt-4">
@@ -103,8 +110,8 @@ export default function Home() {
       <div className="bg-amber-50 border-y border-amber-200">
         <div className="max-w-6xl mx-auto px-4 py-3 text-center">
           <p className="text-sm text-amber-800">
-            <span className="font-semibold">Under Construction:</span>{" "}
-            This site is still heavily under development. Content may be incomplete or change frequently.
+            <span className="font-semibold">Under Construction:</span> This site is still heavily
+            under development. Content may be incomplete or change frequently.
           </p>
         </div>
       </div>
@@ -136,10 +143,10 @@ export default function Home() {
                   <h2 className="text-lg font-semibold text-harbour-700">This Week</h2>
                   <div className="flex flex-col gap-4">
                     {thisWeek.map((event) => (
-                      <EventCard 
-                        key={event.id} 
-                        event={event} 
-                        variant="featured" 
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        variant="featured"
                         resolvedRefs={eventRefs[event.id]}
                       />
                     ))}
@@ -168,9 +175,7 @@ export default function Home() {
               {visibility.events && !hasEvents && (
                 <div className="text-center p-12 ring-1 ring-harbour-200/50">
                   <h2 className="text-xl font-semibold text-harbour-700">No upcoming events</h2>
-                  <p className="text-harbour-400 pt-2">
-                    Check back soon for new events!
-                  </p>
+                  <p className="text-harbour-400 pt-2">Check back soon for new events!</p>
                 </div>
               )}
 
@@ -209,7 +214,9 @@ export default function Home() {
                             </p>
                           )}
                           {article.excerpt && (
-                            <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>
+                            <p className="text-sm text-harbour-500 line-clamp-2">
+                              {article.excerpt}
+                            </p>
                           )}
                         </div>
                       </Link>
@@ -223,7 +230,10 @@ export default function Home() {
                 <section className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-harbour-700">Companies</h2>
-                    <Link to="/directory/companies" className="text-sm text-harbour-500 hover:text-harbour-700">
+                    <Link
+                      to="/directory/companies"
+                      className="text-sm text-harbour-500 hover:text-harbour-700"
+                    >
                       View all
                     </Link>
                   </div>
@@ -244,7 +254,9 @@ export default function Home() {
                           </div>
                         ) : (
                           <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
-                            <span className="text-lg text-harbour-400">{company.name.charAt(0)}</span>
+                            <span className="text-lg text-harbour-400">
+                              {company.name.charAt(0)}
+                            </span>
                           </div>
                         )}
                         <span className="link-title text-sm font-medium text-harbour-700 group-hover:text-harbour-600 text-center line-clamp-2">
@@ -261,7 +273,10 @@ export default function Home() {
                 <section className="flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-harbour-700">Projects</h2>
-                    <Link to="/directory/projects" className="text-sm text-harbour-500 hover:text-harbour-700">
+                    <Link
+                      to="/directory/projects"
+                      className="text-sm text-harbour-500 hover:text-harbour-700"
+                    >
                       View all
                     </Link>
                   </div>
@@ -282,7 +297,9 @@ export default function Home() {
                           </div>
                         ) : (
                           <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
-                            <span className="text-lg text-harbour-400">{project.name.charAt(0)}</span>
+                            <span className="text-lg text-harbour-400">
+                              {project.name.charAt(0)}
+                            </span>
                           </div>
                         )}
                         <span className="link-title text-sm font-medium text-harbour-700 group-hover:text-harbour-600 text-center line-clamp-2">

@@ -63,10 +63,7 @@ export default function NewPerson() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/people"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/people" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to People
           </Link>
         </div>
@@ -74,9 +71,7 @@ export default function NewPerson() {
         <h1 className="text-2xl font-semibold text-harbour-700">New Person</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -128,9 +123,11 @@ export default function NewPerson() {
 
           <div className="flex flex-col gap-4">
             <h3 className="font-medium text-harbour-700">Social Links</h3>
-            
+
             <div className="flex flex-col gap-2">
-              <label htmlFor="github" className="text-sm text-harbour-600">GitHub</label>
+              <label htmlFor="github" className="text-sm text-harbour-600">
+                GitHub
+              </label>
               <input
                 type="url"
                 id="github"
@@ -141,7 +138,9 @@ export default function NewPerson() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="twitter" className="text-sm text-harbour-600">Twitter</label>
+              <label htmlFor="twitter" className="text-sm text-harbour-600">
+                Twitter
+              </label>
               <input
                 type="url"
                 id="twitter"
@@ -152,7 +151,9 @@ export default function NewPerson() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="linkedin" className="text-sm text-harbour-600">LinkedIn</label>
+              <label htmlFor="linkedin" className="text-sm text-harbour-600">
+                LinkedIn
+              </label>
               <input
                 type="url"
                 id="linkedin"

@@ -3,7 +3,11 @@ import { Link, redirect, useActionData, useLoaderData, Form } from "react-router
 import { requireAuth } from "~/lib/session.server";
 import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
 import { convertCompanyToEducation } from "~/lib/education.server";
-import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import {
+  processAndSaveCoverImage,
+  processAndSaveIconImage,
+  deleteImage,
+} from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { blockItem } from "~/lib/import-blocklist.server";
 
@@ -55,30 +59,30 @@ export async function action({ request, params }: Route.ActionArgs) {
   // Handle import block action
   if (intent === "import-block") {
     const source = formData.get("source") as string;
-    
+
     if (!source) {
       return { error: "No import source specified" };
     }
-    
+
     // Use normalized website URL as external ID, or name if no website
     // Must match the normalization used in the import page
-    const externalId = existingCompany.website 
-      ? normalizeUrl(existingCompany.website) 
+    const externalId = existingCompany.website
+      ? normalizeUrl(existingCompany.website)
       : existingCompany.name.toLowerCase();
-    
+
     await blockItem(source, externalId, existingCompany.name, "Blocked from edit page");
     await deleteCompany(id);
-    
+
     return redirect("/manage/companies");
   }
 
   // Handle convert to institution
   if (intent === "convertToEducation") {
-    const institutionType = formData.get("institutionType") as string || "other";
+    const institutionType = (formData.get("institutionType") as string) || "other";
     try {
       const institution = await convertCompanyToEducation(
-        id, 
-        institutionType as "university" | "college" | "bootcamp" | "online" | "other"
+        id,
+        institutionType as "university" | "college" | "bootcamp" | "online" | "other",
       );
       return redirect(`/manage/education/${institution.id}`);
     } catch (error) {
@@ -168,10 +172,7 @@ export default function EditCompany() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/companies"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/companies" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Companies
           </Link>
         </div>
@@ -179,9 +180,7 @@ export default function EditCompany() {
         <h1 className="text-2xl font-semibold text-harbour-700">Edit Company</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -307,20 +306,20 @@ export default function EditCompany() {
             <span className="font-medium text-harbour-700">Directory Listings</span>
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  name="technl" 
+                <input
+                  type="checkbox"
+                  name="technl"
                   defaultChecked={company.technl ?? false}
-                  className="rounded" 
+                  className="rounded"
                 />
                 <span className="text-sm text-harbour-600">TechNL Member</span>
               </label>
               <label className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  name="genesis" 
+                <input
+                  type="checkbox"
+                  name="genesis"
                   defaultChecked={company.genesis ?? false}
-                  className="rounded" 
+                  className="rounded"
                 />
                 <span className="text-sm text-harbour-600">Genesis Centre</span>
               </label>
@@ -330,16 +329,18 @@ export default function EditCompany() {
           <div className="flex flex-col gap-2">
             <span className="font-medium text-harbour-700">Visibility</span>
             <label className="flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                name="visible" 
+              <input
+                type="checkbox"
+                name="visible"
                 value="true"
                 defaultChecked={company.visible ?? true}
-                className="rounded" 
+                className="rounded"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>
-            <p className="text-xs text-harbour-400">Uncheck to hide this company from public listings while you review/edit their profile.</p>
+            <p className="text-xs text-harbour-400">
+              Uncheck to hide this company from public listings while you review/edit their profile.
+            </p>
           </div>
 
           <button
@@ -352,9 +353,11 @@ export default function EditCompany() {
 
         {/* Convert to Institution section */}
         <div className="border-t border-harbour-200 pt-6 mt-6">
-          <h2 className="text-lg font-semibold text-harbour-700 mb-4">Convert to Education Institution</h2>
+          <h2 className="text-lg font-semibold text-harbour-700 mb-4">
+            Convert to Education Institution
+          </h2>
           <p className="text-sm text-harbour-500 mb-4">
-            This will move the company to the Education directory. The company entry will be deleted 
+            This will move the company to the Education directory. The company entry will be deleted
             and a new education institution will be created with the same data.
           </p>
           <Form method="post" className="flex flex-wrap items-end gap-4">
@@ -379,7 +382,11 @@ export default function EditCompany() {
               type="submit"
               className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
               onClick={(e) => {
-                if (!confirm(`Are you sure you want to convert "${company.name}" to an education institution? This will delete the company entry.`)) {
+                if (
+                  !confirm(
+                    `Are you sure you want to convert "${company.name}" to an education institution? This will delete the company entry.`,
+                  )
+                ) {
                   e.preventDefault();
                 }
               }}
@@ -394,9 +401,13 @@ export default function EditCompany() {
           <div className="border-t border-harbour-200 pt-6 mt-6">
             <h2 className="text-lg font-semibold text-harbour-700 mb-2">Import Block</h2>
             <p className="text-sm text-harbour-500 mb-4">
-              Add this company to the import block list to prevent it from being re-imported 
-              from {company.technl && company.genesis ? "TechNL or Genesis" : company.technl ? "TechNL" : "Genesis"} in the future. 
-              This will also delete the current record.
+              Add this company to the import block list to prevent it from being re-imported from{" "}
+              {company.technl && company.genesis
+                ? "TechNL or Genesis"
+                : company.technl
+                  ? "TechNL"
+                  : "Genesis"}{" "}
+              in the future. This will also delete the current record.
             </p>
             <div className="flex flex-wrap gap-3">
               {company.technl && (
@@ -407,7 +418,11 @@ export default function EditCompany() {
                     type="submit"
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
                     onClick={(e) => {
-                      if (!confirm(`Add "${company.name}" to TechNL import block list and delete? This prevents this company from being imported from TechNL again.`)) {
+                      if (
+                        !confirm(
+                          `Add "${company.name}" to TechNL import block list and delete? This prevents this company from being imported from TechNL again.`,
+                        )
+                      ) {
                         e.preventDefault();
                       }
                     }}
@@ -424,7 +439,11 @@ export default function EditCompany() {
                     type="submit"
                     className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
                     onClick={(e) => {
-                      if (!confirm(`Add "${company.name}" to Genesis import block list and delete? This prevents this company from being imported from Genesis again.`)) {
+                      if (
+                        !confirm(
+                          `Add "${company.name}" to Genesis import block list and delete? This prevents this company from being imported from Genesis again.`,
+                        )
+                      ) {
                         e.preventDefault();
                       }
                     }}

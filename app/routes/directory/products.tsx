@@ -7,19 +7,17 @@ import { SearchInput } from "~/components/SearchInput";
 import type { ProductType } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Products - Directory - siliconharbour.dev" },
-  ];
+  return [{ title: "Products - Directory - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const { items, total } = await getPaginatedProducts(limit, offset, searchQuery);
   return { items, total, limit, offset, searchQuery, isAdmin };
 }
@@ -106,7 +104,7 @@ export default function DirectoryProducts() {
                   </span>
                 </div>
               )}
-              
+
               <div className="p-4 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
@@ -116,18 +114,16 @@ export default function DirectoryProducts() {
                     {typeLabels[product.type]}
                   </span>
                 </div>
-                
+
                 {product.company && (
-                  <p className="text-xs text-harbour-400">
-                    by {product.company.name}
-                  </p>
+                  <p className="text-xs text-harbour-400">by {product.company.name}</p>
                 )}
               </div>
             </a>
           ))}
         </div>
       )}
-      
+
       <Pagination total={total} limit={limit} offset={offset} />
     </div>
   );

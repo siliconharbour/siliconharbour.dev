@@ -12,13 +12,13 @@ export function ImageGallery({ images }: ImageGalleryProps) {
 
   const openLightbox = (index: number) => setLightboxIndex(index);
   const closeLightbox = () => setLightboxIndex(null);
-  
+
   const goToPrevious = () => {
     if (lightboxIndex !== null) {
       setLightboxIndex(lightboxIndex === 0 ? images.length - 1 : lightboxIndex - 1);
     }
   };
-  
+
   const goToNext = () => {
     if (lightboxIndex !== null) {
       setLightboxIndex(lightboxIndex === images.length - 1 ? 0 : lightboxIndex + 1);
@@ -35,7 +35,7 @@ export function ImageGallery({ images }: ImageGalleryProps) {
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold text-harbour-700">Gallery</h2>
-      
+
       {/* Thumbnail Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
         {images.map((image, index) => (
@@ -71,25 +71,38 @@ export function ImageGallery({ images }: ImageGalleryProps) {
             aria-label="Close lightbox"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
 
           {/* Previous button */}
           {images.length > 1 && (
             <button
-              onClick={(e) => { e.stopPropagation(); goToPrevious(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                goToPrevious();
+              }}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
               aria-label="Previous image"
             >
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
           )}
 
           {/* Image */}
-          <div 
+          <div
             className="max-w-[90vw] max-h-[90vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
@@ -111,12 +124,20 @@ export function ImageGallery({ images }: ImageGalleryProps) {
           {/* Next button */}
           {images.length > 1 && (
             <button
-              onClick={(e) => { e.stopPropagation(); goToNext(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                goToNext();
+              }}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
               aria-label="Next image"
             >
               <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           )}

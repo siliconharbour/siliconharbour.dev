@@ -69,10 +69,7 @@ export default function NewEducation() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/education"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/education" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Education
           </Link>
         </div>
@@ -80,9 +77,7 @@ export default function NewEducation() {
         <h1 className="text-2xl font-semibold text-harbour-700">New Education Institution</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -163,19 +158,11 @@ export default function NewEducation() {
             <span className="font-medium text-harbour-700">Directory Listings</span>
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  name="technl" 
-                  className="rounded" 
-                />
+                <input type="checkbox" name="technl" className="rounded" />
                 <span className="text-sm text-harbour-600">TechNL Member</span>
               </label>
               <label className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  name="genesis" 
-                  className="rounded" 
-                />
+                <input type="checkbox" name="genesis" className="rounded" />
                 <span className="text-sm text-harbour-600">Genesis Centre</span>
               </label>
             </div>

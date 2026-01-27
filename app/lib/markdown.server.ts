@@ -27,10 +27,10 @@ export function markdownResponse(content: string): Response {
 
 function formatFrontmatter(data: Record<string, unknown>): string {
   const lines: string[] = ["---"];
-  
+
   for (const [key, value] of Object.entries(data)) {
     if (value === null || value === undefined) continue;
-    
+
     if (typeof value === "string") {
       // Escape quotes and handle multiline
       if (value.includes("\n") || value.includes('"') || value.includes(":")) {
@@ -59,7 +59,7 @@ function formatFrontmatter(data: Record<string, unknown>): string {
       }
     }
   }
-  
+
   lines.push("---");
   return lines.join("\n");
 }
@@ -94,7 +94,7 @@ ${company.description}
 }
 
 export function eventToMarkdown(event: EventWithDates): string {
-  const dates = event.dates.map(d => ({
+  const dates = event.dates.map((d) => ({
     start: d.startDate.toISOString(),
     end: d.endDate?.toISOString(),
   }));
@@ -346,7 +346,8 @@ interface ListPageOptions {
 }
 
 export function listPageToMarkdown(opts: ListPageOptions): string {
-  const { title, description, items, entityType, basePath, total, limit, offset, searchQuery } = opts;
+  const { title, description, items, entityType, basePath, total, limit, offset, searchQuery } =
+    opts;
 
   const frontmatter = formatFrontmatter({
     type: `${entityType}_list`,

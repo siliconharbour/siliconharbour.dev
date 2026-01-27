@@ -20,10 +20,7 @@ export interface CropArea {
   height: number;
 }
 
-export async function processAndSaveCoverImage(
-  buffer: Buffer,
-  crop?: CropArea
-): Promise<string> {
+export async function processAndSaveCoverImage(buffer: Buffer, crop?: CropArea): Promise<string> {
   const filename = `cover-${uuid()}.webp`;
   const filepath = join(IMAGES_DIR, filename);
 
@@ -49,10 +46,7 @@ export async function processAndSaveCoverImage(
   return filename;
 }
 
-export async function processAndSaveIconImage(
-  buffer: Buffer,
-  crop?: CropArea
-): Promise<string> {
+export async function processAndSaveIconImage(buffer: Buffer, crop?: CropArea): Promise<string> {
   const filename = `icon-${uuid()}.webp`;
   const filepath = join(IMAGES_DIR, filename);
 
@@ -82,9 +76,7 @@ export async function processAndSaveIconImage(
  * The image is centered and padded with white background to make it square,
  * then resized to the target icon size.
  */
-export async function processAndSaveIconImageWithPadding(
-  buffer: Buffer
-): Promise<string> {
+export async function processAndSaveIconImageWithPadding(buffer: Buffer): Promise<string> {
   const filename = `icon-${uuid()}.webp`;
   const filepath = join(IMAGES_DIR, filename);
 

@@ -54,39 +54,36 @@ const RELATION_REGEX = /^\{([^}]+)\}\s+at\s+\{([^}]+)\}$/i;
  * Resolved refs become real links, unresolved ones stay as styled text
  * Supports both [[Target]] and [[{Relation} at {Target}]] syntax
  */
-function processReferences(
-  content: string, 
-  resolvedRefs?: Record<string, ResolvedRef>
-): string {
+function processReferences(content: string, resolvedRefs?: Record<string, ResolvedRef>): string {
   return content.replace(REFERENCE_REGEX, (match, text) => {
     const trimmed = text.trim();
-    
+
     // Check for relation syntax: [[{CEO} at {CoLab Software}]]
     const relationMatch = RELATION_REGEX.exec(trimmed);
     if (relationMatch) {
       const relation = relationMatch[1].trim();
       const target = relationMatch[2].trim();
       const resolved = resolvedRefs?.[target];
-      
+
       if (resolved) {
         const url = getContentUrl(resolved.type, resolved.slug);
         // Display as "Relation at Target" with Target linked
         return `${relation} at [${resolved.name}](${url})`;
       }
-      
+
       // Unresolved - show the full text
       return `${relation} at **${target}**`;
     }
-    
+
     // Simple syntax: [[Target]]
     const resolved = resolvedRefs?.[trimmed];
-    
+
     if (resolved) {
       const url = getContentUrl(resolved.type, resolved.slug);
       // Use markdown link syntax so react-markdown can handle it
       return `[${resolved.name}](${url})`;
     }
-    
+
     // Unresolved - keep the text but mark it
     return `**${trimmed}**`;
   });
@@ -98,7 +95,7 @@ function processReferences(
 
 /**
  * Renders markdown content with [[reference]] support
- * 
+ *
  * Usage:
  * - Pass content with [[Entity Name]] references
  * - Pass resolvedRefs object from server loader (use prepareRefsForClient)
@@ -107,7 +104,7 @@ function processReferences(
  */
 export function RichMarkdown({ content, resolvedRefs, className }: RichMarkdownProps) {
   const processedContent = processReferences(content, resolvedRefs);
-  
+
   return (
     <div className={`prose prose-sm max-w-none ${className ?? ""}`}>
       <ReactMarkdown

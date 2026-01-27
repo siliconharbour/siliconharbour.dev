@@ -21,21 +21,21 @@ export async function loader({ request }: Route.LoaderArgs) {
   const searchQuery = url.searchParams.get("q") || "";
   const filter = (url.searchParams.get("filter") || "upcoming") as EventFilter;
   const dateFilter = url.searchParams.get("date") || undefined;
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const [paginatedResult, allEvents] = await Promise.all([
     getPaginatedEvents(limit, offset, searchQuery, filter, dateFilter),
     getUpcomingEvents(), // For calendar display
   ]);
-  
-  return { 
-    events: paginatedResult.items, 
-    total: paginatedResult.total, 
-    limit, 
-    offset, 
-    searchQuery, 
+
+  return {
+    events: paginatedResult.items,
+    total: paginatedResult.total,
+    limit,
+    offset,
+    searchQuery,
     filter,
     dateFilter,
     allEvents,
@@ -44,10 +44,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function EventsIndex() {
-  const { events, total, limit, offset, searchQuery, filter, dateFilter, allEvents, isAdmin } = useLoaderData<typeof loader>();
-  
+  const { events, total, limit, offset, searchQuery, filter, dateFilter, allEvents, isAdmin } =
+    useLoaderData<typeof loader>();
+
   // Format the date filter for display
-  const dateFilterDisplay = dateFilter 
+  const dateFilterDisplay = dateFilter
     ? format(parse(dateFilter, "yyyy-MM-dd", new Date()), "MMMM d, yyyy")
     : null;
 
@@ -72,7 +73,7 @@ export default function EventsIndex() {
                 </div>
                 <p className="text-harbour-500">Tech events in the community</p>
               </div>
-              
+
               {/* Filter tabs */}
               <div className="flex flex-wrap gap-2">
                 <a
@@ -113,17 +114,27 @@ export default function EventsIndex() {
                       className="text-white/80 hover:text-white"
                       title="Clear date filter"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </a>
                   </span>
                 )}
               </div>
-              
+
               {/* Search */}
               <SearchInput placeholder="Search events..." preserveParams={["filter", "date"]} />
-              
+
               {/* Result count */}
               {(searchQuery || dateFilter) && (
                 <p className="text-sm text-harbour-500">
@@ -136,11 +147,11 @@ export default function EventsIndex() {
 
             {events.length === 0 ? (
               <p className="text-harbour-400">
-                {searchQuery 
-                  ? "No events match your search." 
+                {searchQuery
+                  ? "No events match your search."
                   : dateFilter
                     ? `No events on ${dateFilterDisplay}.`
-                    : filter === "upcoming" 
+                    : filter === "upcoming"
                       ? "No upcoming events at the moment."
                       : filter === "past"
                         ? "No past events found."
@@ -153,7 +164,7 @@ export default function EventsIndex() {
                 ))}
               </div>
             )}
-            
+
             <Pagination total={total} limit={limit} offset={offset} />
           </div>
         </div>

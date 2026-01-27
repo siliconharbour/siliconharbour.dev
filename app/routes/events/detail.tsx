@@ -1,7 +1,15 @@
 import type { Route } from "./+types/detail";
 import { Link, useLoaderData } from "react-router";
-import { getEventBySlug, getEventWithOccurrences, type EventOccurrenceDisplay } from "~/lib/events.server";
-import { prepareRefsForClient, getDetailedBacklinks, resolveOrganizers } from "~/lib/references.server";
+import {
+  getEventBySlug,
+  getEventWithOccurrences,
+  type EventOccurrenceDisplay,
+} from "~/lib/events.server";
+import {
+  prepareRefsForClient,
+  getDetailedBacklinks,
+  resolveOrganizers,
+} from "~/lib/references.server";
 import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
@@ -12,7 +20,7 @@ export function meta({ data, params }: Route.MetaArgs) {
   const title = data?.event?.title ?? "Event";
   const siteUrl = "https://siliconharbour.dev";
   const ogImageUrl = `${siteUrl}/events/${params.slug}.png`;
-  
+
   return [
     { title: `${title} - siliconharbour.dev` },
     { property: "og:title", content: title },
@@ -31,29 +39,37 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (!event) {
     throw new Response("Event not found", { status: 404 });
   }
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const resolvedRefs = await prepareRefsForClient(event.description);
   const backlinks = await getDetailedBacklinks("event", event.id);
   const organizers = await resolveOrganizers(event.organizer);
-  
+
   // For recurring events, get generated occurrences
   let occurrences: EventOccurrenceDisplay[] = [];
   let recurrenceDescription: string | null = null;
-  
+
   if (event.recurrenceRule) {
     const eventWithOccurrences = await getEventWithOccurrences(event.id);
     occurrences = eventWithOccurrences?.occurrences || [];
-    
+
     const parsed = parseRecurrenceRule(event.recurrenceRule);
     if (parsed) {
       recurrenceDescription = describeRecurrenceRule(parsed);
     }
   }
-  
-  return { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin, organizers };
+
+  return {
+    event,
+    resolvedRefs,
+    backlinks,
+    occurrences,
+    recurrenceDescription,
+    isAdmin,
+    organizers,
+  };
 }
 
 function getEventLinkDomain(link: string): string {
@@ -69,7 +85,7 @@ type OrganizerItem = { text: string; resolved: boolean; url?: string; name?: str
 
 function OrganizerLinks({ organizers }: { organizers: OrganizerItem[] }) {
   if (organizers.length === 0) return null;
-  
+
   return (
     <p className="text-harbour-500 mt-1">
       Organized by{" "}
@@ -77,7 +93,7 @@ function OrganizerLinks({ organizers }: { organizers: OrganizerItem[] }) {
         <span key={org.text}>
           {i > 0 && ", "}
           {org.resolved && org.url ? (
-            <Link 
+            <Link
               to={org.url}
               className="text-harbour-600 hover:text-harbour-700 underline decoration-harbour-200 hover:decoration-harbour-500 underline-offset-2"
             >
@@ -93,7 +109,15 @@ function OrganizerLinks({ organizers }: { organizers: OrganizerItem[] }) {
 }
 
 export default function EventDetail() {
-  const { event, resolvedRefs, backlinks, occurrences, recurrenceDescription, isAdmin, organizers } = useLoaderData<typeof loader>();
+  const {
+    event,
+    resolvedRefs,
+    backlinks,
+    occurrences,
+    recurrenceDescription,
+    isAdmin,
+    organizers,
+  } = useLoaderData<typeof loader>();
   const isRecurring = !!event.recurrenceRule;
   const eventLinkDomain = getEventLinkDomain(event.link);
 
@@ -114,7 +138,9 @@ export default function EventDetail() {
         )}
 
         {/* Content container - 60ch centered */}
-        <div className={`max-w-[60ch] mx-auto w-full px-4 flex flex-col gap-6 ${event.coverImage ? "-mt-12 relative z-10" : ""}`}>
+        <div
+          className={`max-w-[60ch] mx-auto w-full px-4 flex flex-col gap-6 ${event.coverImage ? "-mt-12 relative z-10" : ""}`}
+        >
           {/* Event info card with ring border */}
           <div className="bg-white p-4 ring-1 ring-harbour-200/50 flex flex-col gap-4">
             {/* Title with icon */}
@@ -137,15 +163,23 @@ export default function EventDetail() {
                       className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
                       title="Edit"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                        />
                       </svg>
                     </Link>
                   )}
                 </div>
-                {organizers.length > 0 && (
-                  <OrganizerLinks organizers={organizers} />
-                )}
+                {organizers.length > 0 && <OrganizerLinks organizers={organizers} />}
               </div>
             </div>
 
@@ -154,7 +188,12 @@ export default function EventDetail() {
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-harbour-100 text-harbour-700 text-sm">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
                   </svg>
                   Recurring Event
                 </span>
@@ -170,8 +209,14 @@ export default function EventDetail() {
                   occurrences.length > 0 ? (
                     <>
                       {occurrences.slice(0, 8).map((occ, i) => (
-                        <div key={i} className={`${occ.cancelled ? 'line-through text-harbour-400' : ''}`}>
-                          <time dateTime={occ.date.toISOString()} className="font-semibold text-harbour-700">
+                        <div
+                          key={i}
+                          className={`${occ.cancelled ? "line-through text-harbour-400" : ""}`}
+                        >
+                          <time
+                            dateTime={occ.date.toISOString()}
+                            className="font-semibold text-harbour-700"
+                          >
                             {formatInTimezone(occ.date, "EEEE, MMMM d, yyyy 'at' h:mm a")}
                           </time>
                           {occ.endDate && (
@@ -198,7 +243,10 @@ export default function EventDetail() {
                 ) : (
                   event.dates.map((date, i) => (
                     <div key={i}>
-                      <time dateTime={date.startDate.toISOString()} className="font-semibold text-harbour-700">
+                      <time
+                        dateTime={date.startDate.toISOString()}
+                        className="font-semibold text-harbour-700"
+                      >
                         {formatInTimezone(date.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")}
                       </time>
                       {date.endDate && (
@@ -230,7 +278,12 @@ export default function EventDetail() {
             >
               {event.requiresSignup ? "Signup for" : "View"} event on {eventLinkDomain}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
               </svg>
             </a>
           </div>

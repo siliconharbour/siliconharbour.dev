@@ -22,12 +22,12 @@ export default function Export() {
       if (!response.ok) {
         throw new Error("Export failed");
       }
-      
+
       const blob = await response.blob();
       const contentDisposition = response.headers.get("Content-Disposition");
       const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
       const filename = filenameMatch?.[1] || "siliconharbour-export.zip";
-      
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -50,26 +50,19 @@ export default function Export() {
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-semibold text-harbour-700">Export</h1>
-            <p className="text-harbour-400 text-sm">
-              Export and backup your site data
-            </p>
+            <p className="text-harbour-400 text-sm">Export and backup your site data</p>
           </div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             Back to Dashboard
           </Link>
         </div>
 
         <div className="bg-white border border-harbour-200 p-6">
-          <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-            Export All Data
-          </h2>
+          <h2 className="text-lg font-semibold text-harbour-700 mb-4">Export All Data</h2>
           <p className="text-sm text-harbour-400 mb-6">
-            Download all site content as a ZIP archive containing markdown files
-            with YAML frontmatter. This includes events, companies, groups,
-            education, people, news, jobs, and projects.
+            Download all site content as a ZIP archive containing markdown files with YAML
+            frontmatter. This includes events, companies, groups, education, people, news, jobs, and
+            projects.
           </p>
 
           <button

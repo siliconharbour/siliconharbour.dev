@@ -12,39 +12,49 @@ export interface PaginatedCompanies {
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: companies.slug }).from(companies);
-  return rows.map(r => r.slug);
+  return rows.map((r) => r.slug);
 }
 
 export async function generateCompanySlug(name: string, excludeId?: number): Promise<string> {
   const baseSlug = generateSlug(name);
   let existingSlugs = await getExistingSlugs();
-  
+
   if (excludeId) {
-    const current = await db.select({ slug: companies.slug }).from(companies).where(eq(companies.id, excludeId)).get();
+    const current = await db
+      .select({ slug: companies.slug })
+      .from(companies)
+      .where(eq(companies.id, excludeId))
+      .get();
     if (current) {
-      existingSlugs = existingSlugs.filter(s => s !== current.slug);
+      existingSlugs = existingSlugs.filter((s) => s !== current.slug);
     }
   }
-  
+
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
 export async function createCompany(company: Omit<NewCompany, "slug">): Promise<Company> {
   const slug = await generateCompanySlug(company.name);
-  const [newCompany] = await db.insert(companies).values({ ...company, slug }).returning();
-  
+  const [newCompany] = await db
+    .insert(companies)
+    .values({ ...company, slug })
+    .returning();
+
   await syncReferences("company", newCompany.id, newCompany.description);
-  
+
   return newCompany;
 }
 
-export async function updateCompany(id: number, company: Partial<Omit<NewCompany, "slug">>): Promise<Company | null> {
+export async function updateCompany(
+  id: number,
+  company: Partial<Omit<NewCompany, "slug">>,
+): Promise<Company | null> {
   let updateData: Partial<NewCompany> = { ...company, updatedAt: new Date() };
-  
+
   if (company.name) {
     updateData.slug = await generateCompanySlug(company.name, id);
   }
-  
+
   const [updated] = await db
     .update(companies)
     .set(updateData)
@@ -77,22 +87,33 @@ export async function getCompanyByName(name: string): Promise<Company | null> {
   // Case-insensitive search by lowercasing both sides
   const all = await db.select().from(companies);
   const nameLower = name.toLowerCase();
-  return all.find(c => c.name.toLowerCase() === nameLower) ?? null;
+  return all.find((c) => c.name.toLowerCase() === nameLower) ?? null;
 }
 
 export async function getAllCompanies(includeHidden: boolean = false): Promise<Company[]> {
   if (includeHidden) {
     return db.select().from(companies).orderBy(asc(companies.name));
   }
-  return db.select().from(companies).where(eq(companies.visible, true)).orderBy(asc(companies.name));
+  return db
+    .select()
+    .from(companies)
+    .where(eq(companies.visible, true))
+    .orderBy(asc(companies.name));
 }
 
 export async function getHiddenCompanies(): Promise<Company[]> {
-  return db.select().from(companies).where(eq(companies.visible, false)).orderBy(desc(companies.createdAt));
+  return db
+    .select()
+    .from(companies)
+    .where(eq(companies.visible, false))
+    .orderBy(desc(companies.createdAt));
 }
 
 export async function getHiddenCompaniesCount(): Promise<number> {
-  const [{ total }] = await db.select({ total: count() }).from(companies).where(eq(companies.visible, false));
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(companies)
+    .where(eq(companies.visible, false));
   return total;
 }
 
@@ -104,33 +125,36 @@ export async function getHiddenCompaniesCount(): Promise<number> {
 export async function getRandomCompanies(count: number, seed?: number): Promise<Company[]> {
   // Default seed is today's date as YYYYMMDD
   const dateSeed = seed ?? parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ""), 10);
-  
+
   // Get all visible companies with logos
   const allCompanies = await db
     .select()
     .from(companies)
     .where(and(eq(companies.visible, true), isNotNull(companies.logo)));
-  
+
   if (allCompanies.length <= count) {
     return allCompanies;
   }
-  
+
   // Use a simple seeded shuffle: hash each id with the seed and sort by that
   // Knuth multiplicative hash for good distribution
   const shuffled = allCompanies
-    .map(c => ({
+    .map((c) => ({
       company: c,
       hash: ((c.id + dateSeed) * 2654435761) >>> 0, // unsigned 32-bit
     }))
     .sort((a, b) => a.hash - b.hash)
     .slice(0, count)
-    .map(x => x.company);
-  
+    .map((x) => x.company);
+
   return shuffled;
 }
 
 export async function getVisibleCompaniesCount(): Promise<number> {
-  const [{ total }] = await db.select({ total: count() }).from(companies).where(eq(companies.visible, true));
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(companies)
+    .where(eq(companies.visible, true));
   return total;
 }
 
@@ -146,22 +170,22 @@ export async function getPaginatedCompanies(
   limit: number,
   offset: number,
   searchQuery?: string,
-  includeHidden: boolean = false
+  includeHidden: boolean = false,
 ): Promise<PaginatedCompanies> {
   const visibilityFilter = includeHidden ? undefined : eq(companies.visible, true);
-  
+
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("company", searchQuery);
-    
+
     if (matchingIds.length === 0) {
       return { items: [], total: 0 };
     }
-    
+
     const whereClause = visibilityFilter
       ? and(inArray(companies.id, matchingIds), visibilityFilter)
       : inArray(companies.id, matchingIds);
-    
+
     const items = await db
       .select()
       .from(companies)
@@ -169,21 +193,15 @@ export async function getPaginatedCompanies(
       .orderBy(asc(companies.name))
       .limit(limit)
       .offset(offset);
-    
-    const allMatching = await db
-      .select({ id: companies.id })
-      .from(companies)
-      .where(whereClause);
-    
+
+    const allMatching = await db.select({ id: companies.id }).from(companies).where(whereClause);
+
     return { items, total: allMatching.length };
   }
-  
+
   // No search - get total count and paginated items
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(companies)
-    .where(visibilityFilter);
-  
+  const [{ total }] = await db.select({ total: count() }).from(companies).where(visibilityFilter);
+
   const items = await db
     .select()
     .from(companies)
@@ -191,7 +209,7 @@ export async function getPaginatedCompanies(
     .orderBy(asc(companies.name))
     .limit(limit)
     .offset(offset);
-  
+
   return { items, total };
 }
 
@@ -219,10 +237,10 @@ function normalizeCompanyName(name: string): string {
 function similarityScore(a: string, b: string): number {
   const normA = normalizeCompanyName(a);
   const normB = normalizeCompanyName(b);
-  
+
   // Exact match after normalization
   if (normA === normB) return 1;
-  
+
   // One contains the other (boost score for significant overlap)
   if (normA.includes(normB) || normB.includes(normA)) {
     const shorter = normA.length < normB.length ? normA : normB;
@@ -231,17 +249,17 @@ function similarityScore(a: string, b: string): number {
     const ratio = shorter.length / longer.length;
     // If it's a prefix match (shorter is at start of longer), boost significantly
     if (longer.startsWith(shorter)) {
-      return 0.7 + (ratio * 0.3); // Prefix matches get 0.7-1.0
+      return 0.7 + ratio * 0.3; // Prefix matches get 0.7-1.0
     }
     // Otherwise, still give reasonable score for containment
-    return ratio >= 0.5 ? 0.6 + (ratio * 0.3) : ratio;
+    return ratio >= 0.5 ? 0.6 + ratio * 0.3 : ratio;
   }
-  
+
   // Word overlap - filter out very short words
-  const wordsA = new Set(normA.split(" ").filter(w => w.length > 2));
-  const wordsB = new Set(normB.split(" ").filter(w => w.length > 2));
-  const intersection = [...wordsA].filter(w => wordsB.has(w));
-  
+  const wordsA = new Set(normA.split(" ").filter((w) => w.length > 2));
+  const wordsB = new Set(normB.split(" ").filter((w) => w.length > 2));
+  const intersection = [...wordsA].filter((w) => wordsB.has(w));
+
   // If no significant words overlap, try starts-with matching on words
   if (intersection.length === 0) {
     const wordsAArr = [...wordsA];
@@ -258,18 +276,18 @@ function similarityScore(a: string, b: string): number {
       }
     }
   }
-  
+
   const union = new Set([...wordsA, ...wordsB]);
   if (union.size === 0) return 0;
-  
+
   // Weight by how many significant words matched
   const score = intersection.length / union.size;
-  
+
   // Bonus if all words from the shorter name are in the longer
   const shorterWords = wordsA.size < wordsB.size ? wordsA : wordsB;
   const longerWords = wordsA.size < wordsB.size ? wordsB : wordsA;
-  const allShorterInLonger = [...shorterWords].every(w => longerWords.has(w));
-  
+  const allShorterInLonger = [...shorterWords].every((w) => longerWords.has(w));
+
   return allShorterInLonger ? Math.min(1, score + 0.3) : score;
 }
 
@@ -279,11 +297,11 @@ function similarityScore(a: string, b: string): number {
  */
 export async function findCompanyByFuzzyName(searchName: string): Promise<Company | null> {
   const allCompanies = await getAllCompanies();
-  
+
   let bestMatch: Company | null = null;
   let bestScore = 0;
   const threshold = 0.6;
-  
+
   for (const company of allCompanies) {
     const score = similarityScore(searchName, company.name);
     if (score > bestScore && score >= threshold) {
@@ -291,21 +309,24 @@ export async function findCompanyByFuzzyName(searchName: string): Promise<Compan
       bestMatch = company;
     }
   }
-  
+
   return bestMatch;
 }
 
 /**
  * Parse a GitHub company field to extract company name and optional GitHub org URL.
- * 
+ *
  * Formats:
  * - "@orgname" -> { name: "orgname", githubOrg: "https://github.com/orgname" }
  * - "https://github.com/orgname" -> { name: "orgname", githubOrg: "https://github.com/orgname" }
  * - "Company Name" -> { name: "Company Name", githubOrg: null }
  */
-export function parseGitHubCompanyField(company: string): { name: string; githubOrg: string | null } {
+export function parseGitHubCompanyField(company: string): {
+  name: string;
+  githubOrg: string | null;
+} {
   const trimmed = company.trim();
-  
+
   // @orgname format
   if (trimmed.startsWith("@")) {
     const orgName = trimmed.slice(1);
@@ -314,7 +335,7 @@ export function parseGitHubCompanyField(company: string): { name: string; github
       githubOrg: `https://github.com/${orgName}`,
     };
   }
-  
+
   // GitHub URL format
   const githubUrlMatch = trimmed.match(/^https?:\/\/github\.com\/([^/\s]+)/i);
   if (githubUrlMatch) {
@@ -323,7 +344,7 @@ export function parseGitHubCompanyField(company: string): { name: string; github
       githubOrg: `https://github.com/${githubUrlMatch[1]}`,
     };
   }
-  
+
   // Plain company name
   return {
     name: trimmed,
@@ -338,16 +359,16 @@ export function parseGitHubCompanyField(company: string): { name: string; github
 export function extractCompanyFromBio(bio: string): string | null {
   // Pattern: "Role at Company" or "works at Company" etc.
   const patterns = [
-    /(?:^|\s)at\s+([A-Z][A-Za-z0-9\s&.,']+?)(?:\.|,|$|\s*\()/i,  // "... at Company Name"
-    /(?:working|work|employed)\s+(?:at|for)\s+([A-Z][A-Za-z0-9\s&.,']+?)(?:\.|,|$)/i,  // "working at Company"
+    /(?:^|\s)at\s+([A-Z][A-Za-z0-9\s&.,']+?)(?:\.|,|$|\s*\()/i, // "... at Company Name"
+    /(?:working|work|employed)\s+(?:at|for)\s+([A-Z][A-Za-z0-9\s&.,']+?)(?:\.|,|$)/i, // "working at Company"
   ];
-  
+
   for (const pattern of patterns) {
     const match = bio.match(pattern);
     if (match) {
       return match[1].trim();
     }
   }
-  
+
   return null;
 }

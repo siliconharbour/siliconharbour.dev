@@ -6,19 +6,17 @@ import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Companies - Directory - siliconharbour.dev" },
-  ];
+  return [{ title: "Companies - Directory - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const { items, total } = await getPaginatedCompanies(limit, offset, searchQuery);
   return { items, total, limit, offset, searchQuery, isAdmin };
 }
@@ -81,15 +79,13 @@ export default function DirectoryCompanies() {
                 <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
                   {company.name}
                 </h2>
-                {company.location && (
-                  <p className="text-sm text-harbour-400">{company.location}</p>
-                )}
+                {company.location && <p className="text-sm text-harbour-400">{company.location}</p>}
               </div>
             </a>
           ))}
         </div>
       )}
-      
+
       <Pagination total={total} limit={limit} offset={offset} />
     </div>
   );

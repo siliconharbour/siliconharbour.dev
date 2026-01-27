@@ -8,13 +8,13 @@ interface PaginationProps {
 
 export function Pagination({ total, limit, offset }: PaginationProps) {
   const [searchParams] = useSearchParams();
-  
+
   // Don't show pagination if all items fit on one page
   if (total <= limit) return null;
-  
+
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
-  
+
   // Build URL with preserved search params
   const buildPageUrl = (page: number) => {
     const params = new URLSearchParams(searchParams);
@@ -27,13 +27,13 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
     const queryString = params.toString();
     return queryString ? `?${queryString}` : "";
   };
-  
+
   // Calculate page range to show (show up to 5 page numbers)
   const getPageRange = () => {
     const range: number[] = [];
     let start = Math.max(1, currentPage - 2);
     let end = Math.min(totalPages, currentPage + 2);
-    
+
     // Adjust if we're near the beginning or end
     if (currentPage <= 3) {
       end = Math.min(5, totalPages);
@@ -41,17 +41,17 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
     if (currentPage >= totalPages - 2) {
       start = Math.max(1, totalPages - 4);
     }
-    
+
     for (let i = start; i <= end; i++) {
       range.push(i);
     }
     return range;
   };
-  
+
   const pageRange = getPageRange();
   const hasPrev = currentPage > 1;
   const hasNext = currentPage < totalPages;
-  
+
   return (
     <nav className="flex items-center justify-center gap-1 mt-8" aria-label="Pagination">
       {/* Previous button */}
@@ -68,7 +68,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
           <span aria-hidden="true">&larr;</span> Prev
         </span>
       )}
-      
+
       {/* First page + ellipsis if needed */}
       {pageRange[0] > 1 && (
         <>
@@ -78,14 +78,12 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
           >
             1
           </Link>
-          {pageRange[0] > 2 && (
-            <span className="px-2 py-2 text-sm text-harbour-400">...</span>
-          )}
+          {pageRange[0] > 2 && <span className="px-2 py-2 text-sm text-harbour-400">...</span>}
         </>
       )}
-      
+
       {/* Page numbers */}
-      {pageRange.map(page => (
+      {pageRange.map((page) => (
         <Link
           key={page}
           to={buildPageUrl(page)}
@@ -99,7 +97,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
           {page}
         </Link>
       ))}
-      
+
       {/* Last page + ellipsis if needed */}
       {pageRange[pageRange.length - 1] < totalPages && (
         <>
@@ -114,7 +112,7 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
           </Link>
         </>
       )}
-      
+
       {/* Next button */}
       {hasNext ? (
         <Link
@@ -138,18 +136,18 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
  */
 export function parsePaginationParams(
   url: URL,
-  defaultLimit: number = 50
+  defaultLimit: number = 50,
 ): { limit: number; offset: number } {
   const limitParam = url.searchParams.get("limit");
   const offsetParam = url.searchParams.get("offset");
-  
+
   let limit = limitParam ? parseInt(limitParam, 10) : defaultLimit;
   let offset = offsetParam ? parseInt(offsetParam, 10) : 0;
-  
+
   // Clamp values
   if (isNaN(limit) || limit < 1) limit = defaultLimit;
   if (limit > 200) limit = 200; // Max limit
   if (isNaN(offset) || offset < 0) offset = 0;
-  
+
   return { limit, offset };
 }

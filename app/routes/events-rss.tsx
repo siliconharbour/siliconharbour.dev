@@ -24,20 +24,18 @@ export async function loader({}: Route.LoaderArgs) {
     <lastBuildDate>${format(new Date(), "EEE, dd MMM yyyy HH:mm:ss xx")}</lastBuildDate>
     <atom:link href="https://siliconharbour.dev/events.rss" rel="self" type="application/rss+xml"/>
 ${events
-  .map(
-    (event) => {
-      const nextDate = event.dates[0];
-      const dateStr = nextDate ? formatInTimezone(nextDate.startDate, "MMM d, yyyy") : "";
-      const title = `${event.title}${dateStr ? ` - ${dateStr}` : ""}`;
-      return `    <item>
+  .map((event) => {
+    const nextDate = event.dates[0];
+    const dateStr = nextDate ? formatInTimezone(nextDate.startDate, "MMM d, yyyy") : "";
+    const title = `${event.title}${dateStr ? ` - ${dateStr}` : ""}`;
+    return `    <item>
       <title>${escapeXml(title)}</title>
       <link>https://siliconharbour.dev/events/${event.slug}</link>
       <description>${escapeXml(event.description.slice(0, 500))}${event.description.length > 500 ? "..." : ""}</description>
       <pubDate>${format(event.createdAt, "EEE, dd MMM yyyy HH:mm:ss xx")}</pubDate>
       <guid isPermaLink="false">event-${event.id}</guid>
     </item>`;
-    }
-  )
+  })
   .join("\n")}
   </channel>
 </rss>`;

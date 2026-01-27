@@ -6,21 +6,19 @@ import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "People - Directory - siliconharbour.dev" },
-  ];
+  return [{ title: "People - Directory - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
+
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
-  
+
   const { items: people, total } = await getPaginatedPeople(limit, offset, searchQuery);
-  
+
   return { people, total, limit, offset, searchQuery, isAdmin };
 }
 
@@ -45,7 +43,7 @@ export default function DirectoryPeople() {
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
           <SearchInput placeholder="Search people..." />
-          
+
           {/* Result count */}
           {searchQuery && (
             <p className="text-sm text-harbour-500">
@@ -89,7 +87,7 @@ export default function DirectoryPeople() {
           ))}
         </div>
       )}
-      
+
       <Pagination total={total} limit={limit} offset={offset} />
     </div>
   );

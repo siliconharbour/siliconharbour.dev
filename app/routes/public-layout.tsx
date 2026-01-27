@@ -14,7 +14,11 @@ export async function loader({}: Route.LoaderArgs) {
 // Items without keys are always shown
 const navItems: { href: string; label: string; keys?: SectionKey[] }[] = [
   { href: "/events", label: "Events", keys: ["events"] },
-  { href: "/directory", label: "Directory", keys: ["companies", "groups", "people", "products", "projects", "education"] },
+  {
+    href: "/directory",
+    label: "Directory",
+    keys: ["companies", "groups", "people", "products", "projects", "education"],
+  },
   { href: "/news", label: "News", keys: ["news"] },
   { href: "/jobs", label: "Jobs", keys: ["jobs"] },
 ];
@@ -23,16 +27,16 @@ export default function PublicLayoutRoute() {
   const { visibility } = useLoaderData<typeof loader>();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
+
   // Filter nav items based on visibility config
   // Show item if any of its keys are visible (or if no keys specified)
   const visibleNavItems = navItems.filter((item) => {
     if (!item.keys) return true;
-    return item.keys.some(key => visibility[key]);
+    return item.keys.some((key) => visibility[key]);
   });
 
   // Check if nav item is active
-  const isNavItemActive = (item: typeof navItems[number]) => {
+  const isNavItemActive = (item: (typeof navItems)[number]) => {
     return location.pathname.startsWith(item.href);
   };
 
@@ -45,18 +49,14 @@ export default function PublicLayoutRoute() {
         <div className="max-w-6xl mx-auto p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/" className="flex items-center gap-3">
-              <img 
-                src="/siliconharbour.svg" 
-                alt="Silicon Harbour" 
-                className="h-8 w-auto"
-              />
+              <img src="/siliconharbour.svg" alt="Silicon Harbour" className="h-8 w-auto" />
               <span className="font-semibold text-harbour-700">siliconharbour.dev</span>
             </Link>
             <span className="hidden sm:inline-flex text-xs px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-300">
               Under Construction
             </span>
           </div>
-          
+
           {/* Desktop nav */}
           <nav className="hidden md:flex gap-4">
             {visibleNavItems.map((item) => (
@@ -64,9 +64,7 @@ export default function PublicLayoutRoute() {
                 key={item.href}
                 to={item.href}
                 className={`link-inline text-sm hover:text-harbour-700 ${
-                  isNavItemActive(item)
-                    ? "text-harbour-700 font-medium" 
-                    : "text-harbour-500"
+                  isNavItemActive(item) ? "text-harbour-700 font-medium" : "text-harbour-500"
                 }`}
               >
                 {item.label}
@@ -84,11 +82,21 @@ export default function PublicLayoutRoute() {
           >
             {mobileMenuOpen ? (
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             ) : (
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               </svg>
             )}
           </button>
@@ -104,9 +112,7 @@ export default function PublicLayoutRoute() {
                   to={item.href}
                   onClick={handleNavClick}
                   className={`link-inline py-3 text-sm border-b border-harbour-100 last:border-0 hover:text-harbour-700 ${
-                    isNavItemActive(item)
-                      ? "text-harbour-700 font-medium"
-                      : "text-harbour-500"
+                    isNavItemActive(item) ? "text-harbour-700 font-medium" : "text-harbour-500"
                   }`}
                 >
                   {item.label}

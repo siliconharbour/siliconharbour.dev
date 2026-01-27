@@ -465,8 +465,7 @@ async function seedNews() {
       type: "editorial" as const,
       content:
         "As someone who's worked both in-office and remotely, I've been thinking about what structure works best for Newfoundland tech companies.\n\n## The Geographic Reality\n\nLet's be honest: we're not going to out-compete Toronto for talent if we require everyone to be in the office. But we can compete on quality of life, cost of living, and flexibility.\n\n## What Remote-First Enables\n\nRemote-first doesn't mean never meeting in person. It means designing your company so that remote workers aren't second-class citizens. This opens up hiring across the province and beyond, while keeping your headquarters and culture rooted here.\n\n## The Community Angle\n\nGroups like [[NL Tech]] and [[St. John's JavaScript]] have shown that community doesn't require daily in-person interaction. Monthly meetups and annual conferences can maintain strong connections while respecting everyone's time and geography.\n\n## My Recommendation\n\nIf you're starting a company in NL, consider remote-first from day one. You'll have access to more talent, lower overhead, and happier employees.",
-      excerpt:
-        "Why Newfoundland tech companies should embrace remote-first work structures.",
+      excerpt: "Why Newfoundland tech companies should embrace remote-first work structures.",
       publishedAt: daysFromNow(-18),
     },
     // Meta - site updates
@@ -475,8 +474,7 @@ async function seedNews() {
       type: "meta" as const,
       content:
         "We're excited to launch siliconharbour.dev - a community directory for the Newfoundland and Labrador tech scene.\n\n## Why This Exists\n\nWe've always had great tech communities, companies, and events in NL, but no central place to discover them. This site aims to fix that.\n\n## What You'll Find\n\n- **Events**: Meetups, conferences, workshops, and hackathons\n- **Companies**: Local tech companies and startups\n- **Groups**: Community organizations and meetup groups\n- **People**: Community members who want to be listed\n- **Jobs**: Employment opportunities at local companies\n- **Projects**: Open source and community projects\n- **News**: Announcements and editorials about the local scene\n\n## Get Involved\n\nThis is a community resource. If you'd like to add a listing or suggest improvements, reach out via the contact page.\n\nLet's build something great together.",
-      excerpt:
-        "Introducing siliconharbour.dev - a community directory for the NL tech scene.",
+      excerpt: "Introducing siliconharbour.dev - a community directory for the NL tech scene.",
       publishedAt: daysFromNow(-1),
     },
     {
@@ -484,8 +482,7 @@ async function seedNews() {
       type: "announcement" as const,
       content:
         "[[NL Tech]] has released the results of their annual salary survey, showing continued growth in tech compensation across the province.\n\n## Key Findings\n\n- Average developer salary increased 8% year-over-year\n- Remote work opportunities have expanded significantly\n- Most in-demand skills: React, Python, Cloud/DevOps\n\n## Full Report\n\nThe complete survey results, including breakdowns by experience level, role, and company size, are available on the NL Tech website.",
-      excerpt:
-        "Annual salary survey shows 8% increase in average developer compensation.",
+      excerpt: "Annual salary survey shows 8% increase in average developer compensation.",
       publishedAt: daysFromNow(-25),
     },
     {
@@ -796,9 +793,7 @@ async function seedEvents() {
         link: "https://discord.gg/nlgamedev",
         organizer: "NL Game Developers",
       },
-      dates: [
-        { startDate: daysFromNow(15), endDate: daysFromNow(17) },
-      ],
+      dates: [{ startDate: daysFromNow(15), endDate: daysFromNow(17) }],
     },
     {
       event: {
@@ -875,9 +870,7 @@ async function seed() {
   const isEmpty = await checkEmpty();
 
   if (!isEmpty && !forceReset) {
-    console.log(
-      "\nDatabase already contains data. Use --force to clear and re-seed."
-    );
+    console.log("\nDatabase already contains data. Use --force to clear and re-seed.");
     console.log("Skipping seed to preserve existing data.");
     process.exit(0);
   }

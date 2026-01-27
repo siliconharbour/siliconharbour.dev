@@ -1,7 +1,17 @@
 import type { Route } from "./+types/export";
 import JSZip from "jszip";
 import { db } from "~/db";
-import { events, eventDates, companies, groups, education, people, news, jobs, projects } from "~/db/schema";
+import {
+  events,
+  eventDates,
+  companies,
+  groups,
+  education,
+  people,
+  news,
+  jobs,
+  projects,
+} from "~/db/schema";
 import { asc, desc } from "drizzle-orm";
 import { format } from "date-fns";
 
@@ -53,7 +63,7 @@ export async function loader({}: Route.LoaderArgs) {
       location: event.location,
       link: event.link,
       coverImage: event.coverImage ? `${SITE_URL}/images/${event.coverImage}` : null,
-      dates: dates.map(d => ({
+      dates: dates.map((d) => ({
         start: d.startDate.toISOString(),
         end: d.endDate?.toISOString() || null,
       })),
@@ -192,14 +202,20 @@ export async function loader({}: Route.LoaderArgs) {
 
 function buildFrontmatter(data: Record<string, unknown>): string {
   const lines = ["---"];
-  
+
   for (const [key, value] of Object.entries(data)) {
     if (value === null || value === undefined) continue;
-    
+
     if (typeof value === "string") {
       // Escape strings that might break YAML
-      if (value.includes(":") || value.includes("#") || value.includes("'") || value.includes('"') || value.includes("\n")) {
-        lines.push(`${key}: "${value.replace(/"/g, '\\"').replace(/\n/g, '\\n')}"`);
+      if (
+        value.includes(":") ||
+        value.includes("#") ||
+        value.includes("'") ||
+        value.includes('"') ||
+        value.includes("\n")
+      ) {
+        lines.push(`${key}: "${value.replace(/"/g, '\\"').replace(/\n/g, "\\n")}"`);
       } else {
         lines.push(`${key}: ${value}`);
       }
@@ -234,7 +250,7 @@ function buildFrontmatter(data: Record<string, unknown>): string {
       }
     }
   }
-  
+
   lines.push("---");
   return lines.join("\n");
 }

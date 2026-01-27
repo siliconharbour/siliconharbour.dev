@@ -7,8 +7,7 @@ export function meta({}: Route.MetaArgs) {
     { title: "Stay Connected - siliconharbour.dev" },
     {
       name: "description",
-      content:
-        "Subscribe to the St. John's tech community calendar, RSS feeds, and more.",
+      content: "Subscribe to the St. John's tech community calendar, RSS feeds, and more.",
     },
   ];
 }
@@ -52,23 +51,22 @@ export default function SubscribePage() {
         <h1>Stay Connected</h1>
 
         <p className="text-lg">
-          There are a few ways to keep up with what's happening without having to
-          check this site constantly.
+          There are a few ways to keep up with what's happening without having to check this site
+          constantly.
         </p>
 
         <div className="not-prose bg-red-50 border border-red-200 px-4 py-3 my-6">
           <p className="text-sm text-red-800">
-            While this site is under construction, I wouldn't subscribe to these
-            if I were you - this is all subject to change heavily!
+            While this site is under construction, I wouldn't subscribe to these if I were you -
+            this is all subject to change heavily!
           </p>
         </div>
 
         <h2>Calendar</h2>
 
         <p>
-          Subscribe to the calendar and local tech events will automatically
-          show up in your calendar app. It updates automatically, so you don't
-          have to do anything once it's set up.
+          Subscribe to the calendar and local tech events will automatically show up in your
+          calendar app. It updates automatically, so you don't have to do anything once it's set up.
         </p>
 
         <CopyUrlCard url={calendarUrl} />
@@ -104,13 +102,9 @@ export default function SubscribePage() {
         <h2>RSS Feeds</h2>
 
         <p>
-          If you're the type of person who uses RSS (and you should be!), we've
-          got feeds for everything. Not sure what RSS is?{" "}
-          <a
-            href="https://aboutfeeds.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          If you're the type of person who uses RSS (and you should be!), we've got feeds for
+          everything. Not sure what RSS is?{" "}
+          <a href="https://aboutfeeds.com/" target="_blank" rel="noopener noreferrer">
             About Feeds
           </a>{" "}
           is a good explainer.
@@ -171,11 +165,7 @@ function CopyUrlCard({ url, label }: { url: string; label?: string }) {
   return (
     <div className="not-prose p-3 ring-1 ring-harbour-200/50">
       <div className="flex items-center gap-3">
-        {label && (
-          <span className="text-sm font-medium text-harbour-700 shrink-0">
-            {label}
-          </span>
-        )}
+        {label && <span className="text-sm font-medium text-harbour-700 shrink-0">{label}</span>}
         <code className="flex-1 text-sm text-harbour-600 truncate">{url}</code>
         <button
           onClick={copyToClipboard}

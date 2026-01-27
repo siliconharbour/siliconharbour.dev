@@ -21,18 +21,20 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
         to={`/events/${event.slug}`}
         className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-4" : ""}`}
       >
-      {event.coverImage && (
-        <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
-          <img
-            src={`/images/${event.coverImage}`}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-        </div>
-      )}
-      
-      {/* Overlapping content card */}
-      <div className={`relative bg-white p-4 ${event.coverImage ? "-mt-10 mx-4 ring-1 ring-harbour-200/50" : ""}`}>
+        {event.coverImage && (
+          <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
+            <img
+              src={`/images/${event.coverImage}`}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+          </div>
+        )}
+
+        {/* Overlapping content card */}
+        <div
+          className={`relative bg-white p-4 ${event.coverImage ? "-mt-10 mx-4 ring-1 ring-harbour-200/50" : ""}`}
+        >
           <div className="flex items-start gap-3">
             {event.iconImage && (
               <div className="img-tint relative w-16 h-16 flex-shrink-0">
@@ -54,14 +56,10 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                   </span>
                 )}
               </div>
-              {event.organizer && (
-                <p className="text-sm text-harbour-400">
-                  {event.organizer}
-                </p>
-              )}
+              {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
             </div>
           </div>
-          
+
           <div className="mt-3 flex flex-col gap-2">
             <div className="flex flex-col gap-1 text-sm text-harbour-500">
               {nextDate && (
@@ -87,14 +85,12 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
             </div>
 
             {event.location && (
-              <p className="text-sm text-harbour-400 truncate">
-                {event.location}
-              </p>
+              <p className="text-sm text-harbour-400 truncate">{event.location}</p>
             )}
 
             <div className="text-sm text-harbour-500 line-clamp-3">
-              <RichMarkdown 
-                content={event.description} 
+              <RichMarkdown
+                content={event.description}
                 resolvedRefs={resolvedRefs}
                 className="prose-harbour"
               />
@@ -102,12 +98,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
 
             <span className="inline-flex items-center gap-1 text-sm font-medium text-harbour-600 group-hover:text-harbour-700 transition-colors">
               View Event
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -137,9 +128,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
           />
         </div>
       )}
-      
+
       {/* Overlapping content card */}
-      <div className={`relative bg-white p-4 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}>
+      <div
+        className={`relative bg-white p-4 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
+      >
         <div className="flex items-start gap-3">
           {event.iconImage && (
             <div className="img-tint relative w-14 h-14 flex-shrink-0">
@@ -161,14 +154,10 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                 </span>
               )}
             </div>
-            {event.organizer && (
-              <p className="text-sm text-harbour-400">
-                {event.organizer}
-              </p>
-            )}
+            {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
           </div>
         </div>
-        
+
         <div className="mt-2 flex flex-col gap-1">
           <div className="text-sm text-harbour-500">
             {nextDate && (
@@ -177,17 +166,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
               </time>
             )}
             {hasMultipleDates && (
-              <span className="text-xs text-harbour-400 ml-2">
-                +{event.dates.length - 1} more
-              </span>
+              <span className="text-xs text-harbour-400 ml-2">+{event.dates.length - 1} more</span>
             )}
           </div>
 
-          {event.location && (
-            <p className="text-sm text-harbour-400 truncate">
-              {event.location}
-            </p>
-          )}
+          {event.location && <p className="text-sm text-harbour-400 truncate">{event.location}</p>}
         </div>
       </div>
     </Link>

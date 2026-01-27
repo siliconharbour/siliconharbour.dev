@@ -5,15 +5,12 @@ import { eq } from "drizzle-orm";
 import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const [inst] = await db
-    .select()
-    .from(education)
-    .where(eq(education.slug, params.slug));
-  
+  const [inst] = await db.select().from(education).where(eq(education.slug, params.slug));
+
   if (!inst) {
     return jsonResponse({ error: "Education resource not found" }, { status: 404 });
   }
-  
+
   return jsonResponse({
     id: inst.id,
     slug: inst.slug,

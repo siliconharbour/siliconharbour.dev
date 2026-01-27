@@ -1,7 +1,12 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getPaginatedPeople, getHiddenPeopleCount, getVisiblePeopleCount, hideAllVisiblePeople } from "~/lib/people.server";
+import {
+  getPaginatedPeople,
+  getHiddenPeopleCount,
+  getVisiblePeopleCount,
+  hideAllVisiblePeople,
+} from "~/lib/people.server";
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
@@ -15,7 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const [{ items: people }, hiddenCount, visibleCount] = await Promise.all([
     getPaginatedPeople(100, 0, searchQuery, true),
     getHiddenPeopleCount(),
-    getVisiblePeopleCount()
+    getVisiblePeopleCount(),
   ]);
   return { people, searchQuery, hiddenCount, visibleCount };
 }
@@ -43,18 +48,27 @@ export default function ManagePeopleIndex() {
           <h1 className="text-2xl font-semibold text-harbour-700">People</h1>
           <div className="flex items-center gap-3">
             {visibleCount > 0 && (
-              <Form method="post" onSubmit={(e) => {
-                if (!confirm(`Hide all ${visibleCount} visible people? This will let you re-review them.`)) {
-                  e.preventDefault();
-                }
-              }}>
+              <Form
+                method="post"
+                onSubmit={(e) => {
+                  if (
+                    !confirm(
+                      `Hide all ${visibleCount} visible people? This will let you re-review them.`,
+                    )
+                  ) {
+                    e.preventDefault();
+                  }
+                }}
+              >
                 <input type="hidden" name="intent" value="hide-all" />
                 <button
                   type="submit"
                   className="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white font-medium transition-colors flex items-center gap-2"
                 >
                   Hide All
-                  <span className="px-1.5 py-0.5 bg-slate-600 text-xs rounded-full">{visibleCount}</span>
+                  <span className="px-1.5 py-0.5 bg-slate-600 text-xs rounded-full">
+                    {visibleCount}
+                  </span>
                 </button>
               </Form>
             )}
@@ -64,7 +78,9 @@ export default function ManagePeopleIndex() {
                 className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors flex items-center gap-2"
               >
                 Review
-                <span className="px-1.5 py-0.5 bg-amber-600 text-xs rounded-full">{hiddenCount}</span>
+                <span className="px-1.5 py-0.5 bg-amber-600 text-xs rounded-full">
+                  {hiddenCount}
+                </span>
               </Link>
             )}
             <Link
@@ -88,17 +104,11 @@ export default function ManagePeopleIndex() {
               <div
                 key={person.id}
                 className={`flex items-center gap-4 p-4 border ${
-                  person.visible 
-                    ? "bg-white border-harbour-200" 
-                    : "bg-amber-50 border-amber-200"
+                  person.visible ? "bg-white border-harbour-200" : "bg-amber-50 border-amber-200"
                 }`}
               >
                 {person.avatar ? (
-                  <img
-                    src={`/images/${person.avatar}`}
-                    alt=""
-                    className="w-12 h-12 object-cover"
-                  />
+                  <img src={`/images/${person.avatar}`} alt="" className="w-12 h-12 object-cover" />
                 ) : (
                   <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
                     <span className="text-lg text-harbour-400">{person.name.charAt(0)}</span>
@@ -136,10 +146,7 @@ export default function ManagePeopleIndex() {
         )}
 
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>

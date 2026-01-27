@@ -1,7 +1,7 @@
 /**
  * GitHub API service for importing people from GitHub.
  * Uses Octokit with throttling and retry plugins for robust API access.
- * 
+ *
  * Authentication fallback order:
  * 1. GITHUB_TOKEN environment variable
  * 2. `gh` CLI (if installed and authenticated)
@@ -48,12 +48,12 @@ function getGitHubToken(): string | null {
     tokenSource = "GITHUB_TOKEN environment variable";
     return process.env.GITHUB_TOKEN;
   }
-  
+
   // Try gh CLI
   try {
-    const token = execSync("gh auth token", { 
+    const token = execSync("gh auth token", {
       encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"]
+      stdio: ["pipe", "pipe", "pipe"],
     }).trim();
     if (token) {
       tokenSource = "gh CLI authentication";
@@ -62,7 +62,7 @@ function getGitHubToken(): string | null {
   } catch {
     // gh not installed or not authenticated
   }
-  
+
   // Anonymous
   tokenSource = "anonymous access (rate limited to 60/hour)";
   return null;
@@ -75,10 +75,10 @@ function getOctokit(): InstanceType<typeof ThrottledOctokit> {
   if (cachedOctokit) {
     return cachedOctokit;
   }
-  
+
   const token = getGitHubToken();
   console.log(`GitHub: Using ${tokenSource}`);
-  
+
   cachedOctokit = new ThrottledOctokit({
     auth: token ?? undefined,
     userAgent: "siliconharbour.dev/1.0",
@@ -103,7 +103,7 @@ function getOctokit(): InstanceType<typeof ThrottledOctokit> {
       retries: 3,
     },
   });
-  
+
   return cachedOctokit;
 }
 
@@ -113,7 +113,7 @@ function getOctokit(): InstanceType<typeof ThrottledOctokit> {
 export class GitHubRateLimitError extends Error {
   resetTime: Date;
   remaining: number;
-  
+
   constructor(resetTime: Date, remaining: number = 0) {
     super(`GitHub API rate limited. Resets at ${resetTime.toLocaleTimeString()}`);
     this.name = "GitHubRateLimitError";
@@ -129,24 +129,24 @@ export class GitHubRateLimitError extends Error {
 export async function searchUsersByLocation(
   location: string,
   page: number = 1,
-  perPage: number = 30
+  perPage: number = 30,
 ): Promise<{ users: GitHubUserBasic[]; total: number; rateLimit: RateLimitInfo }> {
   const octokit = getOctokit();
-  
+
   const response = await octokit.rest.search.users({
     q: `location:${location} type:user`,
     page,
     per_page: perPage,
   });
-  
+
   const rateLimit: RateLimitInfo = {
     remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
     limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
     reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
   };
-  
+
   return {
-    users: response.data.items.map(item => ({
+    users: response.data.items.map((item) => ({
       login: item.login,
       id: item.id,
       avatar_url: item.avatar_url,
@@ -162,9 +162,9 @@ export async function searchUsersByLocation(
  */
 export async function getUserProfile(username: string): Promise<GitHubUser> {
   const octokit = getOctokit();
-  
+
   const response = await octokit.rest.users.getByUsername({ username });
-  
+
   return {
     login: response.data.login,
     id: response.data.id,
@@ -186,10 +186,10 @@ export async function getUserProfile(username: string): Promise<GitHubUser> {
  */
 export async function getUserProfiles(
   usernames: string[],
-  onProgress?: (completed: number, total: number) => void
+  onProgress?: (completed: number, total: number) => void,
 ): Promise<GitHubUser[]> {
   const profiles: GitHubUser[] = [];
-  
+
   for (let i = 0; i < usernames.length; i++) {
     try {
       const profile = await getUserProfile(usernames[i]);
@@ -200,7 +200,7 @@ export async function getUserProfiles(
     }
     onProgress?.(i + 1, usernames.length);
   }
-  
+
   return profiles;
 }
 
@@ -208,7 +208,7 @@ export async function getUserProfiles(
  * Location search terms for Newfoundland & Labrador.
  * These cover the various ways people write their location on GitHub.
  * Note: GitHub search is case-insensitive and does partial matching.
- * 
+ *
  * Known location variations found on GitHub profiles:
  *   St. John's, NL (18)
  *   Newfoundland, Canada (13)
@@ -248,7 +248,7 @@ const NEWFOUNDLAND_LOCATION_TERMS = [
   // Primary - catches most variations like "Newfoundland, Canada", "St. John's, Newfoundland", etc.
   "Newfoundland",
   // NL abbreviation - catches "St. John's, NL", "NL, Canada", etc.
-  '"NL"',  // Quoted to avoid matching "NL" as part of other words
+  '"NL"', // Quoted to avoid matching "NL" as part of other words
   // Labrador specifically
   "Labrador",
 ];
@@ -263,16 +263,16 @@ const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
  * Results are deduplicated by user ID and cached for pagination.
  * This uses more API calls but produces more accurate results than OR queries.
  */
-async function fetchAllNewfoundlandUsers(): Promise<{ 
-  users: GitHubUserBasic[]; 
-  rateLimit: RateLimitInfo 
+async function fetchAllNewfoundlandUsers(): Promise<{
+  users: GitHubUserBasic[];
+  rateLimit: RateLimitInfo;
 }> {
   // Check cache first
-  if (cachedNewfoundlandUsers && (Date.now() - cachedNewfoundlandUsersTimestamp) < CACHE_TTL_MS) {
+  if (cachedNewfoundlandUsers && Date.now() - cachedNewfoundlandUsersTimestamp < CACHE_TTL_MS) {
     const rateLimit = await getRateLimitStatus();
     return { users: cachedNewfoundlandUsers, rateLimit };
   }
-  
+
   const octokit = getOctokit();
   const seenIds = new Set<number>();
   const allUsers: GitHubUserBasic[] = [];
@@ -281,28 +281,28 @@ async function fetchAllNewfoundlandUsers(): Promise<{
     limit: 0,
     reset: new Date(),
   };
-  
+
   // Search each location term separately
   for (const term of NEWFOUNDLAND_LOCATION_TERMS) {
     console.log(`GitHub: Searching for users with location "${term}"...`);
-    
+
     // Paginate through all results for this term
     let page = 1;
     let hasMore = true;
-    
+
     while (hasMore) {
       const response = await octokit.rest.search.users({
         q: `location:${term} type:user`,
         page,
         per_page: 100, // Max per page
       });
-      
+
       latestRateLimit = {
         remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
         limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
         reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
       };
-      
+
       // Add users we haven't seen yet (deduplicate)
       for (const item of response.data.items) {
         if (!seenIds.has(item.id)) {
@@ -315,28 +315,28 @@ async function fetchAllNewfoundlandUsers(): Promise<{
           });
         }
       }
-      
+
       // Check if there are more pages
       const totalPages = Math.ceil(response.data.total_count / 100);
       hasMore = page < totalPages && response.data.items.length > 0;
       page++;
-      
+
       // Safety: GitHub search API only returns first 1000 results
       if (page > 10) {
         console.log(`GitHub: Reached 1000 result limit for "${term}"`);
         hasMore = false;
       }
     }
-    
+
     console.log(`GitHub: Found ${seenIds.size} unique users so far (after "${term}")`);
   }
-  
+
   // Cache the results
   cachedNewfoundlandUsers = allUsers;
   cachedNewfoundlandUsersTimestamp = Date.now();
-  
+
   console.log(`GitHub: Total unique Newfoundland users found: ${allUsers.length}`);
-  
+
   return { users: allUsers, rateLimit: latestRateLimit };
 }
 
@@ -356,16 +356,16 @@ export function clearNewfoundlandUsersCache(): void {
  */
 export async function searchNewfoundlandUsers(
   page: number = 1,
-  perPage: number = 30
+  perPage: number = 30,
 ): Promise<{ users: GitHubUserBasic[]; total: number; rateLimit: RateLimitInfo }> {
   // Fetch all users (uses cache if available)
   const { users: allUsers, rateLimit } = await fetchAllNewfoundlandUsers();
-  
+
   // Paginate the results
   const startIndex = (page - 1) * perPage;
   const endIndex = startIndex + perPage;
   const paginatedUsers = allUsers.slice(startIndex, endIndex);
-  
+
   return {
     users: paginatedUsers,
     total: allUsers.length,
@@ -383,12 +383,12 @@ export async function fetchAvatar(avatarUrl: string): Promise<Buffer | null> {
         "User-Agent": "siliconharbour.dev/1.0",
       },
     });
-    
+
     if (!response.ok) {
       console.error(`Failed to fetch avatar: ${avatarUrl} - ${response.status}`);
       return null;
     }
-    
+
     const arrayBuffer = await response.arrayBuffer();
     return Buffer.from(arrayBuffer);
   } catch (e) {
@@ -402,10 +402,10 @@ export async function fetchAvatar(avatarUrl: string): Promise<Buffer | null> {
  */
 export async function getRateLimitStatus(): Promise<RateLimitInfo> {
   const octokit = getOctokit();
-  
+
   try {
     const response = await octokit.rest.rateLimit.get();
-    
+
     return {
       remaining: response.data.resources.core.remaining,
       limit: response.data.resources.core.limit,
@@ -425,10 +425,10 @@ export async function getRateLimitStatus(): Promise<RateLimitInfo> {
  */
 export async function getUserSocialAccounts(username: string): Promise<GitHubSocialAccount[]> {
   const octokit = getOctokit();
-  
+
   try {
     const response = await octokit.rest.users.listSocialAccountsForUser({ username });
-    return response.data.map(account => ({
+    return response.data.map((account) => ({
       provider: account.provider,
       url: account.url,
     }));
@@ -442,20 +442,20 @@ export async function getUserSocialAccounts(username: string): Promise<GitHubSoc
  * Get user profile with social accounts included.
  * Returns full profile data plus rate limit info.
  */
-export async function getUserProfileWithRateLimit(username: string): Promise<{ 
-  user: GitHubUserWithSocials; 
-  rateLimit: RateLimitInfo 
+export async function getUserProfileWithRateLimit(username: string): Promise<{
+  user: GitHubUserWithSocials;
+  rateLimit: RateLimitInfo;
 }> {
   const octokit = getOctokit();
-  
+
   const response = await octokit.rest.users.getByUsername({ username });
-  
+
   const rateLimit: RateLimitInfo = {
     remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
     limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
     reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
   };
-  
+
   const user: GitHubUser = {
     login: response.data.login,
     id: response.data.id,
@@ -469,13 +469,13 @@ export async function getUserProfileWithRateLimit(username: string): Promise<{
     public_repos: response.data.public_repos,
     twitter_username: response.data.twitter_username ?? null,
   };
-  
+
   // Fetch social accounts (costs 1 more API call but gives us valuable data)
   const socialAccounts = await getUserSocialAccounts(username);
-  
-  return { 
-    user: { ...user, socialAccounts }, 
-    rateLimit 
+
+  return {
+    user: { ...user, socialAccounts },
+    rateLimit,
   };
 }
 
@@ -483,27 +483,28 @@ export async function getUserProfileWithRateLimit(username: string): Promise<{
  * Get users that a given user is following (basic info only).
  * Uses automatic pagination to get all results efficiently.
  */
-export async function getAllUserFollowing(username: string): Promise<{ 
-  users: GitHubUserBasic[]; 
-  rateLimit: RateLimitInfo 
+export async function getAllUserFollowing(username: string): Promise<{
+  users: GitHubUserBasic[];
+  rateLimit: RateLimitInfo;
 }> {
   const octokit = getOctokit();
-  
+
   // Use paginate to automatically handle all pages
   const users = await octokit.paginate(
     octokit.rest.users.listFollowingForUser,
     { username, per_page: 100 },
-    (response) => response.data.map(user => ({
-      login: user.login,
-      id: user.id,
-      avatar_url: user.avatar_url,
-      html_url: user.html_url,
-    }))
+    (response) =>
+      response.data.map((user) => ({
+        login: user.login,
+        id: user.id,
+        avatar_url: user.avatar_url,
+        html_url: user.html_url,
+      })),
   );
-  
+
   // Get current rate limit status after pagination completes
   const rateLimit = await getRateLimitStatus();
-  
+
   return { users, rateLimit };
 }
 
@@ -511,27 +512,28 @@ export async function getAllUserFollowing(username: string): Promise<{
  * Get all followers of a given user (basic info only).
  * Uses automatic pagination to get all results efficiently.
  */
-export async function getAllUserFollowers(username: string): Promise<{ 
-  users: GitHubUserBasic[]; 
-  rateLimit: RateLimitInfo 
+export async function getAllUserFollowers(username: string): Promise<{
+  users: GitHubUserBasic[];
+  rateLimit: RateLimitInfo;
 }> {
   const octokit = getOctokit();
-  
+
   // Use paginate to automatically handle all pages
   const users = await octokit.paginate(
     octokit.rest.users.listFollowersForUser,
     { username, per_page: 100 },
-    (response) => response.data.map(user => ({
-      login: user.login,
-      id: user.id,
-      avatar_url: user.avatar_url,
-      html_url: user.html_url,
-    }))
+    (response) =>
+      response.data.map((user) => ({
+        login: user.login,
+        id: user.id,
+        avatar_url: user.avatar_url,
+        html_url: user.html_url,
+      })),
   );
-  
+
   // Get current rate limit status after pagination completes
   const rateLimit = await getRateLimitStatus();
-  
+
   return { users, rateLimit };
 }
 
@@ -539,18 +541,18 @@ export async function getAllUserFollowers(username: string): Promise<{
  * Fetch full profiles for a list of basic users.
  * This is the expensive operation - each user requires an API call.
  * Uses throttling to respect rate limits automatically.
- * 
+ *
  * @param users - List of basic user info (from following/followers/search)
  * @param onProgress - Optional callback for progress updates
  * @returns Full user profiles
  */
 export async function fetchFullProfiles(
   users: GitHubUserBasic[],
-  onProgress?: (completed: number, total: number, username: string) => void
+  onProgress?: (completed: number, total: number, username: string) => void,
 ): Promise<{ profiles: GitHubUser[]; errors: string[] }> {
   const profiles: GitHubUser[] = [];
   const errors: string[] = [];
-  
+
   for (let i = 0; i < users.length; i++) {
     const user = users[i];
     try {
@@ -564,7 +566,7 @@ export async function fetchFullProfiles(
       onProgress?.(i + 1, users.length, user.login);
     }
   }
-  
+
   return { profiles, errors };
 }
 
@@ -572,59 +574,59 @@ export async function fetchFullProfiles(
 export async function getUserFollowing(
   username: string,
   page: number = 1,
-  perPage: number = 100
+  perPage: number = 100,
 ): Promise<{ users: GitHubUserBasic[]; rateLimit: RateLimitInfo }> {
   const octokit = getOctokit();
-  
+
   const response = await octokit.rest.users.listFollowingForUser({
     username,
     page,
     per_page: perPage,
   });
-  
+
   const rateLimit: RateLimitInfo = {
     remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
     limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
     reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
   };
-  
-  return { 
-    users: response.data.map(user => ({
+
+  return {
+    users: response.data.map((user) => ({
       login: user.login,
       id: user.id,
       avatar_url: user.avatar_url,
       html_url: user.html_url,
-    })), 
-    rateLimit 
+    })),
+    rateLimit,
   };
 }
 
 export async function getUserFollowers(
   username: string,
   page: number = 1,
-  perPage: number = 100
+  perPage: number = 100,
 ): Promise<{ users: GitHubUserBasic[]; rateLimit: RateLimitInfo }> {
   const octokit = getOctokit();
-  
+
   const response = await octokit.rest.users.listFollowersForUser({
     username,
     page,
     per_page: perPage,
   });
-  
+
   const rateLimit: RateLimitInfo = {
     remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
     limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
     reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
   };
-  
-  return { 
-    users: response.data.map(user => ({
+
+  return {
+    users: response.data.map((user) => ({
       login: user.login,
       id: user.id,
       avatar_url: user.avatar_url,
       html_url: user.html_url,
-    })), 
-    rateLimit 
+    })),
+    rateLimit,
   };
 }

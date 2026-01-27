@@ -84,20 +84,22 @@ export function EventForm({ event, error }: EventFormProps) {
 
   // Event type: "onetime" or "recurring"
   const [eventType, setEventType] = useState<"onetime" | "recurring">(
-    isExistingRecurring ? "recurring" : "onetime"
+    isExistingRecurring ? "recurring" : "onetime",
   );
 
   // Recurrence settings
   const parsedRule = parseRecurrenceRule(event?.recurrenceRule || null);
   const [recurrenceFrequency, setRecurrenceFrequency] = useState<RecurrenceFrequency>(
-    parsedRule.frequency === "none" ? "weekly" : parsedRule.frequency
+    parsedRule.frequency === "none" ? "weekly" : parsedRule.frequency,
   );
   const [recurrenceDayOfWeek, setRecurrenceDayOfWeek] = useState<DayOfWeek>(parsedRule.dayOfWeek);
   const [monthlyPosition, setMonthlyPosition] = useState<number>(parsedRule.monthlyPosition);
   const [defaultStartTime, setDefaultStartTime] = useState(event?.defaultStartTime || "19:00");
   const [defaultEndTime, setDefaultEndTime] = useState(event?.defaultEndTime || "21:00");
   const [hasEndTime, setHasEndTime] = useState(!!event?.defaultEndTime);
-  const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(event?.recurrenceEnd || null);
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(
+    event?.recurrenceEnd || null,
+  );
   const [showRecurrenceEndPicker, setShowRecurrenceEndPicker] = useState(false);
   const [requiresSignup, setRequiresSignup] = useState(event?.requiresSignup ?? false);
 
@@ -126,10 +128,10 @@ export function EventForm({ event, error }: EventFormProps) {
   });
 
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
-    event?.coverImage ? `/images/${event.coverImage}` : null
+    event?.coverImage ? `/images/${event.coverImage}` : null,
   );
   const [iconImagePreview, setIconImagePreview] = useState<string | null>(
-    event?.iconImage ? `/images/${event.iconImage}` : null
+    event?.iconImage ? `/images/${event.iconImage}` : null,
   );
 
   const [cropperState, setCropperState] = useState<{
@@ -143,10 +145,7 @@ export function EventForm({ event, error }: EventFormProps) {
 
   const [activeDatePicker, setActiveDatePicker] = useState<string | null>(null);
 
-  const handleFileSelect = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    type: "cover" | "icon"
-  ) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: "cover" | "icon") => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -180,7 +179,7 @@ export function EventForm({ event, error }: EventFormProps) {
       };
       reader.readAsDataURL(blob);
     },
-    [cropperState]
+    [cropperState],
   );
 
   const addDate = () => {
@@ -222,11 +221,7 @@ export function EventForm({ event, error }: EventFormProps) {
   return (
     <>
       <Form method="post" className="space-y-6">
-        {error && (
-          <div className="p-3 bg-red-100 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="p-3 bg-red-100 text-red-700 text-sm">{error}</div>}
 
         {/* Title */}
         <div>
@@ -338,14 +333,29 @@ export function EventForm({ event, error }: EventFormProps) {
                   className="absolute top-2 right-2 p-1 bg-red-600 text-white"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
             ) : (
               <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-harbour-50 transition-colors">
-                <svg className="w-8 h-8 text-harbour-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg
+                  className="w-8 h-8 text-harbour-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 <span className="mt-2 text-sm text-harbour-400">Upload cover (3:1)</span>
                 <input
@@ -363,11 +373,7 @@ export function EventForm({ event, error }: EventFormProps) {
             <label className="block text-sm font-medium mb-2 text-harbour-700">Icon Image</label>
             {iconImagePreview ? (
               <div className="relative w-32">
-                <img
-                  src={iconImagePreview}
-                  alt="Icon preview"
-                  className="w-32 h-32 object-cover"
-                />
+                <img src={iconImagePreview} alt="Icon preview" className="w-32 h-32 object-cover" />
                 <button
                   type="button"
                   onClick={() => {
@@ -377,14 +383,29 @@ export function EventForm({ event, error }: EventFormProps) {
                   className="absolute top-2 right-2 p-1 bg-red-600 text-white"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
             ) : (
               <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-harbour-50 transition-colors">
-                <svg className="w-8 h-8 text-harbour-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg
+                  className="w-8 h-8 text-harbour-300"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 <span className="mt-1 text-xs text-harbour-400">Icon (1:1)</span>
                 <input
@@ -399,12 +420,8 @@ export function EventForm({ event, error }: EventFormProps) {
         </div>
 
         {/* Hidden inputs for image data */}
-        {coverImageData && (
-          <input type="hidden" name="coverImageData" value={coverImageData} />
-        )}
-        {iconImageData && (
-          <input type="hidden" name="iconImageData" value={iconImageData} />
-        )}
+        {coverImageData && <input type="hidden" name="coverImageData" value={coverImageData} />}
+        {iconImageData && <input type="hidden" name="iconImageData" value={iconImageData} />}
         {event?.coverImage && !coverImageData && coverImagePreview && (
           <input type="hidden" name="existingCoverImage" value={event.coverImage} />
         )}
@@ -457,14 +474,9 @@ export function EventForm({ event, error }: EventFormProps) {
 
             <div className="space-y-4">
               {dates.map((dateEntry, index) => (
-                <div
-                  key={dateEntry.id}
-                  className="p-4 border border-harbour-200 bg-harbour-50/30"
-                >
+                <div key={dateEntry.id} className="p-4 border border-harbour-200 bg-harbour-50/30">
                   <div className="flex items-start justify-between mb-3">
-                    <span className="text-sm font-medium text-harbour-500">
-                      Date {index + 1}
-                    </span>
+                    <span className="text-sm font-medium text-harbour-500">Date {index + 1}</span>
                     {dates.length > 1 && (
                       <button
                         type="button"
@@ -478,16 +490,14 @@ export function EventForm({ event, error }: EventFormProps) {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs text-harbour-500 mb-1">
-                        Start Date
-                      </label>
+                      <label className="block text-xs text-harbour-500 mb-1">Start Date</label>
                       <button
                         type="button"
                         onClick={() =>
                           setActiveDatePicker(
                             activeDatePicker === `${dateEntry.id}-start`
                               ? null
-                              : `${dateEntry.id}-start`
+                              : `${dateEntry.id}-start`,
                           )
                         }
                         className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
@@ -511,15 +521,11 @@ export function EventForm({ event, error }: EventFormProps) {
                     </div>
 
                     <div>
-                      <label className="block text-xs text-harbour-500 mb-1">
-                        Start Time
-                      </label>
+                      <label className="block text-xs text-harbour-500 mb-1">Start Time</label>
                       <input
                         type="time"
                         value={dateEntry.startTime}
-                        onChange={(e) =>
-                          updateDate(dateEntry.id, { startTime: e.target.value })
-                        }
+                        onChange={(e) => updateDate(dateEntry.id, { startTime: e.target.value })}
                         className="w-full px-3 py-2 border border-harbour-200 bg-white"
                       />
                     </div>
@@ -545,16 +551,14 @@ export function EventForm({ event, error }: EventFormProps) {
                   {dateEntry.isRange && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                       <div>
-                        <label className="block text-xs text-harbour-500 mb-1">
-                          End Date
-                        </label>
+                        <label className="block text-xs text-harbour-500 mb-1">End Date</label>
                         <button
                           type="button"
                           onClick={() =>
                             setActiveDatePicker(
                               activeDatePicker === `${dateEntry.id}-end`
                                 ? null
-                                : `${dateEntry.id}-end`
+                                : `${dateEntry.id}-end`,
                             )
                           }
                           className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
@@ -580,15 +584,11 @@ export function EventForm({ event, error }: EventFormProps) {
                       </div>
 
                       <div>
-                        <label className="block text-xs text-harbour-500 mb-1">
-                          End Time
-                        </label>
+                        <label className="block text-xs text-harbour-500 mb-1">End Time</label>
                         <input
                           type="time"
                           value={dateEntry.endTime}
-                          onChange={(e) =>
-                            updateDate(dateEntry.id, { endTime: e.target.value })
-                          }
+                          onChange={(e) => updateDate(dateEntry.id, { endTime: e.target.value })}
                           className="w-full px-3 py-2 border border-harbour-200 bg-white"
                         />
                       </div>
@@ -757,9 +757,7 @@ export function EventForm({ event, error }: EventFormProps) {
             {/* Hidden inputs for recurrence */}
             <input type="hidden" name="recurrenceRule" value={buildRecurrenceRule()} />
             <input type="hidden" name="defaultStartTime" value={defaultStartTime} />
-            {hasEndTime && (
-              <input type="hidden" name="defaultEndTime" value={defaultEndTime} />
-            )}
+            {hasEndTime && <input type="hidden" name="defaultEndTime" value={defaultEndTime} />}
             {recurrenceEndDate && (
               <input
                 type="hidden"
@@ -772,13 +770,17 @@ export function EventForm({ event, error }: EventFormProps) {
             <div className="pt-2 border-t border-harbour-200">
               <p className="text-sm text-harbour-600">
                 <strong>Preview:</strong>{" "}
-                {recurrenceFrequency === "weekly" && `Every ${DAYS_OF_WEEK.find(d => d.value === recurrenceDayOfWeek)?.label}`}
-                {recurrenceFrequency === "biweekly" && `Every other ${DAYS_OF_WEEK.find(d => d.value === recurrenceDayOfWeek)?.label}`}
-                {recurrenceFrequency === "monthly" && `${MONTHLY_POSITIONS.find(p => p.value === monthlyPosition)?.label} ${DAYS_OF_WEEK.find(d => d.value === recurrenceDayOfWeek)?.label} of every month`}
+                {recurrenceFrequency === "weekly" &&
+                  `Every ${DAYS_OF_WEEK.find((d) => d.value === recurrenceDayOfWeek)?.label}`}
+                {recurrenceFrequency === "biweekly" &&
+                  `Every other ${DAYS_OF_WEEK.find((d) => d.value === recurrenceDayOfWeek)?.label}`}
+                {recurrenceFrequency === "monthly" &&
+                  `${MONTHLY_POSITIONS.find((p) => p.value === monthlyPosition)?.label} ${DAYS_OF_WEEK.find((d) => d.value === recurrenceDayOfWeek)?.label} of every month`}
                 {" at "}
                 {defaultStartTime}
                 {hasEndTime && ` - ${defaultEndTime}`}
-                {recurrenceEndDate && ` until ${formatInTimezone(recurrenceEndDate, "MMM d, yyyy")}`}
+                {recurrenceEndDate &&
+                  ` until ${formatInTimezone(recurrenceEndDate, "MMM d, yyyy")}`}
               </p>
             </div>
           </div>

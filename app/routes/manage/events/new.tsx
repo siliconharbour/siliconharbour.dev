@@ -81,7 +81,7 @@ export async function action({ request }: Route.ActionArgs) {
         defaultStartTime,
         defaultEndTime,
       },
-      [] // No explicit dates for recurring events
+      [], // No explicit dates for recurring events
     );
   } else {
     // Handle one-time event with explicit dates
@@ -124,7 +124,7 @@ export async function action({ request }: Route.ActionArgs) {
         iconImage,
         requiresSignup,
       },
-      dates
+      dates,
     );
   }
 
@@ -138,10 +138,7 @@ export default function NewEvent() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/events"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/events" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Events
           </Link>
         </div>

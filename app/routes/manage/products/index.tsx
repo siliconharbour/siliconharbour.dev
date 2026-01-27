@@ -114,10 +114,7 @@ export default function ManageProductsIndex() {
         )}
 
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>

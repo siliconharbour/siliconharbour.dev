@@ -13,7 +13,11 @@ const tabs = [
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Directory - siliconharbour.dev" },
-    { name: "description", content: "Directory of companies, groups, people, products, projects, and education resources in St. John's tech community" },
+    {
+      name: "description",
+      content:
+        "Directory of companies, groups, people, products, projects, and education resources in St. John's tech community",
+    },
   ];
 }
 
@@ -26,9 +30,11 @@ export default function DirectoryLayout() {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-bold text-harbour-700">Directory</h1>
-            <p className="text-harbour-500">Companies, groups, people, and projects in the tech community</p>
+            <p className="text-harbour-500">
+              Companies, groups, people, and projects in the tech community
+            </p>
           </div>
-          
+
           {/* Tabs - extend to edges on mobile */}
           <div className="flex gap-1 border-b border-harbour-200 -mx-4 px-4 overflow-x-auto">
             {tabs.map((tab) => (

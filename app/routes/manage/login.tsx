@@ -4,9 +4,7 @@ import { login } from "~/lib/auth.server";
 import { getSession, commitSession } from "~/lib/session.server";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Login - siliconharbour.dev" },
-  ];
+  return [{ title: "Login - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -48,14 +46,12 @@ export default function Login() {
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm flex flex-col gap-6">
         <h1 className="text-2xl font-semibold text-center text-harbour-700">Login</h1>
-        
+
         <Form method="post" className="flex flex-col gap-4">
           {actionData?.error && (
-            <div className="p-3 bg-red-100 text-red-700 text-sm">
-              {actionData.error}
-            </div>
+            <div className="p-3 bg-red-100 text-red-700 text-sm">{actionData.error}</div>
           )}
-          
+
           <div className="flex flex-col gap-1">
             <label htmlFor="email" className="text-sm font-medium text-harbour-700">
               Email
@@ -68,7 +64,7 @@ export default function Login() {
               className="px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
             />
           </div>
-          
+
           <div className="flex flex-col gap-1">
             <label htmlFor="password" className="text-sm font-medium text-harbour-700">
               Password
@@ -81,7 +77,7 @@ export default function Login() {
               className="px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
             />
           </div>
-          
+
           <button
             type="submit"
             className="py-2 px-4 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"

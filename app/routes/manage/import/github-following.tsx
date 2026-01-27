@@ -13,12 +13,17 @@ import {
   resumeFollowingImport,
   type FollowingImportProgress,
 } from "~/lib/github-following-import.server";
-import { createPerson, getAllPeople, getPersonByName, getPersonByGitHub } from "~/lib/people.server";
-import { 
-  findCompanyByFuzzyName, 
-  parseGitHubCompanyField, 
+import {
+  createPerson,
+  getAllPeople,
+  getPersonByName,
+  getPersonByGitHub,
+} from "~/lib/people.server";
+import {
+  findCompanyByFuzzyName,
+  parseGitHubCompanyField,
   extractCompanyFromBio,
-  updateCompany 
+  updateCompany,
 } from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 
@@ -28,19 +33,17 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  
+
   // Get existing people for duplicate detection
   const existingPeople = await getAllPeople(true);
   const existingGitHubs = new Set(
-    existingPeople
-      .filter(p => p.github)
-      .map(p => p.github!.toLowerCase())
+    existingPeople.filter((p) => p.github).map((p) => p.github!.toLowerCase()),
   );
-  
+
   // Get current job progress - this is the source of truth
   const progress = await getFollowingImportProgress();
-  
-  return { 
+
+  return {
     existingGitHubs: Array.from(existingGitHubs),
     progress,
   };
@@ -48,92 +51,92 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
-  
+
   const formData = await request.formData();
   const intent = formData.get("intent");
-  
+
   // Start fetching a user's following/followers
   if (intent === "start") {
     const username = (formData.get("username") as string)?.trim();
     const mode = (formData.get("mode") as "following" | "followers" | "both") || "following";
-    
+
     if (!username) {
       return { intent, error: "Username is required" };
     }
-    
+
     const progress = await startFollowingImport(username, mode);
     return { intent, progress, error: null };
   }
-  
+
   // Continue processing profiles
   if (intent === "continue") {
     const progress = await processFollowingBatch();
     return { intent, progress, error: null };
   }
-  
+
   // Resume a paused job
   if (intent === "resume") {
     const progress = await resumeFollowingImport();
     return { intent, progress, error: null };
   }
-  
+
   // Pause the job
   if (intent === "pause") {
     const progress = await pauseFollowingImport();
     return { intent, progress, error: null };
   }
-  
+
   // Reset/cancel the job
   if (intent === "reset") {
     const progress = await resetFollowingImport();
     return { intent, progress, error: null };
   }
-  
+
   // Import selected users
   if (intent === "import") {
     const usersJson = formData.get("users") as string;
     const downloadAvatars = formData.get("downloadAvatars") === "true";
-    
+
     try {
       const users: GitHubUser[] = JSON.parse(usersJson);
       const imported: string[] = [];
       const errors: string[] = [];
-      
+
       for (const user of users) {
         try {
           let avatar: string | null = null;
-          
+
           if (downloadAvatars && user.avatar_url) {
             const imageBuffer = await fetchAvatar(user.avatar_url);
             if (imageBuffer) {
               avatar = await processAndSaveIconImageWithPadding(imageBuffer);
             }
           }
-          
+
           const githubUrl = user.html_url;
           const displayName = user.name || user.login;
-          
+
           // Check if person already exists
           const existingByGitHub = await getPersonByGitHub(githubUrl);
           const existingByName = await getPersonByName(displayName);
-          
+
           if (existingByGitHub || existingByName) {
             imported.push(`${displayName} (skipped - already exists)`);
             continue;
           }
-          
+
           // Try to find company
           let companyName: string | null = null;
           let githubOrgUrl: string | null = null;
           let matchedCompany = null;
-          
+
           if (user.company) {
             const parsed = parseGitHubCompanyField(user.company);
             companyName = parsed.name;
             githubOrgUrl = parsed.githubOrg;
             matchedCompany = await findCompanyByFuzzyName(parsed.name);
           }
-          
+
           if (!companyName && user.bio) {
             const bioCompany = extractCompanyFromBio(user.bio);
             if (bioCompany) {
@@ -141,15 +144,15 @@ export async function action({ request }: Route.ActionArgs) {
               matchedCompany = await findCompanyByFuzzyName(bioCompany);
             }
           }
-          
+
           if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
             await updateCompany(matchedCompany.id, { github: githubOrgUrl });
           }
-          
+
           // Build bio
           let bio = user.bio || "";
           const companyRefName = matchedCompany?.name || companyName;
-          
+
           if (companyRefName && !bio.toLowerCase().includes(companyRefName.toLowerCase())) {
             const companyRef = `[[${companyRefName}]]`;
             if (bio) {
@@ -160,7 +163,7 @@ export async function action({ request }: Route.ActionArgs) {
           } else if (!bio) {
             bio = `GitHub user from ${user.location || "unknown location"}.`;
           }
-          
+
           await createPerson({
             name: displayName,
             bio,
@@ -169,61 +172,63 @@ export async function action({ request }: Route.ActionArgs) {
             avatar,
             visible: false,
           });
-          
-          imported.push(`${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`);
+
+          imported.push(
+            `${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`,
+          );
         } catch (e) {
           errors.push(`${user.name || user.login}: ${String(e)}`);
         }
       }
-      
+
       return { intent: "import", imported, errors };
     } catch (e) {
       return { intent: "import", imported: [], errors: [String(e)] };
     }
   }
-  
+
   return null;
 }
 
 export default function ImportGitHubFollowing() {
   const { existingGitHubs, progress: loaderProgress } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
-  
+
   const [username, setUsername] = useState("");
   const [mode, setMode] = useState<"following" | "followers" | "both">("following");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadAvatars, setDownloadAvatars] = useState(true);
-  
+
   // Progress comes from fetcher response (most recent) or loader (initial)
   const progress: FollowingImportProgress = fetcher.data?.progress ?? loaderProgress;
-  
+
   // Simple handlers - NO useEffects, NO auto-run
   // User clicks a button, action runs, fetcher.data updates with new progress
   const handleStart = () => {
     fetcher.submit({ intent: "start", username, mode }, { method: "post" });
   };
-  
+
   const handleContinue = () => {
     fetcher.submit({ intent: "continue" }, { method: "post" });
   };
-  
+
   const handlePause = () => {
     fetcher.submit({ intent: "pause" }, { method: "post" });
   };
-  
+
   const handleResume = () => {
     fetcher.submit({ intent: "resume" }, { method: "post" });
   };
-  
+
   const handleReset = () => {
     setSelected(new Set());
     fetcher.submit({ intent: "reset" }, { method: "post" });
   };
-  
+
   const isExisting = (user: GitHubUserBasic) => {
     return existingGitHubs.includes(user.html_url.toLowerCase());
   };
-  
+
   const toggleSelect = (login: string) => {
     const newSelected = new Set(selected);
     if (newSelected.has(login)) {
@@ -233,35 +238,35 @@ export default function ImportGitHubFollowing() {
     }
     setSelected(newSelected);
   };
-  
+
   const selectAll = () => {
-    const selectable = progress.profiles.filter(u => !isExisting(u));
-    setSelected(new Set(selectable.map(u => u.login)));
+    const selectable = progress.profiles.filter((u) => !isExisting(u));
+    setSelected(new Set(selectable.map((u) => u.login)));
   };
-  
+
   const selectNone = () => {
     setSelected(new Set());
   };
-  
+
   const handleImport = () => {
-    const toImport = progress.profiles.filter(u => selected.has(u.login));
+    const toImport = progress.profiles.filter((u) => selected.has(u.login));
     fetcher.submit(
-      { 
-        intent: "import", 
+      {
+        intent: "import",
         users: JSON.stringify(toImport),
-        downloadAvatars: String(downloadAvatars)
+        downloadAvatars: String(downloadAvatars),
       },
-      { method: "post" }
+      { method: "post" },
     );
   };
-  
+
   const isWorking = fetcher.state !== "idle";
   const isImporting = isWorking && fetcher.formData?.get("intent") === "import";
-  
+
   // Group users by location
   const locationGroups = useMemo(() => {
     const groups = new Map<string, GitHubUser[]>();
-    
+
     for (const profile of progress.profiles) {
       const location = profile.location?.trim() || "(no location)";
       if (!groups.has(location)) {
@@ -269,38 +274,39 @@ export default function ImportGitHubFollowing() {
       }
       groups.get(location)!.push(profile);
     }
-    
+
     // Sort by count descending
     return Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
   }, [progress.profiles]);
-  
-  const progressPercent = progress.totalUsers > 0 
-    ? Math.round((progress.fetchedProfiles / progress.totalUsers) * 100)
-    : 0;
-  
-  const canContinue = progress.status === "running" && !isWorking && progress.fetchedProfiles < progress.totalUsers;
-  
+
+  const progressPercent =
+    progress.totalUsers > 0
+      ? Math.round((progress.fetchedProfiles / progress.totalUsers) * 100)
+      : 0;
+
+  const canContinue =
+    progress.status === "running" && !isWorking && progress.fetchedProfiles < progress.totalUsers;
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>
-        
+
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-harbour-700">Import from GitHub Connections</h1>
+          <h1 className="text-2xl font-semibold text-harbour-700">
+            Import from GitHub Connections
+          </h1>
         </div>
-        
+
         <p className="text-harbour-500">
           Enter a GitHub username to fetch their following/followers and import them as people.
           Click "Fetch Next Batch" repeatedly to fetch profiles (10 at a time).
         </p>
-        
+
         {/* Rate limit indicator */}
         {progress.rateLimitRemaining !== null && (
           <div className="text-sm text-harbour-400">
@@ -312,7 +318,7 @@ export default function ImportGitHubFollowing() {
             )}
           </div>
         )}
-        
+
         {/* Start new job */}
         {progress.status === "idle" && (
           <div className="flex items-center gap-4 flex-wrap">
@@ -328,7 +334,7 @@ export default function ImportGitHubFollowing() {
                 }
               }}
             />
-            
+
             <select
               value={mode}
               onChange={(e) => setMode(e.target.value as "following" | "followers" | "both")}
@@ -338,7 +344,7 @@ export default function ImportGitHubFollowing() {
               <option value="followers">Followers (who follows them)</option>
               <option value="both">Both (combined, deduplicated)</option>
             </select>
-            
+
             <button
               type="button"
               onClick={handleStart}
@@ -349,17 +355,17 @@ export default function ImportGitHubFollowing() {
             </button>
           </div>
         )}
-        
+
         {/* Job in progress */}
         {progress.status !== "idle" && (
           <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-harbour-700">
-                {progress.sourceUsername 
-                  ? `@${progress.sourceUsername}'s ${progress.mode}` 
+                {progress.sourceUsername
+                  ? `@${progress.sourceUsername}'s ${progress.mode}`
                   : "Stale job (server restarted?)"}
               </h2>
-              
+
               <div className="flex items-center gap-2">
                 {canContinue && (
                   <button
@@ -371,7 +377,7 @@ export default function ImportGitHubFollowing() {
                     {isWorking ? "Fetching..." : "Fetch Next Batch"}
                   </button>
                 )}
-                
+
                 {progress.status === "running" && !canContinue && !isWorking && (
                   <button
                     type="button"
@@ -381,7 +387,7 @@ export default function ImportGitHubFollowing() {
                     Pause
                   </button>
                 )}
-                
+
                 {progress.status === "paused" && (
                   <button
                     type="button"
@@ -392,13 +398,13 @@ export default function ImportGitHubFollowing() {
                     Resume
                   </button>
                 )}
-                
+
                 {progress.status === "completed" && (
                   <span className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 font-medium">
                     Complete!
                   </span>
                 )}
-                
+
                 <button
                   type="button"
                   onClick={handleReset}
@@ -409,79 +415,78 @@ export default function ImportGitHubFollowing() {
                 </button>
               </div>
             </div>
-            
+
             {/* Status badge */}
             <div className="flex items-center gap-4 text-sm">
-              <span className={`px-2 py-0.5 font-medium ${
-                progress.status === "running" ? "bg-green-100 text-green-700" :
-                progress.status === "paused" ? "bg-amber-100 text-amber-700" :
-                progress.status === "completed" ? "bg-blue-100 text-blue-700" :
-                "bg-red-100 text-red-700"
-              }`}>
+              <span
+                className={`px-2 py-0.5 font-medium ${
+                  progress.status === "running"
+                    ? "bg-green-100 text-green-700"
+                    : progress.status === "paused"
+                      ? "bg-amber-100 text-amber-700"
+                      : progress.status === "completed"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-red-100 text-red-700"
+                }`}
+              >
                 {progress.status.toUpperCase()}
               </span>
-              
+
               <span className="text-harbour-600">
-                {progress.fetchedProfiles} / {progress.totalUsers} profiles fetched
-                ({progressPercent}%)
+                {progress.fetchedProfiles} / {progress.totalUsers} profiles fetched (
+                {progressPercent}%)
               </span>
-              
+
               {progress.errorCount > 0 && (
-                <span className="text-red-600">
-                  {progress.errorCount} errors
-                </span>
+                <span className="text-red-600">{progress.errorCount} errors</span>
               )}
-              
-              {isWorking && (
-                <span className="text-harbour-400 animate-pulse">
-                  Working...
-                </span>
-              )}
+
+              {isWorking && <span className="text-harbour-400 animate-pulse">Working...</span>}
             </div>
-            
+
             {/* Progress bar */}
             <div className="h-2 bg-harbour-200 rounded-full overflow-hidden">
-              <div 
+              <div
                 className={`h-full transition-all duration-300 ${
-                  progress.status === "completed" ? "bg-blue-500" :
-                  progress.status === "error" ? "bg-red-500" :
-                  "bg-green-500"
+                  progress.status === "completed"
+                    ? "bg-blue-500"
+                    : progress.status === "error"
+                      ? "bg-red-500"
+                      : "bg-green-500"
                 }`}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            
+
             {/* Rate limit warning */}
             {progress.waitingForRateLimit && progress.rateLimitReset && (
               <div className="text-sm text-amber-600 bg-amber-50 p-2">
                 Rate limited. Can resume at {new Date(progress.rateLimitReset).toLocaleTimeString()}
               </div>
             )}
-            
+
             {/* Stale job warning */}
             {!progress.sourceUsername && (
               <div className="text-sm text-amber-700 bg-amber-50 p-2">
                 This job lost its data (server restarted). Click "Reset" to start fresh.
               </div>
             )}
-            
+
             {/* Error display */}
             {progress.lastError && (
-              <div className="text-sm text-red-600 bg-red-50 p-2">
-                {progress.lastError}
-              </div>
+              <div className="text-sm text-red-600 bg-red-50 p-2">{progress.lastError}</div>
             )}
-            
+
             {/* Instruction for manual fetching */}
             {canContinue && (
               <div className="text-sm text-harbour-500 bg-harbour-100 p-2">
-                Click "Fetch Next Batch" to fetch the next 10 profiles. 
-                Each click makes ~10 API calls.
+                Click "Fetch Next Batch" to fetch the next 10 profiles. Each click makes ~10 API
+                calls.
               </div>
             )}
           </div>
         )}
-        
+
         {/* Error list */}
         {progress.errors.length > 0 && (
           <details className="text-sm">
@@ -495,7 +500,7 @@ export default function ImportGitHubFollowing() {
             </ul>
           </details>
         )}
-        
+
         {/* Import results */}
         {fetcher.data?.intent === "import" && (
           <div className="flex flex-col gap-2">
@@ -524,7 +529,7 @@ export default function ImportGitHubFollowing() {
             )}
           </div>
         )}
-        
+
         {/* Fetched profiles list */}
         {progress.profiles.length > 0 && (
           <>
@@ -548,12 +553,10 @@ export default function ImportGitHubFollowing() {
                 ))}
               </div>
             </div>
-            
+
             {/* Controls */}
             <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-harbour-500">
-                {progress.profiles.length} profiles fetched
-              </span>
+              <span className="text-harbour-500">{progress.profiles.length} profiles fetched</span>
               <button
                 type="button"
                 onClick={selectAll}
@@ -578,13 +581,13 @@ export default function ImportGitHubFollowing() {
                 Download avatars
               </label>
             </div>
-            
+
             {/* Profiles list */}
             <div className="flex flex-col gap-2">
               {progress.profiles.map((user) => {
                 const existing = isExisting(user);
                 const displayName = user.name || user.login;
-                
+
                 return (
                   <div
                     key={user.login}
@@ -592,8 +595,8 @@ export default function ImportGitHubFollowing() {
                       existing
                         ? "bg-harbour-50 border-harbour-200 opacity-60"
                         : selected.has(user.login)
-                        ? "bg-blue-50 border-blue-300"
-                        : "bg-white border-harbour-200"
+                          ? "bg-blue-50 border-blue-300"
+                          : "bg-white border-harbour-200"
                     }`}
                   >
                     <input
@@ -603,7 +606,7 @@ export default function ImportGitHubFollowing() {
                       disabled={existing}
                       className="w-5 h-5"
                     />
-                    
+
                     {user.avatar_url ? (
                       <img
                         src={user.avatar_url}
@@ -614,7 +617,7 @@ export default function ImportGitHubFollowing() {
                     ) : (
                       <div className="w-10 h-10 bg-harbour-100 rounded-full" />
                     )}
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{displayName}</span>
@@ -625,20 +628,14 @@ export default function ImportGitHubFollowing() {
                           </span>
                         )}
                       </div>
-                      {user.bio && (
-                        <p className="text-sm text-harbour-500 truncate">
-                          {user.bio}
-                        </p>
-                      )}
+                      {user.bio && <p className="text-sm text-harbour-500 truncate">{user.bio}</p>}
                       <div className="flex items-center gap-3 text-sm text-harbour-400 flex-wrap">
-                        {user.company && (
-                          <span className="text-harbour-600">{user.company}</span>
-                        )}
+                        {user.company && <span className="text-harbour-600">{user.company}</span>}
                         {user.location && <span>{user.location}</span>}
                         {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
                       </div>
                     </div>
-                    
+
                     <a
                       href={user.html_url}
                       target="_blank"
@@ -651,7 +648,7 @@ export default function ImportGitHubFollowing() {
                 );
               })}
             </div>
-            
+
             {/* Bottom actions */}
             <div className="flex items-center gap-4 flex-wrap">
               {/* Fetch more button */}
@@ -662,10 +659,12 @@ export default function ImportGitHubFollowing() {
                   disabled={isWorking}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
                 >
-                  {isWorking ? "Fetching..." : `Fetch Next Batch (${progress.fetchedProfiles}/${progress.totalUsers})`}
+                  {isWorking
+                    ? "Fetching..."
+                    : `Fetch Next Batch (${progress.fetchedProfiles}/${progress.totalUsers})`}
                 </button>
               )}
-              
+
               {/* Import button */}
               <button
                 type="button"
@@ -673,16 +672,11 @@ export default function ImportGitHubFollowing() {
                 disabled={selected.size === 0 || isImporting}
                 className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
               >
-                {isImporting 
-                  ? "Importing..." 
-                  : `Import ${selected.size} Selected Users`
-                }
+                {isImporting ? "Importing..." : `Import ${selected.size} Selected Users`}
               </button>
-              
+
               {selected.size > 0 && (
-                <span className="text-sm text-harbour-500">
-                  {selected.size} users selected
-                </span>
+                <span className="text-sm text-harbour-500">{selected.size} users selected</span>
               )}
             </div>
           </>

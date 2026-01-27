@@ -21,14 +21,14 @@ export function isTurnstileEnabled(): boolean {
 
 /**
  * Verify a Cloudflare Turnstile token
- * 
+ *
  * @param token - The cf-turnstile-response token from the client
  * @param ip - Optional IP address of the client for additional verification
  * @returns true if verification succeeded, false otherwise
  */
 export async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
-  
+
   // If no secret key is configured, skip verification in development only
   if (!secretKey) {
     if (process.env.NODE_ENV === "development") {
@@ -72,7 +72,7 @@ export async function verifyTurnstile(token: string, ip?: string): Promise<boole
     }
 
     const result: TurnstileVerifyResponse = await response.json();
-    
+
     if (!result.success) {
       console.warn("Turnstile verification failed:", result["error-codes"]);
     }

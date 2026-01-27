@@ -30,7 +30,7 @@ ${articles
       <description>${escapeXml(article.excerpt ?? article.content.slice(0, 500))}${!article.excerpt && article.content.length > 500 ? "..." : ""}</description>
       <pubDate>${format(article.publishedAt ?? article.createdAt, "EEE, dd MMM yyyy HH:mm:ss xx")}</pubDate>
       <guid isPermaLink="false">news-${article.id}</guid>
-    </item>`
+    </item>`,
   )
   .join("\n")}
   </channel>

@@ -20,12 +20,8 @@ if (!existsSync(CACHE_DIR)) {
 }
 
 // Load fonts once at module init
-const interRegular = readFileSync(
-  join(process.cwd(), "app/assets/fonts/Inter-Regular.ttf")
-);
-const interBold = readFileSync(
-  join(process.cwd(), "app/assets/fonts/Inter-Bold.ttf")
-);
+const interRegular = readFileSync(join(process.cwd(), "app/assets/fonts/Inter-Regular.ttf"));
+const interBold = readFileSync(join(process.cwd(), "app/assets/fonts/Inter-Bold.ttf"));
 
 // Load logo SVG and convert to base64
 const logoSvg = readFileSync(join(process.cwd(), "public/siliconharbour.svg"));
@@ -58,10 +54,7 @@ interface OGImageData {
  * Generate a cache key hash from the input data
  */
 function generateCacheKey(data: OGImageData): string {
-  const hash = createHash("md5")
-    .update(JSON.stringify(data))
-    .digest("hex")
-    .slice(0, 12);
+  const hash = createHash("md5").update(JSON.stringify(data)).digest("hex").slice(0, 12);
   return hash;
 }
 
@@ -84,8 +77,6 @@ export function getCachedImage(slug: string, data: OGImageData): string | null {
   return null;
 }
 
-
-
 /**
  * Load cover image for the content area (smaller, for the card style)
  */
@@ -95,13 +86,10 @@ async function loadCoverImageForCard(imagePath: string): Promise<string | null> 
     if (!existsSync(fullPath)) {
       return null;
     }
-    
+
     // Resize for card display area
-    const buffer = await sharp(fullPath)
-      .resize(400, 300, { fit: "cover" })
-      .png()
-      .toBuffer();
-    
+    const buffer = await sharp(fullPath).resize(400, 300, { fit: "cover" }).png().toBuffer();
+
     return `data:image/png;base64,${buffer.toString("base64")}`;
   } catch {
     return null;
@@ -113,7 +101,7 @@ async function loadCoverImageForCard(imagePath: string): Promise<string | null> 
  * Design: White background, blue border, dark text, site logo
  */
 async function generateSVG(data: OGImageData): Promise<string> {
-  const coverImageBase64 = data.coverImagePath 
+  const coverImageBase64 = data.coverImagePath
     ? await loadCoverImageForCard(data.coverImagePath)
     : null;
 
@@ -239,7 +227,12 @@ async function generateSVG(data: OGImageData): Promise<string> {
                           type: "div",
                           props: {
                             style: {
-                              fontSize: data.title.length > 50 ? "40px" : data.title.length > 30 ? "48px" : "56px",
+                              fontSize:
+                                data.title.length > 50
+                                  ? "40px"
+                                  : data.title.length > 30
+                                    ? "48px"
+                                    : "56px",
                               fontWeight: 700,
                               color: colors.harbour700,
                               lineHeight: 1.15,
@@ -348,10 +341,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
 /**
  * Generate and cache an OG image, returning the PNG buffer
  */
-export async function generateOGImage(
-  slug: string,
-  data: OGImageData
-): Promise<Buffer> {
+export async function generateOGImage(slug: string, data: OGImageData): Promise<Buffer> {
   // Check cache first
   const cachedPath = getCachedImage(slug, data);
   if (cachedPath) {
@@ -362,9 +352,7 @@ export async function generateOGImage(
   const svg = await generateSVG(data);
 
   // Convert SVG to PNG using Sharp
-  const pngBuffer = await sharp(Buffer.from(svg))
-    .png({ quality: 90 })
-    .toBuffer();
+  const pngBuffer = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
 
   // Save to cache
   const cachePath = getCachePath(slug, data);

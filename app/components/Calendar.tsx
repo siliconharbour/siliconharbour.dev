@@ -15,7 +15,12 @@ type CalendarProps = {
   onDateClick?: (date: Date, events: (Event & { dates: EventDate[] })[]) => void;
 };
 
-export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = false, onDateClick }: CalendarProps) {
+export function Calendar({
+  events,
+  navigateOnClick = true,
+  alwaysFilterByDate = false,
+  onDateClick,
+}: CalendarProps) {
   const navigate = useNavigate();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [offsetDate, setOffsetDate] = useState<Date>(new Date());
@@ -37,13 +42,12 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
   // Create a map of dates that have events
   const eventDateMap = useMemo(() => {
     const map = new Map<string, (Event & { dates: EventDate[] })[]>();
-    
+
     events.forEach((event) => {
       event.dates.forEach((eventDate) => {
         // Handle both Date objects and date strings (from JSON serialization)
-        const startDate = eventDate.startDate instanceof Date 
-          ? eventDate.startDate 
-          : new Date(eventDate.startDate);
+        const startDate =
+          eventDate.startDate instanceof Date ? eventDate.startDate : new Date(eventDate.startDate);
         const dateKey = formatInTimezone(startDate, "yyyy-MM-dd");
         const existing = map.get(dateKey) || [];
         if (!existing.find((e) => e.id === event.id)) {
@@ -51,23 +55,23 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
         }
       });
     });
-    
+
     return map;
   }, [events]);
 
   const handleDayClick = (date: Date) => {
     const dateKey = formatInTimezone(date, "yyyy-MM-dd");
     const dayEvents = eventDateMap.get(dateKey) || [];
-    
+
     // If custom handler provided, use it
     if (onDateClick) {
       onDateClick(date, dayEvents);
       return;
     }
-    
+
     // Default navigation behavior
     if (!navigateOnClick || dayEvents.length === 0) return;
-    
+
     if (dayEvents.length === 1 && !alwaysFilterByDate) {
       // Single event - go directly to it (only on homepage)
       navigate(`/events/${dayEvents[0].slug}`);
@@ -91,12 +95,7 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
             className="p-2 text-harbour-400 hover:text-harbour-600 transition-colors"
             aria-label="Previous month"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -111,18 +110,8 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
             className="p-2 text-harbour-400 hover:text-harbour-600 transition-colors"
             aria-label="Next month"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
         </div>
@@ -131,10 +120,7 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
       {/* Week days header */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {weekDays.map((day) => (
-          <div
-            key={day}
-            className="text-center text-xs font-medium text-harbour-400 py-2"
-          >
+          <div key={day} className="text-center text-xs font-medium text-harbour-400 py-2">
             {day}
           </div>
         ))}
@@ -149,19 +135,17 @@ export function Calendar({ events, navigateOnClick = true, alwaysFilterByDate = 
           const isToday = isSameDay(dpDay.$date, new Date());
 
           const isClickable = hasEvents && dpDay.inCurrentMonth;
-          
+
           const dayClasses = `
             calendar-day relative aspect-square flex flex-col items-center justify-start p-1 text-sm transition-colors
             ${dpDay.inCurrentMonth ? (hasEvents ? "text-harbour-700" : "text-harbour-400") : "text-harbour-200"}
             ${isToday ? "bg-harbour-50 font-semibold" : ""}
             ${isClickable ? "hover:bg-harbour-50 cursor-pointer" : ""}
           `;
-          
+
           const dayContent = (
             <>
-              <span className={isToday ? "text-harbour-600" : ""}>
-                {dpDay.day}
-              </span>
+              <span className={isToday ? "text-harbour-600" : ""}>{dpDay.day}</span>
               {hasEvents && dpDay.inCurrentMonth && (
                 <div className="flex gap-0.5 mt-1 flex-wrap justify-center">
                   {dayEvents.slice(0, 3).map((event) => (

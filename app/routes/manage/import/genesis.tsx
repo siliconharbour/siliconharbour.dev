@@ -3,7 +3,12 @@ import { Link, useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeGenesis, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
-import { createCompany, updateCompany, getAllCompanies, getCompanyByName } from "~/lib/companies.server";
+import {
+  createCompany,
+  updateCompany,
+  getAllCompanies,
+  getCompanyByName,
+} from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,23 +17,19 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  
+
   const existingCompanies = await getAllCompanies();
-  const existingNames = new Set(existingCompanies.map(c => c.name.toLowerCase()));
+  const existingNames = new Set(existingCompanies.map((c) => c.name.toLowerCase()));
   const existingWebsites = new Set(
-    existingCompanies
-      .filter(c => c.website)
-      .map(c => normalizeUrl(c.website!))
+    existingCompanies.filter((c) => c.website).map((c) => normalizeUrl(c.website!)),
   );
   // Track which companies already have Genesis flag set
   const hasGenesis = new Set(
-    existingCompanies
-      .filter(c => c.genesis)
-      .map(c => c.name.toLowerCase())
+    existingCompanies.filter((c) => c.genesis).map((c) => c.name.toLowerCase()),
   );
-  
-  return { 
-    existingNames: Array.from(existingNames), 
+
+  return {
+    existingNames: Array.from(existingNames),
     existingWebsites: Array.from(existingWebsites),
     hasGenesis: Array.from(hasGenesis),
   };
@@ -45,10 +46,10 @@ function normalizeUrl(url: string): string {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
-  
+
   const formData = await request.formData();
   const intent = formData.get("intent");
-  
+
   if (intent === "fetch") {
     try {
       const scraped = await scrapeGenesis();
@@ -57,30 +58,30 @@ export async function action({ request }: Route.ActionArgs) {
       return { intent: "fetch", companies: [], error: String(e) };
     }
   }
-  
+
   if (intent === "import") {
     const companiesJson = formData.get("companies") as string;
     const downloadLogos = formData.get("downloadLogos") === "true";
-    
+
     try {
       const companies: ScrapedCompany[] = JSON.parse(companiesJson);
       const imported: string[] = [];
       const errors: string[] = [];
-      
+
       for (const company of companies) {
         try {
           let logo: string | null = null;
-          
+
           if (downloadLogos && company.logoUrl) {
             const imageBuffer = await fetchImage(company.logoUrl);
             if (imageBuffer) {
               logo = await processAndSaveIconImageWithPadding(imageBuffer);
             }
           }
-          
+
           // Check if company already exists
           const existing = await getCompanyByName(company.name);
-          
+
           if (existing) {
             // Update: set genesis flag, fill in missing data
             await updateCompany(existing.id, {
@@ -110,35 +111,39 @@ export async function action({ request }: Route.ActionArgs) {
           errors.push(`${company.name}: ${String(e)}`);
         }
       }
-      
+
       return { intent: "import", imported, errors };
     } catch (e) {
       return { intent: "import", imported: [], errors: [String(e)] };
     }
   }
-  
+
   return null;
 }
 
 export default function ImportGenesis() {
   const { existingNames, existingWebsites, hasGenesis } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
-  
+
   const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadLogos, setDownloadLogos] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  
+
   // Sync fetcher data to local state - using useEffect to avoid setState during render
   const fetcherData = fetcher.data;
   useEffect(() => {
-    if (fetcherData?.intent === "fetch" && fetcherData.companies && fetcherData.companies.length > 0) {
+    if (
+      fetcherData?.intent === "fetch" &&
+      fetcherData.companies &&
+      fetcherData.companies.length > 0
+    ) {
       if (fetchedCompanies.length === 0) {
         setFetchedCompanies(fetcherData.companies);
       }
     }
   }, [fetcherData, fetchedCompanies.length]);
-  
+
   const isExisting = (company: ScrapedCompany) => {
     const nameLower = company.name.toLowerCase();
     if (existingNames.includes(nameLower)) return true;
@@ -148,22 +153,22 @@ export default function ImportGenesis() {
     }
     return false;
   };
-  
+
   const alreadyHasGenesis = (company: ScrapedCompany) => {
     return hasGenesis.includes(company.name.toLowerCase());
   };
-  
+
   const getStatus = (company: ScrapedCompany) => {
-    return company.categories.find(c => c === "Current Company" || c === "Alumni Company") || "";
+    return company.categories.find((c) => c === "Current Company" || c === "Alumni Company") || "";
   };
-  
-  const filteredCompanies = fetchedCompanies.filter(c => {
+
+  const filteredCompanies = fetchedCompanies.filter((c) => {
     if (filterStatus === "all") return true;
     if (filterStatus === "current") return getStatus(c) === "Current Company";
     if (filterStatus === "alumni") return getStatus(c) === "Alumni Company";
     return true;
   });
-  
+
   const toggleSelect = (sourceId: string) => {
     const newSelected = new Set(selected);
     if (newSelected.has(sourceId)) {
@@ -173,52 +178,49 @@ export default function ImportGenesis() {
     }
     setSelected(newSelected);
   };
-  
+
   const selectAll = () => {
-    const selectable = filteredCompanies.filter(c => !alreadyHasGenesis(c));
-    setSelected(new Set(selectable.map(c => c.sourceId)));
+    const selectable = filteredCompanies.filter((c) => !alreadyHasGenesis(c));
+    setSelected(new Set(selectable.map((c) => c.sourceId)));
   };
-  
+
   const selectNone = () => {
     setSelected(new Set());
   };
-  
+
   const handleImport = () => {
-    const toImport = fetchedCompanies.filter(c => selected.has(c.sourceId));
+    const toImport = fetchedCompanies.filter((c) => selected.has(c.sourceId));
     fetcher.submit(
-      { 
-        intent: "import", 
+      {
+        intent: "import",
         companies: JSON.stringify(toImport),
-        downloadLogos: String(downloadLogos)
+        downloadLogos: String(downloadLogos),
       },
-      { method: "post" }
+      { method: "post" },
     );
   };
-  
+
   const isFetching = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "fetch";
   const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
-  
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Import from Genesis Centre</h1>
         </div>
-        
+
         <p className="text-harbour-500">
-          Import company data from the Genesis Centre startup portfolio. Companies will be flagged 
+          Import company data from the Genesis Centre startup portfolio. Companies will be flagged
           as Genesis Centre members with a dedicated link to the portfolio.
         </p>
-        
+
         {fetchedCompanies.length === 0 && (
           <fetcher.Form method="post">
             <input type="hidden" name="intent" value="fetch" />
@@ -231,13 +233,13 @@ export default function ImportGenesis() {
             </button>
           </fetcher.Form>
         )}
-        
+
         {fetcherData?.intent === "fetch" && fetcherData.error && (
           <div className="p-4 bg-red-50 border border-red-200 text-red-600">
             {fetcherData.error}
           </div>
         )}
-        
+
         {fetcherData?.intent === "import" && (
           <div className="flex flex-col gap-2">
             {fetcherData.imported && fetcherData.imported.length > 0 && (
@@ -257,14 +259,12 @@ export default function ImportGenesis() {
             )}
           </div>
         )}
-        
+
         {fetchedCompanies.length > 0 && (
           <>
             <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-harbour-500">
-                Found {fetchedCompanies.length} companies
-              </span>
-              
+              <span className="text-harbour-500">Found {fetchedCompanies.length} companies</span>
+
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -272,13 +272,15 @@ export default function ImportGenesis() {
               >
                 <option value="all">All ({fetchedCompanies.length})</option>
                 <option value="current">
-                  Current ({fetchedCompanies.filter(c => getStatus(c) === "Current Company").length})
+                  Current (
+                  {fetchedCompanies.filter((c) => getStatus(c) === "Current Company").length})
                 </option>
                 <option value="alumni">
-                  Alumni ({fetchedCompanies.filter(c => getStatus(c) === "Alumni Company").length})
+                  Alumni ({fetchedCompanies.filter((c) => getStatus(c) === "Alumni Company").length}
+                  )
                 </option>
               </select>
-              
+
               <button
                 type="button"
                 onClick={selectAll}
@@ -303,7 +305,7 @@ export default function ImportGenesis() {
                 Download logos
               </label>
             </div>
-            
+
             <div className="flex flex-col gap-2">
               {filteredCompanies.map((company) => {
                 const existing = isExisting(company);
@@ -313,13 +315,13 @@ export default function ImportGenesis() {
                   <div
                     key={company.sourceId}
                     className={`flex items-center gap-4 p-3 border ${
-                      hasGenesisFlag 
-                        ? "bg-harbour-50 border-harbour-200 opacity-60" 
+                      hasGenesisFlag
+                        ? "bg-harbour-50 border-harbour-200 opacity-60"
                         : selected.has(company.sourceId)
-                        ? "bg-blue-50 border-blue-300"
-                        : existing
-                        ? "bg-amber-50 border-amber-200"
-                        : "bg-white border-harbour-200"
+                          ? "bg-blue-50 border-blue-300"
+                          : existing
+                            ? "bg-amber-50 border-amber-200"
+                            : "bg-white border-harbour-200"
                     }`}
                   >
                     <input
@@ -329,7 +331,7 @@ export default function ImportGenesis() {
                       disabled={hasGenesisFlag}
                       className="w-5 h-5"
                     />
-                    
+
                     {company.logoUrl ? (
                       <img
                         src={company.logoUrl}
@@ -340,7 +342,7 @@ export default function ImportGenesis() {
                     ) : (
                       <div className="w-10 h-10 bg-harbour-100" />
                     )}
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium truncate">{company.name}</span>
@@ -355,19 +357,19 @@ export default function ImportGenesis() {
                           </span>
                         )}
                         {status && (
-                          <span className={`text-xs px-2 py-0.5 ${
-                            status === "Current Company" 
-                              ? "bg-green-100 text-green-700" 
-                              : "bg-amber-100 text-amber-700"
-                          }`}>
+                          <span
+                            className={`text-xs px-2 py-0.5 ${
+                              status === "Current Company"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
                             {status === "Current Company" ? "Current" : "Alumni"}
                           </span>
                         )}
                       </div>
                       {company.description && (
-                        <p className="text-sm text-harbour-500 truncate">
-                          {company.description}
-                        </p>
+                        <p className="text-sm text-harbour-500 truncate">{company.description}</p>
                       )}
                       {company.website && (
                         <a
@@ -380,11 +382,13 @@ export default function ImportGenesis() {
                         </a>
                       )}
                     </div>
-                    
-                    {company.categories.filter(c => c !== "Current Company" && c !== "Alumni Company").length > 0 && (
+
+                    {company.categories.filter(
+                      (c) => c !== "Current Company" && c !== "Alumni Company",
+                    ).length > 0 && (
                       <div className="hidden sm:flex gap-1 flex-wrap max-w-xs">
                         {company.categories
-                          .filter(c => c !== "Current Company" && c !== "Alumni Company")
+                          .filter((c) => c !== "Current Company" && c !== "Alumni Company")
                           .slice(0, 2)
                           .map((cat, i) => (
                             <span
@@ -400,7 +404,7 @@ export default function ImportGenesis() {
                 );
               })}
             </div>
-            
+
             <div className="flex items-center gap-4">
               <button
                 type="button"
@@ -408,16 +412,11 @@ export default function ImportGenesis() {
                 disabled={selected.size === 0 || isImporting}
                 className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
               >
-                {isImporting 
-                  ? "Importing..." 
-                  : `Import ${selected.size} Selected Companies`
-                }
+                {isImporting ? "Importing..." : `Import ${selected.size} Selected Companies`}
               </button>
-              
+
               {selected.size > 0 && (
-                <span className="text-sm text-harbour-500">
-                  {selected.size} companies selected
-                </span>
+                <span className="text-sm text-harbour-500">{selected.size} companies selected</span>
               )}
             </div>
           </>

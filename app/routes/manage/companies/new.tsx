@@ -76,10 +76,7 @@ export default function NewCompany() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/companies"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/companies" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Companies
           </Link>
         </div>
@@ -87,9 +84,7 @@ export default function NewCompany() {
         <h1 className="text-2xl font-semibold text-harbour-700">New Company</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">

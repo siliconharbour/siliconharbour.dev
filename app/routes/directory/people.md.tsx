@@ -13,7 +13,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const content = listPageToMarkdown({
     title: "People",
     description: "Developers and builders in the St. John's tech community.",
-    items: items.map(p => ({ slug: p.slug, name: p.name, description: p.bio })),
+    items: items.map((p) => ({ slug: p.slug, name: p.name, description: p.bio })),
     entityType: "person",
     basePath: "/directory/people",
     total,

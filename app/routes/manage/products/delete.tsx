@@ -56,8 +56,8 @@ export default function DeleteProduct() {
         <h1 className="text-xl font-semibold text-harbour-700">Delete Product</h1>
 
         <p className="text-harbour-500">
-          Are you sure you want to delete <strong>{product.name}</strong>? This
-          action cannot be undone.
+          Are you sure you want to delete <strong>{product.name}</strong>? This action cannot be
+          undone.
         </p>
 
         <Form method="post" className="flex gap-4">

@@ -1,9 +1,9 @@
 import type { Route } from "./+types/occurrences";
 import { Link, Form, useLoaderData, useActionData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { 
-  getEventById, 
-  getEventWithOccurrences, 
+import {
+  getEventById,
+  getEventWithOccurrences,
   upsertOccurrenceOverride,
   deleteOccurrenceOverride,
 } from "~/lib/events.server";
@@ -108,9 +108,7 @@ export default function ManageOccurrences() {
         </div>
 
         <div>
-          <h1 className="text-2xl font-semibold text-harbour-700">
-            Manage Occurrences
-          </h1>
+          <h1 className="text-2xl font-semibold text-harbour-700">Manage Occurrences</h1>
           <p className="text-harbour-500 mt-1">{event.title}</p>
           {recurrenceDescription && (
             <p className="text-sm text-harbour-400 mt-1">
@@ -122,32 +120,27 @@ export default function ManageOccurrences() {
         </div>
 
         {actionData?.error && (
-          <div className="p-3 bg-red-100 text-red-700 text-sm">
-            {actionData.error}
-          </div>
+          <div className="p-3 bg-red-100 text-red-700 text-sm">{actionData.error}</div>
         )}
 
         {actionData?.success && (
-          <div className="p-3 bg-green-100 text-green-700 text-sm">
-            {actionData.success}
-          </div>
+          <div className="p-3 bg-green-100 text-green-700 text-sm">{actionData.success}</div>
         )}
 
         <div className="space-y-4">
           <p className="text-sm text-harbour-500">
-            The following dates are generated from the recurrence pattern. 
-            You can cancel individual occurrences or override their location/time.
+            The following dates are generated from the recurrence pattern. You can cancel individual
+            occurrences or override their location/time.
           </p>
 
           <div className="divide-y divide-harbour-200">
             {occurrences.map((occurrence, i) => (
-              <div
-                key={i}
-                className={`py-4 ${occurrence.cancelled ? "opacity-60" : ""}`}
-              >
+              <div key={i} className={`py-4 ${occurrence.cancelled ? "opacity-60" : ""}`}>
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
-                    <div className={`font-medium ${occurrence.cancelled ? "line-through text-harbour-400" : "text-harbour-700"}`}>
+                    <div
+                      className={`font-medium ${occurrence.cancelled ? "line-through text-harbour-400" : "text-harbour-700"}`}
+                    >
                       {formatInTimezone(occurrence.date, "EEEE, MMMM d, yyyy")}
                     </div>
                     <div className="text-sm text-harbour-500">
@@ -205,8 +198,12 @@ export default function ManageOccurrences() {
                           <div className="absolute right-0 mt-2 p-4 bg-white border border-harbour-200 shadow-lg z-10 min-w-72">
                             <Form method="post" className="space-y-3">
                               <input type="hidden" name="_action" value="update" />
-                              <input type="hidden" name="date" value={occurrence.date.toISOString()} />
-                              
+                              <input
+                                type="hidden"
+                                name="date"
+                                value={occurrence.date.toISOString()}
+                              />
+
                               <div>
                                 <label className="block text-xs text-harbour-500 mb-1">
                                   Location Override
@@ -239,7 +236,11 @@ export default function ManageOccurrences() {
                                   <input
                                     type="time"
                                     name="endTime"
-                                    defaultValue={occurrence.endDate ? formatInTimezone(occurrence.endDate, "HH:mm") : ""}
+                                    defaultValue={
+                                      occurrence.endDate
+                                        ? formatInTimezone(occurrence.endDate, "HH:mm")
+                                        : ""
+                                    }
                                     className="w-full px-2 py-1 text-sm border border-harbour-200"
                                   />
                                 </div>
@@ -258,7 +259,11 @@ export default function ManageOccurrences() {
                             {occurrence.overrideId && (
                               <Form method="post" className="mt-2 pt-2 border-t border-harbour-200">
                                 <input type="hidden" name="_action" value="clearOverride" />
-                                <input type="hidden" name="overrideId" value={occurrence.overrideId} />
+                                <input
+                                  type="hidden"
+                                  name="overrideId"
+                                  value={occurrence.overrideId}
+                                />
                                 <button
                                   type="submit"
                                   className="text-xs text-red-600 hover:underline"
@@ -278,9 +283,7 @@ export default function ManageOccurrences() {
           </div>
 
           {occurrences.length === 0 && (
-            <p className="text-harbour-400 py-8 text-center">
-              No upcoming occurrences found.
-            </p>
+            <p className="text-harbour-400 py-8 text-center">No upcoming occurrences found.</p>
           )}
         </div>
       </div>

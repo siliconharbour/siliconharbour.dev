@@ -8,7 +8,9 @@ export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: text("role", { enum: ["regular", "admin"] }).notNull().default("regular"),
+  role: text("role", { enum: ["regular", "admin"] })
+    .notNull()
+    .default("regular"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -27,8 +29,18 @@ export const sessions = sqliteTable("sessions", {
 // =============================================================================
 
 // Content type enum for the references table
-export const contentTypes = ["event", "company", "group", "education", "person", "news", "job", "project", "product"] as const;
-export type ContentType = typeof contentTypes[number];
+export const contentTypes = [
+  "event",
+  "company",
+  "group",
+  "education",
+  "person",
+  "news",
+  "job",
+  "project",
+  "product",
+] as const;
+export type ContentType = (typeof contentTypes)[number];
 
 // Events - tech meetups, conferences, workshops
 export const events = sqliteTable("events", {
@@ -65,25 +77,29 @@ export const eventDates = sqliteTable("event_dates", {
 });
 
 // Event occurrence overrides - for per-occurrence customization of recurring events
-export const eventOccurrences = sqliteTable("event_occurrences", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  eventId: integer("event_id")
-    .notNull()
-    .references(() => events.id, { onDelete: "cascade" }),
-  occurrenceDate: integer("occurrence_date", { mode: "timestamp" }).notNull(), // The date this occurrence falls on
-  // Override fields (null = use base event value)
-  location: text("location"),
-  description: text("description"),
-  link: text("link"),
-  startTime: text("start_time"), // HH:mm format override
-  endTime: text("end_time"), // HH:mm format override
-  cancelled: integer("cancelled", { mode: "boolean" }).default(false),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-}, (table) => ({
-  eventDateIdx: index("event_occurrences_event_date_idx").on(table.eventId, table.occurrenceDate),
-}));
+export const eventOccurrences = sqliteTable(
+  "event_occurrences",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    occurrenceDate: integer("occurrence_date", { mode: "timestamp" }).notNull(), // The date this occurrence falls on
+    // Override fields (null = use base event value)
+    location: text("location"),
+    description: text("description"),
+    link: text("link"),
+    startTime: text("start_time"), // HH:mm format override
+    endTime: text("end_time"), // HH:mm format override
+    cancelled: integer("cancelled", { mode: "boolean" }).default(false),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    eventDateIdx: index("event_occurrences_event_date_idx").on(table.eventId, table.occurrenceDate),
+  }),
+);
 
 // Companies - local tech companies
 export const companies = sqliteTable("companies", {
@@ -139,9 +155,11 @@ export const education = sqliteTable("education", {
   name: text("name").notNull(),
   description: text("description").notNull(), // markdown
   website: text("website"), // external link
-  type: text("type", { 
-    enum: ["university", "college", "bootcamp", "online", "other"] 
-  }).notNull().default("other"),
+  type: text("type", {
+    enum: ["university", "college", "bootcamp", "online", "other"],
+  })
+    .notNull()
+    .default("other"),
   logo: text("logo"),
   coverImage: text("cover_image"),
   // Directory listings (same as companies)
@@ -180,7 +198,7 @@ export const people = sqliteTable("people", {
 
 // News - announcements, articles, editorials
 export const newsTypes = ["announcement", "general", "editorial", "meta"] as const;
-export type NewsType = typeof newsTypes[number];
+export type NewsType = (typeof newsTypes)[number];
 
 export const news = sqliteTable("news", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -227,10 +245,10 @@ export const jobs = sqliteTable("jobs", {
 // =============================================================================
 
 export const projectTypes = ["game", "webapp", "library", "tool", "hardware", "other"] as const;
-export type ProjectType = typeof projectTypes[number];
+export type ProjectType = (typeof projectTypes)[number];
 
 export const projectStatuses = ["active", "completed", "archived", "on-hold"] as const;
-export type ProjectStatus = typeof projectStatuses[number];
+export type ProjectStatus = (typeof projectStatuses)[number];
 
 export const projects = sqliteTable("projects", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -252,76 +270,87 @@ export const projects = sqliteTable("projects", {
 });
 
 // Project gallery images
-export const projectImages = sqliteTable("project_images", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  projectId: integer("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
-  image: text("image").notNull(), // filename
-  caption: text("caption"), // optional caption
-  sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-}, (table) => ({
-  projectIdx: index("project_images_project_idx").on(table.projectId),
-}));
+export const projectImages = sqliteTable(
+  "project_images",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    projectId: integer("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    image: text("image").notNull(), // filename
+    caption: text("caption"), // optional caption
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    projectIdx: index("project_images_project_idx").on(table.projectId),
+  }),
+);
 
 // =============================================================================
 // Products - commercial products/services from local companies
 // =============================================================================
 
 export const productTypes = ["saas", "mobile", "physical", "service", "other"] as const;
-export type ProductType = typeof productTypes[number];
+export type ProductType = (typeof productTypes)[number];
 
-export const products = sqliteTable("products", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  slug: text("slug").notNull().unique(),
-  name: text("name").notNull(),
-  description: text("description").notNull(), // markdown
-  website: text("website"), // product website
-  companyId: integer("company_id")
-    .references(() => companies.id, { onDelete: "set null" }), // optional FK to companies
-  type: text("type", { enum: productTypes }).notNull().default("other"),
-  logo: text("logo"), // icon/avatar image
-  coverImage: text("cover_image"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-}, (table) => ({
-  companyIdx: index("products_company_idx").on(table.companyId),
-}));
+export const products = sqliteTable(
+  "products",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    slug: text("slug").notNull().unique(),
+    name: text("name").notNull(),
+    description: text("description").notNull(), // markdown
+    website: text("website"), // product website
+    companyId: integer("company_id").references(() => companies.id, { onDelete: "set null" }), // optional FK to companies
+    type: text("type", { enum: productTypes }).notNull().default("other"),
+    logo: text("logo"), // icon/avatar image
+    coverImage: text("cover_image"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    companyIdx: index("products_company_idx").on(table.companyId),
+  }),
+);
 
 // =============================================================================
 // Comments - anonymous user feedback on content
 // =============================================================================
 
-export const comments = sqliteTable("comments", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  // Polymorphic relation to any content type
-  contentType: text("content_type", { enum: contentTypes }).notNull(),
-  contentId: integer("content_id").notNull(),
-  // Threading support - null means top-level comment
-  parentId: integer("parent_id"), // references comments.id (self-referential)
-  // Comment data
-  authorName: text("author_name"), // optional, for attribution
-  content: text("content").notNull(),
-  isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(false), // for webmaster-only feedback
-  // Metadata for spam management
-  ipAddress: text("ip_address"), // raw IP for admin spam cleanup
-  ipHash: text("ip_hash"), // hashed IP for privacy-preserving rate limiting
-  userAgent: text("user_agent"), // browser/client info for spam patterns
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-}, (table) => ({
-  contentIdx: index("comments_content_idx").on(table.contentType, table.contentId),
-  ipIdx: index("comments_ip_idx").on(table.ipAddress), // for finding all comments from an IP
-  parentIdx: index("comments_parent_idx").on(table.parentId), // for efficient child lookups
-}));
+export const comments = sqliteTable(
+  "comments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // Polymorphic relation to any content type
+    contentType: text("content_type", { enum: contentTypes }).notNull(),
+    contentId: integer("content_id").notNull(),
+    // Threading support - null means top-level comment
+    parentId: integer("parent_id"), // references comments.id (self-referential)
+    // Comment data
+    authorName: text("author_name"), // optional, for attribution
+    content: text("content").notNull(),
+    isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(false), // for webmaster-only feedback
+    // Metadata for spam management
+    ipAddress: text("ip_address"), // raw IP for admin spam cleanup
+    ipHash: text("ip_hash"), // hashed IP for privacy-preserving rate limiting
+    userAgent: text("user_agent"), // browser/client info for spam patterns
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    contentIdx: index("comments_content_idx").on(table.contentType, table.contentId),
+    ipIdx: index("comments_ip_idx").on(table.ipAddress), // for finding all comments from an IP
+    parentIdx: index("comments_parent_idx").on(table.parentId), // for efficient child lookups
+  }),
+);
 
 // =============================================================================
 // Site Configuration - key-value settings
@@ -341,7 +370,7 @@ export type NewSiteConfig = typeof siteConfig.$inferInsert;
 // Section visibility keys
 export const sectionKeys = [
   "events",
-  "companies", 
+  "companies",
   "groups",
   "projects",
   "products",
@@ -350,7 +379,7 @@ export const sectionKeys = [
   "news",
   "jobs",
 ] as const;
-export type SectionKey = typeof sectionKeys[number];
+export type SectionKey = (typeof sectionKeys)[number];
 
 // Commentable content keys - pages that can have comments enabled/disabled
 export const commentableKeys = [
@@ -361,7 +390,7 @@ export const commentableKeys = [
   "products",
   "news",
 ] as const;
-export type CommentableKey = typeof commentableKeys[number];
+export type CommentableKey = (typeof commentableKeys)[number];
 
 // =============================================================================
 // References - [[link]] relationships between content
@@ -369,41 +398,49 @@ export type CommentableKey = typeof commentableKeys[number];
 
 // Stores extracted [[references]] from markdown content
 // Enables bidirectional queries: "what links to X" and "what does X link to"
-export const references = sqliteTable("references", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  // Source content (the one containing the [[reference]])
-  sourceType: text("source_type", { enum: contentTypes }).notNull(),
-  sourceId: integer("source_id").notNull(),
-  // Target content (the one being referenced)
-  targetType: text("target_type", { enum: contentTypes }).notNull(),
-  targetId: integer("target_id").notNull(),
-  // The original reference text (for display/debugging)
-  referenceText: text("reference_text").notNull(), // e.g., "Verafin" or "John Smith"
-  // Optional relation metadata (e.g., "CEO", "Founder", "Organizer")
-  // Used with syntax: [[{CEO} at {CoLab Software}]]
-  relation: text("relation"),
-  // Which field the reference came from (e.g., "description", "organizer")
-  field: text("field").default("description"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-}, (table) => ({
-  sourceIdx: index("references_source_idx").on(table.sourceType, table.sourceId),
-  targetIdx: index("references_target_idx").on(table.targetType, table.targetId),
-}));
+export const references = sqliteTable(
+  "references",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    // Source content (the one containing the [[reference]])
+    sourceType: text("source_type", { enum: contentTypes }).notNull(),
+    sourceId: integer("source_id").notNull(),
+    // Target content (the one being referenced)
+    targetType: text("target_type", { enum: contentTypes }).notNull(),
+    targetId: integer("target_id").notNull(),
+    // The original reference text (for display/debugging)
+    referenceText: text("reference_text").notNull(), // e.g., "Verafin" or "John Smith"
+    // Optional relation metadata (e.g., "CEO", "Founder", "Organizer")
+    // Used with syntax: [[{CEO} at {CoLab Software}]]
+    relation: text("relation"),
+    // Which field the reference came from (e.g., "description", "organizer")
+    field: text("field").default("description"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    sourceIdx: index("references_source_idx").on(table.sourceType, table.sourceId),
+    targetIdx: index("references_target_idx").on(table.targetType, table.targetId),
+  }),
+);
 
 // =============================================================================
 // Rate Limiting - Redis-like rate limiting backed by SQLite
 // =============================================================================
 
-export const rateLimits = sqliteTable("rate_limits", {
-  key: text("key").primaryKey(), // e.g., "comment:{ipHash}"
-  count: integer("count").notNull().default(0),
-  windowStart: integer("window_start").notNull(), // Unix timestamp (seconds)
-  expiresAt: integer("expires_at").notNull(), // For cleanup
-}, (table) => ({
-  expiresIdx: index("rate_limits_expires_idx").on(table.expiresAt),
-}));
+export const rateLimits = sqliteTable(
+  "rate_limits",
+  {
+    key: text("key").primaryKey(), // e.g., "comment:{ipHash}"
+    count: integer("count").notNull().default(0),
+    windowStart: integer("window_start").notNull(), // Unix timestamp (seconds)
+    expiresAt: integer("expires_at").notNull(), // For cleanup
+  },
+  (table) => ({
+    expiresIdx: index("rate_limits_expires_idx").on(table.expiresAt),
+  }),
+);
 
 export type RateLimit = typeof rateLimits.$inferSelect;
 export type NewRateLimit = typeof rateLimits.$inferInsert;
@@ -414,7 +451,9 @@ export type NewRateLimit = typeof rateLimits.$inferInsert;
 
 export const importJobs = sqliteTable("import_jobs", {
   id: text("id").primaryKey(), // e.g., "github-import"
-  status: text("status", { enum: ["idle", "running", "paused", "completed", "error"] }).notNull().default("idle"),
+  status: text("status", { enum: ["idle", "running", "paused", "completed", "error"] })
+    .notNull()
+    .default("idle"),
   // Progress tracking
   totalItems: integer("total_items").default(0),
   processedItems: integer("processed_items").default(0),
@@ -440,18 +479,22 @@ export type NewImportJob = typeof importJobs.$inferInsert;
 // Import Blocklist - Entities to skip during import
 // =============================================================================
 
-export const importBlocklist = sqliteTable("import_blocklist", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  source: text("source").notNull(), // "github", "technl", etc.
-  externalId: text("external_id").notNull(), // GitHub URL, TechNL ID, etc.
-  name: text("name").notNull(), // Display name for UI
-  reason: text("reason"), // Optional reason for blocking
-  blockedAt: integer("blocked_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-}, (table) => ({
-  sourceExternalIdx: index("blocklist_source_external_idx").on(table.source, table.externalId),
-}));
+export const importBlocklist = sqliteTable(
+  "import_blocklist",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    source: text("source").notNull(), // "github", "technl", etc.
+    externalId: text("external_id").notNull(), // GitHub URL, TechNL ID, etc.
+    name: text("name").notNull(), // Display name for UI
+    reason: text("reason"), // Optional reason for blocking
+    blockedAt: integer("blocked_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    sourceExternalIdx: index("blocklist_source_external_idx").on(table.source, table.externalId),
+  }),
+);
 
 export type ImportBlocklistItem = typeof importBlocklist.$inferSelect;
 export type NewImportBlocklistItem = typeof importBlocklist.$inferInsert;

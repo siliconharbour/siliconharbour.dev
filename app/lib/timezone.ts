@@ -16,7 +16,7 @@ export function formatInTimezone(date: Date, formatStr: string): string {
 /**
  * Parse a date string and time as Newfoundland timezone.
  * Use this when saving event dates from forms.
- * 
+ *
  * @param dateStr - Date in yyyy-MM-dd format
  * @param timeStr - Time in HH:mm format
  * @returns Date object representing that time in Newfoundland timezone

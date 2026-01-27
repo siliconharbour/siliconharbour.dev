@@ -2,15 +2,19 @@ import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useEffect, useState, useCallback } from "react";
 import { requireAuth } from "~/lib/session.server";
-import { 
-  getHiddenCompanies, 
-  updateCompany, 
-  deleteCompany, 
+import {
+  getHiddenCompanies,
+  updateCompany,
+  deleteCompany,
   createCompany,
-  getCompanyById
+  getCompanyById,
 } from "~/lib/companies.server";
 import { blockItem, unblockItem } from "~/lib/import-blocklist.server";
-import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import {
+  processAndSaveCoverImage,
+  processAndSaveIconImage,
+  deleteImage,
+} from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { Toast } from "~/components/Toast";
 import type { Company } from "~/db/schema";
@@ -36,11 +40,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
-  
+
   const formData = await request.formData();
   const intent = formData.get("intent") as string;
   const id = parseInt(formData.get("id") as string, 10);
-  
+
   if (isNaN(id) && intent !== "undo-reject") {
     return { error: "Invalid company ID" };
   }
@@ -54,10 +58,10 @@ export async function action({ request }: Route.ActionArgs) {
   switch (intent) {
     case "approve": {
       await updateCompany(id, { visible: true });
-      return { 
-        success: true, 
+      return {
+        success: true,
         action: "approved",
-        undoData: companyData ? { id, previousVisible: false } : null
+        undoData: companyData ? { id, previousVisible: false } : null,
       };
     }
 
@@ -65,28 +69,28 @@ export async function action({ request }: Route.ActionArgs) {
       if (!companyData) {
         return { error: "Company not found" };
       }
-      
+
       // Determine source for blocklist based on directory flags
       const source = companyData.technl ? "technl" : companyData.genesis ? "genesis" : null;
-      
+
       // Add to blocklist if it came from an import
       if (source) {
-        const externalId = companyData.website 
-          ? normalizeUrl(companyData.website) 
+        const externalId = companyData.website
+          ? normalizeUrl(companyData.website)
           : companyData.name.toLowerCase();
         await blockItem(source, externalId, companyData.name, "Rejected during review");
       }
-      
+
       // Delete the company
       await deleteCompany(id);
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         action: "rejected",
-        undoData: { 
+        undoData: {
           ...companyData,
-          source 
-        }
+          source,
+        },
       };
     }
 
@@ -99,21 +103,19 @@ export async function action({ request }: Route.ActionArgs) {
       // Recreate the company from the stored data
       const companyJson = formData.get("companyData") as string;
       const source = formData.get("source") as string | null;
-      
+
       if (!companyJson) {
         return { error: "No company data for undo" };
       }
-      
+
       const data = JSON.parse(companyJson) as Company;
-      
+
       // Remove from blocklist if it was blocked
       if (source) {
-        const externalId = data.website 
-          ? normalizeUrl(data.website) 
-          : data.name.toLowerCase();
+        const externalId = data.website ? normalizeUrl(data.website) : data.name.toLowerCase();
         await unblockItem(source, externalId);
       }
-      
+
       // Recreate the company (without id/slug - they'll be regenerated)
       await createCompany({
         name: data.name,
@@ -130,7 +132,7 @@ export async function action({ request }: Route.ActionArgs) {
         genesis: data.genesis,
         visible: false,
       });
-      
+
       return { success: true, action: "undone" };
     }
 
@@ -209,9 +211,9 @@ export async function action({ request }: Route.ActionArgs) {
         ...(coverImage !== undefined && { coverImage }),
       });
 
-      return { 
-        success: true, 
-        action: approveAfterSave ? "approved" : "updated"
+      return {
+        success: true,
+        action: approveAfterSave ? "approved" : "updated",
       };
     }
 
@@ -230,7 +232,7 @@ interface UndoAction {
 export default function ReviewCompanies() {
   const { companies: initialCompanies } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
-  
+
   const [companies, setCompanies] = useState(initialCompanies);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [editMode, setEditMode] = useState(false);
@@ -250,9 +252,13 @@ export default function ReviewCompanies() {
         }
         return;
       }
-      
+
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") {
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT"
+      ) {
         return;
       }
 
@@ -277,7 +283,7 @@ export default function ReviewCompanies() {
   }, [currentCompany, editMode]);
 
   const advanceToNext = useCallback(() => {
-    setCompanies(prev => {
+    setCompanies((prev) => {
       const newCompanies = [...prev];
       newCompanies.splice(currentIndex, 1);
       return newCompanies;
@@ -287,7 +293,11 @@ export default function ReviewCompanies() {
 
   // Handle fetcher response
   useEffect(() => {
-    if (fetcher.data?.success && fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
+    if (
+      fetcher.data?.success &&
+      fetcher.data.action !== "undone" &&
+      fetcher.data.action !== "updated"
+    ) {
       // Action completed, advance to next
       advanceToNext();
     }
@@ -295,66 +305,60 @@ export default function ReviewCompanies() {
 
   const handleApprove = () => {
     if (!currentCompany) return;
-    
-    setLastAction({ 
-      type: "approve", 
-      id: currentCompany.id, 
-      name: currentCompany.name 
+
+    setLastAction({
+      type: "approve",
+      id: currentCompany.id,
+      name: currentCompany.name,
     });
     setToastMessage(`"${currentCompany.name}" approved`);
-    
-    fetcher.submit(
-      { intent: "approve", id: currentCompany.id.toString() },
-      { method: "post" }
-    );
+
+    fetcher.submit({ intent: "approve", id: currentCompany.id.toString() }, { method: "post" });
   };
 
   const handleSkip = () => {
     if (currentIndex < companies.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
     }
   };
 
   const handleReject = () => {
     if (!currentCompany) return;
-    
-    setLastAction({ 
-      type: "reject", 
-      id: currentCompany.id, 
+
+    setLastAction({
+      type: "reject",
+      id: currentCompany.id,
       name: currentCompany.name,
-      companyData: { ...currentCompany, source: currentCompany.technl ? "technl" : currentCompany.genesis ? "genesis" : null }
+      companyData: {
+        ...currentCompany,
+        source: currentCompany.technl ? "technl" : currentCompany.genesis ? "genesis" : null,
+      },
     });
     setToastMessage(`"${currentCompany.name}" rejected and blocked`);
-    
-    fetcher.submit(
-      { intent: "reject", id: currentCompany.id.toString() },
-      { method: "post" }
-    );
+
+    fetcher.submit({ intent: "reject", id: currentCompany.id.toString() }, { method: "post" });
   };
 
   const handleUndo = () => {
     if (!lastAction) return;
-    
+
     if (lastAction.type === "approve") {
-      fetcher.submit(
-        { intent: "undo-approve", id: lastAction.id.toString() },
-        { method: "post" }
-      );
+      fetcher.submit({ intent: "undo-approve", id: lastAction.id.toString() }, { method: "post" });
       // Add the company back to the list
       // We'd need to refetch, but for now just reload
       window.location.reload();
     } else if (lastAction.type === "reject" && lastAction.companyData) {
       fetcher.submit(
-        { 
-          intent: "undo-reject", 
+        {
+          intent: "undo-reject",
           companyData: JSON.stringify(lastAction.companyData),
-          source: lastAction.companyData.source || ""
+          source: lastAction.companyData.source || "",
         },
-        { method: "post" }
+        { method: "post" },
       );
       window.location.reload();
     }
-    
+
     setLastAction(null);
     setToastMessage(null);
   };
@@ -399,9 +403,7 @@ export default function ReviewCompanies() {
             </Link>
             <h1 className="text-2xl font-semibold text-harbour-700 mt-1">Review Companies</h1>
           </div>
-          <div className="text-sm text-harbour-500">
-            {remaining} remaining
-          </div>
+          <div className="text-sm text-harbour-500">{remaining} remaining</div>
         </div>
 
         {/* Company Card */}
@@ -421,10 +423,17 @@ export default function ReviewCompanies() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-semibold text-harbour-700 truncate">{currentCompany.name}</h2>
+                <h2 className="text-xl font-semibold text-harbour-700 truncate">
+                  {currentCompany.name}
+                </h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-harbour-500">
                   {currentCompany.website && (
-                    <a href={currentCompany.website} target="_blank" rel="noopener noreferrer" className="hover:text-harbour-700">
+                    <a
+                      href={currentCompany.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-harbour-700"
+                    >
                       {new URL(currentCompany.website).hostname.replace(/^www\./, "")}
                     </a>
                   )}
@@ -438,12 +447,14 @@ export default function ReviewCompanies() {
                     <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs">TechNL</span>
                   )}
                   {currentCompany.genesis && (
-                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs">Genesis</span>
+                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs">
+                      Genesis
+                    </span>
                   )}
                 </div>
               </div>
             </div>
-            
+
             {currentCompany.description && !editMode && (
               <p className="mt-4 text-sm text-harbour-600 line-clamp-3">
                 {currentCompany.description}
@@ -459,7 +470,9 @@ export default function ReviewCompanies() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="name" className="text-sm font-medium text-harbour-700">Name *</label>
+                  <label htmlFor="name" className="text-sm font-medium text-harbour-700">
+                    Name *
+                  </label>
                   <input
                     type="text"
                     id="name"
@@ -470,7 +483,9 @@ export default function ReviewCompanies() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="website" className="text-sm font-medium text-harbour-700">Website</label>
+                  <label htmlFor="website" className="text-sm font-medium text-harbour-700">
+                    Website
+                  </label>
                   <input
                     type="url"
                     id="website"
@@ -482,7 +497,9 @@ export default function ReviewCompanies() {
               </div>
 
               <div className="flex flex-col gap-1">
-                <label htmlFor="description" className="text-sm font-medium text-harbour-700">Description</label>
+                <label htmlFor="description" className="text-sm font-medium text-harbour-700">
+                  Description
+                </label>
                 <textarea
                   id="description"
                   name="description"
@@ -494,7 +511,9 @@ export default function ReviewCompanies() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="location" className="text-sm font-medium text-harbour-700">Location</label>
+                  <label htmlFor="location" className="text-sm font-medium text-harbour-700">
+                    Location
+                  </label>
                   <input
                     type="text"
                     id="location"
@@ -504,7 +523,9 @@ export default function ReviewCompanies() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="founded" className="text-sm font-medium text-harbour-700">Founded</label>
+                  <label htmlFor="founded" className="text-sm font-medium text-harbour-700">
+                    Founded
+                  </label>
                   <input
                     type="text"
                     id="founded"
@@ -515,7 +536,9 @@ export default function ReviewCompanies() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="github" className="text-sm font-medium text-harbour-700">GitHub Org</label>
+                  <label htmlFor="github" className="text-sm font-medium text-harbour-700">
+                    GitHub Org
+                  </label>
                   <input
                     type="url"
                     id="github"
@@ -549,16 +572,26 @@ export default function ReviewCompanies() {
 
               <div className="flex flex-wrap gap-4">
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" name="technl" defaultChecked={currentCompany.technl ?? false} />
+                  <input
+                    type="checkbox"
+                    name="technl"
+                    defaultChecked={currentCompany.technl ?? false}
+                  />
                   <span className="text-sm text-harbour-600">TechNL</span>
                 </label>
                 <label className="flex items-center gap-2">
-                  <input type="checkbox" name="genesis" defaultChecked={currentCompany.genesis ?? false} />
+                  <input
+                    type="checkbox"
+                    name="genesis"
+                    defaultChecked={currentCompany.genesis ?? false}
+                  />
                   <span className="text-sm text-harbour-600">Genesis</span>
                 </label>
                 <label className="flex items-center gap-2 ml-auto">
                   <input type="checkbox" name="approveAfterSave" defaultChecked />
-                  <span className="text-sm text-harbour-600 font-medium">Make visible after save</span>
+                  <span className="text-sm text-harbour-600 font-medium">
+                    Make visible after save
+                  </span>
                 </label>
               </div>
 
@@ -619,10 +652,10 @@ export default function ReviewCompanies() {
 
         {/* Keyboard shortcuts help */}
         <div className="text-center text-xs text-harbour-400">
-          Keyboard: <kbd className="px-1 py-0.5 bg-harbour-100 rounded">Y</kbd> Approve · 
-          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">N</kbd> Skip · 
-          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">D</kbd> Reject · 
-          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">E</kbd> Edit · 
+          Keyboard: <kbd className="px-1 py-0.5 bg-harbour-100 rounded">Y</kbd> Approve ·
+          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">N</kbd> Skip ·
+          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">D</kbd> Reject ·
+          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">E</kbd> Edit ·
           <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">Esc</kbd> Cancel edit
         </div>
       </div>

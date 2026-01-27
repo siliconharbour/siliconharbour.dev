@@ -44,8 +44,8 @@ export default function DeleteEducation() {
         <h1 className="text-xl font-semibold text-harbour-700">Delete Institution</h1>
 
         <p className="text-harbour-500">
-          Are you sure you want to delete <strong>{institution.name}</strong>? This
-          action cannot be undone.
+          Are you sure you want to delete <strong>{institution.name}</strong>? This action cannot be
+          undone.
         </p>
 
         <Form method="post" className="flex gap-4">

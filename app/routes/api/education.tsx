@@ -2,14 +2,23 @@ import type { Route } from "./+types/education";
 import { db } from "~/db";
 import { education } from "~/db/schema";
 import { asc, count, eq } from "drizzle-orm";
-import { parsePagination, buildLinkHeader, jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
+import {
+  parsePagination,
+  buildLinkHeader,
+  jsonResponse,
+  imageUrl,
+  contentUrl,
+} from "~/lib/api.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePagination(url);
-  
-  const [{ total }] = await db.select({ total: count() }).from(education).where(eq(education.visible, true));
-  
+
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(education)
+    .where(eq(education.visible, true));
+
   const data = await db
     .select()
     .from(education)
@@ -17,8 +26,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     .orderBy(asc(education.name))
     .limit(limit)
     .offset(offset);
-  
-  const items = data.map(inst => ({
+
+  const items = data.map((inst) => ({
     id: inst.id,
     slug: inst.slug,
     name: inst.name,
@@ -31,12 +40,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     createdAt: inst.createdAt.toISOString(),
     updatedAt: inst.updatedAt.toISOString(),
   }));
-  
+
   const baseUrl = url.origin + url.pathname;
   const linkHeader = buildLinkHeader(baseUrl, { limit, offset }, total);
-  
-  return jsonResponse({
-    data: items,
-    pagination: { total, limit, offset, hasMore: offset + limit < total },
-  }, { linkHeader });
+
+  return jsonResponse(
+    {
+      data: items,
+      pagination: { total, limit, offset, hasMore: offset + limit < total },
+    },
+    { linkHeader },
+  );
 }

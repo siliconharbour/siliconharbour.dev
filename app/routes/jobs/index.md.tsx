@@ -13,7 +13,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const content = listPageToMarkdown({
     title: "Jobs",
     description: "Tech job opportunities in St. John's and Newfoundland & Labrador.",
-    items: items.map(j => ({ slug: j.slug, name: j.title, description: j.description })),
+    items: items.map((j) => ({ slug: j.slug, name: j.title, description: j.description })),
     entityType: "job",
     basePath: "/jobs",
     total,

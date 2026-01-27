@@ -11,13 +11,13 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  
+
   const url = new URL(request.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const perPage = 20;
-  
+
   const { comments, total, totalPages } = await getPaginatedComments(page, perPage);
-  
+
   return { comments, total, totalPages, currentPage: page };
 }
 
@@ -63,10 +63,7 @@ export default function ManageComments() {
             <h1 className="text-2xl font-semibold text-harbour-700">Comments</h1>
             <p className="text-harbour-400 text-sm">{total} total comments</p>
           </div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             Back to Dashboard
           </Link>
         </div>
@@ -92,11 +89,11 @@ export default function ManageComments() {
                 Previous
               </Link>
             )}
-            
+
             <span className="text-sm text-harbour-500 px-3">
               Page {currentPage} of {totalPages}
             </span>
-            
+
             {currentPage < totalPages && (
               <Link
                 to={`?page=${currentPage + 1}`}
@@ -119,9 +116,7 @@ function CommentRow({ comment }: { comment: Comment }) {
   return (
     <div
       className={`p-4 border ${
-        comment.isPrivate
-          ? "bg-amber-50 border-amber-200"
-          : "bg-white border-harbour-200"
+        comment.isPrivate ? "bg-amber-50 border-amber-200" : "bg-white border-harbour-200"
       } ${isDeleting ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -145,27 +140,20 @@ function CommentRow({ comment }: { comment: Comment }) {
               {getContentLabel(comment.contentType)} #{comment.contentId}
             </Link>
           </div>
-          
-          <p className="text-harbour-600 text-sm whitespace-pre-wrap mb-2">
-            {comment.content}
-          </p>
-          
+
+          <p className="text-harbour-600 text-sm whitespace-pre-wrap mb-2">{comment.content}</p>
+
           {/* Metadata for spam management */}
           <div className="flex items-center gap-4 text-xs text-harbour-400">
-            {comment.ipAddress && (
-              <span title="IP Address">IP: {comment.ipAddress}</span>
-            )}
+            {comment.ipAddress && <span title="IP Address">IP: {comment.ipAddress}</span>}
             {comment.userAgent && (
-              <span 
-                title={comment.userAgent}
-                className="truncate max-w-xs"
-              >
+              <span title={comment.userAgent} className="truncate max-w-xs">
                 UA: {comment.userAgent.slice(0, 50)}...
               </span>
             )}
           </div>
         </div>
-        
+
         <fetcher.Form method="post" action="/api/comments/delete">
           <input type="hidden" name="commentId" value={comment.id} />
           <button

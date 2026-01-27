@@ -4,7 +4,7 @@ import { join } from "path";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const { filename } = params;
-  
+
   if (!filename) {
     throw new Response("Not found", { status: 404 });
   }
@@ -18,7 +18,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   }
 
   const stream = createReadStream(filepath);
-  
+
   // Convert Node stream to Web ReadableStream
   const webStream = new ReadableStream({
     start(controller) {
@@ -36,9 +36,14 @@ export async function loader({ params }: Route.LoaderArgs) {
 
   // Determine content type based on extension
   const ext = sanitizedFilename.split(".").pop()?.toLowerCase();
-  const contentType = ext === "webp" ? "image/webp" : 
-                      ext === "jpg" || ext === "jpeg" ? "image/jpeg" :
-                      ext === "png" ? "image/png" : "application/octet-stream";
+  const contentType =
+    ext === "webp"
+      ? "image/webp"
+      : ext === "jpg" || ext === "jpeg"
+        ? "image/jpeg"
+        : ext === "png"
+          ? "image/png"
+          : "application/octet-stream";
 
   return new Response(webStream, {
     headers: {

@@ -2,18 +2,21 @@ import type { Route } from "./+types/github-by-location";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
-import { 
-  searchNewfoundlandUsers, 
-  getUserProfiles, 
-  fetchAvatar,
-} from "~/lib/github.server";
+import { searchNewfoundlandUsers, getUserProfiles, fetchAvatar } from "~/lib/github.server";
 import type { GitHubUser, ImportProgress } from "~/lib/github.types";
-import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub, deletePerson } from "~/lib/people.server";
-import { 
-  findCompanyByFuzzyName, 
-  parseGitHubCompanyField, 
+import {
+  createPerson,
+  updatePerson,
+  getAllPeople,
+  getPersonByName,
+  getPersonByGitHub,
+  deletePerson,
+} from "~/lib/people.server";
+import {
+  findCompanyByFuzzyName,
+  parseGitHubCompanyField,
   extractCompanyFromBio,
-  updateCompany 
+  updateCompany,
 } from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 import {
@@ -23,11 +26,7 @@ import {
   pauseImport,
   resetImport,
 } from "~/lib/github-import.server";
-import {
-  getBlockedExternalIds,
-  blockItem,
-  unblockItem,
-} from "~/lib/import-blocklist.server";
+import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from GitHub - siliconharbour.dev" }];
@@ -35,24 +34,22 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  
+
   // Get existing people for duplicate detection
   const existingPeople = await getAllPeople(true); // include hidden
-  const existingNames = new Set(existingPeople.map(p => p.name.toLowerCase()));
+  const existingNames = new Set(existingPeople.map((p) => p.name.toLowerCase()));
   const existingGitHubs = new Set(
-    existingPeople
-      .filter(p => p.github)
-      .map(p => p.github!.toLowerCase())
+    existingPeople.filter((p) => p.github).map((p) => p.github!.toLowerCase()),
   );
-  
+
   // Get blocked GitHub URLs
   const blockedGitHubs = await getBlockedExternalIds("github");
-  
+
   // Get bulk import progress
   const importProgress = await getImportProgress();
-  
-  return { 
-    existingNames: Array.from(existingNames), 
+
+  return {
+    existingNames: Array.from(existingNames),
     existingGitHubs: Array.from(existingGitHubs),
     blockedGitHubs: Array.from(blockedGitHubs),
     importProgress,
@@ -61,82 +58,82 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
-  
+
   const formData = await request.formData();
   const intent = formData.get("intent");
-  
+
   // Bulk import actions
   if (intent === "bulk-start") {
     const progress = await startImport();
     return { intent: "bulk-start", progress, error: null };
   }
-  
+
   if (intent === "bulk-continue") {
     const downloadAvatars = formData.get("downloadAvatars") !== "false";
     const result = await processNextBatch(downloadAvatars);
-    return { 
-      intent: "bulk-continue", 
-      progress: result.progress, 
+    return {
+      intent: "bulk-continue",
+      progress: result.progress,
       processed: result.processed,
       errors: result.errors,
     };
   }
-  
+
   if (intent === "bulk-pause") {
     const progress = await pauseImport();
     return { intent: "bulk-pause", progress, error: null };
   }
-  
+
   if (intent === "bulk-reset") {
     const progress = await resetImport();
     return { intent: "bulk-reset", progress, error: null };
   }
-  
+
   // Blocklist actions
   if (intent === "block") {
     const externalId = formData.get("externalId") as string;
     const name = formData.get("name") as string;
     const reason = formData.get("reason") as string | null;
-    
+
     if (externalId && name) {
       // Add to blocklist
       await blockItem("github", externalId, name, reason || undefined);
-      
+
       // Also delete existing person with this GitHub URL
       const existingPerson = await getPersonByGitHub(externalId);
       if (existingPerson) {
         await deletePerson(existingPerson.id);
       }
-      
+
       return { intent: "block", blocked: { externalId, name } };
     }
     return { intent: "block", error: "Missing externalId or name" };
   }
-  
+
   if (intent === "unblock") {
     const externalId = formData.get("externalId") as string;
-    
+
     if (externalId) {
       await unblockItem("github", externalId);
       return { intent: "unblock", unblocked: externalId };
     }
     return { intent: "unblock", error: "Missing externalId" };
   }
-  
+
   // Original manual search/import actions
   if (intent === "search") {
     const page = parseInt(formData.get("page") as string) || 1;
-    
+
     try {
       const result = await searchNewfoundlandUsers(page, 30);
-      
+
       // Fetch full profiles for the search results
-      const usernames = result.users.map(u => u.login);
+      const usernames = result.users.map((u) => u.login);
       const profiles = await getUserProfiles(usernames);
-      
-      return { 
-        intent: "search", 
-        users: profiles, 
+
+      return {
+        intent: "search",
+        users: profiles,
         total: result.total,
         page,
         rateLimit: {
@@ -144,26 +141,26 @@ export async function action({ request }: Route.ActionArgs) {
           limit: result.rateLimit.limit,
           reset: result.rateLimit.reset.toISOString(),
         },
-        error: null 
+        error: null,
       };
     } catch (e) {
       return { intent: "search", users: [], total: 0, page: 1, rateLimit: null, error: String(e) };
     }
   }
-  
+
   if (intent === "import") {
     const usersJson = formData.get("users") as string;
     const downloadAvatars = formData.get("downloadAvatars") === "true";
-    
+
     try {
       const users: GitHubUser[] = JSON.parse(usersJson);
       const imported: string[] = [];
       const errors: string[] = [];
-      
+
       for (const user of users) {
         try {
           let avatar: string | null = null;
-          
+
           // Download and save avatar if requested
           if (downloadAvatars && user.avatar_url) {
             const imageBuffer = await fetchAvatar(user.avatar_url);
@@ -171,20 +168,20 @@ export async function action({ request }: Route.ActionArgs) {
               avatar = await processAndSaveIconImageWithPadding(imageBuffer);
             }
           }
-          
+
           const githubUrl = user.html_url;
           const displayName = user.name || user.login;
-          
+
           // Check if person already exists by GitHub URL or name
           const existingByGitHub = await getPersonByGitHub(githubUrl);
           const existingByName = await getPersonByName(displayName);
           const existing = existingByGitHub || existingByName;
-          
+
           // Try to find company from GitHub company field or bio
           let companyName: string | null = null;
           let githubOrgUrl: string | null = null;
           let matchedCompany = null;
-          
+
           // First check GitHub company field
           if (user.company) {
             const parsed = parseGitHubCompanyField(user.company);
@@ -192,7 +189,7 @@ export async function action({ request }: Route.ActionArgs) {
             githubOrgUrl = parsed.githubOrg;
             matchedCompany = await findCompanyByFuzzyName(parsed.name);
           }
-          
+
           // If no company from field, try to extract from bio
           if (!companyName && user.bio) {
             const bioCompany = extractCompanyFromBio(user.bio);
@@ -201,16 +198,16 @@ export async function action({ request }: Route.ActionArgs) {
               matchedCompany = await findCompanyByFuzzyName(bioCompany);
             }
           }
-          
+
           // If we found a GitHub org and it matches a company, update the company's github field
           if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
             await updateCompany(matchedCompany.id, { github: githubOrgUrl });
           }
-          
+
           // Build the bio with company reference
           let bio = user.bio || "";
           const companyRefName = matchedCompany?.name || companyName;
-          
+
           // Add "Works at [[Company]]" if we have a company and it's not already in the bio
           if (companyRefName && !bio.toLowerCase().includes(companyRefName.toLowerCase())) {
             const companyRef = `[[${companyRefName}]]`;
@@ -222,7 +219,7 @@ export async function action({ request }: Route.ActionArgs) {
           } else if (!bio) {
             bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
           }
-          
+
           if (existing) {
             // Merge: update with GitHub data if not already linked
             if (!existing.github) {
@@ -234,7 +231,9 @@ export async function action({ request }: Route.ActionArgs) {
                 // Update bio if the existing one is generic
                 bio: existing.bio.startsWith("GitHub user from") ? bio : existing.bio,
               });
-              imported.push(`${displayName} (merged${matchedCompany ? `, linked to ${matchedCompany.name}` : ""})`);
+              imported.push(
+                `${displayName} (merged${matchedCompany ? `, linked to ${matchedCompany.name}` : ""})`,
+              );
             } else {
               // Already has GitHub link, skip
               imported.push(`${displayName} (skipped - already linked)`);
@@ -249,28 +248,35 @@ export async function action({ request }: Route.ActionArgs) {
               avatar,
               visible: false, // Imported users start hidden until reviewed
             });
-            
-            imported.push(`${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`);
+
+            imported.push(
+              `${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`,
+            );
           }
         } catch (e) {
           const name = user.name || user.login;
           errors.push(`${name}: ${String(e)}`);
         }
       }
-      
+
       return { intent: "import", imported, errors };
     } catch (e) {
       return { intent: "import", imported: [], errors: [String(e)] };
     }
   }
-  
+
   return null;
 }
 
 export default function ImportGitHub() {
-  const { existingNames, existingGitHubs, blockedGitHubs: initialBlocked, importProgress: initialProgress } = useLoaderData<typeof loader>();
+  const {
+    existingNames,
+    existingGitHubs,
+    blockedGitHubs: initialBlocked,
+    importProgress: initialProgress,
+  } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
-  
+
   const [fetchedUsers, setFetchedUsers] = useState<GitHubUser[]>([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -280,10 +286,10 @@ export default function ImportGitHub() {
   const [autoRun, setAutoRun] = useState(false);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
   const [blockedGitHubs, setBlockedGitHubs] = useState<Set<string>>(new Set(initialBlocked));
-  
+
   // Handle fetcher response
   const fetcherData = fetcher.data;
-  
+
   useEffect(() => {
     if (fetcherData?.intent === "search" && fetcherData.users) {
       if (fetchedUsers.length === 0 || fetcherData.page !== currentPage) {
@@ -294,64 +300,64 @@ export default function ImportGitHub() {
         }
       }
     }
-    
+
     // Update bulk progress from fetcher
     if (fetcherData?.progress) {
       setBulkProgress(fetcherData.progress);
     }
-    
+
     // Add recent activity
     if (fetcherData?.intent === "bulk-continue") {
       if (fetcherData.processed?.length) {
-        setRecentActivity(prev => [...fetcherData.processed!, ...prev].slice(0, 20));
+        setRecentActivity((prev) => [...fetcherData.processed!, ...prev].slice(0, 20));
       }
       if (fetcherData.errors?.length) {
-        setRecentActivity(prev => [...fetcherData.errors!.map(e => `ERROR: ${e}`), ...prev].slice(0, 20));
+        setRecentActivity((prev) =>
+          [...fetcherData.errors!.map((e) => `ERROR: ${e}`), ...prev].slice(0, 20),
+        );
       }
     }
-    
+
     // Handle block/unblock responses
     if (fetcherData?.intent === "block" && fetcherData.blocked) {
-      setBlockedGitHubs(prev => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
+      setBlockedGitHubs((prev) => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
     }
     if (fetcherData?.intent === "unblock" && fetcherData.unblocked) {
-      setBlockedGitHubs(prev => {
+      setBlockedGitHubs((prev) => {
         const newSet = new Set(prev);
         newSet.delete(fetcherData.unblocked.toLowerCase());
         return newSet;
       });
     }
   }, [fetcherData, currentPage, fetchedUsers.length]);
-  
+
   // Auto-continue when running and not rate limited
   useEffect(() => {
     if (autoRun && bulkProgress.status === "running" && fetcher.state === "idle") {
       const timer = setTimeout(() => {
         fetcher.submit(
           { intent: "bulk-continue", downloadAvatars: String(downloadAvatars) },
-          { method: "post" }
+          { method: "post" },
         );
       }, 500); // Small delay between batches
       return () => clearTimeout(timer);
     }
   }, [autoRun, bulkProgress.status, fetcher.state, fetcher, downloadAvatars]);
-  
+
   // Auto-resume after rate limit
   useEffect(() => {
     if (autoRun && bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset) {
       const waitTime = bulkProgress.rateLimitReset.getTime() - Date.now() + 5000; // 5s buffer
-      if (waitTime > 0 && waitTime < 3600000) { // Max 1 hour wait
+      if (waitTime > 0 && waitTime < 3600000) {
+        // Max 1 hour wait
         const timer = setTimeout(() => {
-          fetcher.submit(
-            { intent: "bulk-start" },
-            { method: "post" }
-          );
+          fetcher.submit({ intent: "bulk-start" }, { method: "post" });
         }, waitTime);
         return () => clearTimeout(timer);
       }
     }
   }, [autoRun, bulkProgress.waitingForRateLimit, bulkProgress.rateLimitReset, fetcher]);
-  
+
   const isExisting = (user: GitHubUser) => {
     const githubUrl = user.html_url.toLowerCase();
     if (existingGitHubs.includes(githubUrl)) return "github";
@@ -359,11 +365,11 @@ export default function ImportGitHub() {
     if (existingNames.includes(name)) return "name";
     return false;
   };
-  
+
   const isUserBlocked = (user: GitHubUser) => {
     return blockedGitHubs.has(user.html_url.toLowerCase());
   };
-  
+
   const toggleSelect = (login: string) => {
     const newSelected = new Set(selected);
     if (newSelected.has(login)) {
@@ -373,104 +379,97 @@ export default function ImportGitHub() {
     }
     setSelected(newSelected);
   };
-  
+
   const selectAll = () => {
-    const selectable = fetchedUsers.filter(u => isExisting(u) !== "github" && !isUserBlocked(u));
-    setSelected(new Set(selectable.map(u => u.login)));
+    const selectable = fetchedUsers.filter((u) => isExisting(u) !== "github" && !isUserBlocked(u));
+    setSelected(new Set(selectable.map((u) => u.login)));
   };
-  
+
   const selectNone = () => {
     setSelected(new Set());
   };
-  
+
   const handleSearch = (page: number = 1) => {
-    fetcher.submit(
-      { intent: "search", page: String(page) },
-      { method: "post" }
-    );
+    fetcher.submit({ intent: "search", page: String(page) }, { method: "post" });
   };
-  
+
   const handleImport = () => {
-    const toImport = fetchedUsers.filter(u => selected.has(u.login));
+    const toImport = fetchedUsers.filter((u) => selected.has(u.login));
     fetcher.submit(
-      { 
-        intent: "import", 
+      {
+        intent: "import",
         users: JSON.stringify(toImport),
-        downloadAvatars: String(downloadAvatars)
+        downloadAvatars: String(downloadAvatars),
       },
-      { method: "post" }
+      { method: "post" },
     );
   };
-  
+
   const handleBulkStart = () => {
     setAutoRun(true);
     fetcher.submit({ intent: "bulk-start" }, { method: "post" });
   };
-  
+
   const handleBulkPause = () => {
     setAutoRun(false);
     fetcher.submit({ intent: "bulk-pause" }, { method: "post" });
   };
-  
+
   const handleBulkReset = () => {
     setAutoRun(false);
     setRecentActivity([]);
     fetcher.submit({ intent: "bulk-reset" }, { method: "post" });
   };
-  
+
   const handleBlock = (user: GitHubUser) => {
     const displayName = user.name || user.login;
     fetcher.submit(
       { intent: "block", externalId: user.html_url, name: displayName },
-      { method: "post" }
+      { method: "post" },
     );
   };
-  
+
   const handleUnblock = (user: GitHubUser) => {
-    fetcher.submit(
-      { intent: "unblock", externalId: user.html_url },
-      { method: "post" }
-    );
+    fetcher.submit({ intent: "unblock", externalId: user.html_url }, { method: "post" });
   };
-  
+
   const isSearching = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "search";
   const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
-  const isBulkRunning = fetcher.state !== "idle" && 
-    (fetcher.formData?.get("intent") === "bulk-start" || 
-     fetcher.formData?.get("intent") === "bulk-continue");
-  
+  const isBulkRunning =
+    fetcher.state !== "idle" &&
+    (fetcher.formData?.get("intent") === "bulk-start" ||
+      fetcher.formData?.get("intent") === "bulk-continue");
+
   const totalPages = Math.ceil(totalUsers / 30);
   const rateLimit = fetcherData?.intent === "search" ? fetcherData.rateLimit : null;
-  
-  const progressPercent = bulkProgress.totalItems > 0 
-    ? Math.round((bulkProgress.processedItems / bulkProgress.totalItems) * 100)
-    : 0;
-  
+
+  const progressPercent =
+    bulkProgress.totalItems > 0
+      ? Math.round((bulkProgress.processedItems / bulkProgress.totalItems) * 100)
+      : 0;
+
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>
-        
+
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Import from GitHub</h1>
         </div>
-        
+
         <p className="text-harbour-500">
-          Search for GitHub users in Newfoundland & Labrador and import them as people. 
-          Use "Import All" for automatic bulk import with rate limit handling.
+          Search for GitHub users in Newfoundland & Labrador and import them as people. Use "Import
+          All" for automatic bulk import with rate limit handling.
         </p>
-        
+
         {/* Bulk Import Section */}
         <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
           <h2 className="font-semibold text-harbour-700">Bulk Import (Recommended)</h2>
-          
+
           <div className="flex items-center gap-4 flex-wrap">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -481,7 +480,7 @@ export default function ImportGitHub() {
               />
               Download avatars
             </label>
-            
+
             {bulkProgress.status === "idle" && (
               <button
                 type="button"
@@ -492,7 +491,7 @@ export default function ImportGitHub() {
                 {isBulkRunning ? "Starting..." : "Import All Users"}
               </button>
             )}
-            
+
             {(bulkProgress.status === "running" || bulkProgress.status === "paused") && (
               <>
                 {bulkProgress.status === "running" || autoRun ? (
@@ -513,7 +512,7 @@ export default function ImportGitHub() {
                     {isBulkRunning ? "Resuming..." : "Resume"}
                   </button>
                 )}
-                
+
                 <button
                   type="button"
                   onClick={handleBulkReset}
@@ -523,7 +522,7 @@ export default function ImportGitHub() {
                 </button>
               </>
             )}
-            
+
             {bulkProgress.status === "completed" && (
               <button
                 type="button"
@@ -533,7 +532,7 @@ export default function ImportGitHub() {
                 Start New Import
               </button>
             )}
-            
+
             {bulkProgress.status === "error" && (
               <>
                 <button
@@ -554,53 +553,62 @@ export default function ImportGitHub() {
               </>
             )}
           </div>
-          
+
           {/* Progress display */}
           {bulkProgress.status !== "idle" && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-4 text-sm">
-                <span className={`px-2 py-0.5 font-medium ${
-                  bulkProgress.status === "running" ? "bg-green-100 text-green-700" :
-                  bulkProgress.status === "paused" ? "bg-amber-100 text-amber-700" :
-                  bulkProgress.status === "completed" ? "bg-blue-100 text-blue-700" :
-                  "bg-red-100 text-red-700"
-                }`}>
+                <span
+                  className={`px-2 py-0.5 font-medium ${
+                    bulkProgress.status === "running"
+                      ? "bg-green-100 text-green-700"
+                      : bulkProgress.status === "paused"
+                        ? "bg-amber-100 text-amber-700"
+                        : bulkProgress.status === "completed"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-red-100 text-red-700"
+                  }`}
+                >
                   {bulkProgress.status.toUpperCase()}
                   {autoRun && bulkProgress.status === "running" && " (auto)"}
                 </span>
-                
+
                 <span className="text-harbour-600">
-                  {bulkProgress.processedItems} / {bulkProgress.totalItems} users
-                  ({progressPercent}%)
+                  {bulkProgress.processedItems} / {bulkProgress.totalItems} users ({progressPercent}
+                  %)
                 </span>
-                
+
                 {bulkProgress.rateLimitRemaining !== null && (
                   <span className="text-harbour-400">
                     API: {bulkProgress.rateLimitRemaining} remaining
                   </span>
                 )}
               </div>
-              
+
               {/* Progress bar */}
               <div className="h-2 bg-harbour-200 rounded-full overflow-hidden">
-                <div 
+                <div
                   className={`h-full transition-all duration-300 ${
-                    bulkProgress.status === "completed" ? "bg-blue-500" :
-                    bulkProgress.status === "error" ? "bg-red-500" :
-                    "bg-green-500"
+                    bulkProgress.status === "completed"
+                      ? "bg-blue-500"
+                      : bulkProgress.status === "error"
+                        ? "bg-red-500"
+                        : "bg-green-500"
                   }`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              
+
               {/* Stats */}
               <div className="flex gap-4 text-xs text-harbour-500">
                 <span>Imported: {bulkProgress.importedCount}</span>
                 <span>Skipped: {bulkProgress.skippedCount}</span>
                 <span>Errors: {bulkProgress.errorCount}</span>
-                <span>Page: {bulkProgress.currentPage} / {bulkProgress.totalPages}</span>
+                <span>
+                  Page: {bulkProgress.currentPage} / {bulkProgress.totalPages}
+                </span>
               </div>
-              
+
               {/* Rate limit warning */}
               {bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset && (
                 <div className="text-sm text-amber-600 bg-amber-50 p-2">
@@ -608,14 +616,12 @@ export default function ImportGitHub() {
                   {bulkProgress.rateLimitReset.toLocaleTimeString()}
                 </div>
               )}
-              
+
               {/* Error display */}
               {bulkProgress.lastError && bulkProgress.status === "error" && (
-                <div className="text-sm text-red-600 bg-red-50 p-2">
-                  {bulkProgress.lastError}
-                </div>
+                <div className="text-sm text-red-600 bg-red-50 p-2">{bulkProgress.lastError}</div>
               )}
-              
+
               {/* Recent activity log */}
               {recentActivity.length > 0 && (
                 <details className="text-xs" open={bulkProgress.status === "running"}>
@@ -624,7 +630,10 @@ export default function ImportGitHub() {
                   </summary>
                   <div className="mt-1 max-h-32 overflow-y-auto bg-white border border-harbour-100 p-2 font-mono">
                     {recentActivity.map((item, i) => (
-                      <div key={i} className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}>
+                      <div
+                        key={i}
+                        className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}
+                      >
                         {item}
                       </div>
                     ))}
@@ -634,7 +643,7 @@ export default function ImportGitHub() {
             </div>
           )}
         </div>
-        
+
         {/* Divider */}
         <div className="border-t border-harbour-200 pt-4">
           <h2 className="font-semibold text-harbour-700 mb-2">Manual Import</h2>
@@ -642,7 +651,7 @@ export default function ImportGitHub() {
             Or search and select individual users to import.
           </p>
         </div>
-        
+
         {/* Rate limit info */}
         {rateLimit && (
           <div className="text-sm text-harbour-400">
@@ -654,7 +663,7 @@ export default function ImportGitHub() {
             )}
           </div>
         )}
-        
+
         {/* Search button */}
         {fetchedUsers.length === 0 && (
           <button
@@ -666,14 +675,14 @@ export default function ImportGitHub() {
             {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland & Labrador"}
           </button>
         )}
-        
+
         {/* Error display */}
         {fetcherData?.intent === "search" && fetcherData.error && (
           <div className="p-4 bg-red-50 border border-red-200 text-red-600">
             {fetcherData.error}
           </div>
         )}
-        
+
         {/* Import results */}
         {fetcherData?.intent === "import" && (
           <div className="flex flex-col gap-2">
@@ -702,7 +711,7 @@ export default function ImportGitHub() {
             )}
           </div>
         )}
-        
+
         {/* Users list */}
         {fetchedUsers.length > 0 && (
           <>
@@ -725,7 +734,7 @@ export default function ImportGitHub() {
                 Select none
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-2">
               {fetchedUsers.map((user) => {
                 const existingStatus = isExisting(user);
@@ -738,12 +747,12 @@ export default function ImportGitHub() {
                       blocked
                         ? "bg-red-50 border-red-200 opacity-50"
                         : existingStatus === "github"
-                        ? "bg-harbour-50 border-harbour-200 opacity-60" 
-                        : selected.has(user.login)
-                        ? "bg-blue-50 border-blue-300"
-                        : existingStatus === "name"
-                        ? "bg-amber-50 border-amber-200"
-                        : "bg-white border-harbour-200"
+                          ? "bg-harbour-50 border-harbour-200 opacity-60"
+                          : selected.has(user.login)
+                            ? "bg-blue-50 border-blue-300"
+                            : existingStatus === "name"
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-white border-harbour-200"
                     }`}
                   >
                     <input
@@ -753,7 +762,7 @@ export default function ImportGitHub() {
                       disabled={existingStatus === "github" || blocked}
                       className="w-5 h-5"
                     />
-                    
+
                     {user.avatar_url ? (
                       <img
                         src={user.avatar_url}
@@ -764,10 +773,14 @@ export default function ImportGitHub() {
                     ) : (
                       <div className="w-10 h-10 bg-harbour-100 rounded-full" />
                     )}
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`font-medium ${blocked ? "line-through text-harbour-400" : ""}`}>{displayName}</span>
+                        <span
+                          className={`font-medium ${blocked ? "line-through text-harbour-400" : ""}`}
+                        >
+                          {displayName}
+                        </span>
                         <span className="text-sm text-harbour-400">@{user.login}</span>
                         {blocked && (
                           <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
@@ -785,15 +798,9 @@ export default function ImportGitHub() {
                           </span>
                         )}
                       </div>
-                      {user.bio && (
-                        <p className="text-sm text-harbour-500 truncate">
-                          {user.bio}
-                        </p>
-                      )}
+                      {user.bio && <p className="text-sm text-harbour-500 truncate">{user.bio}</p>}
                       <div className="flex items-center gap-3 text-sm text-harbour-400 flex-wrap">
-                        {user.company && (
-                          <span className="text-harbour-600">{user.company}</span>
-                        )}
+                        {user.company && <span className="text-harbour-600">{user.company}</span>}
                         {user.location && <span>{user.location}</span>}
                         {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
                         {user.blog && (
@@ -808,7 +815,7 @@ export default function ImportGitHub() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <a
                         href={user.html_url}
@@ -840,7 +847,7 @@ export default function ImportGitHub() {
                 );
               })}
             </div>
-            
+
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center gap-2">
@@ -865,7 +872,7 @@ export default function ImportGitHub() {
                 </button>
               </div>
             )}
-            
+
             <div className="flex items-center gap-4">
               <button
                 type="button"
@@ -873,16 +880,11 @@ export default function ImportGitHub() {
                 disabled={selected.size === 0 || isImporting}
                 className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
               >
-                {isImporting 
-                  ? "Importing..." 
-                  : `Import ${selected.size} Selected Users`
-                }
+                {isImporting ? "Importing..." : `Import ${selected.size} Selected Users`}
               </button>
-              
+
               {selected.size > 0 && (
-                <span className="text-sm text-harbour-500">
-                  {selected.size} users selected
-                </span>
+                <span className="text-sm text-harbour-500">{selected.size} users selected</span>
               )}
             </div>
           </>

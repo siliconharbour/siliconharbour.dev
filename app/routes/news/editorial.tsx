@@ -7,18 +7,21 @@ import { format } from "date-fns";
 import type { News } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Editorial - News - siliconharbour.dev" },
-  ];
+  return [{ title: "Editorial - News - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
-  const { items: articles, total } = await getPaginatedNews(limit, offset, searchQuery, "editorial");
-  
+
+  const { items: articles, total } = await getPaginatedNews(
+    limit,
+    offset,
+    searchQuery,
+    "editorial",
+  );
+
   return { articles, total, limit, offset, searchQuery };
 }
 
@@ -31,7 +34,7 @@ export default function NewsEditorial() {
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
           <SearchInput placeholder="Search editorial..." />
-          
+
           {/* Result count */}
           {searchQuery && (
             <p className="text-sm text-harbour-500">
@@ -43,9 +46,7 @@ export default function NewsEditorial() {
 
       {articles.length === 0 ? (
         <p className="text-harbour-400">
-          {searchQuery 
-            ? "No editorial articles match your search." 
-            : "No editorial articles yet."}
+          {searchQuery ? "No editorial articles match your search." : "No editorial articles yet."}
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -54,7 +55,7 @@ export default function NewsEditorial() {
           ))}
         </div>
       )}
-      
+
       <Pagination total={total} limit={limit} offset={offset} />
     </div>
   );
@@ -62,10 +63,7 @@ export default function NewsEditorial() {
 
 function ArticleCard({ article }: { article: News }) {
   return (
-    <a
-      href={`/news/${article.slug}`}
-      className="group flex flex-col gap-3"
-    >
+    <a href={`/news/${article.slug}`} className="group flex flex-col gap-3">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -80,9 +78,7 @@ function ArticleCard({ article }: { article: News }) {
           {article.title}
         </h3>
         {article.publishedAt && (
-          <p className="text-xs text-harbour-400">
-            {format(article.publishedAt, "MMM d, yyyy")}
-          </p>
+          <p className="text-xs text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
         )}
         {article.excerpt && (
           <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>

@@ -44,17 +44,11 @@ export default function ManageGroupsIndex() {
               <div
                 key={group.id}
                 className={`flex items-center gap-4 p-4 border ${
-                  group.visible 
-                    ? "bg-white border-harbour-200" 
-                    : "bg-amber-50 border-amber-200"
+                  group.visible ? "bg-white border-harbour-200" : "bg-amber-50 border-amber-200"
                 }`}
               >
                 {group.logo ? (
-                  <img
-                    src={`/images/${group.logo}`}
-                    alt=""
-                    className="w-12 h-12 object-contain"
-                  />
+                  <img src={`/images/${group.logo}`} alt="" className="w-12 h-12 object-contain" />
                 ) : (
                   <div className="w-12 h-12 bg-harbour-100" />
                 )}
@@ -93,10 +87,7 @@ export default function ManageGroupsIndex() {
         )}
 
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>

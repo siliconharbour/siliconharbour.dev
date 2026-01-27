@@ -8,15 +8,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePagination(url);
   const now = new Date();
-  
+
   // Only count/return active jobs (not expired)
   const activeCondition = or(isNull(jobs.expiresAt), gte(jobs.expiresAt, now));
-  
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(jobs)
-    .where(activeCondition);
-  
+
+  const [{ total }] = await db.select({ total: count() }).from(jobs).where(activeCondition);
+
   const data = await db
     .select()
     .from(jobs)
@@ -24,8 +21,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     .orderBy(desc(jobs.postedAt))
     .limit(limit)
     .offset(offset);
-  
-  const items = data.map(job => ({
+
+  const items = data.map((job) => ({
     id: job.id,
     slug: job.slug,
     title: job.title,
@@ -41,12 +38,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   }));
-  
+
   const baseUrl = url.origin + url.pathname;
   const linkHeader = buildLinkHeader(baseUrl, { limit, offset }, total);
-  
-  return jsonResponse({
-    data: items,
-    pagination: { total, limit, offset, hasMore: offset + limit < total },
-  }, { linkHeader });
+
+  return jsonResponse(
+    {
+      data: items,
+      pagination: { total, limit, offset, hasMore: offset + limit < total },
+    },
+    { linkHeader },
+  );
 }

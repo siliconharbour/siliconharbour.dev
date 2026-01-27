@@ -7,18 +7,16 @@ import { format } from "date-fns";
 import type { News } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "General - News - siliconharbour.dev" },
-  ];
+  return [{ title: "General - News - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
-  
+
   const { items: articles, total } = await getPaginatedNews(limit, offset, searchQuery, "general");
-  
+
   return { articles, total, limit, offset, searchQuery };
 }
 
@@ -31,7 +29,7 @@ export default function NewsGeneral() {
       {(total > limit || searchQuery) && (
         <div className="flex flex-col gap-2">
           <SearchInput placeholder="Search general news..." />
-          
+
           {/* Result count */}
           {searchQuery && (
             <p className="text-sm text-harbour-500">
@@ -43,8 +41,8 @@ export default function NewsGeneral() {
 
       {articles.length === 0 ? (
         <p className="text-harbour-400">
-          {searchQuery 
-            ? "No general news articles match your search." 
+          {searchQuery
+            ? "No general news articles match your search."
             : "No general news articles yet."}
         </p>
       ) : (
@@ -54,7 +52,7 @@ export default function NewsGeneral() {
           ))}
         </div>
       )}
-      
+
       <Pagination total={total} limit={limit} offset={offset} />
     </div>
   );
@@ -62,10 +60,7 @@ export default function NewsGeneral() {
 
 function ArticleCard({ article }: { article: News }) {
   return (
-    <a
-      href={`/news/${article.slug}`}
-      className="group flex flex-col gap-3"
-    >
+    <a href={`/news/${article.slug}`} className="group flex flex-col gap-3">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -80,9 +75,7 @@ function ArticleCard({ article }: { article: News }) {
           {article.title}
         </h3>
         {article.publishedAt && (
-          <p className="text-xs text-harbour-400">
-            {format(article.publishedAt, "MMM d, yyyy")}
-          </p>
+          <p className="text-xs text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
         )}
         {article.excerpt && (
           <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>

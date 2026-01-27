@@ -1,14 +1,18 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form, useFetcher } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { 
-  getProjectWithImages, 
-  updateProject, 
+import {
+  getProjectWithImages,
+  updateProject,
   addProjectImage,
   removeProjectImage,
 } from "~/lib/projects.server";
 import { parseProjectLinks, stringifyProjectLinks } from "~/lib/project-links";
-import { processAndSaveCoverImage, processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import {
+  processAndSaveCoverImage,
+  processAndSaveIconImage,
+  deleteImage,
+} from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { projectTypes, projectStatuses, type ProjectImage } from "~/db/schema";
 
@@ -52,7 +56,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (intent === "addGalleryImage") {
     const galleryImageData = formData.get("galleryImageData") as string | null;
     const caption = (formData.get("caption") as string) || null;
-    
+
     if (galleryImageData) {
       const base64Data = galleryImageData.split(",")[1];
       const buffer = Buffer.from(base64Data, "base64");
@@ -65,7 +69,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (intent === "removeGalleryImage") {
     const imageId = parseInt(formData.get("imageId") as string, 10);
     if (!isNaN(imageId)) {
-      const image = existingProject.images.find(i => i.id === imageId);
+      const image = existingProject.images.find((i) => i.id === imageId);
       if (image) {
         await deleteImage(image.image);
         await removeProjectImage(imageId);
@@ -136,8 +140,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   await updateProject(id, {
     name,
     description,
-    type: type as typeof projectTypes[number],
-    status: status as typeof projectStatuses[number],
+    type: type as (typeof projectTypes)[number],
+    status: status as (typeof projectStatuses)[number],
     links: links || null,
     ...(logo !== undefined && { logo }),
     ...(coverImage !== undefined && { coverImage }),
@@ -171,10 +175,7 @@ export default function EditProject() {
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link
-            to="/manage/projects"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/projects" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Projects
           </Link>
         </div>
@@ -182,9 +183,7 @@ export default function EditProject() {
         <h1 className="text-2xl font-semibold text-harbour-700">Edit Project</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
         <Form method="post" className="flex flex-col gap-6">
@@ -228,7 +227,9 @@ export default function EditProject() {
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectTypes.map((t) => (
-                  <option key={t} value={t}>{typeLabels[t]}</option>
+                  <option key={t} value={t}>
+                    {typeLabels[t]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -244,7 +245,9 @@ export default function EditProject() {
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectStatuses.map((s) => (
-                  <option key={s} value={s}>{statusLabels[s]}</option>
+                  <option key={s} value={s}>
+                    {statusLabels[s]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -254,7 +257,9 @@ export default function EditProject() {
             <legend className="font-medium text-harbour-700 px-2">Links</legend>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label htmlFor="github" className="text-sm text-harbour-600">GitHub</label>
+                <label htmlFor="github" className="text-sm text-harbour-600">
+                  GitHub
+                </label>
                 <input
                   type="url"
                   id="github"
@@ -265,7 +270,9 @@ export default function EditProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="website" className="text-sm text-harbour-600">Website</label>
+                <label htmlFor="website" className="text-sm text-harbour-600">
+                  Website
+                </label>
                 <input
                   type="url"
                   id="website"
@@ -276,7 +283,9 @@ export default function EditProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="demo" className="text-sm text-harbour-600">Live Demo</label>
+                <label htmlFor="demo" className="text-sm text-harbour-600">
+                  Live Demo
+                </label>
                 <input
                   type="url"
                   id="demo"
@@ -287,7 +296,9 @@ export default function EditProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="itchio" className="text-sm text-harbour-600">itch.io</label>
+                <label htmlFor="itchio" className="text-sm text-harbour-600">
+                  itch.io
+                </label>
                 <input
                   type="url"
                   id="itchio"
@@ -298,7 +309,9 @@ export default function EditProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="npm" className="text-sm text-harbour-600">npm</label>
+                <label htmlFor="npm" className="text-sm text-harbour-600">
+                  npm
+                </label>
                 <input
                   type="url"
                   id="npm"
@@ -309,7 +322,9 @@ export default function EditProject() {
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label htmlFor="steam" className="text-sm text-harbour-600">Steam</label>
+                <label htmlFor="steam" className="text-sm text-harbour-600">
+                  Steam
+                </label>
                 <input
                   type="url"
                   id="steam"
@@ -364,7 +379,7 @@ function GalleryManager({ images }: { images: ProjectImage[] }) {
   return (
     <div className="border-t border-harbour-200 pt-6">
       <h2 className="text-xl font-semibold text-harbour-700 mb-4">Gallery Images</h2>
-      
+
       {/* Existing Images */}
       {images.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
@@ -387,7 +402,12 @@ function GalleryManager({ images }: { images: ProjectImage[] }) {
                   title="Remove image"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </fetcher.Form>
@@ -406,9 +426,12 @@ function GalleryImageUploader() {
   const fetcher = useFetcher();
 
   return (
-    <fetcher.Form method="post" className="flex flex-col gap-4 p-4 border border-dashed border-harbour-300">
+    <fetcher.Form
+      method="post"
+      className="flex flex-col gap-4 p-4 border border-dashed border-harbour-300"
+    >
       <input type="hidden" name="intent" value="addGalleryImage" />
-      
+
       <ImageUpload
         label="Add Gallery Image"
         name="galleryImageData"
@@ -418,7 +441,9 @@ function GalleryImageUploader() {
       />
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="caption" className="text-sm text-harbour-600">Caption (optional)</label>
+        <label htmlFor="caption" className="text-sm text-harbour-600">
+          Caption (optional)
+        </label>
         <input
           type="text"
           id="caption"

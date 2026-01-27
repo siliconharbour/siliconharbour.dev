@@ -4,7 +4,7 @@ import { generateOGImage, prepareEventOGData } from "~/lib/og-image.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const slug = params.slug;
-  
+
   const event = await getEventBySlug(slug);
   if (!event) {
     throw new Response("Event not found", { status: 404 });

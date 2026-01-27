@@ -4,7 +4,7 @@ import { generateOGImage, prepareNewsOGData } from "~/lib/og-image.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const slug = params.slug;
-  
+
   const article = await getNewsBySlug(slug);
   if (!article) {
     throw new Response("Article not found", { status: 404 });

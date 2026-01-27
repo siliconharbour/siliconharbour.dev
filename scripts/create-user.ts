@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 
 async function createUser() {
   const args = process.argv.slice(2);
-  
+
   if (args.length < 2) {
     console.error("Usage: npm run create-user <email> <password> [role]");
     console.error("  role: 'regular' (default) or 'admin'");

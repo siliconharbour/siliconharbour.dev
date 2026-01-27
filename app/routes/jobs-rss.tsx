@@ -30,7 +30,7 @@ ${jobs
       <description>${escapeXml(job.description.slice(0, 500))}${job.description.length > 500 ? "..." : ""}</description>
       <pubDate>${format(job.postedAt, "EEE, dd MMM yyyy HH:mm:ss xx")}</pubDate>
       <guid isPermaLink="false">job-${job.id}</guid>
-    </item>`
+    </item>`,
   )
   .join("\n")}
   </channel>

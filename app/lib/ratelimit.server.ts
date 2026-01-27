@@ -12,7 +12,7 @@ export interface RateLimitResult {
 /**
  * Check and increment rate limit for a given key.
  * Uses fixed time windows aligned to the window size.
- * 
+ *
  * @param key - Unique identifier (e.g., "comment:abc123" where abc123 is IP hash)
  * @param limit - Maximum requests allowed in the window
  * @param windowSeconds - Window size in seconds (e.g., 1800 for 30 minutes)
@@ -21,7 +21,7 @@ export interface RateLimitResult {
 export async function checkRateLimit(
   key: string,
   limit: number,
-  windowSeconds: number
+  windowSeconds: number,
 ): Promise<RateLimitResult> {
   const now = Math.floor(Date.now() / 1000);
   // Align to window boundary (e.g., if window is 1800s/30min, align to :00 or :30)
@@ -30,11 +30,7 @@ export async function checkRateLimit(
   const resetAt = new Date(expiresAt * 1000);
 
   // Try to get existing record
-  const existing = await db
-    .select()
-    .from(rateLimits)
-    .where(eq(rateLimits.key, key))
-    .get();
+  const existing = await db.select().from(rateLimits).where(eq(rateLimits.key, key)).get();
 
   if (existing && existing.windowStart === windowStart) {
     // Same window - check if under limit
@@ -93,18 +89,14 @@ export async function checkRateLimit(
 export async function getRateLimitStatus(
   key: string,
   limit: number,
-  windowSeconds: number
+  windowSeconds: number,
 ): Promise<RateLimitResult> {
   const now = Math.floor(Date.now() / 1000);
   const windowStart = now - (now % windowSeconds);
   const expiresAt = windowStart + windowSeconds;
   const resetAt = new Date(expiresAt * 1000);
 
-  const existing = await db
-    .select()
-    .from(rateLimits)
-    .where(eq(rateLimits.key, key))
-    .get();
+  const existing = await db.select().from(rateLimits).where(eq(rateLimits.key, key)).get();
 
   if (existing && existing.windowStart === windowStart) {
     return {
@@ -130,10 +122,8 @@ export async function getRateLimitStatus(
  */
 export async function cleanupExpiredRateLimits(): Promise<number> {
   const now = Math.floor(Date.now() / 1000);
-  
-  const result = await db
-    .delete(rateLimits)
-    .where(lt(rateLimits.expiresAt, now));
+
+  const result = await db.delete(rateLimits).where(lt(rateLimits.expiresAt, now));
 
   return result.changes;
 }

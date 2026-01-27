@@ -13,14 +13,23 @@ import { getAllProducts } from "~/lib/products.server";
 import { getCommentCount } from "~/lib/comments.server";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Manage - siliconharbour.dev" },
-  ];
+  return [{ title: "Manage - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
-  const [events, companies, groups, education, people, news, jobs, projects, products, commentsCount] = await Promise.all([
+  const [
+    events,
+    companies,
+    groups,
+    education,
+    people,
+    news,
+    jobs,
+    projects,
+    products,
+    commentsCount,
+  ] = await Promise.all([
     getAllEvents(),
     getAllCompanies(),
     getAllGroups(),
@@ -32,8 +41,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     getAllProducts(),
     getCommentCount(),
   ]);
-  return { 
-    user, 
+  return {
+    user,
     counts: {
       events: events.length,
       companies: companies.length,
@@ -45,7 +54,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       projects: projects.length,
       products: products.length,
       comments: commentsCount,
-    }
+    },
   };
 }
 
@@ -71,27 +80,16 @@ export default function ManageIndex() {
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
             <h1 className="text-2xl font-semibold text-harbour-700">Dashboard</h1>
-            <p className="text-harbour-400 text-sm">
-              Welcome, {user.email}
-            </p>
+            <p className="text-harbour-400 text-sm">Welcome, {user.email}</p>
           </div>
           <div className="flex items-center gap-4">
-            <Link
-              to="/manage/settings"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
-            >
+            <Link to="/manage/settings" className="text-sm text-harbour-400 hover:text-harbour-600">
               Settings
             </Link>
-            <Link
-              to="/"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
-            >
+            <Link to="/" className="text-sm text-harbour-400 hover:text-harbour-600">
               View Site
             </Link>
-            <Link
-              to="/manage/logout"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
-            >
+            <Link to="/manage/logout" className="text-sm text-harbour-400 hover:text-harbour-600">
               Logout
             </Link>
           </div>
@@ -120,28 +118,37 @@ export default function ManageIndex() {
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
             >
               <h3 className="font-medium text-harbour-700">TechNL Directory</h3>
-              <p className="text-harbour-400 text-sm">Import companies from the TechNL member directory</p>
+              <p className="text-harbour-400 text-sm">
+                Import companies from the TechNL member directory
+              </p>
             </Link>
             <Link
               to="/manage/import/genesis"
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
             >
               <h3 className="font-medium text-harbour-700">Genesis Centre</h3>
-              <p className="text-harbour-400 text-sm">Import companies from the Genesis Centre portfolio</p>
+              <p className="text-harbour-400 text-sm">
+                Import companies from the Genesis Centre portfolio
+              </p>
             </Link>
             <Link
               to="/manage/import/github-by-location"
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
             >
               <h3 className="font-medium text-harbour-700">GitHub by Location</h3>
-              <p className="text-harbour-400 text-sm">Search GitHub for users with Newfoundland in their location field</p>
+              <p className="text-harbour-400 text-sm">
+                Search GitHub for users with Newfoundland in their location field
+              </p>
             </Link>
             <Link
               to="/manage/import/github-following"
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
             >
               <h3 className="font-medium text-harbour-700">GitHub Connections</h3>
-              <p className="text-harbour-400 text-sm">Import from a user's following/followers - useful for finding local devs who don't list their location</p>
+              <p className="text-harbour-400 text-sm">
+                Import from a user's following/followers - useful for finding local devs who don't
+                list their location
+              </p>
             </Link>
           </div>
         </div>
@@ -154,7 +161,9 @@ export default function ManageIndex() {
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
             >
               <h3 className="font-medium text-harbour-700">Export Data</h3>
-              <p className="text-harbour-400 text-sm">Download all content as markdown files in a ZIP archive</p>
+              <p className="text-harbour-400 text-sm">
+                Download all content as markdown files in a ZIP archive
+              </p>
             </Link>
           </div>
         </div>

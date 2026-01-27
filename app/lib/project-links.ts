@@ -26,8 +26,6 @@ export function parseProjectLinks(linksJson: string | null): ProjectLinks {
 
 export function stringifyProjectLinks(links: ProjectLinks): string {
   // Remove empty values
-  const cleaned = Object.fromEntries(
-    Object.entries(links).filter(([_, v]) => v && v.trim())
-  );
+  const cleaned = Object.fromEntries(Object.entries(links).filter(([_, v]) => v && v.trim()));
   return JSON.stringify(cleaned);
 }

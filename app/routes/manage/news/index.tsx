@@ -50,7 +50,9 @@ export default function ManageNewsIndex() {
                   <div className="flex items-center gap-2">
                     <h2 className="font-medium truncate text-harbour-700">{article.title}</h2>
                     {!article.publishedAt && (
-                      <span className="text-xs px-2 py-0.5 bg-harbour-100 text-harbour-600">Draft</span>
+                      <span className="text-xs px-2 py-0.5 bg-harbour-100 text-harbour-600">
+                        Draft
+                      </span>
                     )}
                   </div>
                   {article.publishedAt && (
@@ -80,10 +82,7 @@ export default function ManageNewsIndex() {
         )}
 
         <div>
-          <Link
-            to="/manage"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
             &larr; Back to Dashboard
           </Link>
         </div>

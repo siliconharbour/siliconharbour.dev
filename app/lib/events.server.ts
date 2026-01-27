@@ -1,11 +1,11 @@
 import { db } from "~/db";
-import { 
-  events, 
-  eventDates, 
+import {
+  events,
+  eventDates,
   eventOccurrences,
-  type Event, 
-  type EventDate, 
-  type NewEvent, 
+  type Event,
+  type EventDate,
+  type NewEvent,
   type NewEventDate,
   type EventOccurrence,
   type NewEventOccurrence,
@@ -37,7 +37,7 @@ export interface EventOccurrenceDisplay {
   overrideId?: number; // ID in eventOccurrences table if there's an override
 }
 
-export type EventWithOccurrences = Event & { 
+export type EventWithOccurrences = Event & {
   dates: EventDate[];
   occurrences: EventOccurrenceDisplay[];
 };
@@ -47,7 +47,7 @@ export type EventWithOccurrences = Event & {
  */
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: events.slug }).from(events);
-  return rows.map(r => r.slug);
+  return rows.map((r) => r.slug);
 }
 
 /**
@@ -56,26 +56,33 @@ async function getExistingSlugs(): Promise<string[]> {
 export async function generateEventSlug(title: string, excludeId?: number): Promise<string> {
   const baseSlug = generateSlug(title);
   let existingSlugs = await getExistingSlugs();
-  
+
   // If updating, exclude the current event's slug from the check
   if (excludeId) {
-    const current = await db.select({ slug: events.slug }).from(events).where(eq(events.id, excludeId)).get();
+    const current = await db
+      .select({ slug: events.slug })
+      .from(events)
+      .where(eq(events.id, excludeId))
+      .get();
     if (current) {
-      existingSlugs = existingSlugs.filter(s => s !== current.slug);
+      existingSlugs = existingSlugs.filter((s) => s !== current.slug);
     }
   }
-  
+
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
 export async function createEvent(
   event: Omit<NewEvent, "slug">,
-  dates: Omit<NewEventDate, "eventId">[]
+  dates: Omit<NewEventDate, "eventId">[],
 ): Promise<EventWithDates> {
   // Generate unique slug from title
   const slug = await generateEventSlug(event.title);
-  
-  const [newEvent] = await db.insert(events).values({ ...event, slug }).returning();
+
+  const [newEvent] = await db
+    .insert(events)
+    .values({ ...event, slug })
+    .returning();
 
   const newDates = await Promise.all(
     dates.map(async (date) => {
@@ -84,12 +91,12 @@ export async function createEvent(
         .values({ ...date, eventId: newEvent.id })
         .returning();
       return newDate;
-    })
+    }),
   );
 
   // Sync references from description
   await syncReferences("event", newEvent.id, newEvent.description, "description");
-  
+
   // Sync organizer references
   await syncOrganizerReferences(newEvent.id, newEvent.organizer);
 
@@ -99,19 +106,15 @@ export async function createEvent(
 export async function updateEvent(
   id: number,
   event: Partial<Omit<NewEvent, "slug">>,
-  dates?: Omit<NewEventDate, "eventId">[]
+  dates?: Omit<NewEventDate, "eventId">[],
 ): Promise<EventWithDates | null> {
   // If title is being updated, regenerate slug
   let updateData: Partial<NewEvent> = { ...event, updatedAt: new Date() };
   if (event.title) {
     updateData.slug = await generateEventSlug(event.title, id);
   }
-  
-  const [updated] = await db
-    .update(events)
-    .set(updateData)
-    .where(eq(events.id, id))
-    .returning();
+
+  const [updated] = await db.update(events).set(updateData).where(eq(events.id, id)).returning();
 
   if (!updated) return null;
 
@@ -119,7 +122,7 @@ export async function updateEvent(
   if (event.description) {
     await syncReferences("event", id, event.description, "description");
   }
-  
+
   // Sync organizer references if organizer changed
   if (event.organizer !== undefined) {
     await syncOrganizerReferences(id, event.organizer);
@@ -128,7 +131,7 @@ export async function updateEvent(
   if (dates) {
     // Delete existing dates and insert new ones
     await db.delete(eventDates).where(eq(eventDates.eventId, id));
-    
+
     const newDates = await Promise.all(
       dates.map(async (date) => {
         const [newDate] = await db
@@ -136,16 +139,13 @@ export async function updateEvent(
           .values({ ...date, eventId: id })
           .returning();
         return newDate;
-      })
+      }),
     );
 
     return { ...updated, dates: newDates };
   }
 
-  const existingDates = await db
-    .select()
-    .from(eventDates)
-    .where(eq(eventDates.eventId, id));
+  const existingDates = await db.select().from(eventDates).where(eq(eventDates.eventId, id));
 
   return { ...updated, dates: existingDates };
 }
@@ -203,7 +203,7 @@ export async function getAllEvents(): Promise<EventWithDates[]> {
         .where(eq(eventDates.eventId, event.id))
         .orderBy(asc(eventDates.startDate));
       return { ...event, dates };
-    })
+    }),
   );
 
   return eventsWithDates;
@@ -212,7 +212,7 @@ export async function getAllEvents(): Promise<EventWithDates[]> {
 export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   const now = new Date();
   const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-  
+
   // Get all events that have at least one explicit date >= now
   const upcomingEventIds = await db
     .selectDistinct({ eventId: eventDates.eventId })
@@ -224,13 +224,13 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
     .select()
     .from(events)
     .where(gte(events.recurrenceRule, ""));
-  
-  const recurringEvents = recurringEventsResult.filter(e => e.recurrenceRule);
-  
+
+  const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
+
   // Combine IDs
   const allEventIds = new Set([
-    ...upcomingEventIds.map(r => r.eventId),
-    ...recurringEvents.map(e => e.id),
+    ...upcomingEventIds.map((r) => r.eventId),
+    ...recurringEvents.map((e) => e.id),
   ]);
 
   if (allEventIds.size === 0) return [];
@@ -239,7 +239,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
     Array.from(allEventIds).map(async (eventId) => {
       const eventData = await getEventById(eventId);
       if (!eventData) return null;
-      
+
       // For recurring events, generate upcoming dates
       if (eventData.recurrenceRule) {
         const generatedDates = getGeneratedOccurrences(eventData, now, threeMonthsFromNow);
@@ -247,16 +247,16 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
         const syntheticDates: EventDate[] = generatedDates.map((date, i) => {
           // Get the date string in Newfoundland timezone
           const dateStr = getDateInTimezone(date);
-          
+
           // Parse the date with the time as Newfoundland timezone
           const startTime = eventData.defaultStartTime || "00:00";
           const startDateTime = parseAsTimezone(dateStr, startTime);
-          
+
           let endDateTime: Date | null = null;
           if (eventData.defaultEndTime) {
             endDateTime = parseAsTimezone(dateStr, eventData.defaultEndTime);
           }
-          
+
           return {
             id: -(i + 1), // Negative IDs for synthetic dates
             eventId: eventData.id,
@@ -264,18 +264,18 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
             endDate: endDateTime,
           };
         });
-        
+
         return { ...eventData, dates: syntheticDates };
       }
-      
+
       return eventData;
-    })
+    }),
   );
 
   // Filter nulls, filter to only those with upcoming dates, and sort
   return eventsWithDates
     .filter((e): e is EventWithDates => e !== null)
-    .filter(e => e.dates.some(d => d.startDate >= now))
+    .filter((e) => e.dates.some((d) => d.startDate >= now))
     .sort((a, b) => {
       const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
       const bNext = b.dates.find((d) => d.startDate >= now)?.startDate;
@@ -292,19 +292,14 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   const eventIdsThisWeek = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(
-      and(
-        gte(eventDates.startDate, now),
-        lte(eventDates.startDate, weekFromNow)
-      )
-    );
+    .where(and(gte(eventDates.startDate, now), lte(eventDates.startDate, weekFromNow)));
 
   if (eventIdsThisWeek.length === 0) return [];
 
   const eventsWithDates = await Promise.all(
     eventIdsThisWeek.map(async ({ eventId }) => {
       return getEventById(eventId);
-    })
+    }),
   );
 
   return eventsWithDates
@@ -324,19 +319,14 @@ export async function getEventsByMonth(year: number, month: number): Promise<Eve
   const eventIdsInMonth = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(
-      and(
-        gte(eventDates.startDate, startOfMonth),
-        lte(eventDates.startDate, endOfMonth)
-      )
-    );
+    .where(and(gte(eventDates.startDate, startOfMonth), lte(eventDates.startDate, endOfMonth)));
 
   if (eventIdsInMonth.length === 0) return [];
 
   const eventsWithDates = await Promise.all(
     eventIdsInMonth.map(async ({ eventId }) => {
       return getEventById(eventId);
-    })
+    }),
   );
 
   return eventsWithDates.filter((e): e is EventWithDates => e !== null);
@@ -358,39 +348,36 @@ export async function getPaginatedEvents(
   offset: number,
   searchQuery?: string,
   filter: EventFilter = "upcoming",
-  dateFilter?: string // yyyy-MM-dd format
+  dateFilter?: string, // yyyy-MM-dd format
 ): Promise<PaginatedEvents> {
   const now = new Date();
   const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
-  
+
   // Get recurring events (they're always considered "upcoming" if no end date or end date is in future)
   const recurringEventsResult = await db
     .select()
     .from(events)
     .where(gte(events.recurrenceRule, ""));
-  const recurringEvents = recurringEventsResult.filter(e => e.recurrenceRule);
+  const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
   const recurringEventIds = recurringEvents
-    .filter(e => !e.recurrenceEnd || e.recurrenceEnd > now)
-    .map(e => e.id);
-  
+    .filter((e) => !e.recurrenceEnd || e.recurrenceEnd > now)
+    .map((e) => e.id);
+
   // Get event IDs based on filter
   let filteredEventIds: number[];
-  
+
   // If filtering by specific date, get events on that date
   if (dateFilter) {
     // Parse yyyy-MM-dd and create UTC day boundaries
     const [year, month, day] = dateFilter.split("-").map(Number);
     const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
     const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
-    
+
     const dateRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(and(
-        gte(eventDates.startDate, startOfDay),
-        lte(eventDates.startDate, endOfDay)
-      ));
-    
+      .where(and(gte(eventDates.startDate, startOfDay), lte(eventDates.startDate, endOfDay)));
+
     // Also check if any recurring events fall on this date
     const recurringOnDate: number[] = [];
     for (const event of recurringEvents) {
@@ -399,73 +386,73 @@ export async function getPaginatedEvents(
         recurringOnDate.push(event.id);
       }
     }
-    
-    filteredEventIds = [...new Set([...dateRows.map(r => r.eventId), ...recurringOnDate])];
+
+    filteredEventIds = [...new Set([...dateRows.map((r) => r.eventId), ...recurringOnDate])];
   } else if (filter === "upcoming") {
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
       .where(gte(eventDates.startDate, now));
-    
+
     // Include recurring events as upcoming
-    filteredEventIds = [...new Set([...upcomingRows.map(r => r.eventId), ...recurringEventIds])];
+    filteredEventIds = [...new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds])];
   } else if (filter === "past") {
     // Past events: all events that have NO upcoming dates AND are not recurring
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
       .where(gte(eventDates.startDate, now));
-    const upcomingIds = new Set([...upcomingRows.map(r => r.eventId), ...recurringEventIds]);
-    
+    const upcomingIds = new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds]);
+
     const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
-    filteredEventIds = allRows.map(r => r.eventId).filter(id => !upcomingIds.has(id));
+    filteredEventIds = allRows.map((r) => r.eventId).filter((id) => !upcomingIds.has(id));
   } else {
     // All events - include both one-time and recurring
     const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
-    filteredEventIds = [...new Set([...allRows.map(r => r.eventId), ...recurringEventIds])];
+    filteredEventIds = [...new Set([...allRows.map((r) => r.eventId), ...recurringEventIds])];
   }
-  
+
   if (filteredEventIds.length === 0) {
     return { items: [], total: 0 };
   }
-  
+
   // If searching, intersect with FTS results
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("event", searchQuery);
-    filteredEventIds = filteredEventIds.filter(id => matchingIds.includes(id));
-    
+    filteredEventIds = filteredEventIds.filter((id) => matchingIds.includes(id));
+
     if (filteredEventIds.length === 0) {
       return { items: [], total: 0 };
     }
   }
-  
+
   const total = filteredEventIds.length;
-  
+
   // Get the paginated slice of event IDs
   const paginatedIds = filteredEventIds.slice(offset, offset + limit);
-  
+
   // Fetch full event data with dates (including generated dates for recurring events)
   const eventsWithDates = await Promise.all(
     paginatedIds.map(async (id) => {
       const event = await getEventById(id);
       if (!event) return null;
-      
+
       // For recurring events, generate synthetic dates
       if (event.recurrenceRule) {
         const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
         const syntheticDates: EventDate[] = generatedDates.map((date, i) => {
           // Get the date string in Newfoundland timezone
           const dateStr = getDateInTimezone(date);
-          
+
           // Parse the date with the time as Newfoundland timezone
           const startTime = event.defaultStartTime || "00:00";
           const startDateTime = parseAsTimezone(dateStr, startTime);
-          
+
           let endDateTime: Date | null = null;
           if (event.defaultEndTime) {
             endDateTime = parseAsTimezone(dateStr, event.defaultEndTime);
           }
-          
+
           return {
             id: -(i + 1),
             eventId: event.id,
@@ -473,26 +460,26 @@ export async function getPaginatedEvents(
             endDate: endDateTime,
           };
         });
-        
+
         return { ...event, dates: syntheticDates };
       }
-      
+
       return event;
-    })
+    }),
   );
-  
+
   const items = eventsWithDates.filter((e): e is EventWithDates => e !== null);
-  
+
   // Sort by next date
   items.sort((a, b) => {
-    const aNext = a.dates.find(d => filter === "past" ? true : d.startDate >= now)?.startDate;
-    const bNext = b.dates.find(d => filter === "past" ? true : d.startDate >= now)?.startDate;
+    const aNext = a.dates.find((d) => (filter === "past" ? true : d.startDate >= now))?.startDate;
+    const bNext = b.dates.find((d) => (filter === "past" ? true : d.startDate >= now))?.startDate;
     if (!aNext || !bNext) return 0;
-    return filter === "past" 
-      ? bNext.getTime() - aNext.getTime()  // Past: newest first
+    return filter === "past"
+      ? bNext.getTime() - aNext.getTime() // Past: newest first
       : aNext.getTime() - bNext.getTime(); // Upcoming: soonest first
   });
-  
+
   return { items, total };
 }
 
@@ -515,25 +502,27 @@ export async function getEventOccurrenceOverrides(eventId: number): Promise<Even
  * Get a specific occurrence override
  */
 export async function getOccurrenceOverride(
-  eventId: number, 
-  occurrenceDate: Date
+  eventId: number,
+  occurrenceDate: Date,
 ): Promise<EventOccurrence | null> {
   // Normalize the date to start of day for comparison
   const startOfDay = new Date(occurrenceDate);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfDay = new Date(startOfDay);
   endOfDay.setHours(23, 59, 59, 999);
-  
+
   const result = await db
     .select()
     .from(eventOccurrences)
-    .where(and(
-      eq(eventOccurrences.eventId, eventId),
-      gte(eventOccurrences.occurrenceDate, startOfDay),
-      lte(eventOccurrences.occurrenceDate, endOfDay)
-    ))
+    .where(
+      and(
+        eq(eventOccurrences.eventId, eventId),
+        gte(eventOccurrences.occurrenceDate, startOfDay),
+        lte(eventOccurrences.occurrenceDate, endOfDay),
+      ),
+    )
     .get();
-  
+
   return result || null;
 }
 
@@ -543,10 +532,10 @@ export async function getOccurrenceOverride(
 export async function upsertOccurrenceOverride(
   eventId: number,
   occurrenceDate: Date,
-  override: Partial<Omit<NewEventOccurrence, "eventId" | "occurrenceDate" | "createdAt">>
+  override: Partial<Omit<NewEventOccurrence, "eventId" | "occurrenceDate" | "createdAt">>,
 ): Promise<EventOccurrence> {
   const existing = await getOccurrenceOverride(eventId, occurrenceDate);
-  
+
   if (existing) {
     const [updated] = await db
       .update(eventOccurrences)
@@ -595,17 +584,16 @@ export async function uncancelOccurrence(eventId: number, occurrenceDate: Date):
 export function getGeneratedOccurrences(
   event: Event,
   startDate: Date = new Date(),
-  endDate: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) // 3 months default
+  endDate: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 3 months default
 ): Date[] {
   if (!event.recurrenceRule) return [];
-  
+
   const rule = parseRecurrenceRule(event.recurrenceRule);
   if (!rule) return [];
-  
-  const effectiveEnd = event.recurrenceEnd && event.recurrenceEnd < endDate 
-    ? event.recurrenceEnd 
-    : endDate;
-  
+
+  const effectiveEnd =
+    event.recurrenceEnd && event.recurrenceEnd < endDate ? event.recurrenceEnd : endDate;
+
   return generateOccurrences(rule, startDate, effectiveEnd);
 }
 
@@ -615,46 +603,46 @@ export function getGeneratedOccurrences(
 export async function getEventWithOccurrences(
   eventId: number,
   rangeStart: Date = new Date(),
-  rangeEnd: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+  rangeEnd: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
 ): Promise<EventWithOccurrences | null> {
   const event = await getEventById(eventId);
   if (!event) return null;
-  
+
   const occurrences: EventOccurrenceDisplay[] = [];
-  
+
   // If this is a recurring event, generate occurrences
   if (event.recurrenceRule) {
     const generatedDates = getGeneratedOccurrences(event, rangeStart, rangeEnd);
     const overrides = await getEventOccurrenceOverrides(eventId);
-    
+
     // Create a map of overrides by date (normalized to Newfoundland timezone date)
     const overrideMap = new Map<string, EventOccurrence>();
     for (const override of overrides) {
       const dateKey = getDateInTimezone(override.occurrenceDate);
       overrideMap.set(dateKey, override);
     }
-    
+
     // Build occurrences from generated dates with any overrides applied
     for (const date of generatedDates) {
       // Get the date string in Newfoundland timezone for both the key and for parsing
       const dateStr = getDateInTimezone(date);
       const override = overrideMap.get(dateStr);
-      
+
       // Calculate start and end times
       let startTime = event.defaultStartTime || "18:00";
       let endTime = event.defaultEndTime || null;
-      
+
       if (override?.startTime) startTime = override.startTime;
       if (override?.endTime) endTime = override.endTime;
-      
+
       // Parse time as Newfoundland timezone
       const startDateTime = parseAsTimezone(dateStr, startTime);
-      
+
       let endDateTime: Date | null = null;
       if (endTime) {
         endDateTime = parseAsTimezone(dateStr, endTime);
       }
-      
+
       occurrences.push({
         eventId: event.id,
         date: startDateTime,
@@ -682,10 +670,10 @@ export async function getEventWithOccurrences(
       });
     }
   }
-  
+
   // Sort by date
   occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
-  
+
   return { ...event, occurrences };
 }
 
@@ -701,22 +689,24 @@ export function isRecurringEvent(event: Event): boolean {
  */
 export async function getUpcomingRecurringOccurrences(
   startDate: Date = new Date(),
-  endDate: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+  endDate: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
 ): Promise<Array<EventOccurrenceDisplay & { event: Event }>> {
   // Get all events with recurrence rules
   const recurringEvents = await db
     .select()
     .from(events)
-    .where(and(
-      // Has a recurrence rule
-      gte(events.recurrenceRule, "")
-    ));
-  
+    .where(
+      and(
+        // Has a recurrence rule
+        gte(events.recurrenceRule, ""),
+      ),
+    );
+
   // Filter to only those with actual rules
-  const eventsWithRules = recurringEvents.filter(e => e.recurrenceRule);
-  
+  const eventsWithRules = recurringEvents.filter((e) => e.recurrenceRule);
+
   const allOccurrences: Array<EventOccurrenceDisplay & { event: Event }> = [];
-  
+
   for (const event of eventsWithRules) {
     const eventWithOccurrences = await getEventWithOccurrences(event.id, startDate, endDate);
     if (eventWithOccurrences) {
@@ -727,9 +717,9 @@ export async function getUpcomingRecurringOccurrences(
       }
     }
   }
-  
+
   // Sort by date
   allOccurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
-  
+
   return allOccurrences;
 }
