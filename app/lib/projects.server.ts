@@ -5,7 +5,6 @@ import {
   type Project, 
   type NewProject,
   type ProjectImage,
-  type NewProjectImage,
 } from "~/db/schema";
 import { eq, desc, asc, count, inArray, isNotNull } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";

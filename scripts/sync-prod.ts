@@ -234,7 +234,7 @@ async function runMigrate() {
   try {
     execSync("npm run db:migrate", { stdio: "inherit" });
     console.log("Migrations completed successfully.");
-  } catch (error) {
+  } catch {
     console.error("");
     console.error("=".repeat(60));
     console.error("  MIGRATION FAILED!");

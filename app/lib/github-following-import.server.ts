@@ -230,14 +230,12 @@ export async function processFollowingBatch(): Promise<FollowingImportProgress> 
   }
   
   // Fetch profiles for this batch
-  let fetchedCount = 0;
   let errorCount = job.errorCount ?? 0;
   
   for (const username of batch) {
     try {
       const profile = await getUserProfile(username);
       jobData.profiles.push(profile);
-      fetchedCount++;
     } catch (e) {
       const errorMsg = `${username}: ${e instanceof Error ? e.message : String(e)}`;
       jobData.errors.push(errorMsg);

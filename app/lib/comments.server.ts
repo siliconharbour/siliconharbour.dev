@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { comments, contentTypes, type Comment, type NewComment, type ContentType } from "~/db/schema";
-import { eq, and, desc, isNull, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
 
 /**

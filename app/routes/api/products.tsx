@@ -1,7 +1,7 @@
 import type { Route } from "./+types/products";
 import { db } from "~/db";
 import { products, companies } from "~/db/schema";
-import { asc, count, eq } from "drizzle-orm";
+import { asc, count } from "drizzle-orm";
 import { parsePagination, buildLinkHeader, jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ request }: Route.LoaderArgs) {

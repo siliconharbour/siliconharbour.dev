@@ -61,7 +61,7 @@ export async function updateCompany(id: number, company: Partial<Omit<NewCompany
 }
 
 export async function deleteCompany(id: number): Promise<boolean> {
-  const result = await db.delete(companies).where(eq(companies.id, id));
+  await db.delete(companies).where(eq(companies.id, id));
   return true;
 }
 
@@ -316,7 +316,7 @@ export function parseGitHubCompanyField(company: string): { name: string; github
   }
   
   // GitHub URL format
-  const githubUrlMatch = trimmed.match(/^https?:\/\/github\.com\/([^\/\s]+)/i);
+  const githubUrlMatch = trimmed.match(/^https?:\/\/github\.com\/([^/\s]+)/i);
   if (githubUrlMatch) {
     return {
       name: githubUrlMatch[1],

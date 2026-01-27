@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { existsSync, mkdirSync } from "fs";
-import { writeFile, unlink } from "fs/promises";
+import { unlink } from "fs/promises";
 import { join } from "path";
 import { v4 as uuid } from "uuid";
 import { IMAGES_DIR } from "./paths.server";

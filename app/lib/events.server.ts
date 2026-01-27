@@ -10,7 +10,7 @@ import {
   type EventOccurrence,
   type NewEventOccurrence,
 } from "~/db/schema";
-import { eq, gte, and, lte, asc, desc, count, inArray } from "drizzle-orm";
+import { eq, gte, and, lte, asc, desc } from "drizzle-orm";
 import { deleteImage } from "./images.server";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences, syncOrganizerReferences } from "./references.server";

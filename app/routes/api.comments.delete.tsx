@@ -1,5 +1,5 @@
 import type { Route } from "./+types/api.comments.delete";
-import { redirect } from "react-router";
+
 import { requireAuth } from "~/lib/session.server";
 import { deleteComment } from "~/lib/comments.server";
 

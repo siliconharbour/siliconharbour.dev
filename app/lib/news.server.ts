@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { news, type News, type NewNews, type NewsType, newsTypes } from "~/db/schema";
-import { eq, desc, isNotNull, lte, and, count, inArray } from "drizzle-orm";
+import { eq, desc, lte, and, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";

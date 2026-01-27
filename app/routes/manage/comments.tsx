@@ -1,5 +1,5 @@
 import type { Route } from "./+types/comments";
-import { Link, useLoaderData, useSearchParams, useFetcher } from "react-router";
+import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getPaginatedComments } from "~/lib/comments.server";
 import { formatDistanceToNow } from "date-fns";
@@ -54,7 +54,6 @@ function getContentLabel(contentType: ContentType): string {
 
 export default function ManageComments() {
   const { comments, total, totalPages, currentPage } = useLoaderData<typeof loader>();
-  const [searchParams] = useSearchParams();
 
   return (
     <div className="min-h-screen p-6">

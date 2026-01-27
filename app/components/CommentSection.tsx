@@ -1,4 +1,4 @@
-import { useFetcher, Link } from "react-router";
+import { useFetcher } from "react-router";
 import { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import type { ContentType } from "~/db/schema";

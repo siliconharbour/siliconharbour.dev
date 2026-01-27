@@ -7,7 +7,7 @@ import {
   getUserProfiles, 
   fetchAvatar,
 } from "~/lib/github.server";
-import type { GitHubUser, GitHubUserBasic, ImportProgress } from "~/lib/github.types";
+import type { GitHubUser, ImportProgress } from "~/lib/github.types";
 import { createPerson, updatePerson, getAllPeople, getPersonByName, getPersonByGitHub, deletePerson } from "~/lib/people.server";
 import { 
   findCompanyByFuzzyName, 

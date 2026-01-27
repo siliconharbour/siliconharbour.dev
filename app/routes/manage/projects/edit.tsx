@@ -352,13 +352,13 @@ export default function EditProject() {
         </Form>
 
         {/* Gallery Management */}
-        <GalleryManager images={project.images} projectId={project.id} />
+        <GalleryManager images={project.images} />
       </div>
     </div>
   );
 }
 
-function GalleryManager({ images, projectId }: { images: ProjectImage[]; projectId: number }) {
+function GalleryManager({ images }: { images: ProjectImage[] }) {
   const fetcher = useFetcher();
 
   return (

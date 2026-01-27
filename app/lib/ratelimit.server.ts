@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { rateLimits } from "~/db/schema";
-import { eq, lt, sql } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 
 export interface RateLimitResult {
   allowed: boolean;

@@ -10,13 +10,10 @@ import {
   news, 
   jobs,
   projects,
-  products,
   type ContentType,
   type Reference,
-  type NewReference,
-  contentTypes
 } from "~/db/schema";
-import { eq, and, or, asc, gte } from "drizzle-orm";
+import { eq, and, asc, gte } from "drizzle-orm";
 
 // =============================================================================
 // Visibility helpers
@@ -132,7 +129,6 @@ export type ResolveResult =
  * Searches across all content types by name/title
  */
 export async function resolveReference(text: string): Promise<ResolveResult> {
-  const normalizedText = text.toLowerCase().trim();
   const candidates: { type: ContentType; id: number; name: string; slug: string }[] = [];
   
   // Search events by title

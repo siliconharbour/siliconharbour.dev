@@ -3,7 +3,7 @@
  * Each function generates markdown with YAML frontmatter for a given entity
  */
 
-import type { Company, Event, Group, Education, Person, News, Job, Project, Product } from "~/db/schema";
+import type { Company, Group, Education, Person, News, Job, Project, Product } from "~/db/schema";
 import type { EventWithDates } from "~/lib/events.server";
 
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";

@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { format } from "date-fns";
 import type { DetailedBacklink } from "~/lib/references.server";
-import { formatInTimezone } from "~/lib/timezone";
+
 import { EventCard } from "./EventCard";
 
 interface ReferencedByProps {

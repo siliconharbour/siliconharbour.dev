@@ -1,7 +1,7 @@
 import type { Route } from "./+types/events";
 import { db } from "~/db";
 import { events, eventDates } from "~/db/schema";
-import { asc, count, eq, gte } from "drizzle-orm";
+import { asc, count } from "drizzle-orm";
 import { parsePagination, buildLinkHeader, jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
 
 export async function loader({ request }: Route.LoaderArgs) {

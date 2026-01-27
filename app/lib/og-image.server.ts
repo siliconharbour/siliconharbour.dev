@@ -1,4 +1,4 @@
-import satori, { type SatoriOptions } from "satori";
+import satori from "satori";
 import sharp from "sharp";
 import { createHash } from "crypto";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, unlinkSync } from "fs";

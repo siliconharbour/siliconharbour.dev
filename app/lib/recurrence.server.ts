@@ -17,7 +17,6 @@ export interface RecurrenceRule {
 }
 
 // Day mapping
-const DAYS_OF_WEEK = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 const DAY_TO_JS_INDEX: Record<string, number> = {
   SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6,
 };
