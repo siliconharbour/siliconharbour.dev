@@ -57,21 +57,33 @@ export async function action({ request }: Route.ActionArgs) {
   
   // Bulk reject by pattern match
   if (intent === "bulk-reject") {
-    const pattern = (formData.get("pattern") as string)?.toLowerCase().trim();
-    if (!pattern) {
+    const patternInput = (formData.get("pattern") as string)?.trim();
+    if (!patternInput) {
+      return { error: "Pattern is required" };
+    }
+    
+    // Split by comma or space and filter empty strings
+    const patterns = patternInput
+      .toLowerCase()
+      .split(/[,\s]+/)
+      .filter(p => p.length > 0);
+    
+    if (patterns.length === 0) {
       return { error: "Pattern is required" };
     }
     
     const allHidden = await getHiddenPeople();
     const toReject = allHidden.filter(p => {
-      const searchText = `${p.name} ${p.bio || ""}`.toLowerCase();
-      return searchText.includes(pattern);
+      // Search across all text fields
+      const searchText = `${p.name} ${p.bio || ""} ${p.socialLinks || ""}`.toLowerCase();
+      // Match if ALL patterns are found (so "Amsterdam, NL" requires both)
+      return patterns.every(pattern => searchText.includes(pattern));
     });
     
     let rejectedCount = 0;
     for (const person of toReject) {
       if (person.github) {
-        await blockItem("github", person.github, person.name, `Bulk rejected: "${pattern}"`);
+        await blockItem("github", person.github, person.name, `Bulk rejected: "${patternInput}"`);
       }
       await deletePerson(person.id);
       rejectedCount++;
@@ -81,7 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
       success: true, 
       action: "bulk-rejected",
       bulkRejectedCount: rejectedCount,
-      pattern,
+      pattern: patternInput,
     };
   }
 

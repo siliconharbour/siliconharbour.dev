@@ -1,6 +1,13 @@
-# Agent Instructions
+# Agent Style
 
-## Work Until Complete
+## Ticket system with `tk`
+
+This project uses a CLI ticket system for task management.
+
+When you are asked to do something, you should first log it as a ticket using `tk`, before you start work on it, and when
+you get to the end of a task, see the list of tickets to figure out if there is more work to do.
+
+Run `tk help` if you are unaware how `tk` works.
 
 When given a set of tasks, **continue working until ALL tasks are complete**. Do not stop to ask for confirmation between tasks. Execute the full plan.
 
@@ -8,13 +15,8 @@ When given a set of tasks, **continue working until ALL tasks are complete**. Do
 
 This project uses Drizzle ORM with SQLite. When adding/modifying database schema:
 
-### 1. Update the Schema
-
-Edit `app/db/schema.ts` with your changes.
-
-### 2. Create Migration SQL File
-
-Create a new file in `drizzle/` with the naming pattern `NNNN_description.sql` (e.g., `0018_add_event_requires_signup.sql`).
+1. Update the Schema, edit `app/db/schema.ts` with your changes.
+2. Create Migration SQL File, create a new file in `drizzle/` with the naming pattern `NNNN_description.sql` (e.g., `0018_add_event_requires_signup.sql`).
 
 **Important SQL syntax rules:**
 - Use backticks around table and column names: `` ALTER TABLE `events` ADD `column_name` ... ``
@@ -50,19 +52,8 @@ npm run db:migrate
 
 ## Session Completion
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until your work is in the local main branch.
 
-1. **Run quality gates** (if code changed) - Tests, linters, builds
-2. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-3. **Verify** - All changes committed AND pushed
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+1. **Run quality gates** (if code changed) - `npm run lint:fix`, `npm run build`.
+2. **Commit** - Write a simple commit message, have some lines of bullet point description if it makes sense.
+3. **Verify** - All changes committed to main
