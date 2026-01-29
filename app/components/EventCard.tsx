@@ -1,13 +1,15 @@
 import { Link } from "react-router";
 import type { Event, EventDate } from "~/db/schema";
+import { RichMarkdown, type ResolvedRef } from "./RichMarkdown";
 import { formatInTimezone } from "~/lib/timezone";
 
 type EventCardProps = {
   event: Event & { dates: EventDate[] };
   variant?: "featured" | "default";
+  resolvedRefs?: Record<string, ResolvedRef>;
 };
 
-export function EventCard({ event, variant = "default" }: EventCardProps) {
+export function EventCard({ event, variant = "default", resolvedRefs }: EventCardProps) {
   const nextDate = event.dates[0];
   const hasMultipleDates = event.dates.length > 1;
 
@@ -58,7 +60,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             </div>
           </div>
 
-          <div className="mt-2 flex flex-col gap-1">
+          <div className="mt-2 flex flex-col gap-2">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-harbour-500">
               {nextDate && (
                 <div className="flex items-center gap-2">
@@ -83,6 +85,14 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               {event.location && (
                 <span className="text-harbour-400 truncate">{event.location}</span>
               )}
+            </div>
+
+            <div className="text-sm text-harbour-500 line-clamp-2">
+              <RichMarkdown
+                content={event.description}
+                resolvedRefs={resolvedRefs}
+                className="prose-harbour"
+              />
             </div>
           </div>
         </div>

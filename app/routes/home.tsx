@@ -5,10 +5,12 @@ import { getRandomCompanies } from "~/lib/companies.server";
 import { getPublishedNews } from "~/lib/news.server";
 import { getActiveJobs } from "~/lib/jobs.server";
 import { getRandomProjects } from "~/lib/projects.server";
+import { prepareRefsForClient } from "~/lib/references.server";
 import { getSectionVisibility } from "~/lib/config.server";
 import { Calendar } from "~/components/Calendar";
 import { EventCard } from "~/components/EventCard";
 import { format } from "date-fns";
+import type { ResolvedRef } from "~/components/RichMarkdown";
 import type { SectionKey } from "~/db/schema";
 import { Footer } from "~/components/Footer";
 
@@ -37,6 +39,14 @@ export async function loader({}: Route.LoaderArgs) {
   const thisWeekIds = new Set(thisWeek.map((e) => e.id));
   const futureEvents = upcoming.filter((e) => !thisWeekIds.has(e.id));
 
+  // Prepare refs for featured events (thisWeek events that show descriptions)
+  const eventRefs: Record<number, Record<string, ResolvedRef>> = {};
+  await Promise.all(
+    thisWeek.map(async (event) => {
+      eventRefs[event.id] = await prepareRefsForClient(event.description);
+    }),
+  );
+
   return {
     thisWeek,
     futureEvents,
@@ -45,6 +55,7 @@ export async function loader({}: Route.LoaderArgs) {
     news: news.slice(0, 3), // Latest 3 news articles
     jobs: jobs.slice(0, 4), // Latest 4 jobs
     featuredProjects,
+    eventRefs,
     visibility,
   };
 }
@@ -70,6 +81,7 @@ export default function Home() {
     news,
     jobs,
     featuredProjects,
+    eventRefs,
     visibility,
   } = useLoaderData<typeof loader>();
 
@@ -131,7 +143,12 @@ export default function Home() {
                   <h2 className="text-lg font-semibold text-harbour-700">This Week</h2>
                   <div className="flex flex-col gap-4 max-w-[75%]">
                     {thisWeek.map((event) => (
-                      <EventCard key={event.id} event={event} variant="featured" />
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        variant="featured"
+                        resolvedRefs={eventRefs[event.id]}
+                      />
                     ))}
                   </div>
                 </section>
