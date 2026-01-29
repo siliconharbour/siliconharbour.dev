@@ -129,7 +129,7 @@ export default function Home() {
               {visibility.events && thisWeek.length > 0 && (
                 <section className="flex flex-col gap-4">
                   <h2 className="text-lg font-semibold text-harbour-700">This Week</h2>
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-4 max-w-[75%]">
                     {thisWeek.map((event) => (
                       <EventCard key={event.id} event={event} variant="featured" />
                     ))}
