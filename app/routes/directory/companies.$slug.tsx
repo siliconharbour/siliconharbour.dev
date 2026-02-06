@@ -267,50 +267,47 @@ export default function CompanyDetail() {
 
         {techByCategory.length > 0 && (
           <div className="border-t border-harbour-200 pt-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Technologies</h2>
-            <div className="flex flex-col gap-4">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-3">Technologies</h2>
+            <div className="flex flex-wrap gap-1.5 items-center">
               {techByCategory.map(([category, items]) => (
-                <div key={category}>
-                  <h3 className="text-sm font-medium text-harbour-500 mb-2">
-                    {categoryLabels[category as TechnologyCategory]}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {items.map((item) => (
+                <span
+                  key={category}
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-harbour-50 border border-harbour-200 text-xs"
+                >
+                  <span className="text-harbour-500 font-medium">
+                    {categoryLabels[category as TechnologyCategory]}:
+                  </span>
+                  {items.map((item, idx) => (
+                    <span key={item.technology.id} className="inline-flex items-center">
                       <Link
-                        key={item.technology.id}
                         to={`/directory/technologies/${item.technology.slug}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-harbour-100 text-harbour-700 text-sm hover:bg-harbour-200 transition-colors"
+                        className="text-harbour-700 hover:text-harbour-900 hover:underline"
                       >
-                        {item.technology.icon && <span>{item.technology.icon}</span>}
                         {item.technology.name}
                       </Link>
-                    ))}
-                  </div>
-                </div>
+                      {idx < items.length - 1 && <span className="text-harbour-300 mx-0.5">/</span>}
+                    </span>
+                  ))}
+                </span>
               ))}
+              {provenance && (provenance.source || provenance.sourceUrl) && (
+                <span className="text-xs text-harbour-400">
+                  via{" "}
+                  {provenance.sourceUrl ? (
+                    <a
+                      href={provenance.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-harbour-600"
+                    >
+                      {provenance.source || "source"}
+                    </a>
+                  ) : (
+                    provenance.source
+                  )}
+                </span>
+              )}
             </div>
-            {provenance && (provenance.source || provenance.sourceUrl) && (
-              <div className="mt-4 text-xs text-harbour-400">
-                Source:{" "}
-                {provenance.sourceUrl ? (
-                  <a
-                    href={provenance.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-harbour-600"
-                  >
-                    {provenance.source || provenance.sourceUrl}
-                  </a>
-                ) : (
-                  provenance.source
-                )}
-                {provenance.lastVerified && (
-                  <span className="ml-2">
-                    (verified {new Date(provenance.lastVerified).toLocaleDateString()})
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         )}
 
