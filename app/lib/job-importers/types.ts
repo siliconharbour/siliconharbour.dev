@@ -6,7 +6,7 @@
 /**
  * Supported ATS (Applicant Tracking System) source types
  */
-export const jobSourceTypes = ["greenhouse", "ashby", "workday", "bamboohr", "custom"] as const;
+export const jobSourceTypes = ["greenhouse", "ashby", "workday", "bamboohr", "lever", "custom"] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
 
 /**
@@ -120,6 +120,7 @@ export const sourceTypeLabels: Record<JobSourceType, string> = {
   ashby: "Ashby",
   workday: "Workday",
   bamboohr: "BambooHR",
+  lever: "Lever",
   custom: "Custom",
 };
 
@@ -131,5 +132,6 @@ export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   ashby: "e.g., spellbook.legal (from jobs.ashbyhq.com/spellbook.legal)",
   workday: "e.g., nasdaq:Global_External_Site:verafin (company:site:searchText)",
   bamboohr: "e.g., trophiai (from trophiai.bamboohr.com)",
+  lever: "e.g., getmysa (from jobs.lever.co/getmysa)",
   custom: "Custom identifier or URL",
 };
