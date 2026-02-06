@@ -105,9 +105,23 @@ export default function DirectoryTechnologies() {
                                   {tech.name}
                                 </span>
                               </div>
-                              <p className="text-xs text-harbour-400">
-                                {tech.companyCount} companies
-                              </p>
+                              <div className="flex items-center gap-2">
+                                {tech.companyLogos.length > 0 && (
+                                  <div className="flex gap-1">
+                                    {tech.companyLogos.map((logo, i) => (
+                                      <img
+                                        key={i}
+                                        src={`/images/${logo}`}
+                                        alt=""
+                                        className="w-5 h-5 p-px object-contain ring-1 ring-harbour-100 bg-white"
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                                <p className="text-xs text-harbour-400">
+                                  {tech.companyCount} companies
+                                </p>
+                              </div>
                             </Link>
                           ))}
                         </div>

@@ -276,6 +276,7 @@ export async function getTechnologiesForContent(
 export interface TechnologyWithUsage extends Technology {
   companyCount: number;
   projectCount: number;
+  companyLogos: string[];
 }
 
 export async function getTechnologiesWithUsage(): Promise<TechnologyWithUsage[]> {
@@ -304,10 +305,36 @@ export async function getTechnologiesWithUsage(): Promise<TechnologyWithUsage[]>
         ),
       );
 
+    // Get up to 3 company logos for preview
+    const companyAssignments = await db
+      .select({ contentId: technologyAssignments.contentId })
+      .from(technologyAssignments)
+      .where(
+        and(
+          eq(technologyAssignments.technologyId, tech.id),
+          eq(technologyAssignments.contentType, "company"),
+        ),
+      )
+      .limit(10);
+
+    const companyLogos: string[] = [];
+    for (const assignment of companyAssignments) {
+      if (companyLogos.length >= 3) break;
+      const company = await db
+        .select({ logo: companies.logo })
+        .from(companies)
+        .where(and(eq(companies.id, assignment.contentId), eq(companies.visible, true)))
+        .get();
+      if (company?.logo) {
+        companyLogos.push(company.logo);
+      }
+    }
+
     result.push({
       ...tech,
       companyCount: companyResult.count,
       projectCount: projectResult.count,
+      companyLogos,
     });
   }
 
