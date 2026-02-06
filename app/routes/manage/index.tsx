@@ -155,6 +155,15 @@ export default function ManageIndex() {
                 list their location
               </p>
             </Link>
+            <Link
+              to="/manage/import/jobs"
+              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
+            >
+              <h3 className="font-medium text-harbour-700">Job Import</h3>
+              <p className="text-harbour-400 text-sm">
+                Import jobs from company career pages (Greenhouse, Ashby)
+              </p>
+            </Link>
           </div>
         </div>
 
