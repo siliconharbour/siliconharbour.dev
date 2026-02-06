@@ -14,13 +14,18 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const technologies = await getTechnologiesWithUsage();
 
-  // Group by category
+  // Group by category and sort by company count (descending)
   const byCategory: Record<string, TechnologyWithUsage[]> = {};
   for (const tech of technologies) {
     if (!byCategory[tech.category]) {
       byCategory[tech.category] = [];
     }
     byCategory[tech.category].push(tech);
+  }
+
+  // Sort each category by company count
+  for (const category of Object.keys(byCategory)) {
+    byCategory[category].sort((a, b) => b.companyCount - a.companyCount);
   }
 
   return { byCategory, isAdmin };
@@ -71,37 +76,71 @@ export default function DirectoryTechnologies() {
                     ({techs.length})
                   </span>
                 </h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {techs.map((tech) => (
-                    <Link
-                      key={tech.id}
-                      to={`/directory/technologies/${tech.slug}`}
-                      className="group flex flex-col gap-2 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
-                    >
-                      <div className="flex items-center gap-2">
-                        {tech.icon ? (
-                          <img
-                            src={`/images/${tech.icon}`}
-                            alt=""
-                            className="w-6 h-6 object-contain"
-                          />
-                        ) : (
-                          <div className="w-6 h-6 bg-harbour-100 flex items-center justify-center">
-                            <span className="text-xs text-harbour-400">{tech.name.charAt(0)}</span>
-                          </div>
-                        )}
-                        <span className="font-medium text-harbour-700 group-hover:text-harbour-600">
-                          {tech.name}
-                        </span>
-                      </div>
-                      {tech.companyCount > 0 && (
-                        <p className="text-xs text-harbour-400">
-                          {tech.companyCount} {tech.companyCount === 1 ? "company" : "companies"}
-                        </p>
+                {(() => {
+                  const popularTechs = techs.filter((t) => t.companyCount > 1);
+                  const singleTechs = techs.filter((t) => t.companyCount === 1);
+                  return (
+                    <>
+                      {popularTechs.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                          {popularTechs.map((tech) => (
+                            <Link
+                              key={tech.id}
+                              to={`/directory/technologies/${tech.slug}`}
+                              className="group flex flex-col gap-2 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                            >
+                              <div className="flex items-center gap-2">
+                                {tech.icon ? (
+                                  <img
+                                    src={`/images/${tech.icon}`}
+                                    alt=""
+                                    className="w-6 h-6 object-contain"
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 bg-harbour-100 flex items-center justify-center">
+                                    <span className="text-xs text-harbour-400">{tech.name.charAt(0)}</span>
+                                  </div>
+                                )}
+                                <span className="font-medium text-harbour-700 group-hover:text-harbour-600">
+                                  {tech.name}
+                                </span>
+                              </div>
+                              <p className="text-xs text-harbour-400">
+                                {tech.companyCount} companies
+                              </p>
+                            </Link>
+                          ))}
+                        </div>
                       )}
-                    </Link>
-                  ))}
-                </div>
+                      {singleTechs.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          {singleTechs.map((tech) => (
+                            <Link
+                              key={tech.id}
+                              to={`/directory/technologies/${tech.slug}`}
+                              className="group flex items-center gap-1 px-2 py-1 text-xs ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                            >
+                              {tech.icon ? (
+                                <img
+                                  src={`/images/${tech.icon}`}
+                                  alt=""
+                                  className="w-3.5 h-3.5 object-contain"
+                                />
+                              ) : (
+                                <div className="w-3.5 h-3.5 bg-harbour-100 flex items-center justify-center">
+                                  <span className="text-[8px] text-harbour-400">{tech.name.charAt(0)}</span>
+                                </div>
+                              )}
+                              <span className="text-harbour-600 group-hover:text-harbour-700">
+                                {tech.name}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             );
           })}
