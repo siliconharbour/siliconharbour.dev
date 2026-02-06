@@ -44,8 +44,9 @@ This page documents how each importer works at a high level so we can quickly un
 
 - Source: `app/lib/job-importers/workday.server.ts`
 - Approach: JSON API via `POST` to Workday `cxs` endpoints, then detail requests per posting.
-- Quirks: Requires browser-like user agent to avoid blocking; source identifier encoding is slightly custom (`company:site[:searchText]`).
-- Assessment: Mostly clean but has implementation quirks due to Workday behavior.
+- Quirks: Cloudflare protection on some Workday tenants can be quite aggressive and may still block automation even with browser-like headers. Source identifier encoding is slightly custom (`company:site[:searchText]`).
+- Fallback: We may need a custom/manual workflow for some tenants (for example, a human opening the jobs page and running console JavaScript to extract payloads, then importing that output).
+- Assessment: Functionally API-oriented, but operationally fragile because anti-bot behavior is outside our control.
 
 ### Ashby
 
