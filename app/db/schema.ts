@@ -500,6 +500,74 @@ export type ImportBlocklistItem = typeof importBlocklist.$inferSelect;
 export type NewImportBlocklistItem = typeof importBlocklist.$inferInsert;
 
 // =============================================================================
+// Technologies - languages, frameworks, tools used by companies/projects
+// =============================================================================
+
+export const technologyCategories = [
+  "language",
+  "frontend",
+  "backend",
+  "cloud",
+  "database",
+  "devops",
+  "game-engine",
+  "mobile",
+  "data-science",
+  "platform",
+  "specialized",
+] as const;
+export type TechnologyCategory = (typeof technologyCategories)[number];
+
+export const technologies = sqliteTable("technologies", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  slug: text("slug").notNull().unique(), // e.g., "react", "aws"
+  name: text("name").notNull(), // e.g., "React", "AWS"
+  category: text("category", { enum: technologyCategories }).notNull(),
+  description: text("description"), // optional, for tooltip/details
+  website: text("website"), // official docs/site
+  icon: text("icon"), // optional icon filename
+  visible: integer("visible", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+// Which content types can have technologies assigned
+export const technologizedTypes = ["company", "project"] as const;
+export type TechnologizedType = (typeof technologizedTypes)[number];
+
+export const technologyAssignments = sqliteTable(
+  "technology_assignments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    technologyId: integer("technology_id")
+      .notNull()
+      .references(() => technologies.id, { onDelete: "cascade" }),
+    contentType: text("content_type", { enum: technologizedTypes }).notNull(),
+    contentId: integer("content_id").notNull(),
+    // Provenance tracking
+    source: text("source"), // e.g., "Get Building 2020 Technology Survey"
+    sourceUrl: text("source_url"), // link to original source
+    lastVerified: text("last_verified"), // e.g., "2020"
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    techIdx: index("tech_assignments_tech_idx").on(table.technologyId),
+    contentIdx: index("tech_assignments_content_idx").on(table.contentType, table.contentId),
+    uniqueAssignment: index("tech_assignments_unique_idx").on(
+      table.technologyId,
+      table.contentType,
+      table.contentId,
+    ),
+  }),
+);
+
+// =============================================================================
 // Type exports
 // =============================================================================
 
@@ -545,3 +613,9 @@ export type NewProjectImage = typeof projectImages.$inferInsert;
 
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
+
+export type Technology = typeof technologies.$inferSelect;
+export type NewTechnology = typeof technologies.$inferInsert;
+
+export type TechnologyAssignment = typeof technologyAssignments.$inferSelect;
+export type NewTechnologyAssignment = typeof technologyAssignments.$inferInsert;

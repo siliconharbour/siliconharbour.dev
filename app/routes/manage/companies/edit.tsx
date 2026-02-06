@@ -9,7 +9,13 @@ import {
   deleteImage,
 } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { TechnologySelect } from "~/components/TechnologySelect";
 import { blockItem } from "~/lib/import-blocklist.server";
+import {
+  getAllTechnologies,
+  getTechnologiesForContent,
+  setTechnologiesForContent,
+} from "~/lib/technologies.server";
 
 function normalizeUrl(url: string): string {
   try {
@@ -37,7 +43,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Company not found", { status: 404 });
   }
 
-  return { company };
+  const [allTechnologies, companyTechnologies] = await Promise.all([
+    getAllTechnologies(),
+    getTechnologiesForContent("company", id),
+  ]);
+
+  return {
+    company,
+    allTechnologies,
+    selectedTechnologyIds: companyTechnologies.map((t) => t.technologyId),
+  };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -102,6 +117,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const technl = formData.get("technl") === "on";
   const genesis = formData.get("genesis") === "on";
   const visible = formData.get("visible") === "true";
+  const technologyIds = formData.getAll("technologies").map((id) => parseInt(id as string, 10));
 
   if (!name) {
     return { error: "Name is required" };
@@ -161,11 +177,14 @@ export async function action({ request, params }: Route.ActionArgs) {
     ...(coverImage !== undefined && { coverImage }),
   });
 
+  // Update technology assignments
+  await setTechnologiesForContent("company", id, technologyIds);
+
   return redirect("/manage/companies");
 }
 
 export default function EditCompany() {
-  const { company } = useLoaderData<typeof loader>();
+  const { company, allTechnologies, selectedTechnologyIds } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -325,6 +344,11 @@ export default function EditCompany() {
               </label>
             </div>
           </div>
+
+          <TechnologySelect
+            technologies={allTechnologies}
+            selectedIds={selectedTechnologyIds}
+          />
 
           <div className="flex flex-col gap-2">
             <span className="font-medium text-harbour-700">Visibility</span>

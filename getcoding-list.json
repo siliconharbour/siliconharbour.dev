@@ -1,0 +1,538 @@
+{
+  "avalon-holographics": {
+    "technologies": [
+      "C++",
+      "DirectX",
+      "GLSL",
+      "HLSL",
+      "Metal",
+      "OpenGL",
+      "Python",
+      "Unity",
+      "Unreal Engine",
+      "Vulkan"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-averro-robotics": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Averro Robotics"
+  },
+  "bluedrop-ism": {
+    "technologies": [
+      "GraphQL",
+      "JavaScript",
+      "Node.js",
+      "PostgreSQL",
+      "React"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "breathesuite": {
+    "technologies": [
+      "AWS",
+      "Angular",
+      "C",
+      "Cordova",
+      "Firebase",
+      "Ionic",
+      "JavaScript",
+      "Python"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "c-core": {
+    "technologies": [
+      ".NET",
+      "AWS",
+      "Docker",
+      "Elasticsearch",
+      "F#",
+      "GCP",
+      "Jupyter",
+      "Kubernetes",
+      "PostgreSQL",
+      "Python",
+      "React",
+      "Storybook",
+      "Terraform"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-celtx": {
+    "technologies": [
+      "AWS",
+      "Docker",
+      "DynamoDB",
+      "GCP",
+      "Java",
+      "JavaScript",
+      "Node.js",
+      "Objective-C",
+      "Perl",
+      "ProseMirror",
+      "React",
+      "Salesforce",
+      "TypeScript",
+      "Unity",
+      "Unreal Engine"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Celtx"
+  },
+  "clearrisk": {
+    "technologies": [
+      "AWS",
+      "Java",
+      "JavaScript",
+      "Node.js",
+      "Python",
+      "SQL",
+      "Salesforce"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-clockwork-fox": {
+    "technologies": [
+      "AWS",
+      "Angular",
+      "C#",
+      "Java",
+      "JavaScript",
+      "MariaDB",
+      "SQL",
+      "TypeScript",
+      "Unity"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "ClockWork Fox"
+  },
+  "colab-software": {
+    "technologies": [
+      "AWS",
+      "Ansible",
+      "Flask",
+      "GraphQL",
+      "JavaScript",
+      "Python",
+      "React",
+      "SQL",
+      "Terraform"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-creatros": {
+    "technologies": [
+      "AWS",
+      "JavaScript",
+      "Node.js",
+      "React",
+      "SQL",
+      "Serverless"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Creatros"
+  },
+  "missing-cyno": {
+    "technologies": [
+      "AWS",
+      "Java",
+      "JavaScript",
+      "Node.js",
+      "Python",
+      "SQL",
+      "Salesforce"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Cyno"
+  },
+  "granville-biomedical": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "heyorca": {
+    "technologies": [
+      "AWS",
+      "JavaScript",
+      "Laravel",
+      "Node.js",
+      "PHP",
+      "React",
+      "React Native",
+      "SQL",
+      "TypeScript"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "hyke": {
+    "technologies": [
+      "Flutter",
+      "JavaScript"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "the-idea-factory": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-inspectar": {
+    "technologies": [
+      "Unity"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "InspectAR"
+  },
+  "instrumar-limited": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "jvplabs-jras-medical-inc": {
+    "technologies": [
+      "Docker",
+      "GCP",
+      "JavaScript",
+      "Python",
+      "React",
+      "Storybook"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "kraken-robotics": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-lemur-vehicle-monitors": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Lemur Vehicle Monitors"
+  },
+  "metricsflow": {
+    "technologies": [
+      "Azure",
+      "JavaScript",
+      "Node.js",
+      "PHP",
+      "Python",
+      "SQL",
+      "Salesforce"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "milk-moovement": {
+    "technologies": [
+      "AWS",
+      "Docker",
+      "JavaScript",
+      "MongoDB",
+      "Node.js",
+      "React",
+      "React Native",
+      "TypeScript"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "mysa": {
+    "technologies": [
+      "AWS",
+      "C",
+      "JavaScript",
+      "MongoDB",
+      "React",
+      "React Native",
+      "SQL",
+      "TypeScript"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "north-star-payroll": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "pingram-formerly-notificationapi": {
+    "technologies": [
+      "AWS",
+      "JavaScript",
+      "Node.js",
+      "React",
+      "Serverless",
+      "Terraform",
+      "TypeScript"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "oliver-pos": {
+    "technologies": [
+      ".NET",
+      "PHP",
+      "React",
+      "React Native",
+      "SQL",
+      "WordPress"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-pelmo-international": {
+    "technologies": [
+      "JavaScript",
+      "Webflow"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "PELMO International"
+  },
+  "polyunity-tech-inc": {
+    "technologies": [
+      "GCP",
+      "JavaScript",
+      "Node.js",
+      "React"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "prospre": {
+    "technologies": [
+      "AWS",
+      "Android Studio",
+      "Firebase",
+      "Flask",
+      "JavaScript",
+      "PostgreSQL",
+      "Python",
+      "React",
+      "React Native",
+      "Xcode"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-radient360": {
+    "technologies": [
+      "AWS",
+      "Ansible",
+      "Docker",
+      "JavaScript",
+      "Kubernetes",
+      "MongoDB",
+      "Neo4j",
+      "Node.js",
+      "React",
+      "Terraform"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Radient360"
+  },
+  "missing-rally-legal": {
+    "technologies": [
+      "Docker",
+      "GitLab CI",
+      "GraphQL",
+      "Kubernetes",
+      "MongoDB",
+      "Node.js",
+      "React",
+      "Redis"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Rally Legal"
+  },
+  "ray-creative-agency": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-reportmate": {
+    "technologies": [
+      "Docker",
+      "MySQL",
+      "Python",
+      "Serverless",
+      "TensorFlow",
+      "Terraform"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "ReportMate"
+  },
+  "sequence-bio-inc": {
+    "technologies": [
+      "AWS",
+      "CircleCI",
+      "Databricks",
+      "Docker",
+      "Python",
+      "R",
+      "Ruby",
+      "Salesforce",
+      "Terraform"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-skyhawk-telematics": {
+    "technologies": [
+      "AWS",
+      "Java",
+      "MongoDB",
+      "Vert.x"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "SkyHawk Telematics"
+  },
+  "missing-snap-virtual": {
+    "technologies": [
+      "AR/VR",
+      "C#",
+      "Unity"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Snap Virtual"
+  },
+  "strobeltek": {
+    "technologies": [
+      "C",
+      "C++",
+      "CUDA",
+      "MATLAB",
+      "Python",
+      "Qt",
+      "ROS",
+      "TensorFlow"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "subc-imaging": {
+    "technologies": [
+      "ASP.NET Core",
+      "AWS",
+      "Azure",
+      "Blazor",
+      "C#",
+      "WPF",
+      "Xamarin"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-target-marketing": {
+    "technologies": [
+      "AWS",
+      "Firebase",
+      "JavaScript",
+      "React",
+      "WordPress"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "Target Marketing"
+  },
+  "txtsquad": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "missing-unbound-chemicals": {
+    "technologies": null,
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020",
+    "originalName": "UnBound Chemicals"
+  },
+  "nasdaq-verafin": {
+    "technologies": [
+      "AWS",
+      "Java",
+      "JavaScript",
+      "PostgreSQL"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  },
+  "virtual-marine": {
+    "technologies": [
+      "Blender",
+      "C#",
+      "C++",
+      "HLA 1.3",
+      "Moodle",
+      "Qt",
+      "Unity"
+    ],
+    "source": "Get Building 2020 Technology Survey",
+    "sourceUrl": "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0",
+    "lastUpdated": "2020"
+  }
+}

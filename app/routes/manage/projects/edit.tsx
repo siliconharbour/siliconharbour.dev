@@ -14,7 +14,13 @@ import {
   deleteImage,
 } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { TechnologySelect } from "~/components/TechnologySelect";
 import { projectTypes, projectStatuses, type ProjectImage } from "~/db/schema";
+import {
+  getAllTechnologies,
+  getTechnologiesForContent,
+  setTechnologiesForContent,
+} from "~/lib/technologies.server";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.project?.name || "Project"} - siliconharbour.dev` }];
@@ -33,7 +39,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Project not found", { status: 404 });
   }
 
-  return { project };
+  const [allTechnologies, projectTechnologies] = await Promise.all([
+    getAllTechnologies(),
+    getTechnologiesForContent("project", id),
+  ]);
+
+  return {
+    project,
+    allTechnologies,
+    selectedTechnologyIds: projectTechnologies.map((t) => t.technologyId),
+  };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -92,6 +107,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   const npm = (formData.get("npm") as string) || undefined;
   const steam = (formData.get("steam") as string) || undefined;
 
+  const technologyIds = formData.getAll("technologies").map((id) => parseInt(id as string, 10));
+
   if (!name || !description) {
     return { error: "Name and description are required" };
   }
@@ -147,6 +164,9 @@ export async function action({ request, params }: Route.ActionArgs) {
     ...(coverImage !== undefined && { coverImage }),
   });
 
+  // Update technology assignments
+  await setTechnologiesForContent("project", id, technologyIds);
+
   return redirect("/manage/projects");
 }
 
@@ -167,7 +187,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function EditProject() {
-  const { project } = useLoaderData<typeof loader>();
+  const { project, allTechnologies, selectedTechnologyIds } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const links = parseProjectLinks(project.links);
 
@@ -357,6 +377,11 @@ export default function EditProject() {
               helpText="Upload cover (16:9)"
             />
           </div>
+
+          <TechnologySelect
+            technologies={allTechnologies}
+            selectedIds={selectedTechnologyIds}
+          />
 
           <button
             type="submit"

@@ -11,6 +11,7 @@ import { getAllJobs } from "~/lib/jobs.server";
 import { getAllProjects } from "~/lib/projects.server";
 import { getAllProducts } from "~/lib/products.server";
 import { getCommentCount } from "~/lib/comments.server";
+import { getTechnologiesCount } from "~/lib/technologies.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage - siliconharbour.dev" }];
@@ -29,6 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     projects,
     products,
     commentsCount,
+    technologiesCount,
   ] = await Promise.all([
     getAllEvents(),
     getAllCompanies(),
@@ -40,6 +42,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     getAllProjects(),
     getAllProducts(),
     getCommentCount(),
+    getTechnologiesCount(),
   ]);
   return {
     user,
@@ -54,6 +57,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       projects: projects.length,
       products: products.length,
       comments: commentsCount,
+      technologies: technologiesCount,
     },
   };
 }
@@ -68,6 +72,7 @@ const contentTypes = [
   { key: "jobs", label: "Jobs", href: "/manage/jobs" },
   { key: "projects", label: "Projects", href: "/manage/projects" },
   { key: "products", label: "Products", href: "/manage/products" },
+  { key: "technologies", label: "Technologies", href: "/manage/technologies" },
   { key: "comments", label: "Comments", href: "/manage/comments" },
 ] as const;
 
