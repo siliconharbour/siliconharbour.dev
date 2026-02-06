@@ -161,7 +161,7 @@ export default function ManageIndex() {
             >
               <h3 className="font-medium text-harbour-700">Job Import</h3>
               <p className="text-harbour-400 text-sm">
-                Import jobs from company career pages (Greenhouse, Ashby)
+                Import jobs from company career pages
               </p>
             </Link>
           </div>

@@ -9,6 +9,7 @@ import { ashbyImporter } from "./ashby.server";
 import { workdayImporter } from "./workday.server";
 import { bamboohrImporter } from "./bamboohr.server";
 import { leverImporter } from "./lever.server";
+import { collageImporter } from "./collage.server";
 
 // Registry of all available importers
 const importers: Record<string, JobImporter> = {
@@ -17,6 +18,7 @@ const importers: Record<string, JobImporter> = {
   workday: workdayImporter,
   bamboohr: bamboohrImporter,
   lever: leverImporter,
+  collage: collageImporter,
 };
 
 /**

@@ -203,7 +203,6 @@ export default function ManageImportJobs() {
 
         <p className="text-sm text-harbour-400">
           Job import sources let you automatically pull job listings from company career pages.
-          Supported platforms: Greenhouse, Ashby.
         </p>
       </div>
     </div>
