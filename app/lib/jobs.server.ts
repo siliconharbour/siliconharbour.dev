@@ -245,6 +245,7 @@ export interface CompanyWithJobs {
     slug: string;
     logo: string | null;
     website: string | null;
+    careersUrl: string | null;
     location: string | null;
   };
   jobs: Job[];
@@ -273,6 +274,7 @@ export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: 
         slug: companies.slug,
         logo: companies.logo,
         website: companies.website,
+        careersUrl: companies.careersUrl,
         location: companies.location,
       },
     })

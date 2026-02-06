@@ -160,14 +160,14 @@ function CompanyJobCard({ data }: { data: CompanyWithJobs }) {
             </span>
           </div>
         </div>
-        {company.website && (
+        {(company.careersUrl || company.website) && (
           <a
-            href={company.website}
+            href={company.careersUrl || company.website!}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:block"
           >
-            Website
+            {company.careersUrl ? "Careers" : "Website"}
           </a>
         )}
       </div>

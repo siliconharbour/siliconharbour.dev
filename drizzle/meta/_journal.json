@@ -176,6 +176,13 @@
       "when": 1768709000000,
       "tag": "0024_add_job_pending_review_status",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1768710000000,
+      "tag": "0025_add_company_careers_url",
+      "breakpoints": true
     }
   ]
 }

@@ -108,6 +108,7 @@ export const companies = sqliteTable("companies", {
   name: text("name").notNull(),
   description: text("description").notNull(), // markdown
   website: text("website"), // external link
+  careersUrl: text("careers_url"), // link to careers/jobs page
   wikipedia: text("wikipedia"), // wikipedia article URL
   github: text("github"), // GitHub organization URL
   email: text("email"), // contact email
