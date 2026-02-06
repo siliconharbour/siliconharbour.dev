@@ -128,3 +128,87 @@ These use known ATS platforms we haven't built importers for yet. See tickets fo
 - **Identifier:** milk-moovement
 - **Importer ticket:** s-608e
 - **DB company ID:** 132
+
+---
+
+## All Known Career Page URLs
+
+Sourced from CTS-NL data and our own research. These are set in the `careers_url`
+field on the `companies` table so the /jobs page links to careers pages instead
+of company websites. Companies with active ATS importers are marked.
+
+| Company | Careers URL | ATS / Notes |
+|---------|-------------|-------------|
+| Avalon Holographics | https://www.avalonholographics.com/careers | ADP Workforce Now |
+| Bluedrop ISM | https://bluedropism.com/careers/#jobs | Custom |
+| BreatheSuite | https://www.breathesuite.com/careers | BambooHR (breathesuite) |
+| C-CORE | https://c-core.ca/working-at-c-core/ | WordPress, email apply |
+| Carnegie Learning (Zorbit's) | https://zorbitsmath.com/careers | Custom |
+| Celtx | https://www.celtx.com/careers.html | HRMDirect |
+| ClearRisk | https://www.clearrisk.com/about-clearrisk/careers | Custom |
+| CoLab Software | https://www.colabsoftware.com/careers | **Greenhouse** (active) |
+| Compusult | https://www.compusult.com/web/guest/careers | Liferay CMS |
+| Enaimco | https://enaimco.com/careers/ | WordPress |
+| Focus FS | https://focusfs.com/company/careers/ | Custom |
+| Fonemed | https://www.fonemed.com/ | ApplyToJob |
+| Genoa Design | https://genoadesign.com/careers/ | Dayforce HCM |
+| HeyOrca | https://www.heyorca.com/careers | **Collage** (active) |
+| HYKE | https://www.hykeup.com/ | Custom |
+| Instrumar | https://www.instrumar.com/ | Custom |
+| Kraken Robotics | https://www.krakenrobotics.com/careers/ | **Rippling** (active) |
+| MetricsFlow | https://www.metricsflow.com/ | Custom |
+| Milk Moovement | https://jobs.lever.co/milk-moovement | **Lever** (active) |
+| Mysa | https://getmysa.com/pages/careers | **Lever** (active) |
+| Nasdaq Verafin | https://nasdaq.wd1.myworkdayjobs.com/... | **Workday** (active) |
+| NetBenefit Software | https://www.netbenefitsoftware.com/careers | Webflow, email apply |
+| Oliver POS | https://oliverpos.com/company/careers/ | Custom |
+| OPAS Mobile | https://www.opasmobile.com/ | Custom |
+| Other Ocean Interactive | https://otherocean.com/careers/ | Custom |
+| Pinnacle Networks | https://www.pinnacleoffice.ca/networks/ | Custom |
+| PolyUnity | https://www.polyunity.com/work-with-us | Webflow |
+| Q5 Systems | https://q5systems.com/ | Custom |
+| qualiTEAS | https://www.qualiteas.ca/ | Custom |
+| Ray Creative Agency | https://rayagency.ca/career-opportunities/ | Custom |
+| Rutter | https://rutter.ca/careers/ | Custom |
+| Sequence Bio | https://www.sequencebio.com/careers | BambooHR? |
+| SiftMed | https://www.siftmed.ca/jobs | Wix |
+| SmartICE | http://www.smartice.org/employment-training/ | Custom |
+| Solace Power | https://www.solace.ca/careers | **Collage** (active) |
+| Spellbook | https://www.spellbook.legal/careers | **Ashby** (active) |
+| StrobelTEK | https://strobeltek.com/careers/ | Custom |
+| Strong Data | https://www.strongdata.ca/ | Custom |
+| SubC Imaging | https://www.subcimaging.com/ | Custom |
+| techNL | https://technl.ca/job-seekers/ | Custom |
+| TownSuite Municipal Software | https://townsuite.com/jobs | Custom |
+| Triware Technologies | https://triware.ca/careers/ | Custom |
+| trophi.ai | https://www.trophi.ai/careers | **BambooHR** (active) |
+| Veristart | https://www.veristart.ca/ | Custom |
+| Virtual Marine | https://www.virtualmarine.ca/careers | Custom |
+| Vish | https://getvish.com/about-vish/careers/ | Custom |
+| Vision33 | https://jobs.vision33.com/careers/31076-Vision33 | BambooHR? |
+
+### Additional career URLs from CTS-NL (companies not in our DB yet)
+
+See `companies-missing-but-on-cts.md` for the full list of companies to add.
+
+| Company | Careers URL | ATS |
+|---------|-------------|-----|
+| BlueDriver | https://www.bluedriver.com/about-us/careers | Custom |
+| Bullseye Branding | https://www.bullseyebranding.ca/opportunities/ | Custom |
+| Inspectar | https://www.inspectar.com/careers#open-positions | Custom |
+| IOA Software Solutions | https://ioass.com/careers-1 | Custom |
+| Mobia | https://canr57.dayforcehcm.com/... | Dayforce HCM |
+| PanGeo Subsea | https://www.pangeosubsea.com/careers-2/ | Custom |
+| Radient360 | https://radient360.com/careers/ | Custom |
+| Rally | https://rallynow.freshteam.com/jobs | Freshteam |
+| totaliQ | https://yourtotaliq.freshteam.com/jobs | Freshteam |
+| Target Marketing | https://targetmarketing.ca/#careers | Custom |
+| Newfoundland Power | https://careers.newfoundlandpower.com/default | Custom |
+| NL Hydro | https://nlhydro.com/careers/current-opportunities/ | Custom |
+| NLHC | https://www.nlhc.nl.ca/jobs/ | Custom |
+| NLCHI | ADP Workforce Now (cid=7aaf2373...) | ADP |
+| PAL Airlines | ADP Workforce Now (cid=03260d95...) | ADP |
+| Eastern Health | https://employment.easternhealth.ca/... | Custom |
+| College of the North Atlantic | https://www.cna.nl.ca/careers/ | Custom |
+| Memorial University | https://www.mun.ca/hr/careers/external.php | Custom |
+| Government of NL | https://www.hiring.gov.nl.ca/Jobs.aspx/Public | Custom |
