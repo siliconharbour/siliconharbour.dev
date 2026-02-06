@@ -568,6 +568,110 @@ export const technologyAssignments = sqliteTable(
 );
 
 // =============================================================================
+// Job Import - Track job import sources and imported jobs
+// =============================================================================
+
+export const jobSourceTypes = ["greenhouse", "ashby", "workday", "bamboohr", "custom"] as const;
+export type JobSourceType = (typeof jobSourceTypes)[number];
+
+export const importedJobStatuses = ["active", "removed", "filled", "expired", "hidden"] as const;
+export type ImportedJobStatus = (typeof importedJobStatuses)[number];
+
+export const fetchStatuses = ["pending", "success", "error"] as const;
+export type FetchStatus = (typeof fetchStatuses)[number];
+
+export const workplaceTypes = ["remote", "onsite", "hybrid"] as const;
+export type WorkplaceType = (typeof workplaceTypes)[number];
+
+// Track job import sources per company
+export const jobImportSources = sqliteTable(
+  "job_import_sources",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    companyId: integer("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    sourceType: text("source_type", { enum: jobSourceTypes }).notNull(),
+    sourceIdentifier: text("source_identifier").notNull(), // board token, org slug, etc.
+    sourceUrl: text("source_url"), // the careers page URL
+    lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
+    fetchStatus: text("fetch_status", { enum: fetchStatuses }),
+    fetchError: text("fetch_error"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    companyIdx: index("job_import_sources_company_idx").on(table.companyId),
+  }),
+);
+
+// Track individual job postings fetched (soft deletes - never hard delete)
+export const importedJobs = sqliteTable(
+  "imported_jobs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    companyId: integer("company_id")
+      .notNull()
+      .references(() => companies.id, { onDelete: "cascade" }),
+    sourceId: integer("source_id")
+      .notNull()
+      .references(() => jobImportSources.id, { onDelete: "cascade" }),
+    externalId: text("external_id").notNull(), // ID from the ATS
+    title: text("title").notNull(),
+    location: text("location"),
+    department: text("department"),
+    descriptionHtml: text("description_html"), // raw HTML
+    descriptionText: text("description_text"), // extracted plain text
+    url: text("url"), // application URL
+    workplaceType: text("workplace_type", { enum: workplaceTypes }),
+    postedAt: integer("posted_at", { mode: "timestamp" }), // when the company posted it (from ATS)
+    externalUpdatedAt: integer("external_updated_at", { mode: "timestamp" }), // last update from ATS
+    firstSeenAt: integer("first_seen_at", { mode: "timestamp" }).notNull(), // when we first discovered
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).notNull(), // last time in fetch
+    removedAt: integer("removed_at", { mode: "timestamp" }), // when job disappeared (null = still active)
+    status: text("status", { enum: importedJobStatuses }).notNull().default("active"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    statusIdx: index("imported_jobs_status_idx").on(table.status),
+    companyIdx: index("imported_jobs_company_idx").on(table.companyId),
+    sourceExternalIdx: index("imported_jobs_source_external_idx").on(table.sourceId, table.externalId),
+  }),
+);
+
+// Track technology extraction from job descriptions
+export const jobTechnologyMentions = sqliteTable(
+  "job_technology_mentions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    importedJobId: integer("imported_job_id")
+      .notNull()
+      .references(() => importedJobs.id, { onDelete: "cascade" }),
+    technologyId: integer("technology_id")
+      .notNull()
+      .references(() => technologies.id, { onDelete: "cascade" }),
+    confidence: integer("confidence"), // 0-100 score
+    context: text("context"), // snippet where tech was mentioned
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    jobIdx: index("job_tech_mentions_job_idx").on(table.importedJobId),
+    techIdx: index("job_tech_mentions_tech_idx").on(table.technologyId),
+  }),
+);
+
+// =============================================================================
 // Type exports
 // =============================================================================
 
@@ -619,3 +723,12 @@ export type NewTechnology = typeof technologies.$inferInsert;
 
 export type TechnologyAssignment = typeof technologyAssignments.$inferSelect;
 export type NewTechnologyAssignment = typeof technologyAssignments.$inferInsert;
+
+export type JobImportSource = typeof jobImportSources.$inferSelect;
+export type NewJobImportSource = typeof jobImportSources.$inferInsert;
+
+export type ImportedJob = typeof importedJobs.$inferSelect;
+export type NewImportedJob = typeof importedJobs.$inferInsert;
+
+export type JobTechnologyMention = typeof jobTechnologyMentions.$inferSelect;
+export type NewJobTechnologyMention = typeof jobTechnologyMentions.$inferInsert;

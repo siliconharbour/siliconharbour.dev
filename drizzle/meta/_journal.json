@@ -148,6 +148,13 @@
       "when": 1768705000000,
       "tag": "0020_add_technologies",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1768706000000,
+      "tag": "0021_add_job_import",
+      "breakpoints": true
     }
   ]
 }

@@ -73,6 +73,7 @@ CREATE TABLE job_import_sources (
 );
 
 -- Track individual job postings fetched
+-- Uses soft deletes: jobs are never hard-deleted, just marked inactive
 CREATE TABLE imported_jobs (
   id INTEGER PRIMARY KEY,
   company_id INTEGER REFERENCES companies(id),
@@ -85,15 +86,21 @@ CREATE TABLE imported_jobs (
   description_text TEXT, -- extracted plain text
   url TEXT, -- application URL
   workplace_type TEXT, -- remote, onsite, hybrid
-  posted_at INTEGER,
-  external_updated_at INTEGER,
-  first_seen_at INTEGER,
-  last_seen_at INTEGER,
-  is_active INTEGER DEFAULT 1,
-  created_at INTEGER,
-  updated_at INTEGER,
+  posted_at INTEGER, -- when the company posted it (from ATS)
+  external_updated_at INTEGER, -- last update timestamp from ATS
+  first_seen_at INTEGER NOT NULL, -- when we first discovered this job
+  last_seen_at INTEGER NOT NULL, -- last time job appeared in fetch
+  removed_at INTEGER, -- when job disappeared from ATS (null = still active)
+  status TEXT NOT NULL DEFAULT 'active', -- 'active', 'removed', 'filled', 'expired'
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
   UNIQUE(source_id, external_id)
 );
+
+-- Index for common queries
+CREATE INDEX imported_jobs_status_idx ON imported_jobs(status);
+CREATE INDEX imported_jobs_company_idx ON imported_jobs(company_id);
+CREATE INDEX imported_jobs_removed_idx ON imported_jobs(removed_at) WHERE removed_at IS NOT NULL;
 
 -- Track technology extraction from job descriptions
 CREATE TABLE job_technology_mentions (
@@ -153,6 +160,95 @@ interface ImportedJob {
   postedAt?: Date;
   updatedAt?: Date;
 }
+```
+
+## Import Sync Logic
+
+Each import run follows this algorithm:
+
+```typescript
+async function syncJobs(sourceId: number): Promise<SyncResult> {
+  const source = await getSourceById(sourceId);
+  const importer = getImporter(source.sourceType);
+  
+  // 1. Fetch current jobs from ATS
+  const fetchedJobs = await importer.fetchJobs(source);
+  const fetchedIds = new Set(fetchedJobs.map(j => j.externalId));
+  
+  // 2. Get our existing jobs for this source
+  const existingJobs = await getJobsBySourceId(sourceId);
+  const existingIds = new Set(existingJobs.map(j => j.externalId));
+  
+  const now = Date.now();
+  const results = { added: 0, updated: 0, removed: 0, reactivated: 0 };
+  
+  // 3. Process fetched jobs
+  for (const job of fetchedJobs) {
+    const existing = existingJobs.find(j => j.externalId === job.externalId);
+    
+    if (!existing) {
+      // NEW JOB: insert with first_seen_at = now
+      await insertJob({ ...job, sourceId, firstSeenAt: now, lastSeenAt: now, status: 'active' });
+      results.added++;
+    } else if (existing.status !== 'active') {
+      // REACTIVATED: job came back after being removed
+      await updateJob(existing.id, { ...job, lastSeenAt: now, removedAt: null, status: 'active' });
+      results.reactivated++;
+    } else {
+      // EXISTING: update last_seen_at and any changed fields
+      await updateJob(existing.id, { ...job, lastSeenAt: now });
+      results.updated++;
+    }
+  }
+  
+  // 4. Mark jobs no longer in feed as removed
+  for (const existing of existingJobs) {
+    if (existing.status === 'active' && !fetchedIds.has(existing.externalId)) {
+      await updateJob(existing.id, { removedAt: now, status: 'removed' });
+      results.removed++;
+    }
+  }
+  
+  // 5. Update source metadata
+  await updateSource(sourceId, { lastFetchedAt: now, fetchStatus: 'success' });
+  
+  return results;
+}
+```
+
+### Job Lifecycle States
+
+| Status | Meaning | `removed_at` |
+|--------|---------|--------------|
+| `active` | Currently on company's career page | `null` |
+| `removed` | Disappeared from feed (may be filled or pulled) | timestamp |
+| `filled` | Manually marked as filled | timestamp |
+| `expired` | Job had an expiration date that passed | timestamp |
+
+### Useful Queries
+
+```sql
+-- Active jobs for a company
+SELECT * FROM imported_jobs WHERE company_id = ? AND status = 'active';
+
+-- Recently removed jobs (last 30 days)
+SELECT * FROM imported_jobs 
+WHERE status = 'removed' 
+AND removed_at > unixepoch('now', '-30 days');
+
+-- Jobs that came back (reactivated)
+SELECT * FROM imported_jobs 
+WHERE status = 'active' 
+AND removed_at IS NOT NULL; -- was previously removed
+
+-- Job posting duration (how long was it live?)
+SELECT title, 
+       (COALESCE(removed_at, unixepoch()) - first_seen_at) / 86400 as days_posted
+FROM imported_jobs 
+WHERE company_id = ?;
+
+-- Historical archive: all jobs we've ever seen
+SELECT * FROM imported_jobs WHERE company_id = ? ORDER BY first_seen_at DESC;
 ```
 
 ## Implementation Priority

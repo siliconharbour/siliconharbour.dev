@@ -8,6 +8,7 @@ import { getOptionalUser } from "~/lib/session.server";
 import { areCommentsEnabled } from "~/lib/config.server";
 import { getTechnologiesForContent } from "~/lib/technologies.server";
 import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
+import { getActiveJobsForCompany } from "~/lib/job-importers/sync.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -25,12 +26,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
 
-  const [resolvedRefs, backlinks, comments, commentsEnabled, technologiesWithAssignments] = await Promise.all([
+  const [resolvedRefs, backlinks, comments, commentsEnabled, technologiesWithAssignments, activeJobs] = await Promise.all([
     prepareRefsForClient(company.description),
     getDetailedBacklinks("company", company.id),
     isAdmin ? getAllComments("company", company.id) : getPublicComments("company", company.id),
     areCommentsEnabled("companies"),
     getTechnologiesForContent("company", company.id),
+    getActiveJobsForCompany(company.id),
   ]);
 
   const turnstileSiteKey = getTurnstileSiteKey();
@@ -62,6 +64,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       sourceUrl: provenance.sourceUrl,
       lastVerified: provenance.lastVerified,
     } : null,
+    activeJobs,
   };
 }
 
@@ -76,6 +79,7 @@ export default function CompanyDetail() {
     commentsEnabled,
     techByCategory,
     provenance,
+    activeJobs,
   } = useLoaderData<typeof loader>();
 
   return (
@@ -313,6 +317,54 @@ export default function CompanyDetail() {
                   )}
                 </span>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeJobs.length > 0 && (
+          <div className="border-t border-harbour-200 pt-6">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-3">
+              Open Positions ({activeJobs.length})
+            </h2>
+            <div className="flex flex-col gap-2">
+              {activeJobs.map((job) => (
+                <a
+                  key={job.id}
+                  href={job.url || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-3 bg-harbour-50 hover:bg-harbour-100 border border-harbour-200 transition-colors group"
+                >
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-medium text-harbour-700 group-hover:text-harbour-900">
+                      {job.title}
+                    </span>
+                    <div className="flex items-center gap-2 text-sm text-harbour-500">
+                      {job.location && <span>{job.location}</span>}
+                      {job.department && (
+                        <>
+                          {job.location && <span className="text-harbour-300">|</span>}
+                          <span>{job.department}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {job.workplaceType && (
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                        job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
+                        job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
+                        "bg-blue-100 text-blue-700"
+                      }`}>
+                        {job.workplaceType}
+                      </span>
+                    )}
+                    <svg className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </div>
+                </a>
+              ))}
             </div>
           </div>
         )}

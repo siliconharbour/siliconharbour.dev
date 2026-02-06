@@ -116,3 +116,10 @@ export function imageUrl(filename: string | null): string | null {
 export function contentUrl(type: string, slug: string): string {
   return `${SITE_URL}/${type}/${slug}`;
 }
+
+/**
+ * Create a 404 not found JSON response
+ */
+export function notFoundResponse(message: string = "Not found"): Response {
+  return jsonResponse({ error: message }, { status: 404 });
+}
