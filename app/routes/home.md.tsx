@@ -94,8 +94,8 @@ For complete site documentation and API info, see [/llms.txt](/llms.txt).
     content += `\n[View all projects](/directory/projects.md)\n\n`;
   }
 
-  // Jobs
-  const activeJobs = jobs.slice(0, 4);
+  // Jobs - only show jobs that have slugs (can be linked)
+  const activeJobs = jobs.filter(j => j.slug).slice(0, 4);
   if (activeJobs.length > 0) {
     content += `## Jobs\n\n`;
     for (const job of activeJobs) {

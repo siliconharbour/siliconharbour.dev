@@ -1,7 +1,10 @@
 import type { Route } from "./+types/new";
-import { Link, redirect, useActionData, Form } from "react-router";
+import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { createJob } from "~/lib/jobs.server";
+import { db } from "~/db";
+import { companies } from "~/db/schema";
+import { asc } from "drizzle-orm";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Job - siliconharbour.dev" }];
@@ -9,7 +12,14 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  return null;
+
+  // Get all companies for the dropdown
+  const companyList = await db
+    .select({ id: companies.id, name: companies.name })
+    .from(companies)
+    .orderBy(asc(companies.name));
+
+  return { companies: companyList };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -19,37 +29,35 @@ export async function action({ request }: Route.ActionArgs) {
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const companyName = (formData.get("companyName") as string) || null;
+  const companyIdStr = formData.get("companyId") as string;
   const location = (formData.get("location") as string) || null;
-  const remote = formData.get("remote") === "1";
+  const department = (formData.get("department") as string) || null;
+  const workplaceType = (formData.get("workplaceType") as string) || null;
   const salaryRange = (formData.get("salaryRange") as string) || null;
-  const applyLink = formData.get("applyLink") as string;
-  const expiresAtStr = formData.get("expiresAt") as string;
+  const url = formData.get("url") as string;
 
-  if (!title || !description || !applyLink) {
+  if (!title || !description || !url) {
     return { error: "Title, description, and apply link are required" };
   }
 
-  let expiresAt: Date | null = null;
-  if (expiresAtStr) {
-    expiresAt = new Date(expiresAtStr);
-  }
+  const companyId = companyIdStr ? parseInt(companyIdStr, 10) : null;
 
   await createJob({
     title,
     description,
-    companyName,
+    companyId: companyId || null,
     location,
-    remote,
+    department,
+    workplaceType: workplaceType as "remote" | "onsite" | "hybrid" | null,
     salaryRange,
-    applyLink,
-    expiresAt,
+    url,
   });
 
   return redirect("/manage/jobs");
 }
 
 export default function NewJob() {
+  const { companies } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -61,7 +69,7 @@ export default function NewJob() {
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Job</h1>
+        <h1 className="text-2xl font-semibold text-harbour-700">New Manual Job</h1>
 
         {actionData?.error && (
           <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
@@ -82,15 +90,24 @@ export default function NewJob() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="companyName" className="font-medium text-harbour-700">
-              Company Name
+            <label htmlFor="companyId" className="font-medium text-harbour-700">
+              Company
             </label>
-            <input
-              type="text"
-              id="companyName"
-              name="companyName"
+            <select
+              id="companyId"
+              name="companyId"
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
+            >
+              <option value="">-- Select a company (optional) --</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-harbour-400">
+              Link to an existing company, or leave blank for external companies
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -115,8 +132,40 @@ export default function NewJob() {
                 type="text"
                 id="location"
                 name="location"
+                placeholder="e.g., St. John's, NL"
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="department" className="font-medium text-harbour-700">
+                Department
+              </label>
+              <input
+                type="text"
+                id="department"
+                name="department"
+                placeholder="e.g., Engineering"
+                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="workplaceType" className="font-medium text-harbour-700">
+                Workplace Type
+              </label>
+              <select
+                id="workplaceType"
+                name="workplaceType"
+                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              >
+                <option value="">-- Select --</option>
+                <option value="onsite">On-site</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -133,34 +182,16 @@ export default function NewJob() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input type="checkbox" id="remote" name="remote" value="1" className="w-4 h-4" />
-            <label htmlFor="remote" className="text-harbour-700">
-              Remote position
-            </label>
-          </div>
-
           <div className="flex flex-col gap-2">
-            <label htmlFor="applyLink" className="font-medium text-harbour-700">
+            <label htmlFor="url" className="font-medium text-harbour-700">
               Apply Link *
             </label>
             <input
               type="url"
-              id="applyLink"
-              name="applyLink"
+              id="url"
+              name="url"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="expiresAt" className="font-medium text-harbour-700">
-              Expires On (optional)
-            </label>
-            <input
-              type="date"
-              id="expiresAt"
-              name="expiresAt"
+              placeholder="https://..."
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>

@@ -156,10 +156,9 @@ function JobCard({
         {data.title}
       </h4>
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500 mt-1">
-        {data.companyName && <span>{data.companyName}</span>}
         {data.location && <span>{data.location}</span>}
-        {data.remote && (
-          <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">Remote</span>
+        {data.workplaceType === "remote" && (
+          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700">Remote</span>
         )}
       </div>
     </Link>

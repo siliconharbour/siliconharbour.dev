@@ -1,29 +1,38 @@
 import type { Route } from "./+types/jobs.$slug";
 import { db } from "~/db";
-import { jobs } from "~/db/schema";
+import { jobs, companies } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { jsonResponse, contentUrl } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const [job] = await db.select().from(jobs).where(eq(jobs.slug, params.slug));
+  const [result] = await db
+    .select({
+      job: jobs,
+      companyName: companies.name,
+    })
+    .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
+    .where(eq(jobs.slug, params.slug));
 
-  if (!job) {
+  if (!result) {
     return jsonResponse({ error: "Job not found" }, { status: 404 });
   }
+
+  const { job, companyName } = result;
 
   return jsonResponse({
     id: job.id,
     slug: job.slug,
     title: job.title,
-    description: job.description,
-    companyName: job.companyName,
+    description: job.description || job.descriptionText,
+    companyName: companyName,
     location: job.location,
-    remote: job.remote,
+    department: job.department,
+    workplaceType: job.workplaceType,
     salaryRange: job.salaryRange,
-    applyLink: job.applyLink,
-    postedAt: job.postedAt.toISOString(),
-    expiresAt: job.expiresAt?.toISOString() || null,
-    url: contentUrl("jobs", job.slug),
+    url: job.url,
+    postedAt: job.postedAt?.toISOString() || null,
+    detailUrl: job.slug ? contentUrl("jobs", job.slug) : null,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   });

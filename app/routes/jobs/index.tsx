@@ -2,6 +2,8 @@ import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getOptionalUser } from "~/lib/session.server";
+import { db } from "~/db";
+import { companies } from "~/db/schema";
 import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
@@ -23,7 +25,25 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const { items: jobs, total } = await getPaginatedJobs(limit, offset, searchQuery);
 
-  return { jobs, total, limit, offset, searchQuery, isAdmin };
+  // Get company names for jobs that have companyId
+  const companyIds = [...new Set(jobs.filter((j) => j.companyId).map((j) => j.companyId!))];
+  const companyMap = new Map<number, string>();
+  
+  if (companyIds.length > 0) {
+    const companyList = await db
+      .select({ id: companies.id, name: companies.name })
+      .from(companies);
+    for (const c of companyList) {
+      companyMap.set(c.id, c.name);
+    }
+  }
+
+  const jobsWithCompany = jobs.map((job) => ({
+    ...job,
+    companyName: job.companyId ? companyMap.get(job.companyId) ?? null : null,
+  }));
+
+  return { jobs: jobsWithCompany, total, limit, offset, searchQuery, isAdmin };
 }
 
 export default function JobsIndex() {
@@ -72,7 +92,9 @@ export default function JobsIndex() {
             {jobs.map((job) => (
               <a
                 key={job.id}
-                href={`/jobs/${job.slug}`}
+                href={job.slug ? `/jobs/${job.slug}` : job.url || "#"}
+                target={job.slug ? undefined : "_blank"}
+                rel={job.slug ? undefined : "noopener noreferrer"}
                 className="group flex flex-col gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -80,9 +102,14 @@ export default function JobsIndex() {
                     {job.title}
                   </h2>
                   <div className="flex flex-wrap gap-2">
-                    {job.remote && (
-                      <span className="text-xs px-2 py-1 bg-harbour-100 text-harbour-600">
+                    {job.workplaceType === "remote" && (
+                      <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700">
                         Remote
+                      </span>
+                    )}
+                    {job.workplaceType === "hybrid" && (
+                      <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700">
+                        Hybrid
                       </span>
                     )}
                     {job.salaryRange && (
@@ -95,7 +122,8 @@ export default function JobsIndex() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-harbour-500">
                   {job.companyName && <span>{job.companyName}</span>}
                   {job.location && <span>{job.location}</span>}
-                  <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>
+                  {job.department && <span>{job.department}</span>}
+                  {job.postedAt && <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>}
                 </div>
               </a>
             ))}

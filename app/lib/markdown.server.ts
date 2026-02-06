@@ -277,21 +277,24 @@ ${article.excerpt ? `> ${article.excerpt}\n\n` : ""}${article.content}
 `;
 }
 
-export function jobToMarkdown(job: Job): string {
+export function jobToMarkdown(job: Job & { companyName?: string | null }): string {
+  const description = job.description || job.descriptionText || "";
+  const isRemote = job.workplaceType === "remote";
+  
   const frontmatter = formatFrontmatter({
     type: "job",
     id: job.id,
     slug: job.slug,
     title: job.title,
-    url: `${SITE_URL}/jobs/${job.slug}`,
-    api_url: `${SITE_URL}/api/jobs/${job.slug}`,
+    url: job.slug ? `${SITE_URL}/jobs/${job.slug}` : job.url,
+    api_url: job.slug ? `${SITE_URL}/api/jobs/${job.slug}` : null,
     company_name: job.companyName,
     location: job.location,
-    remote: job.remote,
+    department: job.department,
+    workplace_type: job.workplaceType,
     salary_range: job.salaryRange,
-    apply_link: job.applyLink,
+    apply_url: job.url,
     posted_at: job.postedAt,
-    expires_at: job.expiresAt,
     updated_at: job.updatedAt,
   });
 
@@ -299,11 +302,11 @@ export function jobToMarkdown(job: Job): string {
 
 # ${job.title}
 
-${job.companyName ? `**Company:** ${job.companyName}\n\n` : ""}${job.location ? `**Location:** ${job.location}${job.remote ? " (Remote available)" : ""}\n\n` : job.remote ? "**Remote:** Yes\n\n" : ""}${job.salaryRange ? `**Salary:** ${job.salaryRange}\n\n` : ""}**Apply:** ${job.applyLink}
+${job.companyName ? `**Company:** ${job.companyName}\n\n` : ""}${job.location ? `**Location:** ${job.location}${isRemote ? " (Remote)" : ""}\n\n` : isRemote ? "**Remote:** Yes\n\n" : ""}${job.department ? `**Department:** ${job.department}\n\n` : ""}${job.salaryRange ? `**Salary:** ${job.salaryRange}\n\n` : ""}${job.url ? `**Apply:** ${job.url}` : ""}
 
 ## Description
 
-${job.description}
+${description}
 `;
 }
 

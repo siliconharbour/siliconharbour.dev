@@ -1,13 +1,16 @@
 import { db } from "~/db";
-import { jobs, type Job, type NewJob } from "~/db/schema";
-import { eq, desc, gte, or, isNull, and, count, inArray } from "drizzle-orm";
+import { jobs, companies, type Job, type NewJob } from "~/db/schema";
+import { eq, desc, and, count, inArray, isNotNull } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
 
 async function getExistingSlugs(): Promise<string[]> {
-  const rows = await db.select({ slug: jobs.slug }).from(jobs);
-  return rows.map((r) => r.slug);
+  const rows = await db
+    .select({ slug: jobs.slug })
+    .from(jobs)
+    .where(isNotNull(jobs.slug));
+  return rows.map((r) => r.slug).filter((s): s is string => s !== null);
 }
 
 export async function generateJobSlug(title: string, excludeId?: number): Promise<string> {
@@ -20,7 +23,7 @@ export async function generateJobSlug(title: string, excludeId?: number): Promis
       .from(jobs)
       .where(eq(jobs.id, excludeId))
       .get();
-    if (current) {
+    if (current?.slug) {
       existingSlugs = existingSlugs.filter((s) => s !== current.slug);
     }
   }
@@ -28,23 +31,69 @@ export async function generateJobSlug(title: string, excludeId?: number): Promis
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
-export async function createJob(job: Omit<NewJob, "slug">): Promise<Job> {
+/**
+ * Create a manual job posting
+ */
+export async function createJob(job: {
+  title: string;
+  description: string;
+  companyId?: number | null;
+  location?: string | null;
+  department?: string | null;
+  workplaceType?: "remote" | "onsite" | "hybrid" | null;
+  salaryRange?: string | null;
+  url: string; // apply link
+}): Promise<Job> {
   const slug = await generateJobSlug(job.title);
+  const now = new Date();
+  
   const [newJob] = await db
     .insert(jobs)
-    .values({ ...job, slug })
+    .values({
+      slug,
+      title: job.title,
+      description: job.description,
+      companyId: job.companyId,
+      location: job.location,
+      department: job.department,
+      workplaceType: job.workplaceType,
+      salaryRange: job.salaryRange,
+      url: job.url,
+      sourceType: "manual",
+      status: "active",
+      postedAt: now,
+      firstSeenAt: now,
+      lastSeenAt: now,
+      createdAt: now,
+      updatedAt: now,
+    })
     .returning();
 
-  await syncReferences("job", newJob.id, newJob.description);
+  if (job.description) {
+    await syncReferences("job", newJob.id, job.description);
+  }
 
   return newJob;
 }
 
+/**
+ * Update a job (works for both manual and imported jobs)
+ */
 export async function updateJob(
   id: number,
-  job: Partial<Omit<NewJob, "slug">>,
+  job: Partial<{
+    title: string;
+    description: string;
+    companyId: number | null;
+    location: string | null;
+    department: string | null;
+    workplaceType: "remote" | "onsite" | "hybrid" | null;
+    salaryRange: string | null;
+    url: string;
+    status: "active" | "removed" | "filled" | "expired" | "hidden";
+  }>,
 ): Promise<Job | null> {
-  let updateData: Partial<NewJob> = { ...job, updatedAt: new Date() };
+  const updateData: Partial<NewJob> = { ...job, updatedAt: new Date() };
 
   if (job.title) {
     updateData.slug = await generateJobSlug(job.title, id);
@@ -61,6 +110,9 @@ export async function updateJob(
   return updated;
 }
 
+/**
+ * Delete a job (hard delete - use updateJob with status for soft delete)
+ */
 export async function deleteJob(id: number): Promise<boolean> {
   await db.delete(jobs).where(eq(jobs.id, id));
   return true;
@@ -74,17 +126,34 @@ export async function getJobBySlug(slug: string): Promise<Job | null> {
   return db.select().from(jobs).where(eq(jobs.slug, slug)).get() ?? null;
 }
 
+/**
+ * Get all active jobs (for admin listing)
+ */
 export async function getAllJobs(): Promise<Job[]> {
-  return db.select().from(jobs).orderBy(desc(jobs.postedAt));
-}
-
-export async function getActiveJobs(): Promise<Job[]> {
-  const now = new Date();
   return db
     .select()
     .from(jobs)
-    .where(or(isNull(jobs.expiresAt), gte(jobs.expiresAt, now)))
     .orderBy(desc(jobs.postedAt));
+}
+
+/**
+ * Get all active jobs for public display with company names
+ */
+export async function getActiveJobs() {
+  const data = await db
+    .select({
+      job: jobs,
+      companyName: companies.name,
+    })
+    .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
+    .where(eq(jobs.status, "active"))
+    .orderBy(desc(jobs.postedAt));
+
+  return data.map(({ job, companyName }) => ({
+    ...job,
+    companyName,
+  }));
 }
 
 // =============================================================================
@@ -96,13 +165,15 @@ export interface PaginatedJobs {
   total: number;
 }
 
+/**
+ * Get paginated active jobs with optional search
+ */
 export async function getPaginatedJobs(
   limit: number,
   offset: number,
   searchQuery?: string,
 ): Promise<PaginatedJobs> {
-  const now = new Date();
-  const activeCondition = or(isNull(jobs.expiresAt), gte(jobs.expiresAt, now));
+  const activeCondition = eq(jobs.status, "active");
 
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
@@ -142,4 +213,67 @@ export async function getPaginatedJobs(
     .offset(offset);
 
   return { items, total };
+}
+
+// =============================================================================
+// Extended job data with company info
+// =============================================================================
+
+export interface JobWithCompany extends Job {
+  company: {
+    id: number;
+    name: string;
+    slug: string;
+    logo: string | null;
+  } | null;
+}
+
+/**
+ * Get a job with its company info (for detail pages)
+ */
+export async function getJobWithCompany(id: number): Promise<JobWithCompany | null> {
+  const job = await getJobById(id);
+  if (!job) return null;
+
+  let company: JobWithCompany["company"] = null;
+  if (job.companyId) {
+    const [c] = await db
+      .select({
+        id: companies.id,
+        name: companies.name,
+        slug: companies.slug,
+        logo: companies.logo,
+      })
+      .from(companies)
+      .where(eq(companies.id, job.companyId))
+      .limit(1);
+    company = c ?? null;
+  }
+
+  return { ...job, company };
+}
+
+/**
+ * Get a job by slug with company info
+ */
+export async function getJobBySlugWithCompany(slug: string): Promise<JobWithCompany | null> {
+  const job = await getJobBySlug(slug);
+  if (!job) return null;
+
+  let company: JobWithCompany["company"] = null;
+  if (job.companyId) {
+    const [c] = await db
+      .select({
+        id: companies.id,
+        name: companies.name,
+        slug: companies.slug,
+        logo: companies.logo,
+      })
+      .from(companies)
+      .where(eq(companies.id, job.companyId))
+      .limit(1);
+    company = c ?? null;
+  }
+
+  return { ...job, company };
 }

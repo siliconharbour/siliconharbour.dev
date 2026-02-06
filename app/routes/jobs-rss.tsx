@@ -1,9 +1,20 @@
 import type { Route } from "./+types/jobs-rss";
-import { getActiveJobs } from "~/lib/jobs.server";
+import { db } from "~/db";
+import { jobs, companies } from "~/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { format } from "date-fns";
 
 export async function loader({}: Route.LoaderArgs) {
-  const jobs = await getActiveJobs();
+  const data = await db
+    .select({
+      job: jobs,
+      companyName: companies.name,
+    })
+    .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
+    .where(eq(jobs.status, "active"))
+    .orderBy(desc(jobs.postedAt))
+    .limit(50);
 
   const escapeXml = (str: string) =>
     str
@@ -22,16 +33,21 @@ export async function loader({}: Route.LoaderArgs) {
     <language>en-ca</language>
     <lastBuildDate>${format(new Date(), "EEE, dd MMM yyyy HH:mm:ss xx")}</lastBuildDate>
     <atom:link href="https://siliconharbour.dev/jobs.rss" rel="self" type="application/rss+xml"/>
-${jobs
-  .map(
-    (job) => `    <item>
-      <title>${escapeXml(job.title)}${job.companyName ? ` at ${escapeXml(job.companyName)}` : ""}</title>
-      <link>https://siliconharbour.dev/jobs/${job.slug}</link>
-      <description>${escapeXml(job.description.slice(0, 500))}${job.description.length > 500 ? "..." : ""}</description>
-      <pubDate>${format(job.postedAt, "EEE, dd MMM yyyy HH:mm:ss xx")}</pubDate>
+${data
+  .map(({ job, companyName }) => {
+    const description = job.description || job.descriptionText || "";
+    const pubDate = job.postedAt || job.createdAt;
+    const link = job.slug
+      ? `https://siliconharbour.dev/jobs/${job.slug}`
+      : job.url || "https://siliconharbour.dev/jobs";
+    return `    <item>
+      <title>${escapeXml(job.title)}${companyName ? ` at ${escapeXml(companyName)}` : ""}</title>
+      <link>${link}</link>
+      <description>${escapeXml(description.slice(0, 500))}${description.length > 500 ? "..." : ""}</description>
+      <pubDate>${format(pubDate, "EEE, dd MMM yyyy HH:mm:ss xx")}</pubDate>
       <guid isPermaLink="false">job-${job.id}</guid>
-    </item>`,
-  )
+    </item>`;
+  })
   .join("\n")}
   </channel>
 </rss>`;

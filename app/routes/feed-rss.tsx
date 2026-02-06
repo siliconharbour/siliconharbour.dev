@@ -46,14 +46,19 @@ export async function loader({}: Route.LoaderArgs) {
       guid: `news-${article.id}`,
       category: "News",
     })),
-    ...jobs.map((job) => ({
-      title: `Job - ${job.title}${job.companyName ? ` at ${job.companyName}` : ""}`,
-      link: `https://siliconharbour.dev/jobs/${job.slug}`,
-      description: job.description.slice(0, 500) + (job.description.length > 500 ? "..." : ""),
-      pubDate: job.postedAt,
-      guid: `job-${job.id}`,
-      category: "Jobs",
-    })),
+    ...jobs
+      .filter((job) => job.slug) // Only include jobs with slugs
+      .map((job) => {
+        const description = job.description || job.descriptionText || "";
+        return {
+          title: `Job - ${job.title}${job.companyName ? ` at ${job.companyName}` : ""}`,
+          link: `https://siliconharbour.dev/jobs/${job.slug}`,
+          description: description.slice(0, 500) + (description.length > 500 ? "..." : ""),
+          pubDate: job.postedAt || job.createdAt,
+          guid: `job-${job.id}`,
+          category: "Jobs",
+        };
+      }),
   ];
 
   // Sort by date, most recent first

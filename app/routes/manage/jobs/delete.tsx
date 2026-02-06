@@ -20,6 +20,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Job not found", { status: 404 });
   }
 
+  // Only allow deleting manual jobs
+  if (job.sourceType !== "manual") {
+    throw new Response("Cannot delete imported jobs - use hide instead", { status: 403 });
+  }
+
   return { job };
 }
 
@@ -29,6 +34,12 @@ export async function action({ request, params }: Route.ActionArgs) {
   const id = parseInt(params.id, 10);
   if (isNaN(id)) {
     throw new Response("Invalid ID", { status: 400 });
+  }
+
+  // Verify it's a manual job before deleting
+  const job = await getJobById(id);
+  if (job && job.sourceType !== "manual") {
+    throw new Response("Cannot delete imported jobs", { status: 403 });
   }
 
   await deleteJob(id);

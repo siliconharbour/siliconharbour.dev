@@ -4,7 +4,7 @@
  */
 
 import { db } from "~/db";
-import { jobImportSources, importedJobs } from "~/db/schema";
+import { jobImportSources, jobs } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import type { SyncResult, ImportSourceConfig, JobSourceType } from "./types";
 import { getImporter } from "./index";
@@ -28,8 +28,8 @@ export async function getSourceById(sourceId: number) {
 async function getJobsBySourceId(sourceId: number) {
   return db
     .select()
-    .from(importedJobs)
-    .where(eq(importedJobs.sourceId, sourceId));
+    .from(jobs)
+    .where(eq(jobs.sourceId, sourceId));
 }
 
 /**
@@ -52,9 +52,10 @@ async function insertJob(data: {
   lastSeenAt: Date;
 }) {
   const now = new Date();
-  await db.insert(importedJobs).values({
+  await db.insert(jobs).values({
     companyId: data.companyId,
     sourceId: data.sourceId,
+    sourceType: "imported",
     externalId: data.externalId,
     title: data.title,
     location: data.location,
@@ -94,13 +95,13 @@ async function updateJob(
   },
 ) {
   await db
-    .update(importedJobs)
+    .update(jobs)
     .set({
       ...data,
       externalUpdatedAt: data.updatedAt,
       updatedAt: new Date(),
     })
-    .where(eq(importedJobs.id, jobId));
+    .where(eq(jobs.id, jobId));
 }
 
 /**
@@ -241,7 +242,7 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
 
     // 4. Mark jobs no longer in feed as removed
     for (const existing of existingJobs) {
-      if (existing.status === "active" && !fetchedIds.has(existing.externalId)) {
+      if (existing.status === "active" && existing.externalId && !fetchedIds.has(existing.externalId)) {
         await updateJob(existing.id, { removedAt: now, status: "removed" });
         results.removed++;
       }
@@ -280,12 +281,12 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
 export async function getActiveJobsForCompany(companyId: number) {
   return db
     .select()
-    .from(importedJobs)
+    .from(jobs)
     .where(and(
-      eq(importedJobs.companyId, companyId),
-      eq(importedJobs.status, "active"),
+      eq(jobs.companyId, companyId),
+      eq(jobs.status, "active"),
     ))
-    .orderBy(importedJobs.firstSeenAt);
+    .orderBy(jobs.firstSeenAt);
 }
 
 /**
@@ -300,14 +301,16 @@ export async function getAllImportSources() {
   // Get job counts per source
   const jobCounts = await db
     .select({
-      sourceId: importedJobs.sourceId,
+      sourceId: jobs.sourceId,
     })
-    .from(importedJobs)
-    .where(eq(importedJobs.status, "active"));
+    .from(jobs)
+    .where(eq(jobs.status, "active"));
   
   const countBySource = new Map<number, number>();
   for (const row of jobCounts) {
-    countBySource.set(row.sourceId, (countBySource.get(row.sourceId) || 0) + 1);
+    if (row.sourceId) {
+      countBySource.set(row.sourceId, (countBySource.get(row.sourceId) || 0) + 1);
+    }
   }
   
   return sources.map(source => ({
@@ -328,20 +331,20 @@ export async function getImportSourceWithStats(sourceId: number) {
   
   if (!source) return null;
   
-  const jobs = await db
+  const sourceJobs = await db
     .select()
-    .from(importedJobs)
-    .where(eq(importedJobs.sourceId, sourceId));
+    .from(jobs)
+    .where(eq(jobs.sourceId, sourceId));
   
-  const activeCount = jobs.filter(j => j.status === "active").length;
-  const removedCount = jobs.filter(j => j.status === "removed").length;
+  const activeCount = sourceJobs.filter(j => j.status === "active").length;
+  const removedCount = sourceJobs.filter(j => j.status === "removed").length;
   
   return {
     ...source,
     activeJobCount: activeCount,
     removedJobCount: removedCount,
-    totalJobCount: jobs.length,
-    jobs,
+    totalJobCount: sourceJobs.length,
+    jobs: sourceJobs,
   };
 }
 
@@ -382,9 +385,9 @@ export async function deleteImportSource(sourceId: number) {
  */
 export async function hideImportedJob(jobId: number) {
   await db
-    .update(importedJobs)
+    .update(jobs)
     .set({ status: "hidden", updatedAt: new Date() })
-    .where(eq(importedJobs.id, jobId));
+    .where(eq(jobs.id, jobId));
 }
 
 /**
@@ -392,9 +395,9 @@ export async function hideImportedJob(jobId: number) {
  */
 export async function unhideImportedJob(jobId: number) {
   await db
-    .update(importedJobs)
+    .update(jobs)
     .set({ status: "active", updatedAt: new Date() })
-    .where(eq(importedJobs.id, jobId));
+    .where(eq(jobs.id, jobId));
 }
 
 /**
@@ -403,8 +406,8 @@ export async function unhideImportedJob(jobId: number) {
 export async function getImportedJobById(jobId: number) {
   const [job] = await db
     .select()
-    .from(importedJobs)
-    .where(eq(importedJobs.id, jobId))
+    .from(jobs)
+    .where(eq(jobs.id, jobId))
     .limit(1);
   return job || null;
 }

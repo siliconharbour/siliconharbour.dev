@@ -2,7 +2,9 @@ import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getJobById, updateJob } from "~/lib/jobs.server";
-import { format } from "date-fns";
+import { db } from "~/db";
+import { companies } from "~/db/schema";
+import { asc } from "drizzle-orm";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.job?.title || "Job"} - siliconharbour.dev` }];
@@ -21,7 +23,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Job not found", { status: 404 });
   }
 
-  return { job };
+  // Only allow editing manual jobs
+  if (job.sourceType !== "manual") {
+    throw new Response("Cannot edit imported jobs", { status: 403 });
+  }
+
+  // Get all companies for the dropdown
+  const companyList = await db
+    .select({ id: companies.id, name: companies.name })
+    .from(companies)
+    .orderBy(asc(companies.name));
+
+  return { job, companies: companyList };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -37,42 +50,43 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { error: "Job not found" };
   }
 
+  if (existing.sourceType !== "manual") {
+    return { error: "Cannot edit imported jobs" };
+  }
+
   const formData = await request.formData();
 
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const companyName = (formData.get("companyName") as string) || null;
+  const companyIdStr = formData.get("companyId") as string;
   const location = (formData.get("location") as string) || null;
-  const remote = formData.get("remote") === "1";
+  const department = (formData.get("department") as string) || null;
+  const workplaceType = (formData.get("workplaceType") as string) || null;
   const salaryRange = (formData.get("salaryRange") as string) || null;
-  const applyLink = formData.get("applyLink") as string;
-  const expiresAtStr = formData.get("expiresAt") as string;
+  const url = formData.get("url") as string;
 
-  if (!title || !description || !applyLink) {
+  if (!title || !description || !url) {
     return { error: "Title, description, and apply link are required" };
   }
 
-  let expiresAt: Date | null = null;
-  if (expiresAtStr) {
-    expiresAt = new Date(expiresAtStr);
-  }
+  const companyId = companyIdStr ? parseInt(companyIdStr, 10) : null;
 
   await updateJob(id, {
     title,
     description,
-    companyName,
+    companyId: companyId || null,
     location,
-    remote,
+    department,
+    workplaceType: workplaceType as "remote" | "onsite" | "hybrid" | null,
     salaryRange,
-    applyLink,
-    expiresAt,
+    url,
   });
 
   return redirect("/manage/jobs");
 }
 
 export default function EditJob() {
-  const { job } = useLoaderData<typeof loader>();
+  const { job, companies } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -106,16 +120,22 @@ export default function EditJob() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label htmlFor="companyName" className="font-medium text-harbour-700">
-              Company Name
+            <label htmlFor="companyId" className="font-medium text-harbour-700">
+              Company
             </label>
-            <input
-              type="text"
-              id="companyName"
-              name="companyName"
-              defaultValue={job.companyName ?? ""}
+            <select
+              id="companyId"
+              name="companyId"
+              defaultValue={job.companyId ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
+            >
+              <option value="">-- Select a company (optional) --</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-2">
@@ -127,7 +147,7 @@ export default function EditJob() {
               name="description"
               required
               rows={10}
-              defaultValue={job.description}
+              defaultValue={job.description ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </div>
@@ -147,6 +167,38 @@ export default function EditJob() {
             </div>
 
             <div className="flex flex-col gap-2">
+              <label htmlFor="department" className="font-medium text-harbour-700">
+                Department
+              </label>
+              <input
+                type="text"
+                id="department"
+                name="department"
+                defaultValue={job.department ?? ""}
+                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="workplaceType" className="font-medium text-harbour-700">
+                Workplace Type
+              </label>
+              <select
+                id="workplaceType"
+                name="workplaceType"
+                defaultValue={job.workplaceType ?? ""}
+                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              >
+                <option value="">-- Select --</option>
+                <option value="onsite">On-site</option>
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-2">
               <label htmlFor="salaryRange" className="font-medium text-harbour-700">
                 Salary Range
               </label>
@@ -154,50 +206,22 @@ export default function EditJob() {
                 type="text"
                 id="salaryRange"
                 name="salaryRange"
-                placeholder="e.g., $80k-$100k"
                 defaultValue={job.salaryRange ?? ""}
                 className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="remote"
-              name="remote"
-              value="1"
-              defaultChecked={job.remote}
-              className="w-4 h-4"
-            />
-            <label htmlFor="remote" className="text-harbour-700">
-              Remote position
-            </label>
-          </div>
-
           <div className="flex flex-col gap-2">
-            <label htmlFor="applyLink" className="font-medium text-harbour-700">
+            <label htmlFor="url" className="font-medium text-harbour-700">
               Apply Link *
             </label>
             <input
               type="url"
-              id="applyLink"
-              name="applyLink"
+              id="url"
+              name="url"
               required
-              defaultValue={job.applyLink}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="expiresAt" className="font-medium text-harbour-700">
-              Expires On (optional)
-            </label>
-            <input
-              type="date"
-              id="expiresAt"
-              name="expiresAt"
-              defaultValue={job.expiresAt ? format(job.expiresAt, "yyyy-MM-dd") : ""}
+              defaultValue={job.url ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>

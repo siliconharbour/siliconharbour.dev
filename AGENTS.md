@@ -49,6 +49,15 @@ route("api/my-endpoint", "routes/api/my-endpoint.tsx"),
 route("api/my-endpoint/:id", "routes/api/my-endpoint.$id.tsx"),
 ```
 
+## Database
+
+The SQLite database is located at `./data/siliconharbour.db` (configured via `DB_URL` env var).
+
+To query directly:
+```bash
+sqlite3 ./data/siliconharbour.db "SELECT * FROM ..."
+```
+
 ## Database Migrations
 
 This project uses Drizzle ORM with SQLite. When adding/modifying database schema:

@@ -6,7 +6,7 @@
  */
 
 import { db } from "~/db";
-import { technologies, jobTechnologyMentions, importedJobs } from "~/db/schema";
+import { technologies, jobTechnologyMentions, jobs } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
 interface TechPattern {
@@ -141,8 +141,8 @@ export async function extractTechnologiesFromJob(jobId: number): Promise<{ found
   // Get the job
   const [job] = await db
     .select()
-    .from(importedJobs)
-    .where(eq(importedJobs.id, jobId))
+    .from(jobs)
+    .where(eq(jobs.id, jobId))
     .limit(1);
   
   if (!job || !job.descriptionText) {
@@ -167,7 +167,7 @@ export async function extractTechnologiesFromJob(jobId: number): Promise<{ found
   const existingMentions = await db
     .select({ technologyId: jobTechnologyMentions.technologyId })
     .from(jobTechnologyMentions)
-    .where(eq(jobTechnologyMentions.importedJobId, jobId));
+    .where(eq(jobTechnologyMentions.jobId, jobId));
   
   const existingTechIds = new Set(existingMentions.map(m => m.technologyId));
   
@@ -204,7 +204,7 @@ export async function extractTechnologiesFromJob(jobId: number): Promise<{ found
     const now = new Date();
     await db.insert(jobTechnologyMentions).values(
       mentions.map(m => ({
-        importedJobId: jobId,
+        jobId: jobId,
         technologyId: m.technologyId,
         confidence: m.confidence,
         context: m.context,
@@ -220,39 +220,39 @@ export async function extractTechnologiesFromJob(jobId: number): Promise<{ found
  * Extract technologies from all jobs for a company
  */
 export async function extractTechnologiesForCompany(companyId: number): Promise<{ jobs: number; mentions: number }> {
-  const jobs = await db
-    .select({ id: importedJobs.id })
-    .from(importedJobs)
+  const companyJobs = await db
+    .select({ id: jobs.id })
+    .from(jobs)
     .where(and(
-      eq(importedJobs.companyId, companyId),
-      eq(importedJobs.status, "active"),
+      eq(jobs.companyId, companyId),
+      eq(jobs.status, "active"),
     ));
   
   let totalMentions = 0;
-  for (const job of jobs) {
+  for (const job of companyJobs) {
     const result = await extractTechnologiesFromJob(job.id);
     totalMentions += result.inserted;
   }
   
-  return { jobs: jobs.length, mentions: totalMentions };
+  return { jobs: companyJobs.length, mentions: totalMentions };
 }
 
 /**
  * Extract technologies from all active jobs
  */
 export async function extractTechnologiesFromAllJobs(): Promise<{ jobs: number; mentions: number }> {
-  const jobs = await db
-    .select({ id: importedJobs.id })
-    .from(importedJobs)
-    .where(eq(importedJobs.status, "active"));
+  const allJobs = await db
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(eq(jobs.status, "active"));
   
   let totalMentions = 0;
-  for (const job of jobs) {
+  for (const job of allJobs) {
     const result = await extractTechnologiesFromJob(job.id);
     totalMentions += result.inserted;
   }
   
-  return { jobs: jobs.length, mentions: totalMentions };
+  return { jobs: allJobs.length, mentions: totalMentions };
 }
 
 /**
@@ -266,7 +266,7 @@ export async function getTechMentionsForJob(jobId: number) {
     })
     .from(jobTechnologyMentions)
     .innerJoin(technologies, eq(jobTechnologyMentions.technologyId, technologies.id))
-    .where(eq(jobTechnologyMentions.importedJobId, jobId))
+    .where(eq(jobTechnologyMentions.jobId, jobId))
     .orderBy(jobTechnologyMentions.confidence);
 }
 
@@ -276,5 +276,5 @@ export async function getTechMentionsForJob(jobId: number) {
 export async function clearTechMentionsForJob(jobId: number) {
   await db
     .delete(jobTechnologyMentions)
-    .where(eq(jobTechnologyMentions.importedJobId, jobId));
+    .where(eq(jobTechnologyMentions.jobId, jobId));
 }

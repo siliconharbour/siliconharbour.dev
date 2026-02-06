@@ -77,8 +77,7 @@ export default [
   route("api/products/:slug", "routes/api/products.$slug.tsx"),
   route("api/technologies", "routes/api/technologies.tsx"),
   route("api/technologies/:slug", "routes/api/technologies.$slug.tsx"),
-  route("api/imported-jobs", "routes/api/imported-jobs.tsx"),
-  route("api/imported-jobs/:id", "routes/api/imported-jobs.$id.tsx"),
+
 
   // Design system reference
   route("design", "routes/design.tsx"),

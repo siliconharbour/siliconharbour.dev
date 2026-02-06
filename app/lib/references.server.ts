@@ -203,7 +203,9 @@ export async function resolveReference(text: string): Promise<ResolveResult> {
     .from(jobs)
     .where(eq(jobs.title, text));
   for (const j of jobMatches) {
-    candidates.push({ type: "job", id: j.id, name: j.title, slug: j.slug });
+    if (j.slug) {
+      candidates.push({ type: "job", id: j.id, name: j.title, slug: j.slug });
+    }
   }
 
   if (candidates.length === 0) {
@@ -635,7 +637,7 @@ export async function getRichIncomingReferences(
           .select({ title: jobs.title, slug: jobs.slug })
           .from(jobs)
           .where(eq(jobs.id, ref.sourceId));
-        if (j) {
+        if (j && j.slug) {
           name = j.title;
           slug = j.slug;
         }
@@ -729,9 +731,8 @@ export type DetailedBacklink =
         id: number;
         slug: string;
         title: string;
-        companyName: string | null;
         location: string | null;
-        remote: boolean;
+        workplaceType: string | null;
       };
     }
   | {
@@ -870,15 +871,24 @@ export async function getDetailedBacklinks(
             id: jobs.id,
             slug: jobs.slug,
             title: jobs.title,
-            companyName: jobs.companyName,
             location: jobs.location,
-            remote: jobs.remote,
+            workplaceType: jobs.workplaceType,
           })
           .from(jobs)
           .where(eq(jobs.id, ref.sourceId));
 
-        if (job) {
-          backlinks.push({ type: "job", relation: ref.relation ?? undefined, data: job });
+        if (job && job.slug) {
+          backlinks.push({ 
+            type: "job", 
+            relation: ref.relation ?? undefined, 
+            data: {
+              id: job.id,
+              slug: job.slug,
+              title: job.title,
+              location: job.location,
+              workplaceType: job.workplaceType,
+            }
+          });
         }
         break;
       }

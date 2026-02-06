@@ -322,9 +322,11 @@ export default function Home() {
                   </div>
                   <div className="flex flex-col gap-3">
                     {jobs.map((job) => (
-                      <Link
+                      <a
                         key={job.id}
-                        to={`/jobs/${job.slug}`}
+                        href={job.slug ? `/jobs/${job.slug}` : job.url || "#"}
+                        target={job.slug ? undefined : "_blank"}
+                        rel={job.slug ? undefined : "noopener noreferrer"}
                         className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         <div className="flex flex-col gap-1">
@@ -337,8 +339,8 @@ export default function Home() {
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {job.remote && (
-                            <span className="text-xs px-2 py-1 bg-harbour-100 text-harbour-600">
+                          {job.workplaceType === "remote" && (
+                            <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700">
                               Remote
                             </span>
                           )}
@@ -348,7 +350,7 @@ export default function Home() {
                             </span>
                           )}
                         </div>
-                      </Link>
+                      </a>
                     ))}
                   </div>
                 </section>

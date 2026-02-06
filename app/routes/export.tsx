@@ -155,20 +155,21 @@ export async function loader({}: Route.LoaderArgs) {
   // Export jobs
   const jobsFolder = zip.folder("jobs");
   for (const job of allJobs) {
+    if (!job.slug) continue; // Skip jobs without slugs
+    const description = job.description || job.descriptionText || "";
     const frontmatter = buildFrontmatter({
       title: job.title,
       slug: job.slug,
-      companyName: job.companyName,
       location: job.location,
-      remote: job.remote,
+      department: job.department,
+      workplaceType: job.workplaceType,
       salaryRange: job.salaryRange,
-      applyLink: job.applyLink,
-      postedAt: job.postedAt.toISOString(),
-      expiresAt: job.expiresAt?.toISOString() || null,
+      url: job.url,
+      postedAt: job.postedAt?.toISOString() || null,
       createdAt: job.createdAt.toISOString(),
       updatedAt: job.updatedAt.toISOString(),
     });
-    jobsFolder?.file(`${job.slug}.md`, `${frontmatter}\n${job.description}`);
+    jobsFolder?.file(`${job.slug}.md`, `${frontmatter}\n${description}`);
   }
 
   // Export projects

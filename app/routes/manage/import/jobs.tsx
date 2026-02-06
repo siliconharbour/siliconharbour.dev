@@ -77,7 +77,7 @@ export default function ManageImportJobs() {
   const fetcher = useFetcher<typeof action>();
   
   const isLoading = fetcher.state !== "idle";
-  const syncResult = fetcher.data?.intent === "sync" ? fetcher.data : null;
+  const syncResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync" ? fetcher.data : null;
 
   return (
     <div className="min-h-screen p-6">

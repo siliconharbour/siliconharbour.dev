@@ -109,7 +109,7 @@ export default function ViewJobImportSource() {
   const fetcher = useFetcher<typeof action>();
   
   const isLoading = fetcher.state !== "idle";
-  const syncResult = fetcher.data?.intent === "sync" ? fetcher.data : null;
+  const syncResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync" ? fetcher.data : null;
   
   // Separate active, hidden, and other jobs
   const activeJobs = source.jobs.filter(j => j.status === "active");
@@ -131,7 +131,7 @@ export default function ViewJobImportSource() {
           </h1>
         </div>
 
-        {syncResult && (
+        {syncResult && "added" in syncResult && (
           <div className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
             {syncResult.success ? (
               <div>

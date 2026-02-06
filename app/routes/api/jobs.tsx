@@ -1,40 +1,43 @@
 import type { Route } from "./+types/jobs";
 import { db } from "~/db";
-import { jobs } from "~/db/schema";
-import { desc, count, or, isNull, gte } from "drizzle-orm";
+import { jobs, companies } from "~/db/schema";
+import { desc, count, eq } from "drizzle-orm";
 import { parsePagination, buildLinkHeader, jsonResponse, contentUrl } from "~/lib/api.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePagination(url);
-  const now = new Date();
 
-  // Only count/return active jobs (not expired)
-  const activeCondition = or(isNull(jobs.expiresAt), gte(jobs.expiresAt, now));
+  // Only count/return active jobs
+  const activeCondition = eq(jobs.status, "active");
 
   const [{ total }] = await db.select({ total: count() }).from(jobs).where(activeCondition);
 
   const data = await db
-    .select()
+    .select({
+      job: jobs,
+      companyName: companies.name,
+    })
     .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
     .where(activeCondition)
     .orderBy(desc(jobs.postedAt))
     .limit(limit)
     .offset(offset);
 
-  const items = data.map((job) => ({
+  const items = data.map(({ job, companyName }) => ({
     id: job.id,
     slug: job.slug,
     title: job.title,
-    description: job.description,
-    companyName: job.companyName,
+    description: job.description || job.descriptionText,
+    companyName: companyName,
     location: job.location,
-    remote: job.remote,
+    department: job.department,
+    workplaceType: job.workplaceType,
     salaryRange: job.salaryRange,
-    applyLink: job.applyLink,
-    postedAt: job.postedAt.toISOString(),
-    expiresAt: job.expiresAt?.toISOString() || null,
-    url: contentUrl("jobs", job.slug),
+    url: job.url,
+    postedAt: job.postedAt?.toISOString() || null,
+    detailUrl: job.slug ? contentUrl("jobs", job.slug) : null,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   }));
