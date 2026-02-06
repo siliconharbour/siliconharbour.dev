@@ -44,7 +44,37 @@ export async function action({ request }: Route.ActionArgs) {
     const result = await syncJobs(sourceId);
     return { intent: "sync", ...result };
   }
-  
+
+  if (intent === "sync-all") {
+    const sources = await getAllImportSources();
+    const results: Array<{ sourceId: number; success: boolean; added?: number; updated?: number; removed?: number; reactivated?: number; totalActive?: number; error?: string }> = [];
+
+    for (const source of sources) {
+      const result = await syncJobs(source.id);
+      results.push({ sourceId: source.id, ...result });
+    }
+
+    const succeeded = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
+    const totalAdded = succeeded.reduce((s, r) => s + (r.added || 0), 0);
+    const totalUpdated = succeeded.reduce((s, r) => s + (r.updated || 0), 0);
+    const totalRemoved = succeeded.reduce((s, r) => s + (r.removed || 0), 0);
+    const totalReactivated = succeeded.reduce((s, r) => s + (r.reactivated || 0), 0);
+
+    return {
+      intent: "sync-all",
+      success: failed.length === 0,
+      sourcesTotal: sources.length,
+      sourcesSucceeded: succeeded.length,
+      sourcesFailed: failed.length,
+      added: totalAdded,
+      updated: totalUpdated,
+      removed: totalRemoved,
+      reactivated: totalReactivated,
+      errors: failed.map(f => f.error).filter(Boolean),
+    };
+  }
+
   return { success: false, error: "Unknown action" };
 }
 
@@ -78,18 +108,31 @@ export default function ManageImportJobs() {
   
   const isLoading = fetcher.state !== "idle";
   const syncResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync" ? fetcher.data : null;
+  const syncAllResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync-all" ? fetcher.data : null;
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Job Import Sources</h1>
-          <Link
-            to="/manage/import/jobs/new"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
-          >
-            Add Source
-          </Link>
+          <div className="flex items-center gap-2">
+            <fetcher.Form method="post">
+              <input type="hidden" name="intent" value="sync-all" />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+              >
+                {isLoading && fetcher.formData?.get("intent") === "sync-all" ? "Syncing All..." : "Sync All"}
+              </button>
+            </fetcher.Form>
+            <Link
+              to="/manage/import/jobs/new"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            >
+              Add Source
+            </Link>
+          </div>
         </div>
 
         {syncResult && (
@@ -107,6 +150,28 @@ export default function ManageImportJobs() {
               <div>
                 <p className="font-medium text-red-700">Sync failed</p>
                 <p className="text-sm text-red-600">{syncResult.error}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {syncAllResult && (
+          <div className={`p-4 ${syncAllResult.sourcesFailed === 0 ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}>
+            <p className={`font-medium ${syncAllResult.sourcesFailed === 0 ? "text-green-700" : "text-amber-700"}`}>
+              Sync All completed: {syncAllResult.sourcesSucceeded}/{syncAllResult.sourcesTotal} sources succeeded
+            </p>
+            <p className={`text-sm ${syncAllResult.sourcesFailed === 0 ? "text-green-600" : "text-amber-600"}`}>
+              Added: {syncAllResult.added}, Updated: {syncAllResult.updated}, 
+              Removed: {syncAllResult.removed}, Reactivated: {syncAllResult.reactivated}
+            </p>
+            {syncAllResult.errors && syncAllResult.errors.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm font-medium text-red-700">{syncAllResult.sourcesFailed} source(s) failed:</p>
+                <ul className="text-sm text-red-600 list-disc list-inside">
+                  {syncAllResult.errors.map((err: string, i: number) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
@@ -130,7 +195,7 @@ export default function ManageImportJobs() {
                   <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Company</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Source</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Identifier</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600">Jobs</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600" title="Active / Pending Review">Jobs</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Last Fetch</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600">Status</th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">Actions</th>
@@ -161,6 +226,11 @@ export default function ManageImportJobs() {
                       <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700 font-medium">
                         {source.activeJobCount}
                       </span>
+                      {source.pendingReviewCount > 0 && (
+                        <span className="ml-1 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 font-medium" title="Pending review">
+                          {source.pendingReviewCount}
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-sm text-harbour-400">
                       {formatDate(source.lastFetchedAt)}

@@ -5,7 +5,7 @@
 
 import { db } from "~/db";
 import { jobImportSources, jobs } from "~/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import type { SyncResult, ImportSourceConfig, JobSourceType } from "./types";
 import { getImporter } from "./index";
 
@@ -298,24 +298,31 @@ export async function getAllImportSources() {
     .from(jobImportSources)
     .orderBy(jobImportSources.updatedAt);
   
-  // Get job counts per source
-  const jobCounts = await db
+  // Get job counts per source for active and pending_review statuses
+  const jobRows = await db
     .select({
       sourceId: jobs.sourceId,
+      status: jobs.status,
     })
     .from(jobs)
-    .where(eq(jobs.status, "active"));
+    .where(inArray(jobs.status, ["active", "pending_review"]));
   
-  const countBySource = new Map<number, number>();
-  for (const row of jobCounts) {
+  const activeBySource = new Map<number, number>();
+  const pendingBySource = new Map<number, number>();
+  for (const row of jobRows) {
     if (row.sourceId) {
-      countBySource.set(row.sourceId, (countBySource.get(row.sourceId) || 0) + 1);
+      if (row.status === "active") {
+        activeBySource.set(row.sourceId, (activeBySource.get(row.sourceId) || 0) + 1);
+      } else if (row.status === "pending_review") {
+        pendingBySource.set(row.sourceId, (pendingBySource.get(row.sourceId) || 0) + 1);
+      }
     }
   }
   
   return sources.map(source => ({
     ...source,
-    activeJobCount: countBySource.get(source.id) || 0,
+    activeJobCount: activeBySource.get(source.id) || 0,
+    pendingReviewCount: pendingBySource.get(source.id) || 0,
   }));
 }
 
