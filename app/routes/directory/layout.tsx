@@ -8,6 +8,7 @@ const tabs = [
   { path: "/directory/products", label: "Products" },
   { path: "/directory/projects", label: "Projects" },
   { path: "/directory/education", label: "Education" },
+  { path: "/directory/technologies", label: "Technologies" },
 ];
 
 export function meta({}: Route.MetaArgs) {
