@@ -1,6 +1,6 @@
 ---
 id: s-d3a1
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-02-06T21:39:27Z

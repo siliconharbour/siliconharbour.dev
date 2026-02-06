@@ -235,6 +235,82 @@ export async function getPaginatedJobs(
 }
 
 // =============================================================================
+// Jobs grouped by company
+// =============================================================================
+
+export interface CompanyWithJobs {
+  company: {
+    id: number;
+    name: string;
+    slug: string;
+    logo: string | null;
+    website: string | null;
+    location: string | null;
+  };
+  jobs: Job[];
+}
+
+/**
+ * Get active jobs grouped by company
+ * Returns companies sorted by most recent job posting, with jobs within each company
+ */
+export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: boolean }): Promise<CompanyWithJobs[]> {
+  const includeNonTechnical = options?.includeNonTechnical ?? false;
+  
+  // Build where conditions
+  const conditions = [eq(jobs.status, "active")];
+  if (!includeNonTechnical) {
+    conditions.push(eq(jobs.isTechnical, true));
+  }
+  
+  // Get all active jobs with company info
+  const data = await db
+    .select({
+      job: jobs,
+      company: {
+        id: companies.id,
+        name: companies.name,
+        slug: companies.slug,
+        logo: companies.logo,
+        website: companies.website,
+        location: companies.location,
+      },
+    })
+    .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
+    .where(and(...conditions))
+    .orderBy(desc(jobs.postedAt));
+
+  // Group jobs by company
+  const companyMap = new Map<number | null, { company: CompanyWithJobs["company"] | null; jobs: Job[] }>();
+  
+  for (const { job, company } of data) {
+    const key = job.companyId;
+    if (!companyMap.has(key)) {
+      companyMap.set(key, {
+        company: company?.id ? company : null,
+        jobs: [],
+      });
+    }
+    companyMap.get(key)!.jobs.push(job);
+  }
+  
+  // Convert to array and filter out jobs without companies, then sort by most recent job
+  const result: CompanyWithJobs[] = [];
+  for (const [, value] of companyMap) {
+    if (value.company) {
+      result.push({
+        company: value.company,
+        jobs: value.jobs,
+      });
+    }
+  }
+  
+  // Already sorted by most recent job due to the query order
+  return result;
+}
+
+// =============================================================================
 // Extended job data with company info
 // =============================================================================
 
