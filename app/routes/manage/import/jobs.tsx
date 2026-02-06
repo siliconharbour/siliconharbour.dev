@@ -116,6 +116,12 @@ export default function ManageImportJobs() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Job Import Sources</h1>
           <div className="flex items-center gap-2">
+            <Link
+              to="/manage/import/jobs/importers"
+              className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors"
+            >
+              Importer Docs
+            </Link>
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="sync-all" />
               <button

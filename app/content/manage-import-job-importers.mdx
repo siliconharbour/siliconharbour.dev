@@ -1,0 +1,94 @@
+---
+title: Job Importers Overview
+description: High-level overview of each job importer, including implementation style and fragility.
+---
+
+# Job Importers Overview
+
+This page documents how each importer works at a high level so we can quickly understand risk and maintenance cost.
+
+## Core ATS Importers
+
+| Importer | How it works | Implementation style | Reliability |
+| --- | --- | --- | --- |
+| Greenhouse | Calls Greenhouse public JSON API (`boards-api.greenhouse.io`), maps jobs directly. | Clean API integration. | High |
+| Lever | Calls Lever public postings API (`api.lever.co`), builds description from structured sections. | Clean API integration. | High |
+| BambooHR | Calls BambooHR JSON endpoints (`/careers/list` and per-job `/detail`). | Clean API integration with detail fetch pass. | High |
+| Workday | Uses Workday JSON endpoints (`/wday/cxs/...`) with browser-like user agent and custom identifier parsing. | API-based, but has platform quirks. | Medium-High |
+| Ashby | Scrapes HTML page, extracts embedded `window.__appData`, then fetches each job detail page similarly. | Structured data extraction from HTML shell. | Medium |
+| Rippling | Scrapes HTML page, extracts embedded `__NEXT_DATA__`, then fetches each job detail page. | Structured data extraction from framework internals. | Medium |
+| Collage | Scrapes rendered HTML and parses listing/detail content using regex-based patterns. | Direct HTML parsing. | Medium-Low |
+| Custom | Dispatches to per-company custom scrapers. Some use APIs; many parse bespoke HTML. | Mixed, often site-specific. | Mixed (Medium to Low) |
+
+## Notes By Importer
+
+### Greenhouse
+
+- Source: `app/lib/job-importers/greenhouse.server.ts`
+- Approach: Public API with optional `content=true` for descriptions.
+- Assessment: Clean and straightforward. Lowest maintenance burden.
+
+### Lever
+
+- Source: `app/lib/job-importers/lever.server.ts`
+- Approach: Public API for listing and optional single-job detail.
+- Assessment: Clean and stable in practice.
+
+### BambooHR
+
+- Source: `app/lib/job-importers/bamboohr.server.ts`
+- Approach: JSON listing + per-job JSON detail fetch.
+- Assessment: Clean; a little extra network cost because details are fetched one-by-one.
+
+### Workday
+
+- Source: `app/lib/job-importers/workday.server.ts`
+- Approach: JSON API via `POST` to Workday `cxs` endpoints, then detail requests per posting.
+- Quirks: Requires browser-like user agent to avoid blocking; source identifier encoding is slightly custom (`company:site[:searchText]`).
+- Assessment: Mostly clean but has implementation quirks due to Workday behavior.
+
+### Ashby
+
+- Source: `app/lib/job-importers/ashby.server.ts`
+- Approach: Reads `window.__appData` out of HTML for both list and details.
+- Assessment: Not as fragile as blind HTML scraping, but still coupled to page bootstrap internals.
+
+### Rippling
+
+- Source: `app/lib/job-importers/rippling.server.ts`
+- Approach: Reads `__NEXT_DATA__` from Next.js pages and extracts dehydrated query payloads.
+- Assessment: Similar to Ashby: structured, but tied to frontend serialization details.
+
+### Collage
+
+- Source: `app/lib/job-importers/collage.server.ts`
+- Approach: Regex-driven parsing of rendered HTML on listing and detail pages.
+- Assessment: More brittle than API-based importers; likely to need updates when templates change.
+
+### Custom Dispatcher
+
+- Source: `app/lib/job-importers/custom.server.ts`
+- Approach: Chooses a company-specific scraper by `sourceIdentifier`.
+- Assessment: Useful escape hatch, but inherently maintenance-heavy.
+
+## Custom Scrapers
+
+| Scraper | Implementation | Style | Reliability |
+| --- | --- | --- | --- |
+| `c-core` | WordPress REST API (`wp-json/wp/v2/pages`) for structured job pages. | API-based | Medium-High |
+| `triware` | WordPress REST API (WP Job Manager endpoints, tries multiple slugs). | API-based | Medium-High |
+| `rutter` | WordPress REST API for careers page, then parses HTML in content blob. | API + content parsing | Medium |
+| `strobeltek` | Splits inline WordPress/Elementor HTML by text markers. | HTML parsing (regex/heuristic) | Low-Medium |
+| `virtual-marine` | Parses Squarespace careers HTML (`h3` sections and marker text). | HTML parsing (regex/heuristic) | Low-Medium |
+| `netbenefit` | Parses Webflow CMS output blocks (`w-dyn-item`). | HTML parsing with stable class conventions | Medium |
+| `enaimco` | Parses WordPress ACF section between specific headings. | HTML parsing (section-bound) | Low-Medium |
+| `focusfs` | Parses category-style hiring list under “We’re Hiring”. | HTML parsing (semi-structured) | Medium |
+| `compusult` | Parses Liferay rich-text blocks after “Opportunity Available” marker. | HTML parsing (complex heuristics) | Low |
+| `bluedrop` | Parses WordPress toggle plugin markup with fallback heading scan. | HTML parsing with fallback strategy | Low-Medium |
+
+## Practical Summary
+
+- Cleanest overall: Greenhouse, Lever, BambooHR.
+- Most operationally quirky but still API-oriented: Workday.
+- Most likely to break on frontend changes: Collage and many `custom` scrapers.
+- Best long-term strategy: Prefer provider APIs where available and reserve `custom` for unavoidable cases.

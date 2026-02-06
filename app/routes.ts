@@ -211,6 +211,7 @@ export default [
       route("github-by-location", "routes/manage/import/github-by-location.tsx"),
       route("github-following", "routes/manage/import/github-following.tsx"),
       route("jobs", "routes/manage/import/jobs.tsx"),
+      route("jobs/importers", "routes/manage/import/jobs.importers.tsx"),
       route("jobs/new", "routes/manage/import/jobs.new.tsx"),
       route("jobs/:sourceId", "routes/manage/import/jobs.$sourceId.tsx"),
     ]),
