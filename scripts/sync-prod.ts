@@ -12,12 +12,13 @@ const LOCAL_DATA_PATH = "./data/";
 const LOCAL_DB_FILE = "./data/siliconharbour.db";
 const BACKUP_DIR = "./tmp/backup/";
 
-type Mode = "sync" | "backup" | "migrate";
+type Mode = "sync" | "backup" | "migrate" | "push";
 
 function getMode(): Mode {
   const arg = process.argv[2];
   if (arg === "backup") return "backup";
   if (arg === "migrate") return "migrate";
+  if (arg === "push") return "push";
   return "sync";
 }
 
@@ -266,11 +267,104 @@ async function runMigrate() {
   console.log("");
 }
 
+async function runPush() {
+  console.log("");
+  console.log("=".repeat(60));
+  console.log("  PUSH LOCAL DATABASE TO PRODUCTION");
+  console.log("=".repeat(60));
+  console.log("");
+  console.log("This will:");
+  console.log("  1. Stop the production container (if running)");
+  console.log("  2. Create a backup of the production database");
+  console.log("  3. Push your local database to production");
+  console.log("  4. Restart the production container (if it was running)");
+  console.log("");
+  console.log("=".repeat(60));
+  console.log("  WARNING: THIS OVERWRITES PRODUCTION DATA");
+  console.log("=".repeat(60));
+  console.log("");
+
+  if (!existsSync(LOCAL_DB_FILE)) {
+    console.error(`Local database not found: ${LOCAL_DB_FILE}`);
+    process.exit(1);
+  }
+
+  let answer = await prompt("Are you sure you want to continue? Type 'yes' to proceed: ");
+  if (answer !== "yes") {
+    console.log("Aborted.");
+    process.exit(0);
+  }
+
+  answer = await prompt("Have you verified your local DB has the changes you want? Type 'yes': ");
+  if (answer !== "yes") {
+    console.log("Aborted.");
+    process.exit(0);
+  }
+
+  console.log("");
+  console.log("=".repeat(60));
+  console.log("  STARTING PUSH PROCESS");
+  console.log("=".repeat(60));
+  console.log("");
+
+  const wasRunning = checkContainerStatus();
+  let backupFile = "";
+
+  try {
+    console.log("[1/4] Checking and stopping production container...");
+    if (wasRunning) {
+      stopContainer();
+    } else {
+      console.log("Container already stopped.");
+    }
+    console.log("");
+
+    console.log("[2/4] Creating backup of production database...");
+    backupFile = runBackup();
+    console.log(`Backup saved to: ${backupFile}`);
+    console.log("");
+
+    console.log("[3/4] Pushing local database to production...");
+    pushDatabaseToRemote();
+    console.log("");
+
+    if (wasRunning) {
+      console.log("[4/4] Restarting production container...");
+      startContainer();
+    } else {
+      console.log("[4/4] Container was previously stopped; leaving it stopped.");
+    }
+    console.log("");
+    console.log("=".repeat(60));
+    console.log("  PUSH COMPLETE!");
+    console.log("=".repeat(60));
+    console.log(`Production backup available at: ${backupFile}`);
+    console.log("");
+  } catch (error) {
+    console.error("");
+    console.error("Push failed:", error);
+    console.error("");
+    if (backupFile) {
+      console.error(`Backup is available at: ${backupFile}`);
+    }
+
+    if (wasRunning) {
+      const restart = await prompt("Do you want to restart the production container? Type 'yes': ");
+      if (restart === "yes") {
+        startContainer();
+      }
+    }
+    process.exit(1);
+  }
+}
+
 async function main() {
   const mode = getMode();
 
   if (mode === "migrate") {
     await runMigrate();
+  } else if (mode === "push") {
+    await runPush();
   } else if (mode === "backup") {
     runBackup();
   } else {
