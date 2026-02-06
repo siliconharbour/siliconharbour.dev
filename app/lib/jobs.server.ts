@@ -154,15 +154,17 @@ export async function getActiveJobs(options?: { includeNonTechnical?: boolean })
     .select({
       job: jobs,
       companyName: companies.name,
+      companyLogo: companies.logo,
     })
     .from(jobs)
     .leftJoin(companies, eq(jobs.companyId, companies.id))
     .where(and(...conditions))
     .orderBy(desc(jobs.postedAt));
 
-  return data.map(({ job, companyName }) => ({
+  return data.map(({ job, companyName, companyLogo }) => ({
     ...job,
     companyName,
+    companyLogo,
   }));
 }
 

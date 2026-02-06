@@ -329,13 +329,30 @@ export default function Home() {
                         rel={job.slug ? undefined : "noopener noreferrer"}
                         className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
-                        <div className="flex flex-col gap-1">
-                          <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
-                            {job.title}
-                          </h3>
-                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
-                            {job.companyName && <span>{job.companyName}</span>}
-                            {job.location && <span>{job.location}</span>}
+                        <div className="flex items-start gap-3">
+                          {job.companyLogo ? (
+                            <div className="w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+                              <img
+                                src={`/images/${job.companyLogo}`}
+                                alt={`${job.companyName || "Company"} logo`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm text-harbour-500">
+                                {(job.companyName || job.title).charAt(0)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-1">
+                            <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
+                              {job.title}
+                            </h3>
+                            <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
+                              {job.companyName && <span>{job.companyName}</span>}
+                              {job.location && <span>{job.location}</span>}
+                            </div>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
