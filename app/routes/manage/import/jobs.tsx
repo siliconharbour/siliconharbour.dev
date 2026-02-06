@@ -57,16 +57,16 @@ function formatDate(date: Date | null | undefined): string {
 }
 
 function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-slate-400">-</span>;
+  if (!status) return <span className="text-harbour-400">-</span>;
   
   const colors: Record<string, string> = {
-    success: "bg-green-100 text-green-800",
-    error: "bg-red-100 text-red-800",
-    pending: "bg-yellow-100 text-yellow-800",
+    success: "bg-green-100 text-green-700",
+    error: "bg-red-100 text-red-700",
+    pending: "bg-amber-100 text-amber-700",
   };
   
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[status] || "bg-slate-100 text-slate-800"}`}>
+    <span className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}>
       {status}
     </span>
   );
@@ -86,59 +86,59 @@ export default function ManageImportJobs() {
           <h1 className="text-2xl font-semibold text-harbour-700">Job Import Sources</h1>
           <Link
             to="/manage/import/jobs/new"
-            className="px-4 py-2 bg-harbour-500 hover:bg-harbour-600 text-white font-medium transition-colors"
+            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
           >
             Add Source
           </Link>
         </div>
 
         {syncResult && (
-          <div className={`p-4 rounded ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+          <div className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
             {syncResult.success ? (
               <div>
-                <p className="font-medium text-green-800">Sync completed</p>
-                <p className="text-sm text-green-700">
+                <p className="font-medium text-green-700">Sync completed</p>
+                <p className="text-sm text-green-600">
                   Added: {syncResult.added}, Updated: {syncResult.updated}, 
                   Removed: {syncResult.removed}, Reactivated: {syncResult.reactivated}
                 </p>
-                <p className="text-sm text-green-700">Total active jobs: {syncResult.totalActive}</p>
+                <p className="text-sm text-green-600">Total active jobs: {syncResult.totalActive}</p>
               </div>
             ) : (
               <div>
-                <p className="font-medium text-red-800">Sync failed</p>
-                <p className="text-sm text-red-700">{syncResult.error}</p>
+                <p className="font-medium text-red-700">Sync failed</p>
+                <p className="text-sm text-red-600">{syncResult.error}</p>
               </div>
             )}
           </div>
         )}
 
         {sources.length === 0 ? (
-          <div className="bg-slate-50 rounded-lg p-8 text-center">
-            <p className="text-slate-600 mb-4">No job import sources configured yet.</p>
+          <div className="p-8 border border-harbour-200 bg-harbour-50 text-center">
+            <p className="text-harbour-600 mb-4">No job import sources configured yet.</p>
             <Link
               to="/manage/import/jobs/new"
-              className="text-harbour-500 hover:text-harbour-600 underline"
+              className="text-harbour-600 hover:text-harbour-700 underline"
             >
               Add your first source
             </Link>
           </div>
         ) : (
-          <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="border border-harbour-200 bg-white overflow-hidden">
             <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-harbour-50 border-b border-harbour-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Company</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Source</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Identifier</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Jobs</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-slate-600">Last Fetch</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-slate-600">Status</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-slate-600">Actions</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Company</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Source</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Identifier</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600">Jobs</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Last Fetch</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600">Status</th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-harbour-100">
                 {sources.map((source) => (
-                  <tr key={source.id} className="hover:bg-slate-50">
+                  <tr key={source.id} className="hover:bg-harbour-50">
                     <td className="px-4 py-3">
                       {source.company ? (
                         <Link
@@ -148,21 +148,21 @@ export default function ManageImportJobs() {
                           {source.company.name}
                         </Link>
                       ) : (
-                        <span className="text-slate-400">Unknown</span>
+                        <span className="text-harbour-400">Unknown</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">
+                    <td className="px-4 py-3 text-sm text-harbour-500">
                       {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] || source.sourceType}
                     </td>
-                    <td className="px-4 py-3 text-sm font-mono text-slate-500">
+                    <td className="px-4 py-3 text-sm font-mono text-harbour-400">
                       {source.sourceIdentifier}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className="px-2 py-1 bg-harbour-100 text-harbour-700 rounded text-sm font-medium">
+                      <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700 font-medium">
                         {source.activeJobCount}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-500">
+                    <td className="px-4 py-3 text-sm text-harbour-400">
                       {formatDate(source.lastFetchedAt)}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -181,14 +181,14 @@ export default function ManageImportJobs() {
                           <button
                             type="submit"
                             disabled={isLoading}
-                            className="px-3 py-1 text-sm bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white rounded transition-colors"
+                            className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white transition-colors"
                           >
                             {isLoading ? "..." : "Sync"}
                           </button>
                         </fetcher.Form>
                         <Link
                           to={`/manage/import/jobs/${source.id}`}
-                          className="px-3 py-1 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition-colors"
+                          className="px-2 py-1 text-xs bg-harbour-100 hover:bg-harbour-200 text-harbour-700 transition-colors"
                         >
                           View
                         </Link>
@@ -201,12 +201,10 @@ export default function ManageImportJobs() {
           </div>
         )}
 
-        <div className="text-sm text-slate-500">
-          <p>
-            Job import sources let you automatically pull job listings from company career pages.
-            Supported platforms: Greenhouse, Ashby.
-          </p>
-        </div>
+        <p className="text-sm text-harbour-400">
+          Job import sources let you automatically pull job listings from company career pages.
+          Supported platforms: Greenhouse, Ashby.
+        </p>
       </div>
     </div>
   );

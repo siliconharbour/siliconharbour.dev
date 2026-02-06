@@ -4,7 +4,7 @@ import { requireAuth } from "~/lib/session.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { createImportSource, getAllImportSources } from "~/lib/job-importers/sync.server";
 import { getImporter, getAvailableSourceTypes } from "~/lib/job-importers";
-import { sourceTypeLabels, sourceIdentifierPlaceholders, type JobSourceType } from "~/lib/job-importers/types";
+import { sourceTypeLabels, type JobSourceType } from "~/lib/job-importers/types";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Add Job Import Source - siliconharbour.dev" }];
@@ -31,7 +31,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     allCompanies: companies.sort((a, b) => a.name.localeCompare(b.name)),
     sourceTypes,
     sourceTypeLabels,
-    sourceIdentifierPlaceholders,
   };
 }
 
@@ -96,7 +95,7 @@ export default function NewJobImportSource() {
         <div className="flex items-center gap-4">
           <Link
             to="/manage/import/jobs"
-            className="text-slate-500 hover:text-slate-700"
+            className="text-harbour-400 hover:text-harbour-600"
           >
             &larr; Back
           </Link>
@@ -104,24 +103,24 @@ export default function NewJobImportSource() {
         </div>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded text-red-700">
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700">
             {actionData.error}
           </div>
         )}
 
-        <Form method="post" className="bg-white border border-slate-200 rounded-lg p-6 flex flex-col gap-4">
+        <Form method="post" className="bg-white border border-harbour-200 p-6 flex flex-col gap-4">
           <div>
-            <label htmlFor="companyId" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="companyId" className="block text-sm font-medium text-harbour-700 mb-1">
               Company *
             </label>
             {companies.length === 0 ? (
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-harbour-500">
                 <p>All companies already have import sources configured.</p>
                 <p className="mt-1">
                   <select
                     id="companyId"
                     name="companyId"
-                    className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                    className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
                     required
                   >
                     <option value="">Select a company...</option>
@@ -137,7 +136,7 @@ export default function NewJobImportSource() {
               <select
                 id="companyId"
                 name="companyId"
-                className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
                 required
               >
                 <option value="">Select a company...</option>
@@ -151,13 +150,13 @@ export default function NewJobImportSource() {
           </div>
 
           <div>
-            <label htmlFor="sourceType" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="sourceType" className="block text-sm font-medium text-harbour-700 mb-1">
               Source Type *
             </label>
             <select
               id="sourceType"
               name="sourceType"
-              className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-harbour-500"
+              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               required
             >
               <option value="">Select a type...</option>
@@ -170,18 +169,18 @@ export default function NewJobImportSource() {
           </div>
 
           <div>
-            <label htmlFor="sourceIdentifier" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="sourceIdentifier" className="block text-sm font-medium text-harbour-700 mb-1">
               Source Identifier *
             </label>
             <input
               type="text"
               id="sourceIdentifier"
               name="sourceIdentifier"
-              className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-harbour-500"
+              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               placeholder="Board token or org slug"
               required
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-harbour-400">
               For Greenhouse: the board token (e.g., "colabsoftware" from job-boards.greenhouse.io/colabsoftware)
               <br />
               For Ashby: the org slug (e.g., "spellbook.legal" from jobs.ashbyhq.com/spellbook.legal)
@@ -189,38 +188,38 @@ export default function NewJobImportSource() {
           </div>
 
           <div>
-            <label htmlFor="sourceUrl" className="block text-sm font-medium text-slate-700 mb-1">
+            <label htmlFor="sourceUrl" className="block text-sm font-medium text-harbour-700 mb-1">
               Careers Page URL (optional)
             </label>
             <input
               type="url"
               id="sourceUrl"
               name="sourceUrl"
-              className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-harbour-500"
+              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               placeholder="https://example.com/careers"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-harbour-400">
               The company's main careers page URL, for reference.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 pt-4">
+          <div className="flex items-center gap-3 pt-4 border-t border-harbour-100">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-harbour-500 hover:bg-harbour-600 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
             >
               {isSubmitting ? "Validating..." : "Add Source"}
             </button>
             <Link
               to="/manage/import/jobs"
-              className="px-4 py-2 text-slate-600 hover:text-slate-800"
+              className="px-4 py-2 text-harbour-500 hover:text-harbour-700"
             >
               Cancel
             </Link>
           </div>
 
-          <p className="text-xs text-slate-500 mt-2">
+          <p className="text-xs text-harbour-400">
             The source will be validated before saving. If valid, jobs will be fetched automatically.
           </p>
         </Form>

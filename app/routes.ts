@@ -80,6 +80,9 @@ export default [
   route("api/imported-jobs", "routes/api/imported-jobs.tsx"),
   route("api/imported-jobs/:id", "routes/api/imported-jobs.$id.tsx"),
 
+  // Design system reference
+  route("design", "routes/design.tsx"),
+
   // Home page has its own hero header design
   index("routes/home.tsx"),
 

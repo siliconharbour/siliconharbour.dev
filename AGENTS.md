@@ -1,5 +1,19 @@
 # Agent Style
 
+## Design System
+
+This project has a specific visual design language. **Before creating UI**, review `/design` for the design system reference.
+
+Key rules:
+- **No rounded corners** - Everything uses sharp, square edges (no `rounded-*` classes)
+- **No shadows** - Use `border border-harbour-200` instead of `shadow-*`
+- **harbour-* palette** - Use harbour-600 for primary actions, harbour-700 for headings
+- **Semantic colors** - Amber for warnings/hidden, Red for errors, Green for success
+- **Tables** - Use `bg-harbour-50` header, `divide-y divide-harbour-100` for rows
+- **Badges** - Use `text-xs px-1.5 py-0.5` with appropriate bg/text colors
+
+See `/design` for complete examples of buttons, forms, cards, tables, badges, and alerts.
+
 ## Ticket system with `tk`
 
 This project uses a CLI ticket system for task management.
