@@ -7,12 +7,14 @@ import type { JobImporter, JobSourceType } from "./types";
 import { greenhouseImporter } from "./greenhouse.server";
 import { ashbyImporter } from "./ashby.server";
 import { workdayImporter } from "./workday.server";
+import { bamboohrImporter } from "./bamboohr.server";
 
 // Registry of all available importers
 const importers: Record<string, JobImporter> = {
   greenhouse: greenhouseImporter,
   ashby: ashbyImporter,
   workday: workdayImporter,
+  bamboohr: bamboohrImporter,
 };
 
 /**
