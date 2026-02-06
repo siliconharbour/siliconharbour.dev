@@ -13,11 +13,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   const content = listPageToMarkdown({
     title: "Jobs",
     description: "Tech job opportunities in St. John's and Newfoundland & Labrador.",
-    items: items
-      .filter((j) => j.slug) // Only include jobs with slugs
-      .map((j) => ({ slug: j.slug!, name: j.title, description: j.description || j.descriptionText || undefined })),
+    items: items.map((j) => ({
+      slug: j.slug,
+      url: j.url,
+      name: j.title,
+      description: j.description || j.descriptionText || undefined,
+    })),
     entityType: "job",
     basePath: "/jobs",
+    apiPath: "/api/jobs",
     total,
     limit,
     offset,

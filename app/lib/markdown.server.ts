@@ -384,23 +384,24 @@ ${companyName ? `**Company:** ${companyName}\n\n` : ""}${product.website ? `**We
 interface ListPageOptions {
   title: string;
   description: string;
-  items: { slug: string; name: string; description?: string }[];
+  items: { slug?: string | null; url?: string | null; name: string; description?: string }[];
   entityType: string;
   basePath: string;
   total: number;
   limit: number;
   offset: number;
   searchQuery?: string;
+  apiPath?: string;
 }
 
 export function listPageToMarkdown(opts: ListPageOptions): string {
-  const { title, description, items, entityType, basePath, total, limit, offset, searchQuery } =
+  const { title, description, items, entityType, basePath, total, limit, offset, searchQuery, apiPath } =
     opts;
 
   const frontmatter = formatFrontmatter({
     type: `${entityType}_list`,
     url: `${SITE_URL}${basePath}`,
-    api_url: `${SITE_URL}/api/${entityType}`,
+    api_url: `${SITE_URL}${apiPath || `/api/${entityType}`}`,
     total,
     limit,
     offset,
@@ -424,7 +425,13 @@ ${searchQuery ? `**Search:** "${searchQuery}"\n` : ""}
     content += `No ${entityType}s found.\n`;
   } else {
     for (const item of items) {
-      content += `- [${item.name}](${SITE_URL}${basePath}/${item.slug}.md)${item.description ? `: ${item.description.slice(0, 100)}${item.description.length > 100 ? "..." : ""}` : ""}\n`;
+      const link = item.slug
+        ? `${SITE_URL}${basePath}/${item.slug}.md`
+        : item.url || null;
+      const description = item.description
+        ? `: ${item.description.slice(0, 100)}${item.description.length > 100 ? "..." : ""}`
+        : "";
+      content += link ? `- [${item.name}](${link})${description}\n` : `- ${item.name}${description}\n`;
     }
   }
 
