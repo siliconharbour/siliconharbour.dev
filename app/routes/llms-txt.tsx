@@ -75,10 +75,8 @@ A read-only JSON API is available at \`/api/*\`. No authentication required. COR
 | \`GET /api/products/{slug}\` | Get product details |
 | \`GET /api/technologies\` | List technologies |
 | \`GET /api/technologies/{slug}\` | Get technology details |
-| \`GET /api/imported-jobs\` | List imported jobs from company career pages |
-| \`GET /api/imported-jobs/{id}\` | Get imported job details |
 
-The \`/api/imported-jobs\` endpoint supports filtering by company: \`?company={slug}\`
+Imported jobs from company career pages are normalized into the main \`jobs\` dataset. Use \`/api/jobs\` and \`/api/jobs/{slug}\`.
 
 API responses include pagination info and Link headers for navigation. Use \`?limit=N&offset=N\` for pagination.
 
