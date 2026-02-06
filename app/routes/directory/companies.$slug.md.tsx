@@ -1,6 +1,8 @@
 import type { Route } from "./+types/companies.$slug.md";
 import { getCompanyBySlug } from "~/lib/companies.server";
+import { getTechnologiesForContent } from "~/lib/technologies.server";
 import { markdownResponse, companyToMarkdown } from "~/lib/markdown.server";
+import { categoryLabels } from "~/lib/technology-categories";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const company = await getCompanyBySlug(params.slug);
@@ -8,5 +10,21 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw new Response("Company not found", { status: 404 });
   }
 
-  return markdownResponse(companyToMarkdown(company));
+  const technologiesWithAssignments = await getTechnologiesForContent("company", company.id);
+
+  const technologies = technologiesWithAssignments.map((t) => ({
+    name: t.technology.name,
+    slug: t.technology.slug,
+    category: categoryLabels[t.technology.category],
+  }));
+
+  const provenance = technologiesWithAssignments[0]
+    ? {
+        source: technologiesWithAssignments[0].source,
+        sourceUrl: technologiesWithAssignments[0].sourceUrl,
+        lastVerified: technologiesWithAssignments[0].lastVerified,
+      }
+    : null;
+
+  return markdownResponse(companyToMarkdown(company, technologies, provenance));
 }

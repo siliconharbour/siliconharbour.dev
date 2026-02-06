@@ -68,7 +68,23 @@ function formatFrontmatter(data: Record<string, unknown>): string {
 // Entity to Markdown converters
 // =============================================================================
 
-export function companyToMarkdown(company: Company): string {
+export interface CompanyTechnology {
+  name: string;
+  slug: string;
+  category: string;
+}
+
+export interface CompanyTechProvenance {
+  source: string | null;
+  sourceUrl: string | null;
+  lastVerified: string | null;
+}
+
+export function companyToMarkdown(
+  company: Company,
+  technologies?: CompanyTechnology[],
+  provenance?: CompanyTechProvenance | null,
+): string {
   const frontmatter = formatFrontmatter({
     type: "company",
     id: company.id,
@@ -82,15 +98,44 @@ export function companyToMarkdown(company: Company): string {
     location: company.location,
     founded: company.founded,
     logo: company.logo ? `${SITE_URL}/images/${company.logo}` : null,
+    technologies: technologies?.map((t) => t.name),
     updated_at: company.updatedAt,
   });
 
-  return `${frontmatter}
+  let content = `${frontmatter}
 
 # ${company.name}
 
 ${company.description}
 `;
+
+  if (technologies && technologies.length > 0) {
+    content += `\n## Technologies\n\n`;
+
+    // Group by category
+    const byCategory = new Map<string, CompanyTechnology[]>();
+    for (const tech of technologies) {
+      if (!byCategory.has(tech.category)) {
+        byCategory.set(tech.category, []);
+      }
+      byCategory.get(tech.category)!.push(tech);
+    }
+
+    for (const [category, techs] of byCategory) {
+      content += `**${category}:** ${techs.map((t) => `[${t.name}](${SITE_URL}/directory/technologies/${t.slug}.md)`).join(", ")}\n\n`;
+    }
+
+    if (provenance && (provenance.source || provenance.sourceUrl)) {
+      content += `*Source: ${provenance.sourceUrl ? `[${provenance.source || "link"}](${provenance.sourceUrl})` : provenance.source}`;
+      if (provenance.lastVerified) {
+        const date = new Date(provenance.lastVerified);
+        content += ` (${date.toLocaleDateString("en-US", { month: "short", year: "numeric" })})`;
+      }
+      content += `*\n`;
+    }
+  }
+
+  return content;
 }
 
 export function eventToMarkdown(event: EventWithDates): string {
