@@ -3,7 +3,7 @@ import { Link, useLoaderData } from "react-router";
 import { getEventsThisWeek, getUpcomingEvents } from "~/lib/events.server";
 import { getRandomCompanies } from "~/lib/companies.server";
 import { getPublishedNews } from "~/lib/news.server";
-import { getActiveJobs } from "~/lib/jobs.server";
+import { getRandomJobs } from "~/lib/jobs.server";
 import { getRandomProjects } from "~/lib/projects.server";
 import { prepareRefsForClient } from "~/lib/references.server";
 import { getSectionVisibility } from "~/lib/config.server";
@@ -31,7 +31,7 @@ export async function loader({}: Route.LoaderArgs) {
       getUpcomingEvents(),
       getRandomCompanies(4),
       getPublishedNews(),
-      getActiveJobs(),
+      getRandomJobs(4),
       getRandomProjects(4),
       getSectionVisibility(),
     ]);
@@ -53,7 +53,7 @@ export async function loader({}: Route.LoaderArgs) {
     allEvents: upcoming,
     featuredCompanies,
     news: news.slice(0, 3), // Latest 3 news articles
-    jobs: jobs.slice(0, 4), // Latest 4 jobs
+    jobs, // Daily-randomized sample of 4 jobs from different companies
     featuredProjects,
     eventRefs,
     visibility,

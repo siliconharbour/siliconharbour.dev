@@ -166,6 +166,50 @@ export async function getActiveJobs(options?: { includeNonTechnical?: boolean })
   }));
 }
 
+/**
+ * Get a deterministic daily-random selection of jobs, spread across different companies.
+ * Uses the same Knuth multiplicative hash seeded shuffle as companies/projects.
+ */
+export async function getRandomJobs(count: number, seed?: number) {
+  const dateSeed = seed ?? parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ""), 10);
+
+  const allJobs = await getActiveJobs();
+  if (allJobs.length <= count) {
+    return allJobs;
+  }
+
+  // Shuffle all jobs with daily seed
+  const shuffled = allJobs
+    .map((j) => ({
+      job: j,
+      hash: ((j.id + dateSeed) * 2654435761) >>> 0,
+    }))
+    .sort((a, b) => a.hash - b.hash);
+
+  // Pick jobs, preferring different companies
+  const picked: typeof allJobs = [];
+  const seenCompanies = new Set<number | null>();
+
+  // First pass: one job per company
+  for (const { job } of shuffled) {
+    if (picked.length >= count) break;
+    if (!seenCompanies.has(job.companyId)) {
+      seenCompanies.add(job.companyId);
+      picked.push(job);
+    }
+  }
+
+  // Second pass: fill remaining slots if needed
+  for (const { job } of shuffled) {
+    if (picked.length >= count) break;
+    if (!picked.includes(job)) {
+      picked.push(job);
+    }
+  }
+
+  return picked;
+}
+
 // =============================================================================
 // Paginated queries with search
 // =============================================================================
@@ -297,7 +341,7 @@ export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: 
     companyMap.get(key)!.jobs.push(job);
   }
   
-  // Convert to array and filter out jobs without companies, then sort by most recent job
+  // Convert to array and filter out jobs without companies
   const result: CompanyWithJobs[] = [];
   for (const [, value] of companyMap) {
     if (value.company) {
@@ -308,7 +352,14 @@ export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: 
     }
   }
   
-  // Already sorted by most recent job due to the query order
+  // Daily seeded shuffle for company ordering so no company is permanently favoured
+  const dateSeed = parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ""), 10);
+  result.sort((a, b) => {
+    const hashA = ((a.company.id + dateSeed) * 2654435761) >>> 0;
+    const hashB = ((b.company.id + dateSeed) * 2654435761) >>> 0;
+    return hashA - hashB;
+  });
+
   return result;
 }
 
