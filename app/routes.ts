@@ -93,6 +93,7 @@ export default [
       route("directory/products", "routes/directory/products.tsx"),
       route("directory/projects", "routes/directory/projects.tsx"),
       route("directory/education", "routes/directory/education.tsx"),
+      route("directory/technologies", "routes/directory/technologies.tsx"),
     ]),
 
     // Directory detail pages (outside tab layout for full-width content)
@@ -102,6 +103,7 @@ export default [
     route("directory/products/:slug", "routes/directory/products.$slug.tsx"),
     route("directory/projects/:slug", "routes/directory/projects.$slug.tsx"),
     route("directory/education/:slug", "routes/directory/education.$slug.tsx"),
+    route("directory/technologies/:slug", "routes/directory/technologies.$slug.tsx"),
 
     // Events (realtime content, separate from directory)
     ...prefix("events", [
@@ -188,6 +190,12 @@ export default [
       route("new", "routes/manage/products/new.tsx"),
       route(":id", "routes/manage/products/edit.tsx"),
       route(":id/delete", "routes/manage/products/delete.tsx"),
+    ]),
+    ...prefix("technologies", [
+      index("routes/manage/technologies/index.tsx"),
+      route("new", "routes/manage/technologies/new.tsx"),
+      route(":id", "routes/manage/technologies/edit.tsx"),
+      route(":id/delete", "routes/manage/technologies/delete.tsx"),
     ]),
     ...prefix("import", [
       route("technl", "routes/manage/import/technl.tsx"),

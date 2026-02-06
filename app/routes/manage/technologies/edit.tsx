@@ -4,11 +4,10 @@ import { requireAuth } from "~/lib/session.server";
 import {
   getTechnologyById,
   updateTechnology,
-  categoryLabels,
-  technologyCategories,
   getCompaniesUsingTechnology,
   getProjectsUsingTechnology,
 } from "~/lib/technologies.server";
+import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 import { processAndSaveIconImage, deleteImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 

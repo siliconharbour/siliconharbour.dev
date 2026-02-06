@@ -1,7 +1,8 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { createTechnology, categoryLabels, technologyCategories } from "~/lib/technologies.server";
+import { createTechnology } from "~/lib/technologies.server";
+import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 import { processAndSaveIconImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 

@@ -1,6 +1,21 @@
-import type { TechnologyCategory } from "~/db/schema";
+// Technology categories - shared between client and server
+export const technologyCategories = [
+  "language",
+  "frontend",
+  "backend",
+  "cloud",
+  "database",
+  "devops",
+  "game-engine",
+  "mobile",
+  "data-science",
+  "platform",
+  "specialized",
+] as const;
 
-// Category labels for UI - shared between client and server
+export type TechnologyCategory = (typeof technologyCategories)[number];
+
+// Category labels for UI
 export const categoryLabels: Record<TechnologyCategory, string> = {
   language: "Languages",
   frontend: "Frontend",

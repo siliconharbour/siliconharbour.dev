@@ -1,11 +1,7 @@
 import type { Route } from "./+types/technologies";
 import { Link, useLoaderData } from "react-router";
-import {
-  getTechnologiesWithUsage,
-  categoryLabels,
-  technologyCategories,
-  type TechnologyWithUsage,
-} from "~/lib/technologies.server";
+import { getTechnologiesWithUsage, type TechnologyWithUsage } from "~/lib/technologies.server";
+import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 import { getOptionalUser } from "~/lib/session.server";
 
 export function meta({}: Route.MetaArgs) {

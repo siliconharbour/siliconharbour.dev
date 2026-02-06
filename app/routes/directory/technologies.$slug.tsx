@@ -4,8 +4,8 @@ import {
   getTechnologyBySlug,
   getCompaniesUsingTechnology,
   getProjectsUsingTechnology,
-  categoryLabels,
 } from "~/lib/technologies.server";
+import { categoryLabels } from "~/lib/technology-categories";
 import { getOptionalUser } from "~/lib/session.server";
 
 export function meta({ data }: Route.MetaArgs) {

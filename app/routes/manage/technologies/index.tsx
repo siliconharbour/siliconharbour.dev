@@ -1,11 +1,8 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import {
-  getTechnologiesByCategory,
-  categoryLabels,
-  technologyCategories,
-} from "~/lib/technologies.server";
+import { getTechnologiesByCategory } from "~/lib/technologies.server";
+import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Technologies - siliconharbour.dev" }];

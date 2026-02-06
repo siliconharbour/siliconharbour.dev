@@ -8,9 +8,17 @@
 
 # Database
 /data/
+local.db
 
 # Backups
 /tmp/
+
+# Temp/import data files
+getcoding-list.csv
+
+# Package manager
+pnpm-lock.yaml
+pnpm-workspace.yaml
 
 convex-app
 video

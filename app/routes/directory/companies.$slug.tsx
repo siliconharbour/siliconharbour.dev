@@ -6,6 +6,8 @@ import { getPublicComments, getAllComments } from "~/lib/comments.server";
 import { getTurnstileSiteKey } from "~/lib/turnstile.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { areCommentsEnabled } from "~/lib/config.server";
+import { getTechnologiesForContent } from "~/lib/technologies.server";
+import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -23,21 +25,58 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
 
-  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
+  const [resolvedRefs, backlinks, comments, commentsEnabled, technologiesWithAssignments] = await Promise.all([
     prepareRefsForClient(company.description),
     getDetailedBacklinks("company", company.id),
     isAdmin ? getAllComments("company", company.id) : getPublicComments("company", company.id),
     areCommentsEnabled("companies"),
+    getTechnologiesForContent("company", company.id),
   ]);
 
   const turnstileSiteKey = getTurnstileSiteKey();
 
-  return { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
+  // Group technologies by category for display
+  const techByCategory = new Map<TechnologyCategory, typeof technologiesWithAssignments>();
+  for (const item of technologiesWithAssignments) {
+    const cat = item.technology.category;
+    if (!techByCategory.has(cat)) {
+      techByCategory.set(cat, []);
+    }
+    techByCategory.get(cat)!.push(item);
+  }
+
+  // Get provenance info (should be same for all techs for this company)
+  const provenance = technologiesWithAssignments[0] ?? null;
+
+  return {
+    company,
+    resolvedRefs,
+    backlinks,
+    comments,
+    turnstileSiteKey,
+    isAdmin,
+    commentsEnabled,
+    techByCategory: Array.from(techByCategory.entries()),
+    provenance: provenance ? {
+      source: provenance.source,
+      sourceUrl: provenance.sourceUrl,
+      lastVerified: provenance.lastVerified,
+    } : null,
+  };
 }
 
 export default function CompanyDetail() {
-  const { company, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } =
-    useLoaderData<typeof loader>();
+  const {
+    company,
+    resolvedRefs,
+    backlinks,
+    comments,
+    turnstileSiteKey,
+    isAdmin,
+    commentsEnabled,
+    techByCategory,
+    provenance,
+  } = useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
@@ -222,6 +261,55 @@ export default function CompanyDetail() {
                   />
                 </svg>
               </a>
+            )}
+          </div>
+        )}
+
+        {techByCategory.length > 0 && (
+          <div className="border-t border-harbour-200 pt-6">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Technologies</h2>
+            <div className="flex flex-col gap-4">
+              {techByCategory.map(([category, items]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-medium text-harbour-500 mb-2">
+                    {categoryLabels[category as TechnologyCategory]}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {items.map((item) => (
+                      <Link
+                        key={item.technology.id}
+                        to={`/directory/technologies/${item.technology.slug}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-harbour-100 text-harbour-700 text-sm hover:bg-harbour-200 transition-colors"
+                      >
+                        {item.technology.icon && <span>{item.technology.icon}</span>}
+                        {item.technology.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {provenance && (provenance.source || provenance.sourceUrl) && (
+              <div className="mt-4 text-xs text-harbour-400">
+                Source:{" "}
+                {provenance.sourceUrl ? (
+                  <a
+                    href={provenance.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-harbour-600"
+                  >
+                    {provenance.source || provenance.sourceUrl}
+                  </a>
+                ) : (
+                  provenance.source
+                )}
+                {provenance.lastVerified && (
+                  <span className="ml-2">
+                    (verified {new Date(provenance.lastVerified).toLocaleDateString()})
+                  </span>
+                )}
+              </div>
             )}
           </div>
         )}
