@@ -138,8 +138,18 @@ export async function getAllJobs(): Promise<Job[]> {
 
 /**
  * Get all active jobs for public display with company names
+ * @param includeTechnical - if true, include only technical jobs (default: true for backward compat)
+ * @param includeNonTechnical - if true, include non-technical jobs (default: false)
  */
-export async function getActiveJobs() {
+export async function getActiveJobs(options?: { includeNonTechnical?: boolean }) {
+  const includeNonTechnical = options?.includeNonTechnical ?? false;
+  
+  // Build where conditions
+  const conditions = [eq(jobs.status, "active")];
+  if (!includeNonTechnical) {
+    conditions.push(eq(jobs.isTechnical, true));
+  }
+  
   const data = await db
     .select({
       job: jobs,
@@ -147,7 +157,7 @@ export async function getActiveJobs() {
     })
     .from(jobs)
     .leftJoin(companies, eq(jobs.companyId, companies.id))
-    .where(eq(jobs.status, "active"))
+    .where(and(...conditions))
     .orderBy(desc(jobs.postedAt));
 
   return data.map(({ job, companyName }) => ({
@@ -167,13 +177,22 @@ export interface PaginatedJobs {
 
 /**
  * Get paginated active jobs with optional search
+ * @param includeNonTechnical - if true, include non-technical jobs (default: false)
  */
 export async function getPaginatedJobs(
   limit: number,
   offset: number,
   searchQuery?: string,
+  options?: { includeNonTechnical?: boolean },
 ): Promise<PaginatedJobs> {
-  const activeCondition = eq(jobs.status, "active");
+  const includeNonTechnical = options?.includeNonTechnical ?? false;
+  
+  // Build base conditions
+  const baseConditions = [eq(jobs.status, "active")];
+  if (!includeNonTechnical) {
+    baseConditions.push(eq(jobs.isTechnical, true));
+  }
+  const baseCondition = and(...baseConditions);
 
   // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
@@ -187,7 +206,7 @@ export async function getPaginatedJobs(
     const items = await db
       .select()
       .from(jobs)
-      .where(and(activeCondition, inArray(jobs.id, matchingIds)))
+      .where(and(baseCondition, inArray(jobs.id, matchingIds)))
       .orderBy(desc(jobs.postedAt))
       .limit(limit)
       .offset(offset);
@@ -196,18 +215,18 @@ export async function getPaginatedJobs(
     const [{ total }] = await db
       .select({ total: count() })
       .from(jobs)
-      .where(and(activeCondition, inArray(jobs.id, matchingIds)));
+      .where(and(baseCondition, inArray(jobs.id, matchingIds)));
 
     return { items, total };
   }
 
   // No search - get total count and paginated items (active only)
-  const [{ total }] = await db.select({ total: count() }).from(jobs).where(activeCondition);
+  const [{ total }] = await db.select({ total: count() }).from(jobs).where(baseCondition);
 
   const items = await db
     .select()
     .from(jobs)
-    .where(activeCondition)
+    .where(baseCondition)
     .orderBy(desc(jobs.postedAt))
     .limit(limit)
     .offset(offset);

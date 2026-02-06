@@ -258,6 +258,8 @@ export const jobs = sqliteTable(
     removedAt: integer("removed_at", { mode: "timestamp" }), // when job disappeared
     // Status
     status: text("status", { enum: jobStatuses }).notNull().default("active"),
+    // Technical flag - non-technical jobs are deprioritized in UI
+    isTechnical: integer("is_technical", { mode: "boolean" }).notNull().default(true),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),

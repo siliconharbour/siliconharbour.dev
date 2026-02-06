@@ -411,3 +411,23 @@ export async function getImportedJobById(jobId: number) {
     .limit(1);
   return job || null;
 }
+
+/**
+ * Mark a job as non-technical (deprioritized in UI)
+ */
+export async function markJobNonTechnical(jobId: number) {
+  await db
+    .update(jobs)
+    .set({ isTechnical: false, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
+}
+
+/**
+ * Mark a job as technical (normal priority in UI)
+ */
+export async function markJobTechnical(jobId: number) {
+  await db
+    .update(jobs)
+    .set({ isTechnical: true, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
+}

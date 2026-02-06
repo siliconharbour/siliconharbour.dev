@@ -1,7 +1,7 @@
 import type { Route } from "./+types/jobs.$sourceId";
 import { Link, useLoaderData, useFetcher, redirect } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getImportSourceWithStats, syncJobs, deleteImportSource, hideImportedJob, unhideImportedJob } from "~/lib/job-importers/sync.server";
+import { getImportSourceWithStats, syncJobs, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical } from "~/lib/job-importers/sync.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
@@ -58,6 +58,22 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (jobId) {
       await unhideImportedJob(jobId);
       return { intent: "unhide", jobId, success: true };
+    }
+  }
+  
+  if (intent === "mark-non-technical") {
+    const jobId = Number(formData.get("jobId"));
+    if (jobId) {
+      await markJobNonTechnical(jobId);
+      return { intent: "mark-non-technical", jobId, success: true };
+    }
+  }
+  
+  if (intent === "mark-technical") {
+    const jobId = Number(formData.get("jobId"));
+    if (jobId) {
+      await markJobTechnical(jobId);
+      return { intent: "mark-technical", jobId, success: true };
     }
   }
   
@@ -267,13 +283,18 @@ export default function ViewJobImportSource() {
                 {activeJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-harbour-50">
                     <td className="px-4 py-3">
-                      {job.url ? (
-                        <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
-                          {job.title}
-                        </a>
-                      ) : (
-                        <span className="text-harbour-700">{job.title}</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {job.url ? (
+                          <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
+                            {job.title}
+                          </a>
+                        ) : (
+                          <span className="text-harbour-700">{job.title}</span>
+                        )}
+                        {!job.isTechnical && (
+                          <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">Non-tech</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
@@ -281,7 +302,30 @@ export default function ViewJobImportSource() {
                       <WorkplaceBadge type={job.workplaceType} />
                     </td>
                     <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.firstSeenAt)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-right flex gap-1 justify-end">
+                      {job.isTechnical ? (
+                        <fetcher.Form method="post" className="inline">
+                          <input type="hidden" name="intent" value="mark-non-technical" />
+                          <input type="hidden" name="jobId" value={job.id} />
+                          <button
+                            type="submit"
+                            className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                          >
+                            Non-technical
+                          </button>
+                        </fetcher.Form>
+                      ) : (
+                        <fetcher.Form method="post" className="inline">
+                          <input type="hidden" name="intent" value="mark-technical" />
+                          <input type="hidden" name="jobId" value={job.id} />
+                          <button
+                            type="submit"
+                            className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+                          >
+                            Technical
+                          </button>
+                        </fetcher.Form>
+                      )}
                       <fetcher.Form method="post" className="inline">
                         <input type="hidden" name="intent" value="hide" />
                         <input type="hidden" name="jobId" value={job.id} />

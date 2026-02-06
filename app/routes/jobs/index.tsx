@@ -1,5 +1,5 @@
 import type { Route } from "./+types/index";
-import { Link, useLoaderData } from "react-router";
+import { Link, useLoaderData, useSearchParams } from "react-router";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { db } from "~/db";
@@ -19,11 +19,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const { limit, offset } = parsePaginationParams(url);
   const searchQuery = url.searchParams.get("q") || "";
+  const showNonTechnical = url.searchParams.get("showNonTechnical") === "true";
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
 
-  const { items: jobs, total } = await getPaginatedJobs(limit, offset, searchQuery);
+  const { items: jobs, total } = await getPaginatedJobs(limit, offset, searchQuery, { includeNonTechnical: showNonTechnical });
 
   // Get company names for jobs that have companyId
   const companyIds = [...new Set(jobs.filter((j) => j.companyId).map((j) => j.companyId!))];
@@ -43,11 +44,24 @@ export async function loader({ request }: Route.LoaderArgs) {
     companyName: job.companyId ? companyMap.get(job.companyId) ?? null : null,
   }));
 
-  return { jobs: jobsWithCompany, total, limit, offset, searchQuery, isAdmin };
+  return { jobs: jobsWithCompany, total, limit, offset, searchQuery, isAdmin, showNonTechnical };
 }
 
 export default function JobsIndex() {
-  const { jobs, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
+  const { jobs, total, limit, offset, searchQuery, isAdmin, showNonTechnical } = useLoaderData<typeof loader>();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const handleShowNonTechnicalChange = (checked: boolean) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (checked) {
+      newParams.set("showNonTechnical", "true");
+    } else {
+      newParams.delete("showNonTechnical");
+    }
+    // Reset to first page when changing filter
+    newParams.delete("offset");
+    setSearchParams(newParams);
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-4 py-8">
@@ -68,18 +82,32 @@ export default function JobsIndex() {
             <p className="text-harbour-500">Tech job opportunities in the community</p>
           </div>
 
-          {/* Search - only show if pagination is needed */}
-          {(total > limit || searchQuery) && (
-            <>
-              <SearchInput placeholder="Search jobs..." />
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Search - only show if pagination is needed */}
+            {(total > limit || searchQuery) && (
+              <div className="flex-1 min-w-[200px]">
+                <SearchInput placeholder="Search jobs..." />
+              </div>
+            )}
+            
+            {/* Show non-technical checkbox */}
+            <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showNonTechnical}
+                onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
+                className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+              />
+              Show non-technical roles
+            </label>
+          </div>
 
-              {/* Result count */}
-              {searchQuery && (
-                <p className="text-sm text-harbour-500">
-                  {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-                </p>
-              )}
-            </>
+          {/* Result count */}
+          {searchQuery && (
+            <p className="text-sm text-harbour-500">
+              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+            </p>
           )}
         </div>
 
@@ -102,6 +130,11 @@ export default function JobsIndex() {
                     {job.title}
                   </h2>
                   <div className="flex flex-wrap gap-2">
+                    {!job.isTechnical && (
+                      <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600">
+                        Non-technical
+                      </span>
+                    )}
                     {job.workplaceType === "remote" && (
                       <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700">
                         Remote
