@@ -305,6 +305,12 @@ export default function CompanyDetail() {
                   ) : (
                     provenance.source
                   )}
+                  {provenance.lastVerified && (
+                    <span>
+                      {" "}
+                      ({new Date(provenance.lastVerified).toLocaleDateString("en-US", { month: "short", year: "numeric" })})
+                    </span>
+                  )}
                 </span>
               )}
             </div>
