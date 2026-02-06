@@ -9,7 +9,7 @@ export async function loader({}: Route.LoaderArgs) {
   const [events, newsArticles, jobs] = await Promise.all([
     getUpcomingEvents(),
     getPublishedNews(),
-    getActiveJobs(),
+    getActiveJobs({ includeNonTechnical: true }),
   ]);
 
   // Combine all items with a common format
@@ -46,13 +46,13 @@ export async function loader({}: Route.LoaderArgs) {
       guid: `news-${article.id}`,
       category: "News",
     })),
-    ...jobs
-      .filter((job) => job.slug) // Only include jobs with slugs
-      .map((job) => {
+    ...jobs.map((job) => {
         const description = job.description || job.descriptionText || "";
         return {
           title: `Job - ${job.title}${job.companyName ? ` at ${job.companyName}` : ""}`,
-          link: `https://siliconharbour.dev/jobs/${job.slug}`,
+          link: job.slug
+            ? `https://siliconharbour.dev/jobs/${job.slug}`
+            : job.url || "https://siliconharbour.dev/jobs",
           description: description.slice(0, 500) + (description.length > 500 ? "..." : ""),
           pubDate: job.postedAt || job.createdAt,
           guid: `job-${job.id}`,

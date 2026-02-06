@@ -155,11 +155,11 @@ export async function loader({}: Route.LoaderArgs) {
   // Export jobs
   const jobsFolder = zip.folder("jobs");
   for (const job of allJobs) {
-    if (!job.slug) continue; // Skip jobs without slugs
     const description = job.description || job.descriptionText || "";
+    const slug = job.slug || `job-${job.id}`;
     const frontmatter = buildFrontmatter({
       title: job.title,
-      slug: job.slug,
+      slug,
       location: job.location,
       department: job.department,
       workplaceType: job.workplaceType,
@@ -169,7 +169,7 @@ export async function loader({}: Route.LoaderArgs) {
       createdAt: job.createdAt.toISOString(),
       updatedAt: job.updatedAt.toISOString(),
     });
-    jobsFolder?.file(`${job.slug}.md`, `${frontmatter}\n${description}`);
+    jobsFolder?.file(`${slug}.md`, `${frontmatter}\n${description}`);
   }
 
   // Export projects

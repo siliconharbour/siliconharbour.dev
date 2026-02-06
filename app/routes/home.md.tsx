@@ -94,12 +94,13 @@ For complete site documentation and API info, see [/llms.txt](/llms.txt).
     content += `\n[View all projects](/directory/projects.md)\n\n`;
   }
 
-  // Jobs - only show jobs that have slugs (can be linked)
-  const activeJobs = jobs.filter(j => j.slug).slice(0, 4);
+  // Jobs
+  const activeJobs = jobs.slice(0, 4);
   if (activeJobs.length > 0) {
     content += `## Jobs\n\n`;
     for (const job of activeJobs) {
-      content += `- [${job.title}](/jobs/${job.slug}.md)${job.companyName ? ` at ${job.companyName}` : ""}\n`;
+      const link = job.slug ? `/jobs/${job.slug}.md` : job.url || "/jobs.md";
+      content += `- [${job.title}](${link})${job.companyName ? ` at ${job.companyName}` : ""}\n`;
     }
     content += `\n[View all jobs](/jobs.md)\n`;
   }
