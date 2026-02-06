@@ -37,6 +37,8 @@ export default [
   route("directory/projects/:slug.md", "routes/directory/projects.$slug.md.tsx"),
   route("directory/education.md", "routes/directory/education.md.tsx"),
   route("directory/education/:slug.md", "routes/directory/education.$slug.md.tsx"),
+  route("directory/technologies.md", "routes/directory/technologies.md.tsx"),
+  route("directory/technologies/:slug.md", "routes/directory/technologies.$slug.md.tsx"),
 
   // Events markdown routes
   route("events.md", "routes/events/index.md.tsx"),
@@ -73,6 +75,8 @@ export default [
   route("api/projects/:slug", "routes/api/projects.$slug.tsx"),
   route("api/products", "routes/api/products.tsx"),
   route("api/products/:slug", "routes/api/products.$slug.tsx"),
+  route("api/technologies", "routes/api/technologies.tsx"),
+  route("api/technologies/:slug", "routes/api/technologies.$slug.tsx"),
 
   // Home page has its own hero header design
   index("routes/home.tsx"),

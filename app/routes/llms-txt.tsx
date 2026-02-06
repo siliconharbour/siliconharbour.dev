@@ -29,6 +29,7 @@ All pages on this site have a \`.md\` version available by appending \`.md\` to 
   - Projects: \`/directory/projects\` (list), \`/directory/projects/{slug}\` (detail)
   - Products: \`/directory/products\` (list), \`/directory/products/{slug}\` (detail)
   - Education: \`/directory/education\` (list), \`/directory/education/{slug}\` (detail)
+  - Technologies: \`/directory/technologies\` (list), \`/directory/technologies/{slug}\` (detail)
 
 ### Query Parameters
 
@@ -72,6 +73,8 @@ A read-only JSON API is available at \`/api/*\`. No authentication required. COR
 | \`GET /api/projects/{slug}\` | Get project details |
 | \`GET /api/products\` | List products |
 | \`GET /api/products/{slug}\` | Get product details |
+| \`GET /api/technologies\` | List technologies |
+| \`GET /api/technologies/{slug}\` | Get technology details |
 
 API responses include pagination info and Link headers for navigation. Use \`?limit=N&offset=N\` for pagination.
 
@@ -91,6 +94,7 @@ API responses include pagination info and Link headers for navigation. Use \`?li
 - [Projects](/directory/projects.md): Open source and community projects
 - [Products](/directory/products.md): Products built locally
 - [Education](/directory/education.md): Educational institutions and programs
+- [Technologies](/directory/technologies.md): Technologies used by local companies
 
 ## Content
 
