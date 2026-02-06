@@ -68,7 +68,7 @@ async function insertJob(data: {
     externalUpdatedAt: data.updatedAt,
     firstSeenAt: data.firstSeenAt,
     lastSeenAt: data.lastSeenAt,
-    status: "active",
+    status: "pending_review",
     createdAt: now,
     updatedAt: now,
   });
@@ -199,8 +199,8 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
           lastSeenAt: now,
         });
         results.added++;
-      } else if (existing.status === "hidden") {
-        // HIDDEN: user explicitly hid this job, just update lastSeenAt but don't reactivate
+      } else if (existing.status === "hidden" || existing.status === "pending_review") {
+        // HIDDEN or PENDING_REVIEW: user needs to review, just update lastSeenAt but don't auto-activate
         await updateJob(existing.id, {
           lastSeenAt: now,
         });
@@ -337,11 +337,15 @@ export async function getImportSourceWithStats(sourceId: number) {
     .where(eq(jobs.sourceId, sourceId));
   
   const activeCount = sourceJobs.filter(j => j.status === "active").length;
+  const pendingReviewCount = sourceJobs.filter(j => j.status === "pending_review").length;
+  const hiddenCount = sourceJobs.filter(j => j.status === "hidden").length;
   const removedCount = sourceJobs.filter(j => j.status === "removed").length;
   
   return {
     ...source,
     activeJobCount: activeCount,
+    pendingReviewCount: pendingReviewCount,
+    hiddenJobCount: hiddenCount,
     removedJobCount: removedCount,
     totalJobCount: sourceJobs.length,
     jobs: sourceJobs,
@@ -410,6 +414,26 @@ export async function getImportedJobById(jobId: number) {
     .where(eq(jobs.id, jobId))
     .limit(1);
   return job || null;
+}
+
+/**
+ * Approve a pending_review job (moves to active)
+ */
+export async function approveJob(jobId: number) {
+  await db
+    .update(jobs)
+    .set({ status: "active", updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
+}
+
+/**
+ * Approve a pending_review job and mark as non-technical
+ */
+export async function approveJobAsNonTechnical(jobId: number) {
+  await db
+    .update(jobs)
+    .set({ status: "active", isTechnical: false, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
 }
 
 /**

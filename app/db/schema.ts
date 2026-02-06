@@ -221,7 +221,7 @@ export const news = sqliteTable("news", {
 export const jobSourceTypes = ["manual", "imported"] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
 
-export const jobStatuses = ["active", "removed", "filled", "expired", "hidden"] as const;
+export const jobStatuses = ["active", "pending_review", "removed", "filled", "expired", "hidden"] as const;
 export type JobStatus = (typeof jobStatuses)[number];
 
 export const workplaceTypes = ["remote", "onsite", "hybrid"] as const;

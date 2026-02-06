@@ -1,6 +1,6 @@
 ---
 id: s-a8f4
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-02-06T21:35:12Z

@@ -1,7 +1,7 @@
 import type { Route } from "./+types/jobs.$sourceId";
 import { Link, useLoaderData, useFetcher, redirect } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getImportSourceWithStats, syncJobs, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical } from "~/lib/job-importers/sync.server";
+import { getImportSourceWithStats, syncJobs, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical, approveJob, approveJobAsNonTechnical } from "~/lib/job-importers/sync.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
@@ -77,6 +77,22 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   }
   
+  if (intent === "approve") {
+    const jobId = Number(formData.get("jobId"));
+    if (jobId) {
+      await approveJob(jobId);
+      return { intent: "approve", jobId, success: true };
+    }
+  }
+  
+  if (intent === "approve-non-technical") {
+    const jobId = Number(formData.get("jobId"));
+    if (jobId) {
+      await approveJobAsNonTechnical(jobId);
+      return { intent: "approve-non-technical", jobId, success: true };
+    }
+  }
+  
   return { success: false, error: "Unknown action" };
 }
 
@@ -91,15 +107,20 @@ function formatDate(date: Date | null | undefined): string {
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     active: "bg-green-100 text-green-700",
+    pending_review: "bg-blue-100 text-blue-700",
     removed: "bg-slate-100 text-slate-600",
     filled: "bg-blue-100 text-blue-700",
     expired: "bg-amber-100 text-amber-700",
     hidden: "bg-amber-100 text-amber-700",
   };
   
+  const labels: Record<string, string> = {
+    pending_review: "pending review",
+  };
+  
   return (
     <span className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}>
-      {status}
+      {labels[status] || status}
     </span>
   );
 }
@@ -127,10 +148,11 @@ export default function ViewJobImportSource() {
   const isLoading = fetcher.state !== "idle";
   const syncResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync" ? fetcher.data : null;
   
-  // Separate active, hidden, and other jobs
+  // Separate jobs by status
+  const pendingReviewJobs = source.jobs.filter(j => j.status === "pending_review");
   const activeJobs = source.jobs.filter(j => j.status === "active");
   const hiddenJobs = source.jobs.filter(j => j.status === "hidden");
-  const removedJobs = source.jobs.filter(j => j.status !== "active" && j.status !== "hidden");
+  const removedJobs = source.jobs.filter(j => j.status !== "active" && j.status !== "hidden" && j.status !== "pending_review");
 
   return (
     <div className="min-h-screen p-6">
@@ -242,7 +264,11 @@ export default function ViewJobImportSource() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-5 gap-4">
+          <div className="p-4 border border-blue-200 bg-blue-50 text-center">
+            <div className="text-3xl font-bold text-blue-600">{pendingReviewJobs.length}</div>
+            <div className="text-sm text-blue-700">Pending Review</div>
+          </div>
           <div className="p-4 border border-harbour-200 bg-white text-center">
             <div className="text-3xl font-bold text-green-600">{activeJobs.length}</div>
             <div className="text-sm text-harbour-500">Active Jobs</div>
@@ -260,6 +286,81 @@ export default function ViewJobImportSource() {
             <div className="text-sm text-harbour-500">Total Tracked</div>
           </div>
         </div>
+
+        {/* Pending Review Jobs */}
+        {pendingReviewJobs.length > 0 && (
+          <div className="border border-blue-200 bg-white overflow-hidden">
+            <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+              <h2 className="font-medium text-blue-800">Pending Review ({pendingReviewJobs.length})</h2>
+              <p className="text-xs text-blue-600 mt-1">New jobs awaiting review. Approve to make visible, or hide to reject.</p>
+            </div>
+            <table className="w-full">
+              <thead className="bg-blue-50/50 border-b border-blue-100">
+                <tr>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Title</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Location</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Department</th>
+                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">Type</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">First Seen</th>
+                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-blue-100">
+                {pendingReviewJobs.map((job) => (
+                  <tr key={job.id} className="hover:bg-blue-50/50">
+                    <td className="px-4 py-3">
+                      {job.url ? (
+                        <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
+                          {job.title}
+                        </a>
+                      ) : (
+                        <span className="text-harbour-700">{job.title}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
+                    <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
+                    <td className="px-4 py-3 text-center">
+                      <WorkplaceBadge type={job.workplaceType} />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.firstSeenAt)}</td>
+                    <td className="px-4 py-3 text-right flex gap-1 justify-end">
+                      <fetcher.Form method="post" className="inline">
+                        <input type="hidden" name="intent" value="approve" />
+                        <input type="hidden" name="jobId" value={job.id} />
+                        <button
+                          type="submit"
+                          className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+                        >
+                          Approve
+                        </button>
+                      </fetcher.Form>
+                      <fetcher.Form method="post" className="inline">
+                        <input type="hidden" name="intent" value="approve-non-technical" />
+                        <input type="hidden" name="jobId" value={job.id} />
+                        <button
+                          type="submit"
+                          className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                        >
+                          Non-technical
+                        </button>
+                      </fetcher.Form>
+                      <fetcher.Form method="post" className="inline">
+                        <input type="hidden" name="intent" value="hide" />
+                        <input type="hidden" name="jobId" value={job.id} />
+                        <button
+                          type="submit"
+                          className="px-2 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
+                        >
+                          Hide
+                        </button>
+                      </fetcher.Form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Active Jobs */}
         {activeJobs.length > 0 && (
