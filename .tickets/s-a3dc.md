@@ -1,6 +1,6 @@
 ---
 id: s-a3dc
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-02-06T21:44:42Z
