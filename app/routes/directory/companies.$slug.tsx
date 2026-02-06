@@ -354,7 +354,7 @@ export default function CompanyDetail() {
                       <span className={`px-2 py-0.5 text-xs font-medium rounded ${
                         job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
                         job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
-                        "bg-blue-50 text-blue-600"
+                        "bg-white text-harbour-600"
                       }`}>
                         {job.workplaceType}
                       </span>
