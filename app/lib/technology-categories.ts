@@ -23,7 +23,7 @@ export const categoryLabels: Record<TechnologyCategory, string> = {
   cloud: "Cloud",
   database: "Databases",
   devops: "DevOps",
-  "game-engine": "Game Engines",
+  "game-engine": "Games & Graphics",
   mobile: "Mobile",
   "data-science": "Data Science",
   platform: "Platforms",
