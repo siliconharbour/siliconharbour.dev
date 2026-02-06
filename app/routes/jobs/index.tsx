@@ -189,7 +189,11 @@ function CompanyJobCard({ data }: { data: CompanyWithJobs }) {
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
                 {job.location && <span>{job.location}</span>}
                 {job.department && <span>{job.department}</span>}
-                {job.postedAt && <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>}
+                {job.postedAt ? (
+                  <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>
+                ) : job.firstSeenAt ? (
+                  <span>Seen {format(job.firstSeenAt, "MMM d, yyyy")}</span>
+                ) : null}
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
