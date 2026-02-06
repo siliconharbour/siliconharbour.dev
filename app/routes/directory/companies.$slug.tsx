@@ -333,7 +333,7 @@ export default function CompanyDetail() {
                   href={job.url || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 bg-harbour-50 hover:bg-harbour-100 border border-harbour-200 transition-colors group"
+                  className="flex items-center justify-between p-3 bg-white hover:bg-harbour-50 border border-harbour-200 transition-colors group"
                 >
                   <div className="flex flex-col gap-0.5">
                     <span className="font-medium text-harbour-700 group-hover:text-harbour-900">
@@ -354,7 +354,7 @@ export default function CompanyDetail() {
                       <span className={`px-2 py-0.5 text-xs font-medium rounded ${
                         job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
                         job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
-                        "bg-white text-harbour-600"
+                        "bg-blue-100 text-blue-700"
                       }`}>
                         {job.workplaceType}
                       </span>
