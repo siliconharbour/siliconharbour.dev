@@ -1,6 +1,6 @@
 ---
 id: s-e5c5
-status: open
+status: closed
 deps: []
 links: []
 created: 2026-02-06T22:09:52Z

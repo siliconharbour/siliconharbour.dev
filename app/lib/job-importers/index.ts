@@ -10,6 +10,7 @@ import { workdayImporter } from "./workday.server";
 import { bamboohrImporter } from "./bamboohr.server";
 import { leverImporter } from "./lever.server";
 import { collageImporter } from "./collage.server";
+import { ripplingImporter } from "./rippling.server";
 
 // Registry of all available importers
 const importers: Record<string, JobImporter> = {
@@ -19,6 +20,7 @@ const importers: Record<string, JobImporter> = {
   bamboohr: bamboohrImporter,
   lever: leverImporter,
   collage: collageImporter,
+  rippling: ripplingImporter,
 };
 
 /**
