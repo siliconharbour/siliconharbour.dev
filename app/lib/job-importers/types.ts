@@ -129,7 +129,7 @@ export const sourceTypeLabels: Record<JobSourceType, string> = {
 export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   greenhouse: "e.g., colabsoftware (from job-boards.greenhouse.io/colabsoftware)",
   ashby: "e.g., spellbook.legal (from jobs.ashbyhq.com/spellbook.legal)",
-  workday: "e.g., nasdaq (company identifier)",
+  workday: "e.g., nasdaq:Global_External_Site:verafin (company:site:searchText)",
   bamboohr: "e.g., trophiai (from trophiai.bamboohr.com)",
   custom: "Custom identifier or URL",
 };
