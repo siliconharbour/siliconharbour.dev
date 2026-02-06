@@ -510,7 +510,7 @@ export const technologyCategories = [
   "cloud",
   "database",
   "devops",
-  "game-engine",
+  "games-and-graphics",
   "mobile",
   "data-science",
   "platform",
