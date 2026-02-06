@@ -77,6 +77,8 @@ export default [
   route("api/products/:slug", "routes/api/products.$slug.tsx"),
   route("api/technologies", "routes/api/technologies.tsx"),
   route("api/technologies/:slug", "routes/api/technologies.$slug.tsx"),
+  route("api/imported-jobs", "routes/api/imported-jobs.tsx"),
+  route("api/imported-jobs/:id", "routes/api/imported-jobs.$id.tsx"),
 
   // Home page has its own hero header design
   index("routes/home.tsx"),
@@ -206,6 +208,9 @@ export default [
       route("genesis", "routes/manage/import/genesis.tsx"),
       route("github-by-location", "routes/manage/import/github-by-location.tsx"),
       route("github-following", "routes/manage/import/github-following.tsx"),
+      route("jobs", "routes/manage/import/jobs.tsx"),
+      route("jobs/new", "routes/manage/import/jobs.new.tsx"),
+      route("jobs/:sourceId", "routes/manage/import/jobs.$sourceId.tsx"),
     ]),
     route("export", "routes/manage/export.tsx"),
   ]),

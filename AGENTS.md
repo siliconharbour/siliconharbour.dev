@@ -11,6 +11,30 @@ Run `tk help` if you are unaware how `tk` works.
 
 When given a set of tasks, **continue working until ALL tasks are complete**. Do not stop to ask for confirmation between tasks. Execute the full plan.
 
+## Adding New Routes
+
+This project uses **explicit route definitions** in `app/routes.ts`. When adding new pages:
+
+1. Create your route file in `app/routes/` following existing patterns
+2. **Register the route** in `app/routes.ts` - routes will 404 without this step!
+
+Example for adding a new manage page:
+
+```typescript
+// In app/routes.ts, find the relevant prefix section and add:
+...prefix("manage", [
+  // ... existing routes
+  route("my-new-page", "routes/manage/my-new-page.tsx"),
+]),
+```
+
+For API routes, add them in the "Public JSON API" section:
+
+```typescript
+route("api/my-endpoint", "routes/api/my-endpoint.tsx"),
+route("api/my-endpoint/:id", "routes/api/my-endpoint.$id.tsx"),
+```
+
 ## Database Migrations
 
 This project uses Drizzle ORM with SQLite. When adding/modifying database schema:
