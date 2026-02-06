@@ -33,7 +33,7 @@ export default function TechnologyDetail() {
   const { technology, companies, projects, isAdmin } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-8">
+    <div className="max-w-4xl mx-auto p-4 py-8 flex flex-col gap-8">
       {/* Header */}
       <div className="flex items-start gap-4">
         {technology.icon ? (
