@@ -200,8 +200,17 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
         });
         results.added++;
       } else if (existing.status === "hidden" || existing.status === "pending_review") {
-        // HIDDEN or PENDING_REVIEW: user needs to review, just update lastSeenAt but don't auto-activate
+        // HIDDEN or PENDING_REVIEW: keep status, but refresh imported fields to avoid stale/noisy data.
         await updateJob(existing.id, {
+          title: job.title,
+          location: job.location,
+          department: job.department,
+          descriptionHtml: job.descriptionHtml,
+          descriptionText: job.descriptionText,
+          url: job.url,
+          workplaceType: job.workplaceType,
+          postedAt: job.postedAt,
+          updatedAt: job.updatedAt,
           lastSeenAt: now,
         });
         results.updated++;
