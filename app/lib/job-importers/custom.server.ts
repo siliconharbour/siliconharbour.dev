@@ -27,6 +27,7 @@ import { scrapeFocusfs } from "./custom/focusfs";
 import { scrapeBluedrop } from "./custom/bluedrop";
 import { scrapeVish } from "./custom/vish";
 import { scrapeAkerSolutions } from "./custom/aker-solutions";
+import { scrapeDataFarms } from "./custom/data-farms";
 
 /**
  * Registry of custom scrapers by company identifier
@@ -44,6 +45,7 @@ const scrapers: Record<string, CustomScraper> = {
   bluedrop: () => scrapeBluedrop(),
   vish: (careersUrl: string) => scrapeVish(careersUrl),
   "aker-solutions": (careersUrl: string) => scrapeAkerSolutions(careersUrl),
+  "data-farms": (careersUrl: string) => scrapeDataFarms(careersUrl),
 };
 
 export const customImporter: JobImporter = {
