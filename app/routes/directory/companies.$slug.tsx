@@ -188,7 +188,7 @@ export default function CompanyDetail() {
           .filter((evidence) => evidence.jobTitle && evidence.jobUrl)
           .reduce(
             (acc, evidence) => {
-              const key = evidence.jobUrl as string;
+              const key = `${evidence.jobTitle}::${evidence.jobUrl}`.toLowerCase();
               const existing = acc.get(key);
               if (existing) {
                 if (
