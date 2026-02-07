@@ -116,7 +116,6 @@ export async function getTechnologiesByCategory(
     backend: [],
     cloud: [],
     database: [],
-    devops: [],
     "games-and-graphics": [],
     mobile: [],
     "data-science": [],

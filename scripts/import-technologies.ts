@@ -60,14 +60,14 @@ const techCategories: Record<string, string> = {
   "PostgreSQL": "database",
   "Redis": "database",
   
-  // DevOps
-  "Ansible": "devops",
-  "CircleCI": "devops",
-  "Docker": "devops",
-  "GitLab CI": "devops",
-  "Kubernetes": "devops",
-  "Serverless": "devops",
-  "Terraform": "devops",
+  // Cloud & DevOps
+  "Ansible": "cloud",
+  "CircleCI": "cloud",
+  "Docker": "cloud",
+  "GitLab CI": "cloud",
+  "Kubernetes": "cloud",
+  "Serverless": "cloud",
+  "Terraform": "cloud",
   
   // Game Engines / Graphics
   "Blender": "game-engine",

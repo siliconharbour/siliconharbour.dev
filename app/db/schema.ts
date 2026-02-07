@@ -545,7 +545,6 @@ export const technologyCategories = [
   "backend",
   "cloud",
   "database",
-  "devops",
   "games-and-graphics",
   "mobile",
   "data-science",
