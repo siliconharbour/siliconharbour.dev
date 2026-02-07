@@ -1,13 +1,11 @@
 import type { Route } from "./+types/index";
-import { Link, useLoaderData, useSearchParams } from "react-router";
+import { createCookie, data, Form, Link, redirect, useLoaderData, useSearchParams } from "react-router";
 import { getJobsGroupedByCompany, type CompanyWithJobs } from "~/lib/jobs.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
-import { useEffect } from "react";
 import { BaseMultiSelect } from "~/components/BaseMultiSelect";
 
-const NON_TECH_STORAGE_KEY = "jobs_show_non_technical";
 const workplaceTypeOptions = ["remote", "hybrid", "onsite", "unknown"] as const;
 type WorkplaceFilterType = (typeof workplaceTypeOptions)[number];
 const workplaceTypeLabels: Record<WorkplaceFilterType, string> = {
@@ -20,6 +18,13 @@ const workplaceTypeFilterOptions = workplaceTypeOptions.map((value) => ({
   value,
   label: workplaceTypeLabels[value],
 }));
+const showNonTechnicalCookie = createCookie("__jobs_show_non_technical", {
+  path: "/jobs",
+  sameSite: "lax",
+  httpOnly: false,
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 60 * 60 * 24 * 365,
+});
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -31,7 +36,11 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const showNonTechnical = url.searchParams.get("technical") === "false";
+  const technicalParam = url.searchParams.get("technical");
+  const cookieHeader = request.headers.get("Cookie");
+  const cookiePref = await showNonTechnicalCookie.parse(cookieHeader);
+  const showNonTechnical =
+    technicalParam === "false" ? true : technicalParam === "true" ? false : cookiePref === "1";
   const rawSelectedWorkplaceTypes = (url.searchParams.get("workplace") || "")
     .split(",")
     .map((value) => value.trim())
@@ -78,43 +87,58 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const totalJobs = companiesWithJobs.reduce((sum, cwj) => sum + cwj.jobs.length, 0);
 
-  return {
+  const shouldPersistFromQuery = technicalParam === "false" || technicalParam === "true";
+  const setCookieHeader = shouldPersistFromQuery
+    ? await showNonTechnicalCookie.serialize(technicalParam === "false" ? "1" : "0")
+    : null;
+
+  return data({
     companiesWithJobs,
     totalJobs,
     searchQuery,
     isAdmin,
     showNonTechnical,
     selectedWorkplaceTypes,
-  };
+  }, setCookieHeader ? { headers: { "Set-Cookie": setCookieHeader } } : undefined);
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  if (intent !== "set-non-technical-pref") {
+    return redirect("/jobs");
+  }
+
+  const enabled = formData.get("enabled") === "true";
+  const rawRedirectTo = String(formData.get("redirectTo") || "/jobs");
+  const safeRedirectTo = rawRedirectTo.startsWith("/jobs") ? rawRedirectTo : "/jobs";
+
+  return redirect(safeRedirectTo, {
+    headers: {
+      "Set-Cookie": await showNonTechnicalCookie.serialize(enabled ? "1" : "0"),
+    },
+  });
 }
 
 export default function JobsIndex() {
   const { companiesWithJobs, totalJobs, searchQuery, isAdmin, showNonTechnical, selectedWorkplaceTypes } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  useEffect(() => {
-    if (searchParams.has("technical")) {
-      return;
-    }
-    const persisted = window.localStorage.getItem(NON_TECH_STORAGE_KEY);
-    if (persisted !== "true") {
-      return;
-    }
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("technical", "false");
-    setSearchParams(nextParams, { replace: true });
-  }, [searchParams, setSearchParams]);
+  const redirectParams = new URLSearchParams(searchParams);
+  redirectParams.delete("technical");
+  const redirectTo = redirectParams.toString() ? `/jobs?${redirectParams.toString()}` : "/jobs";
 
   const handleShowNonTechnicalChange = (checked: boolean) => {
-    window.localStorage.setItem(NON_TECH_STORAGE_KEY, checked ? "true" : "false");
-    const newParams = new URLSearchParams(searchParams);
-    if (checked) {
-      newParams.set("technical", "false");
-    } else {
-      newParams.delete("technical");
+    const form = document.getElementById("jobs-non-technical-form") as HTMLFormElement | null;
+    if (!form) {
+      return;
     }
-    setSearchParams(newParams);
+    const enabledInput = form.elements.namedItem("enabled") as HTMLInputElement | null;
+    if (!enabledInput) {
+      return;
+    }
+    enabledInput.value = checked ? "true" : "false";
+    form.requestSubmit();
   };
 
   const handleWorkplaceTypeChange = (nextSelected: string[]) => {
@@ -165,15 +189,20 @@ export default function JobsIndex() {
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               {/* Show non-technical checkbox */}
-              <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showNonTechnical}
-                  onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
-                  className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
-                />
-                Show non-technical roles
-              </label>
+              <Form id="jobs-non-technical-form" method="post">
+                <input type="hidden" name="intent" value="set-non-technical-pref" />
+                <input type="hidden" name="enabled" value={showNonTechnical ? "true" : "false"} />
+                <input type="hidden" name="redirectTo" value={redirectTo} />
+                <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showNonTechnical}
+                    onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
+                    className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+                  />
+                  Show non-technical roles
+                </label>
+              </Form>
 
               <div className="flex items-center gap-2 md:justify-end">
                 <span className="text-sm text-harbour-500 whitespace-nowrap">Workplace:</span>
