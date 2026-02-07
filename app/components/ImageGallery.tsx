@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Dialog } from "@base-ui/react/dialog";
 import type { ProjectImage } from "~/db/schema";
 
 interface ImageGalleryProps {
@@ -55,94 +56,96 @@ export function ImageGallery({ images }: ImageGalleryProps) {
       </div>
 
       {/* Lightbox */}
-      {lightboxIndex !== null && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
-          onClick={closeLightbox}
-          onKeyDown={handleKeyDown}
-          tabIndex={0}
-          role="dialog"
-          aria-modal="true"
-        >
-          {/* Close button */}
-          <button
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 text-white/70 hover:text-white p-2 z-10"
-            aria-label="Close lightbox"
+      <Dialog.Root
+        open={lightboxIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) closeLightbox();
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/90" />
+          <Dialog.Popup
+            className="fixed inset-0 z-50 flex items-center justify-center"
+            onKeyDown={handleKeyDown}
           >
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-
-          {/* Previous button */}
-          {images.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goToPrevious();
-              }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
-              aria-label="Previous image"
+            {/* Close button */}
+            <Dialog.Close
+              className="absolute top-4 right-4 text-white/70 hover:text-white p-2 z-10"
+              aria-label="Close lightbox"
             >
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
+                  d="M6 18L18 6M6 6l12 12"
                 />
               </svg>
-            </button>
-          )}
+            </Dialog.Close>
 
-          {/* Image */}
-          <div
-            className="max-w-[90vw] max-h-[90vh] flex flex-col items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={`/images/${images[lightboxIndex].image}`}
-              alt={images[lightboxIndex].caption || ""}
-              className="max-w-full max-h-[80vh] object-contain"
-            />
-            {images[lightboxIndex].caption && (
-              <p className="mt-4 text-white/80 text-center max-w-2xl">
-                {images[lightboxIndex].caption}
-              </p>
+            {/* Previous button */}
+            {images.length > 1 && lightboxIndex !== null && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToPrevious();
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
+                aria-label="Previous image"
+              >
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
             )}
-            <p className="mt-2 text-white/50 text-sm">
-              {lightboxIndex + 1} / {images.length}
-            </p>
-          </div>
 
-          {/* Next button */}
-          {images.length > 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goToNext();
-              }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
-              aria-label="Next image"
-            >
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
+            {/* Image */}
+            {lightboxIndex !== null && (
+              <div className="max-w-[90vw] max-h-[90vh] flex flex-col items-center">
+                <img
+                  src={`/images/${images[lightboxIndex].image}`}
+                  alt={images[lightboxIndex].caption || ""}
+                  className="max-w-full max-h-[80vh] object-contain"
                 />
-              </svg>
-            </button>
-          )}
-        </div>
-      )}
+                {images[lightboxIndex].caption && (
+                  <p className="mt-4 text-white/80 text-center max-w-2xl">
+                    {images[lightboxIndex].caption}
+                  </p>
+                )}
+                <p className="mt-2 text-white/50 text-sm">
+                  {lightboxIndex + 1} / {images.length}
+                </p>
+              </div>
+            )}
+
+            {/* Next button */}
+            {images.length > 1 && lightboxIndex !== null && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToNext();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
+                aria-label="Next image"
+              >
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            )}
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }

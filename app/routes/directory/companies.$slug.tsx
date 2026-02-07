@@ -1,6 +1,7 @@
 import type { Route } from "./+types/companies.$slug";
 import { Link, useLoaderData } from "react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Dialog } from "@base-ui/react/dialog";
 import { getCompanyBySlug } from "~/lib/companies.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
@@ -160,6 +161,52 @@ export default function CompanyDetail() {
   const [showEvidence, setShowEvidence] = useState(false);
   const technicalJobs = activeJobs.filter((job) => job.isTechnical);
   const nonTechnicalJobs = activeJobs.filter((job) => !job.isTechnical);
+  const evidenceJobs = useMemo(
+    () =>
+      Array.from(
+        provenanceEntries
+          .flatMap((entry) => entry.evidence)
+          .filter((evidence) => evidence.jobTitle && evidence.jobUrl)
+          .reduce(
+            (acc, evidence) => {
+              const key = evidence.jobUrl as string;
+              const existing = acc.get(key);
+              if (existing) {
+                if (
+                  evidence.excerptText &&
+                  evidence.excerptText.trim().length > 0 &&
+                  !existing.excerpts.includes(evidence.excerptText)
+                ) {
+                  existing.excerpts.push(evidence.excerptText);
+                }
+                return acc;
+              }
+
+              acc.set(key, {
+                title: evidence.jobTitle as string,
+                url: evidence.jobUrl as string,
+                status: evidence.jobStatus,
+                excerpts:
+                  evidence.excerptText && evidence.excerptText.trim().length > 0
+                    ? [evidence.excerptText]
+                    : [],
+              });
+              return acc;
+            },
+            new Map<
+              string,
+              {
+                title: string;
+                url: string;
+                status: string | null;
+                excerpts: string[];
+              }
+            >(),
+          )
+          .values(),
+      ),
+    [provenanceEntries],
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
@@ -376,114 +423,82 @@ export default function CompanyDetail() {
             </div>
             {provenanceEntries.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-700">Provenance</span>
                 {provenanceEntries.length > 1 && (
                   <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700">
                     Multiple sources ({provenanceEntries.length})
                   </span>
                 )}
                 {provenanceEntries.map((entry, index) => (
-                  <span key={index} className="text-harbour-500">
-                    via{" "}
-                    {entry.sourceUrl ? (
-                      <a
-                        href={entry.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline hover:text-harbour-700"
-                      >
-                        {entry.source || "source"}
-                      </a>
-                    ) : (
-                      entry.source || "source"
-                    )}
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setShowEvidence(true)}
+                    className="text-harbour-500 hover:text-harbour-700 hover:underline"
+                  >
+                    via {entry.source || "source"}
                     {entry.lastVerified && <span> ({formatMonthYear(entry.lastVerified)})</span>}
-                    {entry.jobCount > 0 && (
-                      <span className="ml-1 text-xs px-1.5 py-0.5 bg-green-100 text-green-700">
-                        {entry.jobCount} job{entry.jobCount === 1 ? "" : "s"}
-                      </span>
-                    )}
-                  </span>
+                  </button>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setShowEvidence(true)}
-                  className="px-2 py-1 bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors"
-                >
-                  View evidence
-                </button>
               </div>
             )}
           </div>
         )}
 
-        {showEvidence && (
-          <div className="fixed inset-0 z-50 bg-black/30 p-4">
-            <div className="max-w-3xl mx-auto bg-white border border-harbour-200 max-h-[80vh] overflow-y-auto">
-              <div className="p-4 border-b border-harbour-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-harbour-700">Technology Evidence</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowEvidence(false)}
-                  className="px-2 py-1 bg-harbour-100 text-harbour-700 hover:bg-harbour-200"
-                >
-                  Close
-                </button>
-              </div>
-              <div className="p-4 flex flex-col gap-4">
-                {provenanceEntries.map((entry, index) => (
-                  <div key={index} className="border border-harbour-200 p-3 flex flex-col gap-2">
-                    <p className="text-sm font-medium text-harbour-700">
-                      {entry.source || "Source"} {entry.lastVerified ? `(${formatMonthYear(entry.lastVerified)})` : ""}
-                    </p>
-                    {entry.sourceUrl && (
-                      <a
-                        href={entry.sourceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-harbour-600 underline"
-                      >
-                        {entry.sourceUrl}
-                      </a>
-                    )}
-                    <div className="flex flex-col gap-2">
-                      {entry.evidence.map((evidence, evidenceIndex) => (
-                        <div key={evidenceIndex} className="bg-harbour-50 border border-harbour-200 p-2 text-sm">
-                          <p className="text-harbour-700">
-                            <span className="font-medium">{evidence.technology}</span>
-                            {evidence.jobTitle && <span> - {evidence.jobTitle}</span>}
-                            {evidence.jobStatus === "removed" && (
-                              <span className="ml-2 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
-                                Job removed
-                              </span>
-                            )}
-                          </p>
-                          {evidence.jobUrl && (
-                            <a
-                              href={evidence.jobUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-harbour-600 underline"
-                            >
-                              Open job posting
-                            </a>
-                          )}
-                          {evidence.excerptText && (
-                            <p className="text-xs text-harbour-500 mt-1">
-                              {evidence.excerptText.length > 320
-                                ? `${evidence.excerptText.slice(0, 320)}...`
-                                : evidence.excerptText}
-                            </p>
+        <Dialog.Root open={showEvidence} onOpenChange={setShowEvidence}>
+          <Dialog.Portal>
+            <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/30" />
+            <Dialog.Popup className="fixed inset-0 z-50 p-4 flex items-start justify-center">
+              <div className="w-full max-w-3xl bg-white border border-harbour-200 max-h-[80vh] overflow-y-auto mt-8">
+                <div className="p-4 border-b border-harbour-200 flex items-center justify-between">
+                  <Dialog.Title className="text-lg font-semibold text-harbour-700">
+                    Technology Sources
+                  </Dialog.Title>
+                  <Dialog.Close className="px-2 py-1 bg-harbour-100 text-harbour-700 hover:bg-harbour-200">
+                    Close
+                  </Dialog.Close>
+                </div>
+                <div className="p-4 flex flex-col gap-4">
+                  {evidenceJobs.length === 0 ? (
+                    <p className="text-sm text-harbour-500">No supporting job postings recorded.</p>
+                  ) : (
+                    evidenceJobs.map((job, index) => (
+                      <div key={index} className="border border-harbour-200 p-3 flex flex-col gap-3">
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-sm font-medium text-harbour-700">{job.title}</span>
+                          {job.status === "removed" && (
+                            <span className="mt-1 w-fit text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
+                              Job removed
+                            </span>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                        <a
+                          href={job.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-harbour-600 underline whitespace-nowrap"
+                        >
+                          Open job posting
+                        </a>
+                        {job.excerpts.length > 0 && (
+                          <div className="bg-harbour-50 border border-harbour-200 p-2 flex flex-col gap-2">
+                            {job.excerpts.map((excerpt, excerptIndex) => (
+                              <p
+                                key={excerptIndex}
+                                className="text-xs text-harbour-600 whitespace-pre-wrap break-words"
+                              >
+                                {excerpt}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            </Dialog.Popup>
+          </Dialog.Portal>
+        </Dialog.Root>
 
         {activeJobs.length > 0 && (
           <div className="border-t border-harbour-200 pt-6 flex flex-col gap-5">

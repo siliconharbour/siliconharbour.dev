@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { Dialog } from "@base-ui/react/dialog";
 import ReactCrop, { type Crop, type PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
@@ -295,50 +296,53 @@ export function ImageCropper({ imageSrc, aspect, onCropComplete, onCancel }: Ima
   const displaySrc = paddedImageSrc || imageSrc;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="bg-white p-4 flex flex-col max-w-[90vw] max-h-[90vh]">
-        <h3 className="text-lg font-semibold mb-4 text-harbour-700">Crop Image</h3>
+    <Dialog.Root open onOpenChange={(open) => !open && onCancel()}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
+        <Dialog.Popup className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-4 flex flex-col max-w-[90vw] max-h-[90vh]">
+            <Dialog.Title className="text-lg font-semibold mb-4 text-harbour-700">
+              Crop Image
+            </Dialog.Title>
 
-        {paddingInfo && (
-          <p className="text-sm text-harbour-500 mb-2">
-            The checkered area will be transparent in the final image.
-          </p>
-        )}
+            {paddingInfo && (
+              <p className="text-sm text-harbour-500 mb-2">
+                The checkered area will be transparent in the final image.
+              </p>
+            )}
 
-        <div className="flex-1 min-h-0 flex items-center justify-center">
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(c) => setCompletedCrop(c)}
-            aspect={aspect}
-          >
-            <img
-              ref={imgRef}
-              src={displaySrc}
-              alt="Crop preview"
-              onLoad={onImageLoad}
-              style={{ maxWidth: "80vw", maxHeight: "70vh", display: "block" }}
-            />
-          </ReactCrop>
-        </div>
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={aspect}
+              >
+                <img
+                  ref={imgRef}
+                  src={displaySrc}
+                  alt="Crop preview"
+                  onLoad={onImageLoad}
+                  style={{ maxWidth: "80vw", maxHeight: "70vh", display: "block" }}
+                />
+              </ReactCrop>
+            </div>
 
-        <div className="flex justify-end gap-3 mt-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium text-white bg-harbour-600 hover:bg-harbour-700 transition-colors"
-          >
-            Apply Crop
-          </button>
-        </div>
-      </div>
-    </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <Dialog.Close className="px-4 py-2 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors">
+                Cancel
+              </Dialog.Close>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="px-4 py-2 text-sm font-medium text-white bg-harbour-600 hover:bg-harbour-700 transition-colors"
+              >
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
