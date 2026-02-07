@@ -1,4 +1,5 @@
 import type { Route } from "./+types/edit";
+import { useState } from "react";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
@@ -40,6 +41,54 @@ function normalizeLastVerified(value: FormDataEntryValue | null): string | null 
     return `${normalized}-01`;
   }
   return normalized;
+}
+
+interface CompanyTechnologyProvenance {
+  technologyId: number;
+  technologyName: string;
+  source: string | null;
+  sourceUrl: string | null;
+  lastVerified: string | null;
+}
+
+interface ProvenanceGroup {
+  id: string;
+  source: string;
+  sourceUrl: string;
+  lastVerified: string;
+  technologyIds: number[];
+}
+
+function toMonthInputValue(value: string | null): string {
+  if (!value) return "";
+  if (/^\d{4}-\d{2}$/.test(value)) return value;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 7);
+  return "";
+}
+
+function buildInitialProvenanceGroups(
+  companyTechnologies: CompanyTechnologyProvenance[],
+): ProvenanceGroup[] {
+  const byProvenance = new Map<string, ProvenanceGroup>();
+
+  for (const item of companyTechnologies) {
+    const key = `${item.source ?? ""}|${item.sourceUrl ?? ""}|${item.lastVerified ?? ""}`;
+    const existing = byProvenance.get(key);
+    if (existing) {
+      existing.technologyIds.push(item.technologyId);
+      continue;
+    }
+
+    byProvenance.set(key, {
+      id: `existing-${byProvenance.size + 1}`,
+      source: item.source ?? "",
+      sourceUrl: item.sourceUrl ?? "",
+      lastVerified: toMonthInputValue(item.lastVerified),
+      technologyIds: [item.technologyId],
+    });
+  }
+
+  return Array.from(byProvenance.values());
 }
 
 export function meta({ data }: Route.MetaArgs) {
@@ -141,23 +190,41 @@ export async function action({ request, params }: Route.ActionArgs) {
   const genesis = formData.get("genesis") === "on";
   const visible = formData.get("visible") === "true";
   const technologyIds = formData.getAll("technologies").map((id) => parseInt(id as string, 10));
-  const provenanceUpdates = technologyIds
-    .map((technologyId) => {
-      const sourceName = `provenanceSource_${technologyId}`;
-      const sourceUrlName = `provenanceSourceUrl_${technologyId}`;
-      const lastVerifiedName = `provenanceLastVerified_${technologyId}`;
-      if (!formData.has(sourceName) && !formData.has(sourceUrlName) && !formData.has(lastVerifiedName)) {
-        return null;
-      }
+  const provenanceGroupIds = formData
+    .getAll("provenanceGroupId")
+    .map((id) => String(id))
+    .filter((id) => id.length > 0);
 
-      return {
-        technologyId,
-        source: normalizeNullableString(formData.get(sourceName)),
-        sourceUrl: normalizeNullableString(formData.get(sourceUrlName)),
-        lastVerified: normalizeLastVerified(formData.get(lastVerifiedName)),
-      };
-    })
-    .filter((update): update is NonNullable<typeof update> => update !== null);
+  const provenanceByTechnology = new Map<
+    number,
+    { source: string | null; sourceUrl: string | null; lastVerified: string | null }
+  >();
+
+  for (const groupId of provenanceGroupIds) {
+    const source = normalizeNullableString(formData.get(`provenanceSource_${groupId}`));
+    const sourceUrl = normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`));
+    const lastVerified = normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`));
+    const groupTechnologyIds = formData
+      .getAll(`provenanceTech_${groupId}`)
+      .map((id) => parseInt(String(id), 10))
+      .filter((id) => !isNaN(id));
+
+    for (const technologyId of groupTechnologyIds) {
+      if (!provenanceByTechnology.has(technologyId)) {
+        provenanceByTechnology.set(technologyId, { source, sourceUrl, lastVerified });
+      }
+    }
+  }
+
+  const provenanceUpdates = technologyIds.map((technologyId) => {
+    const match = provenanceByTechnology.get(technologyId);
+    return {
+      technologyId,
+      source: match?.source ?? null,
+      sourceUrl: match?.sourceUrl ?? null,
+      lastVerified: match?.lastVerified ?? null,
+    };
+  });
 
   if (!name) {
     return { error: "Name is required" };
@@ -228,6 +295,65 @@ export default function EditCompany() {
   const { company, allTechnologies, selectedTechnologyIds, companyTechnologies } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const [provenanceGroups, setProvenanceGroups] = useState<ProvenanceGroup[]>(() =>
+    buildInitialProvenanceGroups(companyTechnologies),
+  );
+  const assignedTechnologies = [...companyTechnologies].sort((a, b) =>
+    a.technologyName.localeCompare(b.technologyName),
+  );
+
+  const addProvenanceGroup = () => {
+    setProvenanceGroups((current) => [
+      ...current,
+      {
+        id: `new-${Date.now()}-${current.length + 1}`,
+        source: "",
+        sourceUrl: "",
+        lastVerified: "",
+        technologyIds: [],
+      },
+    ]);
+  };
+
+  const removeProvenanceGroup = (groupId: string) => {
+    setProvenanceGroups((current) => current.filter((group) => group.id !== groupId));
+  };
+
+  const updateGroupField = (
+    groupId: string,
+    field: "source" | "sourceUrl" | "lastVerified",
+    value: string,
+  ) => {
+    setProvenanceGroups((current) =>
+      current.map((group) => (group.id === groupId ? { ...group, [field]: value } : group)),
+    );
+  };
+
+  const toggleTechnologyForGroup = (groupId: string, technologyId: number, checked: boolean) => {
+    setProvenanceGroups((current) =>
+      current.map((group) => {
+        const hasTechnology = group.technologyIds.includes(technologyId);
+        if (group.id === groupId) {
+          if (checked && !hasTechnology) {
+            return { ...group, technologyIds: [...group.technologyIds, technologyId] };
+          }
+          if (!checked && hasTechnology) {
+            return {
+              ...group,
+              technologyIds: group.technologyIds.filter((id) => id !== technologyId),
+            };
+          }
+        }
+        if (checked && group.id !== groupId && hasTechnology) {
+          return {
+            ...group,
+            technologyIds: group.technologyIds.filter((id) => id !== technologyId),
+          };
+        }
+        return group;
+      }),
+    );
+  };
 
   return (
     <div className="min-h-screen p-6">
@@ -396,51 +522,94 @@ export default function EditCompany() {
             <div className="flex flex-col gap-3">
               <h2 className="font-medium text-harbour-700">Technology Provenance</h2>
               <p className="text-xs text-harbour-400">
-                Edit provenance for currently assigned technologies. New selections can be updated
-                after saving.
+                Create provenance entries, then assign technologies to each one. A technology can be
+                attached to only one provenance entry.
               </p>
-              <div className="border border-harbour-200 overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-harbour-50 border-b border-harbour-200">
-                    <tr>
-                      <th className="px-3 py-2 text-left font-medium text-harbour-600">Technology</th>
-                      <th className="px-3 py-2 text-left font-medium text-harbour-600">Source</th>
-                      <th className="px-3 py-2 text-left font-medium text-harbour-600">Source URL</th>
-                      <th className="px-3 py-2 text-left font-medium text-harbour-600">Last Verified</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-harbour-100">
-                    {companyTechnologies.map((item) => (
-                      <tr key={item.technologyId}>
-                        <td className="px-3 py-2 text-harbour-700 font-medium">{item.technologyName}</td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="text"
-                            name={`provenanceSource_${item.technologyId}`}
-                            defaultValue={item.source ?? ""}
-                            className="w-full px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="url"
-                            name={`provenanceSourceUrl_${item.technologyId}`}
-                            defaultValue={item.sourceUrl ?? ""}
-                            className="w-full px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="month"
-                            name={`provenanceLastVerified_${item.technologyId}`}
-                            defaultValue={item.lastVerified ? item.lastVerified.slice(0, 7) : ""}
-                            className="w-full px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <button
+                type="button"
+                onClick={addProvenanceGroup}
+                className="self-start px-3 py-1.5 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 text-sm font-medium transition-colors"
+              >
+                + Add Provenance
+              </button>
+              <div className="flex flex-col gap-3">
+                {provenanceGroups.map((group, index) => (
+                  <div key={group.id} className="border border-harbour-200 p-3 flex flex-col gap-3">
+                    <input type="hidden" name="provenanceGroupId" value={group.id} />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-medium text-harbour-700">
+                          Provenance {index + 1}
+                        </h3>
+                        {group.technologyIds.length === 0 && (
+                          <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
+                            Orphaned
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeProvenanceGroup(group.id)}
+                        className="text-xs px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <input
+                        type="text"
+                        name={`provenanceSource_${group.id}`}
+                        value={group.source}
+                        onChange={(e) => updateGroupField(group.id, "source", e.target.value)}
+                        placeholder="Source (e.g. Job Postings)"
+                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                      />
+                      <input
+                        type="url"
+                        name={`provenanceSourceUrl_${group.id}`}
+                        value={group.sourceUrl}
+                        onChange={(e) => updateGroupField(group.id, "sourceUrl", e.target.value)}
+                        placeholder="Source URL"
+                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                      />
+                      <input
+                        type="month"
+                        name={`provenanceLastVerified_${group.id}`}
+                        value={group.lastVerified}
+                        onChange={(e) => updateGroupField(group.id, "lastVerified", e.target.value)}
+                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="border border-harbour-200 p-2">
+                      <p className="text-xs text-harbour-500 mb-2">Associate technologies</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                        {assignedTechnologies.map((item) => {
+                          const checked = group.technologyIds.includes(item.technologyId);
+                          return (
+                            <label key={item.technologyId} className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                name={`provenanceTech_${group.id}`}
+                                value={item.technologyId}
+                                checked={checked}
+                                onChange={(e) =>
+                                  toggleTechnologyForGroup(
+                                    group.id,
+                                    item.technologyId,
+                                    e.target.checked,
+                                  )
+                                }
+                              />
+                              <span className="text-harbour-700">{item.technologyName}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
