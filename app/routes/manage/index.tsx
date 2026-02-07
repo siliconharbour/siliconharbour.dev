@@ -1,5 +1,5 @@
 import type { Route } from "./+types/index";
-import { Link, useLoaderData } from "react-router";
+import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getAllEvents } from "~/lib/events.server";
 import { getAllCompanies } from "~/lib/companies.server";
@@ -12,6 +12,7 @@ import { getAllProjects } from "~/lib/projects.server";
 import { getAllProducts } from "~/lib/products.server";
 import { getCommentCount } from "~/lib/comments.server";
 import { getTechnologiesCount } from "~/lib/technologies.server";
+import { stageOrphanedImagesBatch } from "~/lib/image-orphans.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage - siliconharbour.dev" }];
@@ -62,6 +63,44 @@ export async function loader({ request }: Route.LoaderArgs) {
   };
 }
 
+export async function action({ request }: Route.ActionArgs) {
+  await requireAuth(request);
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent !== "stage-orphaned-images") {
+    return {
+      error: "Unknown action.",
+      orphanStageResult: null,
+    };
+  }
+
+  const rawBatchSize = String(formData.get("batchSize") || "250");
+  const parsedBatchSize = Number(rawBatchSize);
+  const batchSize = Number.isFinite(parsedBatchSize)
+    ? Math.min(Math.max(Math.floor(parsedBatchSize), 1), 5000)
+    : 250;
+
+  try {
+    const result = await stageOrphanedImagesBatch({
+      batchSize,
+      dryRun: false,
+      useCursor: true,
+    });
+
+    return {
+      error: null,
+      orphanStageResult: result,
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to stage orphaned images.",
+      orphanStageResult: null,
+    };
+  }
+}
+
 const contentTypes = [
   { key: "events", label: "Events", href: "/manage/events" },
   { key: "companies", label: "Companies", href: "/manage/companies" },
@@ -77,7 +116,12 @@ const contentTypes = [
 ] as const;
 
 export default function ManageIndex() {
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
   const { user, counts } = useLoaderData<typeof loader>();
+  const isStagingOrphans =
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") === "stage-orphaned-images";
 
   return (
     <div className="min-h-screen p-6">
@@ -179,6 +223,59 @@ export default function ManageIndex() {
                 Download all content as markdown files in a ZIP archive
               </p>
             </Link>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-harbour-700">Maintenance Tools</h2>
+          <div className="p-4 bg-white border border-harbour-200 flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <h3 className="font-medium text-harbour-700">Stage Orphaned Images</h3>
+              <p className="text-harbour-400 text-sm">
+                Scan image files in batches and stage unreferenced files for manual removal.
+              </p>
+            </div>
+
+            <Form method="post" className="flex flex-col sm:flex-row sm:items-end gap-3">
+              <input type="hidden" name="intent" value="stage-orphaned-images" />
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-harbour-500">Batch size</span>
+                <input
+                  type="number"
+                  name="batchSize"
+                  defaultValue={250}
+                  min={1}
+                  max={5000}
+                  className="border border-harbour-200 px-2 py-1 text-sm"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={isStagingOrphans}
+                className="px-3 py-1.5 text-sm bg-harbour-600 text-white border border-harbour-600 hover:bg-harbour-700 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isStagingOrphans ? "Staging..." : "Stage Orphaned Batch"}
+              </button>
+            </Form>
+
+            {actionData?.error ? (
+              <p className="text-sm text-red-700 bg-red-50 border border-red-200 px-2 py-1">
+                {actionData.error}
+              </p>
+            ) : null}
+
+            {actionData?.orphanStageResult ? (
+              <div className="text-sm text-harbour-600 border border-harbour-200 px-3 py-2 bg-harbour-50 flex flex-col gap-1">
+                <p>
+                  Scanned {actionData.orphanStageResult.scannedCount} images. Staged{" "}
+                  {actionData.orphanStageResult.newlyStagedCount} new orphans.
+                </p>
+                <p>
+                  Next offset: {actionData.orphanStageResult.nextOffset} /{" "}
+                  {actionData.orphanStageResult.totalImages}
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
