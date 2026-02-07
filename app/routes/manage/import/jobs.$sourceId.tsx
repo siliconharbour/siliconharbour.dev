@@ -1,5 +1,6 @@
 import type { Route } from "./+types/jobs.$sourceId";
 import { Link, useLoaderData, useFetcher, redirect } from "react-router";
+import type { ReactNode } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { getImportSourceWithStats, syncJobs, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical, approveJob, approveJobAsNonTechnical } from "~/lib/job-importers/sync.server";
 import { getCompanyById } from "~/lib/companies.server";
@@ -138,6 +139,43 @@ function WorkplaceBadge({ type }: { type: string | null }) {
     <span className={`text-xs px-1.5 py-0.5 ${colors[type] || "bg-harbour-100 text-harbour-600"}`}>
       {type}
     </span>
+  );
+}
+
+function JobTitleWithDescription({
+  title,
+  url,
+  descriptionText,
+  badge,
+}: {
+  title: string;
+  url: string | null;
+  descriptionText: string | null;
+  badge?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-center gap-2">
+        {url ? (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
+            {title}
+          </a>
+        ) : (
+          <span className="text-harbour-700">{title}</span>
+        )}
+        {badge}
+      </div>
+      {descriptionText && descriptionText.trim().length > 0 && (
+        <details className="w-full">
+          <summary className="cursor-pointer text-xs text-harbour-500 hover:text-harbour-700">
+            View full posting text
+          </summary>
+          <pre className="mt-2 p-2 text-xs text-harbour-600 bg-harbour-50 border border-harbour-200 whitespace-pre-wrap break-words font-mono">
+            {descriptionText}
+          </pre>
+        </details>
+      )}
+    </div>
   );
 }
 
@@ -309,13 +347,11 @@ export default function ViewJobImportSource() {
                 {pendingReviewJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-blue-50/50">
                     <td className="px-4 py-3">
-                      {job.url ? (
-                        <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
-                          {job.title}
-                        </a>
-                      ) : (
-                        <span className="text-harbour-700">{job.title}</span>
-                      )}
+                      <JobTitleWithDescription
+                        title={job.title}
+                        url={job.url}
+                        descriptionText={job.descriptionText}
+                      />
                     </td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
@@ -384,18 +420,16 @@ export default function ViewJobImportSource() {
                 {activeJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-harbour-50">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {job.url ? (
-                          <a href={job.url} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
-                            {job.title}
-                          </a>
-                        ) : (
-                          <span className="text-harbour-700">{job.title}</span>
-                        )}
-                        {!job.isTechnical && (
-                          <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">Non-tech</span>
-                        )}
-                      </div>
+                      <JobTitleWithDescription
+                        title={job.title}
+                        url={job.url}
+                        descriptionText={job.descriptionText}
+                        badge={
+                          !job.isTechnical
+                            ? <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">Non-tech</span>
+                            : undefined
+                        }
+                      />
                     </td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
@@ -465,7 +499,13 @@ export default function ViewJobImportSource() {
               <tbody className="divide-y divide-amber-100">
                 {hiddenJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-amber-50/50">
-                    <td className="px-4 py-3 text-harbour-600">{job.title}</td>
+                    <td className="px-4 py-3">
+                      <JobTitleWithDescription
+                        title={job.title}
+                        url={job.url}
+                        descriptionText={job.descriptionText}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
                     <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.firstSeenAt)}</td>
@@ -507,7 +547,13 @@ export default function ViewJobImportSource() {
               <tbody className="divide-y divide-harbour-100">
                 {removedJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-harbour-50 opacity-60">
-                    <td className="px-4 py-3 text-harbour-600">{job.title}</td>
+                    <td className="px-4 py-3">
+                      <JobTitleWithDescription
+                        title={job.title}
+                        url={job.url}
+                        descriptionText={job.descriptionText}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
                     <td className="px-4 py-3 text-center">
                       <StatusBadge status={job.status} />
