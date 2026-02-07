@@ -16,8 +16,5 @@ local.db
 # Temp/import data files
 getcoding-list.csv
 
-# Package manager
-pnpm-lock.yaml
-
 convex-app
 video
