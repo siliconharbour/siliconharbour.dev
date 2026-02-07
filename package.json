@@ -20,7 +20,8 @@
     "sync-prod": "tsx scripts/sync-prod.ts",
     "backup-prod": "tsx scripts/sync-prod.ts backup",
     "migrate-prod": "tsx scripts/sync-prod.ts migrate",
-    "push-prod-db": "tsx scripts/sync-prod.ts push"
+    "push-prod-db": "tsx scripts/sync-prod.ts push",
+    "images:stage-orphans": "tsx scripts/stage-orphaned-images.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",
