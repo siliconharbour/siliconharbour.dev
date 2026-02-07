@@ -247,6 +247,7 @@ export default function ReviewPeople() {
   const [people, setPeople] = useState(initialPeople);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [editMode, setEditMode] = useState(false);
+  const [openPersonPageInNewTab, setOpenPersonPageInNewTab] = useState(false);
   const [lastAction, setLastAction] = useState<UndoAction | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -258,12 +259,18 @@ export default function ReviewPeople() {
     ? JSON.parse(currentPerson.socialLinks)
     : {};
 
-  // Open GitHub profile in new tab when person changes
+  // Keep edit mode scoped to the current card.
   useEffect(() => {
-    if (currentPerson?.github) {
-      window.open(currentPerson.github, "github-preview");
-    }
+    setEditMode(false);
   }, [currentPerson?.id]);
+
+  // Optional preview: open the public person page as the current card changes.
+  useEffect(() => {
+    if (!openPersonPageInNewTab || !currentPerson?.slug) {
+      return;
+    }
+    window.open(`/directory/people/${currentPerson.slug}`, "_blank", "noopener,noreferrer");
+  }, [openPersonPageInNewTab, currentPerson?.id, currentPerson?.slug]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -424,7 +431,17 @@ export default function ReviewPeople() {
             </Link>
             <h1 className="text-2xl font-semibold text-harbour-700 mt-1">Review People</h1>
           </div>
-          <div className="text-sm text-harbour-500">{remaining} remaining</div>
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-harbour-600">
+              <input
+                type="checkbox"
+                checked={openPersonPageInNewTab}
+                onChange={(e) => setOpenPersonPageInNewTab(e.target.checked)}
+              />
+              <span>Open person page in new tab</span>
+            </label>
+            <div className="text-sm text-harbour-500">{remaining} remaining</div>
+          </div>
         </div>
 
         {/* Bulk Reject Tool */}
@@ -532,7 +549,11 @@ export default function ReviewPeople() {
 
           {/* Edit Form (expandable) */}
           {editMode ? (
-            <fetcher.Form method="post" className="p-6 bg-harbour-50 flex flex-col gap-4">
+            <fetcher.Form
+              key={currentPerson.id}
+              method="post"
+              className="p-6 bg-harbour-50 flex flex-col gap-4"
+            >
               <input type="hidden" name="intent" value="update" />
               <input type="hidden" name="id" value={currentPerson.id} />
 

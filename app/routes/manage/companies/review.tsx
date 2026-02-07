@@ -242,6 +242,11 @@ export default function ReviewCompanies() {
   const currentCompany = companies[currentIndex];
   const remaining = companies.length - currentIndex;
 
+  // Keep edit mode scoped to the current card.
+  useEffect(() => {
+    setEditMode(false);
+  }, [currentCompany?.id]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -464,7 +469,11 @@ export default function ReviewCompanies() {
 
           {/* Edit Form (expandable) */}
           {editMode ? (
-            <fetcher.Form method="post" className="p-6 bg-harbour-50 flex flex-col gap-4">
+            <fetcher.Form
+              key={currentCompany.id}
+              method="post"
+              className="p-6 bg-harbour-50 flex flex-col gap-4"
+            >
               <input type="hidden" name="intent" value="update" />
               <input type="hidden" name="id" value={currentCompany.id} />
 
