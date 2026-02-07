@@ -1,10 +1,11 @@
 /**
  * Vish custom scraper
  *
- * Vish careers are published on a marketing page with inline job sections.
- * Roles are represented by <h3> headings followed by rich content until the
- * next heading. The page also includes duplicate headings and an application
- * form section, both of which are filtered out here.
+ * Vish careers are rendered as accordion "toggle" blocks in WordPress.
+ * Each block has:
+ * - title in h3.toggle-title > a.toggle-heading
+ * - body in div.inner-toggle-wrap
+ * - embedded Gravity Forms application form (which we strip)
  */
 
 import type { FetchedJob } from "../types";
@@ -22,60 +23,8 @@ function isNonJobHeading(title: string): boolean {
   );
 }
 
-function isApplicationFormContent(text: string): boolean {
-  const normalized = text.toLowerCase();
-  return (
-    normalized.includes("enter your information below") ||
-    normalized.includes("upload resume") ||
-    normalized.includes("i agree to the privacy policy")
-  );
-}
-
-function isFooterHeading(title: string, attrs: string): boolean {
-  const normalized = title.toLowerCase();
-  const attrsNormalized = attrs.toLowerCase();
-  return (
-    attrsNormalized.includes("infobox_title") ||
-    normalized === "phone us:" ||
-    normalized === "email us:" ||
-    normalized.includes("contact") ||
-    normalized.includes("follow us")
-  );
-}
-
-function isSectionHeading(title: string): boolean {
-  const normalized = title.toLowerCase();
-  return (
-    normalized.includes("qualities") ||
-    normalized.includes("experience") ||
-    normalized.includes("responsibilities") ||
-    normalized.includes("requirements") ||
-    normalized.includes("qualifications") ||
-    normalized.includes("what we offer") ||
-    normalized.includes("about vish")
-  );
-}
-
-function isLikelyJobTitle(title: string, attrs: string): boolean {
-  const normalized = title.toLowerCase();
-  if (!normalized || isNonJobHeading(title) || isFooterHeading(title, attrs) || isSectionHeading(title)) {
-    return false;
-  }
-
-  if (normalized.endsWith(":")) {
-    return false;
-  }
-
-  const words = normalized.split(/\s+/).filter(Boolean);
-  if (words.length < 2 || words.length > 14) {
-    return false;
-  }
-
-  if (normalized.startsWith("join ")) {
-    return true;
-  }
-
-  return /\b(engineer|developer|manager|director|lead|architect|analyst|specialist|representative|coordinator|designer|sales|marketing|operations|consultant)\b/i.test(title);
+function cleanJobTitle(title: string): string {
+  return title.replace(/\s+/g, " ").replace(/\u00a0/g, " ").trim();
 }
 
 export async function scrapeVish(careersUrl: string = DEFAULT_CAREERS_URL): Promise<FetchedJob[]> {
@@ -83,47 +32,38 @@ export async function scrapeVish(careersUrl: string = DEFAULT_CAREERS_URL): Prom
   const jobs: FetchedJob[] = [];
   const seenIds = new Set<string>();
 
-  const h3Regex = /<h3([^>]*)>([\s\S]*?)<\/h3>/gi;
-  const headings: Array<{ title: string; attrs: string; index: number }> = [];
+  const toggleRegex = /<div class="toggle accent-color"[\s\S]*?(?=<div class="toggle accent-color"|<h3 class="infobox_title"|<\/body>)/gi;
+  const blocks = html.match(toggleRegex) ?? [];
 
-  let match;
-  while ((match = h3Regex.exec(html)) !== null) {
-    const attrs = match[1] ?? "";
-    const title = htmlToText(match[2]).trim();
+  for (const block of blocks) {
+    const titleMatch = block.match(
+      /<h3 class="toggle-title">[\s\S]*?<a[^>]*class="[^"]*toggle-heading[^"]*"[^>]*>([\s\S]*?)<\/a>/i
+    );
+    if (!titleMatch) {
+      continue;
+    }
+
+    const title = cleanJobTitle(htmlToText(titleMatch[1]));
     if (!title || isNonJobHeading(title)) {
       continue;
     }
-    headings.push({ title, attrs, index: match.index });
-  }
 
-  for (let i = 0; i < headings.length; i++) {
-    const heading = headings[i];
-    if (!isLikelyJobTitle(heading.title, heading.attrs)) {
+    const innerMatch = block.match(
+      /<div class="inner-toggle-wrap">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i
+    );
+    if (!innerMatch) {
       continue;
     }
 
-    let endIndex = html.length;
-    for (let j = i + 1; j < headings.length; j++) {
-      const nextHeading = headings[j];
-      if (isLikelyJobTitle(nextHeading.title, nextHeading.attrs) || isFooterHeading(nextHeading.title, nextHeading.attrs)) {
-        endIndex = nextHeading.index;
-        break;
-      }
-    }
+    const contentHtml = innerMatch[1]
+      .replace(/<form[\s\S]*?<\/form>/gi, "")
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .trim();
+    const contentText = htmlToText(contentHtml);
 
-    const sectionHtml = html.substring(heading.index, endIndex);
-    const sectionText = htmlToText(sectionHtml);
+    if (!contentText || contentText.length < 80) continue;
 
-    if (!sectionText || isApplicationFormContent(sectionText)) {
-      continue;
-    }
-
-    // Require substantive section content to avoid nav/footer heading captures.
-    if (sectionText.length < 120) {
-      continue;
-    }
-
-    const externalId = slugify(heading.title);
+    const externalId = slugify(title);
     if (!externalId || seenIds.has(externalId)) {
       continue;
     }
@@ -131,9 +71,9 @@ export async function scrapeVish(careersUrl: string = DEFAULT_CAREERS_URL): Prom
 
     jobs.push({
       externalId,
-      title: heading.title,
-      descriptionHtml: sectionHtml,
-      descriptionText: sectionText,
+      title,
+      descriptionHtml: contentHtml,
+      descriptionText: contentText,
       url: careersUrl,
     });
   }
