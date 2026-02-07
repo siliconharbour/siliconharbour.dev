@@ -161,7 +161,7 @@ export default function JobsIndex() {
               <SearchInput placeholder="Search jobs..." />
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               {/* Show non-technical checkbox */}
               <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
                 <input
@@ -173,7 +173,9 @@ export default function JobsIndex() {
                 Show non-technical roles
               </label>
 
-              <div className="min-w-[240px] max-w-sm flex-1">
+              <div className="flex items-center gap-2 md:justify-end">
+                <span className="text-sm text-harbour-500 whitespace-nowrap">Workplace:</span>
+                <div className="min-w-[240px] max-w-sm w-full">
                 <BaseMultiSelect
                   name="workplaceType"
                   options={workplaceTypeFilterOptions}
@@ -183,6 +185,7 @@ export default function JobsIndex() {
                   showSelectedChipsInTrigger
                   showSelectedChipsBelow={false}
                 />
+                </div>
               </div>
             </div>
           </div>
