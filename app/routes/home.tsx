@@ -329,7 +329,7 @@ export default function Home() {
                         rel={job.slug ? undefined : "noopener noreferrer"}
                         className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-5">
                           {job.companyLogo ? (
                             <div className="w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
                               <img
