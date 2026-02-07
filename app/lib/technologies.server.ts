@@ -117,6 +117,7 @@ export async function getTechnologiesByCategory(
     "games-and-graphics": [],
     mobile: [],
     "data-science": [],
+    llm: [],
     platform: [],
     specialized: [],
   };

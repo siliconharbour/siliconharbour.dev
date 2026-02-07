@@ -549,6 +549,7 @@ export const technologyCategories = [
   "games-and-graphics",
   "mobile",
   "data-science",
+  "llm",
   "platform",
   "specialized",
 ] as const;

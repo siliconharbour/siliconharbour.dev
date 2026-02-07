@@ -9,6 +9,7 @@ export const technologyCategories = [
   "games-and-graphics",
   "mobile",
   "data-science",
+  "llm",
   "platform",
   "specialized",
 ] as const;
@@ -26,6 +27,7 @@ export const categoryLabels: Record<TechnologyCategory, string> = {
   "games-and-graphics": "Games & Graphics",
   mobile: "Mobile",
   "data-science": "Data Science",
+  llm: "LLMs & AI",
   platform: "Platforms",
   specialized: "Specialized",
 };
