@@ -1,5 +1,5 @@
 import type { Route } from "./+types/index";
-import { createCookie, data, Form, Link, redirect, useLoaderData, useSearchParams } from "react-router";
+import { createCookie, data, Link, redirect, useLoaderData, useSearchParams } from "react-router";
 import { getJobsGroupedByCompany, type CompanyWithJobs } from "~/lib/jobs.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { SearchInput } from "~/components/SearchInput";
@@ -39,8 +39,24 @@ export async function loader({ request }: Route.LoaderArgs) {
   const technicalParam = url.searchParams.get("technical");
   const cookieHeader = request.headers.get("Cookie");
   const cookiePref = await showNonTechnicalCookie.parse(cookieHeader);
-  const showNonTechnical =
-    technicalParam === "false" ? true : technicalParam === "true" ? false : cookiePref === "1";
+  const paramsForRedirect = new URLSearchParams(url.searchParams);
+  if (technicalParam === null && cookiePref === "1") {
+    paramsForRedirect.set("technical", "false");
+    throw redirect(`${url.pathname}?${paramsForRedirect.toString()}`);
+  }
+  if (technicalParam === "true") {
+    paramsForRedirect.delete("technical");
+    const target = paramsForRedirect.toString()
+      ? `${url.pathname}?${paramsForRedirect.toString()}`
+      : url.pathname;
+    throw redirect(target, {
+      headers: {
+        "Set-Cookie": await showNonTechnicalCookie.serialize("0"),
+      },
+    });
+  }
+
+  const showNonTechnical = technicalParam === "false";
   const rawSelectedWorkplaceTypes = (url.searchParams.get("workplace") || "")
     .split(",")
     .map((value) => value.trim())
@@ -87,9 +103,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const totalJobs = companiesWithJobs.reduce((sum, cwj) => sum + cwj.jobs.length, 0);
 
-  const shouldPersistFromQuery = technicalParam === "false" || technicalParam === "true";
+  const shouldPersistFromQuery = technicalParam === "false";
   const setCookieHeader = shouldPersistFromQuery
-    ? await showNonTechnicalCookie.serialize(technicalParam === "false" ? "1" : "0")
+    ? await showNonTechnicalCookie.serialize("1")
     : null;
 
   return data({
@@ -102,43 +118,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   }, setCookieHeader ? { headers: { "Set-Cookie": setCookieHeader } } : undefined);
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-  if (intent !== "set-non-technical-pref") {
-    return redirect("/jobs");
-  }
-
-  const enabled = formData.get("enabled") === "true";
-  const rawRedirectTo = String(formData.get("redirectTo") || "/jobs");
-  const safeRedirectTo = rawRedirectTo.startsWith("/jobs") ? rawRedirectTo : "/jobs";
-
-  return redirect(safeRedirectTo, {
-    headers: {
-      "Set-Cookie": await showNonTechnicalCookie.serialize(enabled ? "1" : "0"),
-    },
-  });
-}
-
 export default function JobsIndex() {
   const { companiesWithJobs, totalJobs, searchQuery, isAdmin, showNonTechnical, selectedWorkplaceTypes } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const redirectParams = new URLSearchParams(searchParams);
-  redirectParams.delete("technical");
-  const redirectTo = redirectParams.toString() ? `/jobs?${redirectParams.toString()}` : "/jobs";
 
   const handleShowNonTechnicalChange = (checked: boolean) => {
-    const form = document.getElementById("jobs-non-technical-form") as HTMLFormElement | null;
-    if (!form) {
-      return;
+    const newParams = new URLSearchParams(searchParams);
+    if (checked) {
+      newParams.set("technical", "false");
+    } else {
+      // Use technical=true once so loader can clear cookie and canonicalize URL back to default.
+      newParams.set("technical", "true");
     }
-    const enabledInput = form.elements.namedItem("enabled") as HTMLInputElement | null;
-    if (!enabledInput) {
-      return;
-    }
-    enabledInput.value = checked ? "true" : "false";
-    form.requestSubmit();
+    setSearchParams(newParams);
   };
 
   const handleWorkplaceTypeChange = (nextSelected: string[]) => {
@@ -189,20 +182,15 @@ export default function JobsIndex() {
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               {/* Show non-technical checkbox */}
-              <Form id="jobs-non-technical-form" method="post">
-                <input type="hidden" name="intent" value="set-non-technical-pref" />
-                <input type="hidden" name="enabled" value={showNonTechnical ? "true" : "false"} />
-                <input type="hidden" name="redirectTo" value={redirectTo} />
-                <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={showNonTechnical}
-                    onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
-                    className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
-                  />
-                  Show non-technical roles
-                </label>
-              </Form>
+              <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showNonTechnical}
+                  onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
+                  className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+                />
+                Show non-technical roles
+              </label>
 
               <div className="flex items-center gap-2 md:justify-end">
                 <span className="text-sm text-harbour-500 whitespace-nowrap">Workplace:</span>
