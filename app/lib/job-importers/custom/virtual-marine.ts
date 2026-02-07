@@ -14,6 +14,18 @@ import { fetchPage, htmlToText, slugify } from "./utils";
 
 const CAREERS_URL = "https://www.virtualmarine.ca/careers";
 
+function detectWorkplaceType(text: string): "remote" | undefined {
+  const normalized = text.toLowerCase();
+  if (!normalized.includes("remote")) {
+    return undefined;
+  }
+  // Optional phrasing like "St. John's, NL or Remote" should not be marked as remote.
+  if (/\bor\s+remote\b/.test(normalized)) {
+    return undefined;
+  }
+  return "remote";
+}
+
 export async function scrapeVirtualMarine(): Promise<FetchedJob[]> {
   const html = await fetchPage(CAREERS_URL);
   const jobs: FetchedJob[] = [];
@@ -66,6 +78,8 @@ export async function scrapeVirtualMarine(): Promise<FetchedJob[]> {
     // Extract description (everything after the h3 close)
     const h3Close = sectionHtml.indexOf("</h3>");
     const descriptionHtml = h3Close > -1 ? sectionHtml.substring(h3Close + 5, 8000).trim() : "";
+    const descriptionText = descriptionHtml ? htmlToText(descriptionHtml) : undefined;
+    const workplaceType = detectWorkplaceType(`${title} ${descriptionText ?? ""}`);
 
     const externalId = slugify(title);
 
@@ -74,8 +88,9 @@ export async function scrapeVirtualMarine(): Promise<FetchedJob[]> {
       title,
       location: "St. John's, NL",
       descriptionHtml: descriptionHtml || undefined,
-      descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
+      descriptionText,
       url: CAREERS_URL,
+      workplaceType,
     });
   }
 
