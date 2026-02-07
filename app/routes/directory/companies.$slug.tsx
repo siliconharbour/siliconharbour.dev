@@ -66,8 +66,34 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     techByCategory.get(cat)!.push(item);
   }
 
-  // Get provenance info (should be same for all techs for this company)
-  const provenance = technologiesWithAssignments[0] ?? null;
+  const provenanceMap = new Map<
+    string,
+    { source: string | null; sourceUrl: string | null; lastVerified: string | null; count: number }
+  >();
+  for (const item of technologiesWithAssignments) {
+    if (!item.source && !item.sourceUrl) {
+      continue;
+    }
+
+    const key = `${item.source ?? ""}|${item.sourceUrl ?? ""}|${item.lastVerified ?? ""}`;
+    const existing = provenanceMap.get(key);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      provenanceMap.set(key, {
+        source: item.source,
+        sourceUrl: item.sourceUrl,
+        lastVerified: item.lastVerified,
+        count: 1,
+      });
+    }
+  }
+
+  const provenanceEntries = Array.from(provenanceMap.values()).sort((a, b) => {
+    const sourceA = a.source ?? a.sourceUrl ?? "";
+    const sourceB = b.source ?? b.sourceUrl ?? "";
+    return sourceA.localeCompare(sourceB);
+  });
 
   return {
     company,
@@ -78,11 +104,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     isAdmin,
     commentsEnabled,
     techByCategory: Array.from(techByCategory.entries()),
-    provenance: provenance ? {
-      source: provenance.source,
-      sourceUrl: provenance.sourceUrl,
-      lastVerified: provenance.lastVerified,
-    } : null,
+    provenanceEntries,
     activeJobs,
   };
 }
@@ -97,7 +119,7 @@ export default function CompanyDetail() {
     isAdmin,
     commentsEnabled,
     techByCategory,
-    provenance,
+    provenanceEntries,
     activeJobs,
   } = useLoaderData<typeof loader>();
   const technicalJobs = activeJobs.filter((job) => job.isTechnical);
@@ -315,30 +337,36 @@ export default function CompanyDetail() {
                   ))}
                 </span>
               ))}
-              {provenance && (provenance.source || provenance.sourceUrl) && (
-                <span className="text-xs text-harbour-400">
-                  via{" "}
-                  {provenance.sourceUrl ? (
-                    <a
-                      href={provenance.sourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-harbour-600"
-                    >
-                      {provenance.source || "source"}
-                    </a>
-                  ) : (
-                    provenance.source
-                  )}
-                  {provenance.lastVerified && (
-                    <span>
-                      {" "}
-                      ({formatMonthYear(provenance.lastVerified)})
-                    </span>
-                  )}
-                </span>
-              )}
             </div>
+            {provenanceEntries.length > 0 && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-700">Provenance</span>
+                {provenanceEntries.length > 1 && (
+                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700">
+                    Multiple sources ({provenanceEntries.length})
+                  </span>
+                )}
+                {provenanceEntries.map((entry, index) => (
+                  <span key={index} className="text-harbour-500">
+                    via{" "}
+                    {entry.sourceUrl ? (
+                      <a
+                        href={entry.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline hover:text-harbour-700"
+                      >
+                        {entry.source || "source"}
+                      </a>
+                    ) : (
+                      entry.source || "source"
+                    )}
+                    {entry.lastVerified && <span> ({formatMonthYear(entry.lastVerified)})</span>}
+                    {entry.count > 1 && <span> [{entry.count}]</span>}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

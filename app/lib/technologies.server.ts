@@ -244,6 +244,54 @@ export async function setTechnologiesForContent(
   }
 }
 
+export interface TechnologyProvenanceUpdate {
+  technologyId: number;
+  source: string | null;
+  sourceUrl: string | null;
+  lastVerified: string | null;
+}
+
+export async function setTechnologyProvenanceForContent(
+  contentType: TechnologizedType,
+  contentId: number,
+  updates: TechnologyProvenanceUpdate[],
+): Promise<void> {
+  for (const update of updates) {
+    const existing = await db
+      .select()
+      .from(technologyAssignments)
+      .where(
+        and(
+          eq(technologyAssignments.technologyId, update.technologyId),
+          eq(technologyAssignments.contentType, contentType),
+          eq(technologyAssignments.contentId, contentId),
+        ),
+      )
+      .get();
+
+    if (existing) {
+      await db
+        .update(technologyAssignments)
+        .set({
+          source: update.source,
+          sourceUrl: update.sourceUrl,
+          lastVerified: update.lastVerified,
+        })
+        .where(eq(technologyAssignments.id, existing.id));
+      continue;
+    }
+
+    await db.insert(technologyAssignments).values({
+      technologyId: update.technologyId,
+      contentType,
+      contentId,
+      source: update.source,
+      sourceUrl: update.sourceUrl,
+      lastVerified: update.lastVerified,
+    });
+  }
+}
+
 export async function getTechnologiesForContent(
   contentType: TechnologizedType,
   contentId: number,
