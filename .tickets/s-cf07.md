@@ -1,6 +1,6 @@
 ---
 id: s-cf07
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-02-07T00:13:02Z
