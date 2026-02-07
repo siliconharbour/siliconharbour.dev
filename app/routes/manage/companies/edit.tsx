@@ -11,6 +11,7 @@ import {
 } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
+import { BaseMultiSelect } from "~/components/BaseMultiSelect";
 import { blockItem } from "~/lib/import-blocklist.server";
 import {
   getAllTechnologies,
@@ -329,25 +330,20 @@ export default function EditCompany() {
     );
   };
 
-  const toggleTechnologyForGroup = (groupId: string, technologyId: number, checked: boolean) => {
+  const setGroupTechnologies = (groupId: string, nextTechnologyIds: number[]) => {
+    const uniqueTechnologyIds = Array.from(new Set(nextTechnologyIds));
+    const selectedForGroup = new Set(uniqueTechnologyIds);
+
     setProvenanceGroups((current) =>
       current.map((group) => {
-        const hasTechnology = group.technologyIds.includes(technologyId);
         if (group.id === groupId) {
-          if (checked && !hasTechnology) {
-            return { ...group, technologyIds: [...group.technologyIds, technologyId] };
-          }
-          if (!checked && hasTechnology) {
-            return {
-              ...group,
-              technologyIds: group.technologyIds.filter((id) => id !== technologyId),
-            };
-          }
+          return { ...group, technologyIds: uniqueTechnologyIds };
         }
-        if (checked && group.id !== groupId && hasTechnology) {
+        const overlappingIds = group.technologyIds.filter((id) => selectedForGroup.has(id));
+        if (overlappingIds.length > 0) {
           return {
             ...group,
-            technologyIds: group.technologyIds.filter((id) => id !== technologyId),
+            technologyIds: group.technologyIds.filter((id) => !selectedForGroup.has(id)),
           };
         }
         return group;
@@ -584,29 +580,21 @@ export default function EditCompany() {
 
                     <div className="border border-harbour-200 p-2">
                       <p className="text-xs text-harbour-500 mb-2">Associate technologies</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                        {assignedTechnologies.map((item) => {
-                          const checked = group.technologyIds.includes(item.technologyId);
-                          return (
-                            <label key={item.technologyId} className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                name={`provenanceTech_${group.id}`}
-                                value={item.technologyId}
-                                checked={checked}
-                                onChange={(e) =>
-                                  toggleTechnologyForGroup(
-                                    group.id,
-                                    item.technologyId,
-                                    e.target.checked,
-                                  )
-                                }
-                              />
-                              <span className="text-harbour-700">{item.technologyName}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
+                      <BaseMultiSelect
+                        name={`provenanceTech_${group.id}`}
+                        options={assignedTechnologies.map((item) => ({
+                          value: String(item.technologyId),
+                          label: item.technologyName,
+                        }))}
+                        selectedValues={group.technologyIds.map(String)}
+                        onChange={(selected) =>
+                          setGroupTechnologies(
+                            group.id,
+                            selected.map((value) => parseInt(value, 10)).filter((id) => !isNaN(id)),
+                          )
+                        }
+                        placeholder="Select technologies..."
+                      />
                     </div>
                   </div>
                 ))}

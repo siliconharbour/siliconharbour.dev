@@ -140,6 +140,21 @@ export default function DesignSystem() {
           </div>
         </section>
 
+        {/* Base UI */}
+        <section className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-harbour-700">Base UI Components</h2>
+          <div className="p-4 border border-harbour-200 bg-white flex flex-col gap-2">
+            <p className="text-sm text-harbour-600">
+              This project now uses <code>@base-ui/react</code> for advanced interactive controls
+              (for example, multi-select provenance mapping).
+            </p>
+            <p className="text-sm text-harbour-500">
+              Keep Base UI primitives unstyled and apply the harbour design language in our own
+              classes: square edges, no shadows, harbour palette, and semantic badges.
+            </p>
+          </div>
+        </section>
+
         {/* Cards & Containers */}
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Cards & Containers</h2>
