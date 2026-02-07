@@ -19,10 +19,6 @@ function detectWorkplaceType(text: string): "remote" | undefined {
   if (!normalized.includes("remote")) {
     return undefined;
   }
-  // Optional phrasing like "St. John's, NL or Remote" should not be marked as remote.
-  if (/\bor\s+remote\b/.test(normalized)) {
-    return undefined;
-  }
   return "remote";
 }
 
