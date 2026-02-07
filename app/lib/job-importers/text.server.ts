@@ -13,6 +13,9 @@ export function normalizeTextForDisplay(text: string): string {
   return text
     .replace(/\r\n?/g, "\n")
     .replace(/\u00a0/g, " ")
+    .replace(/[\u2018\u2019\u2032]/g, "'")
+    .replace(/[\u201c\u201d\u2033]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n[ \t]+/g, "\n")
     .replace(/[ \t]{2,}/g, " ")
@@ -21,14 +24,37 @@ export function normalizeTextForDisplay(text: string): string {
 }
 
 function decodeHtmlEntities(text: string): string {
+  const namedEntityMap: Record<string, string> = {
+    nbsp: " ",
+    amp: "&",
+    lt: "<",
+    gt: ">",
+    quot: '"',
+    apos: "'",
+    rsquo: "'",
+    lsquo: "'",
+    rdquo: '"',
+    ldquo: '"',
+    ndash: "-",
+    mdash: "-",
+    hellip: "...",
+  };
+
   return text
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'");
+    .replace(/&([a-zA-Z][a-zA-Z0-9]+);/g, (_, entity: string) => {
+      const normalized = entity.toLowerCase();
+      return namedEntityMap[normalized] ?? `&${entity};`;
+    })
+    .replace(/&#(\d+);/g, (_, decimal: string) => {
+      const codePoint = Number.parseInt(decimal, 10);
+      if (!Number.isFinite(codePoint)) return _;
+      return String.fromCodePoint(codePoint);
+    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex: string) => {
+      const codePoint = Number.parseInt(hex, 16);
+      if (!Number.isFinite(codePoint)) return _;
+      return String.fromCodePoint(codePoint);
+    });
 }
 
 /**

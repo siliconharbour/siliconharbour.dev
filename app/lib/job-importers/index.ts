@@ -11,6 +11,7 @@ import { bamboohrImporter } from "./bamboohr.server";
 import { leverImporter } from "./lever.server";
 import { collageImporter } from "./collage.server";
 import { ripplingImporter } from "./rippling.server";
+import { adpImporter } from "./adp.server";
 import { customImporter } from "./custom.server";
 
 // Registry of all available importers
@@ -22,6 +23,7 @@ const importers: Record<string, JobImporter> = {
   lever: leverImporter,
   collage: collageImporter,
   rippling: ripplingImporter,
+  adp: adpImporter,
   custom: customImporter,
 };
 

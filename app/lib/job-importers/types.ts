@@ -6,7 +6,7 @@
 /**
  * Supported ATS (Applicant Tracking System) source types
  */
-export const jobSourceTypes = ["greenhouse", "ashby", "workday", "bamboohr", "lever", "collage", "rippling", "custom"] as const;
+export const jobSourceTypes = ["greenhouse", "ashby", "workday", "bamboohr", "lever", "collage", "rippling", "adp", "custom"] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
 
 /**
@@ -123,6 +123,7 @@ export const sourceTypeLabels: Record<JobSourceType, string> = {
   lever: "Lever",
   collage: "Collage",
   rippling: "Rippling",
+  adp: "ADP",
   custom: "Custom",
 };
 
@@ -137,5 +138,6 @@ export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   lever: "e.g., getmysa (from jobs.lever.co/getmysa)",
   collage: "e.g., heyorca (from secure.collage.co/jobs/heyorca)",
   rippling: "e.g., kraken-robotics-inc (from ats.rippling.com/kraken-robotics-inc/jobs)",
+  adp: "e.g., cid:ccId or full ADP URL (from workforcenow.adp.com recruitment link)",
   custom: "Custom identifier or URL",
 };

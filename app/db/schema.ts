@@ -635,7 +635,17 @@ export const technologyEvidence = sqliteTable(
 // Job Import Sources - Track ATS connections for importing jobs
 // =============================================================================
 
-export const atsSourceTypes = ["greenhouse", "ashby", "workday", "bamboohr", "custom"] as const;
+export const atsSourceTypes = [
+  "greenhouse",
+  "ashby",
+  "workday",
+  "bamboohr",
+  "lever",
+  "collage",
+  "rippling",
+  "adp",
+  "custom",
+] as const;
 export type AtsSourceType = (typeof atsSourceTypes)[number];
 
 export const fetchStatuses = ["pending", "success", "error"] as const;
