@@ -1,24 +1,28 @@
-FROM node:25-alpine AS development-dependencies-env
+FROM node:25-alpine AS pnpm-base
+RUN npm install -g pnpm@9
+
+FROM pnpm-base AS development-dependencies-env
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
+RUN pnpm install --frozen-lockfile
 COPY . /app
-WORKDIR /app
-RUN npm ci
 
-FROM node:25-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
+FROM pnpm-base AS production-dependencies-env
 WORKDIR /app
-RUN npm ci --omit=dev
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
+RUN pnpm install --frozen-lockfile --prod
 
-FROM node:25-alpine AS build-env
+FROM pnpm-base AS build-env
 COPY . /app/
 COPY --from=development-dependencies-env /app/node_modules /app/node_modules
 WORKDIR /app
-RUN npm run build
+RUN pnpm run build
 
-FROM node:25-alpine
-COPY ./package.json package-lock.json /app/
+FROM pnpm-base
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
 COPY ./app/assets /app/app/assets
 COPY ./public /app/public
 WORKDIR /app
-CMD ["npm", "run", "start"]
+CMD ["pnpm", "run", "start"]
