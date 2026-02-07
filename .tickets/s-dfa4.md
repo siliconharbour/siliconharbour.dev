@@ -1,6 +1,6 @@
 ---
 id: s-dfa4
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-02-07T00:11:29Z
