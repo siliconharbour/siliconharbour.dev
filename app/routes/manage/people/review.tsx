@@ -178,7 +178,8 @@ export async function action({ request }: Route.ActionArgs) {
 
       const name = formData.get("name") as string;
       const bio = formData.get("bio") as string;
-      const website = (formData.get("website") as string) || null;
+      const websiteInput = (formData.get("website") as string)?.trim();
+      const website = websiteInput ? ensureProtocol(websiteInput) : null;
       const github = (formData.get("github") as string) || null;
       const twitter = (formData.get("twitter") as string) || null;
       const linkedin = (formData.get("linkedin") as string) || null;
