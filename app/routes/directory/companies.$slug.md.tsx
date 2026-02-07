@@ -18,11 +18,12 @@ export async function loader({ params }: Route.LoaderArgs) {
     category: categoryLabels[t.technology.category],
   }));
 
-  const provenance = technologiesWithAssignments[0]
+  const firstEvidence = technologiesWithAssignments.flatMap((assignment) => assignment.evidence)[0] ?? null;
+  const provenance = firstEvidence
     ? {
-        source: technologiesWithAssignments[0].source,
-        sourceUrl: technologiesWithAssignments[0].sourceUrl,
-        lastVerified: technologiesWithAssignments[0].lastVerified,
+        source: firstEvidence.sourceLabel,
+        sourceUrl: firstEvidence.sourceUrl,
+        lastVerified: firstEvidence.lastVerified,
       }
     : null;
 

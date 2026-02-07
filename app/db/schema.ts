@@ -604,6 +604,34 @@ export const technologyAssignments = sqliteTable(
   }),
 );
 
+export const technologyEvidenceSourceTypes = ["job_posting", "survey", "manual"] as const;
+export type TechnologyEvidenceSourceType = (typeof technologyEvidenceSourceTypes)[number];
+
+export const technologyEvidence = sqliteTable(
+  "technology_evidence",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    technologyAssignmentId: integer("technology_assignment_id")
+      .notNull()
+      .references(() => technologyAssignments.id, { onDelete: "cascade" }),
+    jobId: integer("job_id").references(() => jobs.id, { onDelete: "set null" }),
+    sourceType: text("source_type", { enum: technologyEvidenceSourceTypes })
+      .notNull()
+      .default("manual"),
+    sourceLabel: text("source_label"),
+    sourceUrl: text("source_url"),
+    excerptText: text("excerpt_text"),
+    lastVerified: text("last_verified"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    assignmentIdx: index("tech_evidence_assignment_idx").on(table.technologyAssignmentId),
+    jobIdx: index("tech_evidence_job_idx").on(table.jobId),
+  }),
+);
+
 // =============================================================================
 // Job Import Sources - Track ATS connections for importing jobs
 // =============================================================================

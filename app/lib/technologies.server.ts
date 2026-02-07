@@ -2,13 +2,16 @@ import { db } from "~/db";
 import {
   technologies,
   technologyAssignments,
+  technologyEvidence,
   technologyCategories,
   companies,
+  jobs,
   projects,
   type Technology,
   type NewTechnology,
   type TechnologyAssignment,
   type TechnologyCategory,
+  type TechnologyEvidenceSourceType,
   type TechnologizedType,
 } from "~/db/schema";
 import { eq, asc, count, and, inArray } from "drizzle-orm";
@@ -251,6 +254,16 @@ export interface TechnologyProvenanceUpdate {
   lastVerified: string | null;
 }
 
+export interface TechnologyEvidenceUpdateGroup {
+  technologyIds: number[];
+  sourceType: TechnologyEvidenceSourceType;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+  lastVerified: string | null;
+  jobIds: number[];
+  excerptText: string | null;
+}
+
 export async function setTechnologyProvenanceForContent(
   contentType: TechnologizedType,
   contentId: number,
@@ -292,10 +305,87 @@ export async function setTechnologyProvenanceForContent(
   }
 }
 
+export async function setTechnologyEvidenceForCompany(
+  companyId: number,
+  groups: TechnologyEvidenceUpdateGroup[],
+): Promise<void> {
+  const assignments = await db
+    .select()
+    .from(technologyAssignments)
+    .where(
+      and(
+        eq(technologyAssignments.contentType, "company"),
+        eq(technologyAssignments.contentId, companyId),
+      ),
+    );
+
+  if (assignments.length === 0) {
+    return;
+  }
+
+  const assignmentsByTechnologyId = new Map(assignments.map((assignment) => [assignment.technologyId, assignment]));
+  await db
+    .delete(technologyEvidence)
+    .where(inArray(technologyEvidence.technologyAssignmentId, assignments.map((assignment) => assignment.id)));
+
+  const allJobIds = Array.from(new Set(groups.flatMap((group) => group.jobIds)));
+  const jobRows = allJobIds.length
+    ? await db.select().from(jobs).where(inArray(jobs.id, allJobIds))
+    : [];
+  const jobsById = new Map(jobRows.map((job) => [job.id, job]));
+
+  for (const group of groups) {
+    for (const technologyId of group.technologyIds) {
+      const assignment = assignmentsByTechnologyId.get(technologyId);
+      if (!assignment) {
+        continue;
+      }
+
+      if (group.jobIds.length > 0) {
+        for (const jobId of group.jobIds) {
+          const job = jobsById.get(jobId);
+          await db.insert(technologyEvidence).values({
+            technologyAssignmentId: assignment.id,
+            jobId,
+            sourceType: group.sourceType,
+            sourceLabel: group.sourceLabel,
+            sourceUrl: group.sourceUrl,
+            excerptText: group.excerptText ?? job?.descriptionText?.slice(0, 800) ?? null,
+            lastVerified: group.lastVerified,
+          });
+        }
+        continue;
+      }
+
+      await db.insert(technologyEvidence).values({
+        technologyAssignmentId: assignment.id,
+        sourceType: group.sourceType,
+        sourceLabel: group.sourceLabel,
+        sourceUrl: group.sourceUrl,
+        excerptText: group.excerptText,
+        lastVerified: group.lastVerified,
+      });
+    }
+  }
+}
+
+export interface TechnologyEvidenceWithJob {
+  id: number;
+  sourceType: TechnologyEvidenceSourceType;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+  excerptText: string | null;
+  lastVerified: string | null;
+  jobId: number | null;
+  jobTitle: string | null;
+  jobUrl: string | null;
+  jobStatus: string | null;
+}
+
 export async function getTechnologiesForContent(
   contentType: TechnologizedType,
   contentId: number,
-): Promise<(TechnologyAssignment & { technology: Technology })[]> {
+): Promise<(TechnologyAssignment & { technology: Technology; evidence: TechnologyEvidenceWithJob[] })[]> {
   const assignments = await db
     .select()
     .from(technologyAssignments)
@@ -306,12 +396,53 @@ export async function getTechnologiesForContent(
       ),
     );
 
-  const result: (TechnologyAssignment & { technology: Technology })[] = [];
+  const assignmentIds = assignments.map((assignment) => assignment.id);
+  const evidenceRows =
+    assignmentIds.length > 0
+      ? await db
+          .select()
+          .from(technologyEvidence)
+          .where(inArray(technologyEvidence.technologyAssignmentId, assignmentIds))
+      : [];
+
+  const evidenceJobIds = Array.from(
+    new Set(evidenceRows.map((evidence) => evidence.jobId).filter((jobId): jobId is number => jobId !== null)),
+  );
+  const evidenceJobs =
+    evidenceJobIds.length > 0
+      ? await db.select().from(jobs).where(inArray(jobs.id, evidenceJobIds))
+      : [];
+  const jobsById = new Map(evidenceJobs.map((job) => [job.id, job]));
+  const evidenceByAssignmentId = new Map<number, TechnologyEvidenceWithJob[]>();
+
+  for (const evidence of evidenceRows) {
+    const job = evidence.jobId ? jobsById.get(evidence.jobId) : null;
+    const list = evidenceByAssignmentId.get(evidence.technologyAssignmentId) ?? [];
+    list.push({
+      id: evidence.id,
+      sourceType: evidence.sourceType,
+      sourceLabel: evidence.sourceLabel,
+      sourceUrl: evidence.sourceUrl,
+      excerptText: evidence.excerptText,
+      lastVerified: evidence.lastVerified,
+      jobId: evidence.jobId,
+      jobTitle: job?.title ?? null,
+      jobUrl: job?.url ?? null,
+      jobStatus: job?.status ?? null,
+    });
+    evidenceByAssignmentId.set(evidence.technologyAssignmentId, list);
+  }
+
+  const result: (TechnologyAssignment & { technology: Technology; evidence: TechnologyEvidenceWithJob[] })[] = [];
 
   for (const assignment of assignments) {
     const tech = await getTechnologyById(assignment.technologyId);
     if (tech) {
-      result.push({ ...assignment, technology: tech });
+      result.push({
+        ...assignment,
+        technology: tech,
+        evidence: evidenceByAssignmentId.get(assignment.id) ?? [],
+      });
     }
   }
 

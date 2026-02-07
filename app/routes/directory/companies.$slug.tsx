@@ -1,5 +1,6 @@
 import type { Route } from "./+types/companies.$slug";
 import { Link, useLoaderData } from "react-router";
+import { useState } from "react";
 import { getCompanyBySlug } from "~/lib/companies.server";
 import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
 import { getPublicComments, getAllComments } from "~/lib/comments.server";
@@ -68,23 +69,57 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   const provenanceMap = new Map<
     string,
-    { source: string | null; sourceUrl: string | null; lastVerified: string | null; count: number }
+    {
+      sourceType: "job_posting" | "survey" | "manual";
+      source: string | null;
+      sourceUrl: string | null;
+      lastVerified: string | null;
+      count: number;
+      jobCount: number;
+      evidence: Array<{
+        technology: string;
+        jobTitle: string | null;
+        jobStatus: string | null;
+        jobUrl: string | null;
+        excerptText: string | null;
+      }>;
+    }
   >();
   for (const item of technologiesWithAssignments) {
-    if (!item.source && !item.sourceUrl) {
-      continue;
-    }
+    for (const evidence of item.evidence) {
+      const key = `${evidence.sourceType}|${evidence.sourceLabel ?? ""}|${evidence.sourceUrl ?? ""}|${evidence.lastVerified ?? ""}`;
+      const existing = provenanceMap.get(key);
+      if (existing) {
+        existing.count += 1;
+        if (evidence.jobId) {
+          existing.jobCount += 1;
+        }
+        existing.evidence.push({
+          technology: item.technology.name,
+          jobTitle: evidence.jobTitle,
+          jobStatus: evidence.jobStatus,
+          jobUrl: evidence.jobUrl,
+          excerptText: evidence.excerptText,
+        });
+        continue;
+      }
 
-    const key = `${item.source ?? ""}|${item.sourceUrl ?? ""}|${item.lastVerified ?? ""}`;
-    const existing = provenanceMap.get(key);
-    if (existing) {
-      existing.count += 1;
-    } else {
       provenanceMap.set(key, {
-        source: item.source,
-        sourceUrl: item.sourceUrl,
-        lastVerified: item.lastVerified,
+        sourceType: evidence.sourceType,
+        source: evidence.sourceLabel,
+        sourceUrl: evidence.sourceUrl,
+        lastVerified: evidence.lastVerified,
         count: 1,
+        jobCount: evidence.jobId ? 1 : 0,
+        evidence: [
+          {
+            technology: item.technology.name,
+            jobTitle: evidence.jobTitle,
+            jobStatus: evidence.jobStatus,
+            jobUrl: evidence.jobUrl,
+            excerptText: evidence.excerptText,
+          },
+        ],
       });
     }
   }
@@ -122,6 +157,7 @@ export default function CompanyDetail() {
     provenanceEntries,
     activeJobs,
   } = useLoaderData<typeof loader>();
+  const [showEvidence, setShowEvidence] = useState(false);
   const technicalJobs = activeJobs.filter((job) => job.isTechnical);
   const nonTechnicalJobs = activeJobs.filter((job) => !job.isTechnical);
 
@@ -362,11 +398,90 @@ export default function CompanyDetail() {
                       entry.source || "source"
                     )}
                     {entry.lastVerified && <span> ({formatMonthYear(entry.lastVerified)})</span>}
-                    {entry.count > 1 && <span> [{entry.count}]</span>}
+                    {entry.jobCount > 0 && (
+                      <span className="ml-1 text-xs px-1.5 py-0.5 bg-green-100 text-green-700">
+                        {entry.jobCount} job{entry.jobCount === 1 ? "" : "s"}
+                      </span>
+                    )}
                   </span>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setShowEvidence(true)}
+                  className="px-2 py-1 bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors"
+                >
+                  View evidence
+                </button>
               </div>
             )}
+          </div>
+        )}
+
+        {showEvidence && (
+          <div className="fixed inset-0 z-50 bg-black/30 p-4">
+            <div className="max-w-3xl mx-auto bg-white border border-harbour-200 max-h-[80vh] overflow-y-auto">
+              <div className="p-4 border-b border-harbour-200 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-harbour-700">Technology Evidence</h3>
+                <button
+                  type="button"
+                  onClick={() => setShowEvidence(false)}
+                  className="px-2 py-1 bg-harbour-100 text-harbour-700 hover:bg-harbour-200"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="p-4 flex flex-col gap-4">
+                {provenanceEntries.map((entry, index) => (
+                  <div key={index} className="border border-harbour-200 p-3 flex flex-col gap-2">
+                    <p className="text-sm font-medium text-harbour-700">
+                      {entry.source || "Source"} {entry.lastVerified ? `(${formatMonthYear(entry.lastVerified)})` : ""}
+                    </p>
+                    {entry.sourceUrl && (
+                      <a
+                        href={entry.sourceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-harbour-600 underline"
+                      >
+                        {entry.sourceUrl}
+                      </a>
+                    )}
+                    <div className="flex flex-col gap-2">
+                      {entry.evidence.map((evidence, evidenceIndex) => (
+                        <div key={evidenceIndex} className="bg-harbour-50 border border-harbour-200 p-2 text-sm">
+                          <p className="text-harbour-700">
+                            <span className="font-medium">{evidence.technology}</span>
+                            {evidence.jobTitle && <span> - {evidence.jobTitle}</span>}
+                            {evidence.jobStatus === "removed" && (
+                              <span className="ml-2 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
+                                Job removed
+                              </span>
+                            )}
+                          </p>
+                          {evidence.jobUrl && (
+                            <a
+                              href={evidence.jobUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-harbour-600 underline"
+                            >
+                              Open job posting
+                            </a>
+                          )}
+                          {evidence.excerptText && (
+                            <p className="text-xs text-harbour-500 mt-1">
+                              {evidence.excerptText.length > 320
+                                ? `${evidence.excerptText.slice(0, 320)}...`
+                                : evidence.excerptText}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

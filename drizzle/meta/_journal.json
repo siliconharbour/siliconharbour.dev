@@ -183,6 +183,13 @@
       "when": 1768710000000,
       "tag": "0025_add_company_careers_url",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1768711000000,
+      "tag": "0026_add_technology_evidence",
+      "breakpoints": true
     }
   ]
 }

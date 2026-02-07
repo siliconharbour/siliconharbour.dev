@@ -1,7 +1,10 @@
 import type { Route } from "./+types/edit";
 import { useState } from "react";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
+import { desc, eq } from "drizzle-orm";
 import { requireAuth } from "~/lib/session.server";
+import { db } from "~/db";
+import { jobs } from "~/db/schema";
 import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
 import { convertCompanyToEducation } from "~/lib/education.server";
 import {
@@ -17,7 +20,7 @@ import {
   getAllTechnologies,
   getTechnologiesForContent,
   setTechnologiesForContent,
-  setTechnologyProvenanceForContent,
+  setTechnologyEvidenceForCompany,
 } from "~/lib/technologies.server";
 
 function normalizeUrl(url: string): string {
@@ -47,16 +50,30 @@ function normalizeLastVerified(value: FormDataEntryValue | null): string | null 
 interface CompanyTechnologyProvenance {
   technologyId: number;
   technologyName: string;
-  source: string | null;
-  sourceUrl: string | null;
-  lastVerified: string | null;
+  evidence: Array<{
+    sourceType: "job_posting" | "survey" | "manual";
+    sourceLabel: string | null;
+    sourceUrl: string | null;
+    lastVerified: string | null;
+    excerptText: string | null;
+    jobId: number | null;
+  }>;
+}
+
+interface CompanyJobOption {
+  id: number;
+  title: string;
+  status: string;
 }
 
 interface ProvenanceGroup {
   id: string;
+  sourceType: "job_posting" | "survey" | "manual";
   source: string;
   sourceUrl: string;
   lastVerified: string;
+  excerptText: string;
+  jobIds: number[];
   technologyIds: number[];
 }
 
@@ -73,20 +90,55 @@ function buildInitialProvenanceGroups(
   const byProvenance = new Map<string, ProvenanceGroup>();
 
   for (const item of companyTechnologies) {
-    const key = `${item.source ?? ""}|${item.sourceUrl ?? ""}|${item.lastVerified ?? ""}`;
-    const existing = byProvenance.get(key);
-    if (existing) {
-      existing.technologyIds.push(item.technologyId);
+    if (item.evidence.length === 0) {
+      const noEvidenceKey = "manual|||";
+      const existingNoEvidence = byProvenance.get(noEvidenceKey);
+      if (existingNoEvidence) {
+        if (!existingNoEvidence.technologyIds.includes(item.technologyId)) {
+          existingNoEvidence.technologyIds.push(item.technologyId);
+        }
+      } else {
+        byProvenance.set(noEvidenceKey, {
+          id: `existing-${byProvenance.size + 1}`,
+          sourceType: "manual",
+          source: "",
+          sourceUrl: "",
+          lastVerified: "",
+          excerptText: "",
+          jobIds: [],
+          technologyIds: [item.technologyId],
+        });
+      }
       continue;
     }
 
-    byProvenance.set(key, {
-      id: `existing-${byProvenance.size + 1}`,
-      source: item.source ?? "",
-      sourceUrl: item.sourceUrl ?? "",
-      lastVerified: toMonthInputValue(item.lastVerified),
-      technologyIds: [item.technologyId],
-    });
+    for (const evidence of item.evidence) {
+      const key = `${evidence.sourceType}|${evidence.sourceLabel ?? ""}|${evidence.sourceUrl ?? ""}|${evidence.lastVerified ?? ""}`;
+      const existing = byProvenance.get(key);
+      if (existing) {
+        if (!existing.technologyIds.includes(item.technologyId)) {
+          existing.technologyIds.push(item.technologyId);
+        }
+        if (evidence.jobId && !existing.jobIds.includes(evidence.jobId)) {
+          existing.jobIds.push(evidence.jobId);
+        }
+        if (!existing.excerptText && evidence.excerptText) {
+          existing.excerptText = evidence.excerptText;
+        }
+        continue;
+      }
+
+      byProvenance.set(key, {
+        id: `existing-${byProvenance.size + 1}`,
+        sourceType: evidence.sourceType,
+        source: evidence.sourceLabel ?? "",
+        sourceUrl: evidence.sourceUrl ?? "",
+        lastVerified: toMonthInputValue(evidence.lastVerified),
+        excerptText: evidence.excerptText ?? "",
+        jobIds: evidence.jobId ? [evidence.jobId] : [],
+        technologyIds: [item.technologyId],
+      });
+    }
   }
 
   return Array.from(byProvenance.values());
@@ -113,17 +165,32 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     getAllTechnologies(),
     getTechnologiesForContent("company", id),
   ]);
+  const companyJobs = await db
+    .select({
+      id: jobs.id,
+      title: jobs.title,
+      status: jobs.status,
+    })
+    .from(jobs)
+    .where(eq(jobs.companyId, id))
+    .orderBy(desc(jobs.firstSeenAt));
 
   return {
     company,
     allTechnologies,
+    companyJobs,
     selectedTechnologyIds: companyTechnologies.map((t) => t.technologyId),
     companyTechnologies: companyTechnologies.map((t) => ({
       technologyId: t.technologyId,
       technologyName: t.technology.name,
-      source: t.source,
-      sourceUrl: t.sourceUrl,
-      lastVerified: t.lastVerified,
+      evidence: t.evidence.map((evidence) => ({
+        sourceType: evidence.sourceType,
+        sourceLabel: evidence.sourceLabel,
+        sourceUrl: evidence.sourceUrl,
+        lastVerified: evidence.lastVerified,
+        excerptText: evidence.excerptText,
+        jobId: evidence.jobId,
+      })),
     })),
   };
 }
@@ -196,35 +263,29 @@ export async function action({ request, params }: Route.ActionArgs) {
     .map((id) => String(id))
     .filter((id) => id.length > 0);
 
-  const provenanceByTechnology = new Map<
-    number,
-    { source: string | null; sourceUrl: string | null; lastVerified: string | null }
-  >();
-
-  for (const groupId of provenanceGroupIds) {
-    const source = normalizeNullableString(formData.get(`provenanceSource_${groupId}`));
-    const sourceUrl = normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`));
-    const lastVerified = normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`));
-    const groupTechnologyIds = formData
+  const evidenceGroups = provenanceGroupIds.map((groupId) => {
+    const sourceTypeRaw = normalizeNullableString(formData.get(`provenanceSourceType_${groupId}`));
+    const sourceType = sourceTypeRaw === "job_posting" || sourceTypeRaw === "survey"
+      ? sourceTypeRaw
+      : "manual";
+    const technologyIdsForGroup = formData
       .getAll(`provenanceTech_${groupId}`)
       .map((id) => parseInt(String(id), 10))
-      .filter((id) => !isNaN(id));
+      .filter((techId) => !isNaN(techId) && technologyIds.includes(techId));
+    const jobIds = formData
+      .getAll(`provenanceJobs_${groupId}`)
+      .map((id) => parseInt(String(id), 10))
+      .filter((jobId) => !isNaN(jobId));
 
-    for (const technologyId of groupTechnologyIds) {
-      if (!provenanceByTechnology.has(technologyId)) {
-        provenanceByTechnology.set(technologyId, { source, sourceUrl, lastVerified });
-      }
-    }
-  }
-
-  const provenanceUpdates = technologyIds.map((technologyId) => {
-    const match = provenanceByTechnology.get(technologyId);
     return {
-      technologyId,
-      source: match?.source ?? null,
-      sourceUrl: match?.sourceUrl ?? null,
-      lastVerified: match?.lastVerified ?? null,
-    };
+      technologyIds: technologyIdsForGroup,
+      sourceType,
+      sourceLabel: normalizeNullableString(formData.get(`provenanceSource_${groupId}`)),
+      sourceUrl: normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
+      lastVerified: normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`)),
+      excerptText: normalizeNullableString(formData.get(`provenanceExcerpt_${groupId}`)),
+      jobIds,
+    } as const;
   });
 
   if (!name) {
@@ -287,13 +348,13 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // Update technology assignments
   await setTechnologiesForContent("company", id, technologyIds);
-  await setTechnologyProvenanceForContent("company", id, provenanceUpdates);
+  await setTechnologyEvidenceForCompany(id, evidenceGroups);
 
   return redirect("/manage/companies");
 }
 
 export default function EditCompany() {
-  const { company, allTechnologies, selectedTechnologyIds, companyTechnologies } =
+  const { company, allTechnologies, companyJobs, selectedTechnologyIds, companyTechnologies } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [provenanceGroups, setProvenanceGroups] = useState<ProvenanceGroup[]>(() =>
@@ -308,9 +369,12 @@ export default function EditCompany() {
       ...current,
       {
         id: `new-${Date.now()}-${current.length + 1}`,
+        sourceType: "manual",
         source: "",
         sourceUrl: "",
         lastVerified: "",
+        excerptText: "",
+        jobIds: [],
         technologyIds: [],
       },
     ]);
@@ -322,11 +386,18 @@ export default function EditCompany() {
 
   const updateGroupField = (
     groupId: string,
-    field: "source" | "sourceUrl" | "lastVerified",
+    field: "sourceType" | "source" | "sourceUrl" | "lastVerified" | "excerptText",
     value: string,
   ) => {
     setProvenanceGroups((current) =>
       current.map((group) => (group.id === groupId ? { ...group, [field]: value } : group)),
+    );
+  };
+
+  const setGroupJobs = (groupId: string, nextJobIds: number[]) => {
+    const uniqueJobIds = Array.from(new Set(nextJobIds));
+    setProvenanceGroups((current) =>
+      current.map((group) => (group.id === groupId ? { ...group, jobIds: uniqueJobIds } : group)),
     );
   };
 
@@ -553,6 +624,16 @@ export default function EditCompany() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <select
+                        name={`provenanceSourceType_${group.id}`}
+                        value={group.sourceType}
+                        onChange={(e) => updateGroupField(group.id, "sourceType", e.target.value)}
+                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                      >
+                        <option value="manual">Manual</option>
+                        <option value="survey">Survey</option>
+                        <option value="job_posting">Job Posting</option>
+                      </select>
                       <input
                         type="text"
                         name={`provenanceSource_${group.id}`}
@@ -577,6 +658,14 @@ export default function EditCompany() {
                         className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                       />
                     </div>
+                    <textarea
+                      name={`provenanceExcerpt_${group.id}`}
+                      value={group.excerptText}
+                      onChange={(e) => updateGroupField(group.id, "excerptText", e.target.value)}
+                      rows={2}
+                      placeholder="Evidence excerpt (optional)"
+                      className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                    />
 
                     <div className="border border-harbour-200 p-2">
                       <p className="text-xs text-harbour-500 mb-2">Associate technologies</p>
@@ -594,6 +683,24 @@ export default function EditCompany() {
                           )
                         }
                         placeholder="Select technologies..."
+                      />
+                    </div>
+                    <div className="border border-harbour-200 p-2">
+                      <p className="text-xs text-harbour-500 mb-2">Supporting job postings</p>
+                      <BaseMultiSelect
+                        name={`provenanceJobs_${group.id}`}
+                        options={companyJobs.map((job: CompanyJobOption) => ({
+                          value: String(job.id),
+                          label: `${job.title}${job.status === "removed" ? " (removed)" : ""}`,
+                        }))}
+                        selectedValues={group.jobIds.map(String)}
+                        onChange={(selected) =>
+                          setGroupJobs(
+                            group.id,
+                            selected.map((value) => parseInt(value, 10)).filter((id) => !isNaN(id)),
+                          )
+                        }
+                        placeholder="Select job evidence..."
                       />
                     </div>
                   </div>
