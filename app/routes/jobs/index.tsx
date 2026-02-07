@@ -4,6 +4,17 @@ import { getJobsGroupedByCompany, type CompanyWithJobs } from "~/lib/jobs.server
 import { getOptionalUser } from "~/lib/session.server";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
+import { useEffect } from "react";
+
+const NON_TECH_STORAGE_KEY = "jobs_show_non_technical";
+const workplaceTypeOptions = ["remote", "hybrid", "onsite", "unknown"] as const;
+type WorkplaceFilterType = (typeof workplaceTypeOptions)[number];
+const workplaceTypeLabels: Record<WorkplaceFilterType, string> = {
+  remote: "Remote",
+  hybrid: "Hybrid",
+  onsite: "Onsite",
+  unknown: "Unspecified",
+};
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -16,11 +27,31 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
   const showNonTechnical = url.searchParams.get("showNonTechnical") === "true";
+  const rawSelectedWorkplaceTypes = url.searchParams
+    .getAll("workplaceType")
+    .filter((value): value is WorkplaceFilterType =>
+      workplaceTypeOptions.includes(value as WorkplaceFilterType),
+    );
+  const selectedWorkplaceTypes =
+    rawSelectedWorkplaceTypes.length > 0
+      ? rawSelectedWorkplaceTypes
+      : [...workplaceTypeOptions];
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
 
   let companiesWithJobs = await getJobsGroupedByCompany({ includeNonTechnical: showNonTechnical });
+
+  // Filter by workplace type
+  companiesWithJobs = companiesWithJobs
+    .map((cwj) => ({
+      ...cwj,
+      jobs: cwj.jobs.filter((job) => {
+        const workplaceType = (job.workplaceType ?? "unknown") as WorkplaceFilterType;
+        return selectedWorkplaceTypes.includes(workplaceType);
+      }),
+    }))
+    .filter((cwj) => cwj.jobs.length > 0);
   
   // Filter by search query if provided
   if (searchQuery.trim()) {
@@ -41,21 +72,68 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const totalJobs = companiesWithJobs.reduce((sum, cwj) => sum + cwj.jobs.length, 0);
 
-  return { companiesWithJobs, totalJobs, searchQuery, isAdmin, showNonTechnical };
+  return {
+    companiesWithJobs,
+    totalJobs,
+    searchQuery,
+    isAdmin,
+    showNonTechnical,
+    selectedWorkplaceTypes,
+  };
 }
 
 export default function JobsIndex() {
-  const { companiesWithJobs, totalJobs, searchQuery, isAdmin, showNonTechnical } =
+  const { companiesWithJobs, totalJobs, searchQuery, isAdmin, showNonTechnical, selectedWorkplaceTypes } =
     useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  useEffect(() => {
+    if (searchParams.has("showNonTechnical")) {
+      return;
+    }
+    const persisted = window.localStorage.getItem(NON_TECH_STORAGE_KEY);
+    if (persisted !== "true") {
+      return;
+    }
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("showNonTechnical", "true");
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   const handleShowNonTechnicalChange = (checked: boolean) => {
+    window.localStorage.setItem(NON_TECH_STORAGE_KEY, checked ? "true" : "false");
     const newParams = new URLSearchParams(searchParams);
     if (checked) {
       newParams.set("showNonTechnical", "true");
     } else {
       newParams.delete("showNonTechnical");
     }
+    setSearchParams(newParams);
+  };
+
+  const handleWorkplaceTypeChange = (type: WorkplaceFilterType, checked: boolean) => {
+    const selectedSet = new Set<WorkplaceFilterType>(selectedWorkplaceTypes);
+    if (checked) {
+      selectedSet.add(type);
+    } else {
+      selectedSet.delete(type);
+    }
+
+    // Keep at least one filter selected.
+    if (selectedSet.size === 0) {
+      return;
+    }
+
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("workplaceType");
+
+    const nextSelection = workplaceTypeOptions.filter((option) => selectedSet.has(option));
+    if (nextSelection.length !== workplaceTypeOptions.length) {
+      for (const value of nextSelection) {
+        newParams.append("workplaceType", value);
+      }
+    }
+
     setSearchParams(newParams);
   };
 
@@ -79,21 +157,43 @@ export default function JobsIndex() {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-col gap-3">
             <div className="flex-1 min-w-[200px]">
               <SearchInput placeholder="Search jobs..." />
             </div>
 
-            {/* Show non-technical checkbox */}
-            <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={showNonTechnical}
-                onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
-                className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
-              />
-              Show non-technical roles
-            </label>
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Show non-technical checkbox */}
+              <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showNonTechnical}
+                  onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
+                  className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+                />
+                Show non-technical roles
+              </label>
+
+              <div className="flex items-center gap-2 text-sm text-harbour-600">
+                <span className="text-harbour-500">Workplace:</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  {workplaceTypeOptions.map((option) => (
+                    <label
+                      key={option}
+                      className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedWorkplaceTypes.includes(option)}
+                        onChange={(e) => handleWorkplaceTypeChange(option, e.target.checked)}
+                        className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+                      />
+                      {workplaceTypeLabels[option]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Result count */}
