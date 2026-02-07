@@ -5,6 +5,7 @@ import { getOptionalUser } from "~/lib/session.server";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 import { useEffect } from "react";
+import { BaseMultiSelect } from "~/components/BaseMultiSelect";
 
 const NON_TECH_STORAGE_KEY = "jobs_show_non_technical";
 const workplaceTypeOptions = ["remote", "hybrid", "onsite", "unknown"] as const;
@@ -15,6 +16,10 @@ const workplaceTypeLabels: Record<WorkplaceFilterType, string> = {
   onsite: "Onsite",
   unknown: "Unspecified",
 };
+const workplaceTypeFilterOptions = workplaceTypeOptions.map((value) => ({
+  value,
+  label: workplaceTypeLabels[value],
+}));
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -111,25 +116,19 @@ export default function JobsIndex() {
     setSearchParams(newParams);
   };
 
-  const handleWorkplaceTypeChange = (type: WorkplaceFilterType, checked: boolean) => {
-    const selectedSet = new Set<WorkplaceFilterType>(selectedWorkplaceTypes);
-    if (checked) {
-      selectedSet.add(type);
-    } else {
-      selectedSet.delete(type);
-    }
-
-    // Keep at least one filter selected.
-    if (selectedSet.size === 0) {
+  const handleWorkplaceTypeChange = (nextSelected: string[]) => {
+    const validSelection = nextSelected.filter((value): value is WorkplaceFilterType =>
+      workplaceTypeOptions.includes(value as WorkplaceFilterType),
+    );
+    if (validSelection.length === 0) {
       return;
     }
 
     const newParams = new URLSearchParams(searchParams);
     newParams.delete("workplaceType");
 
-    const nextSelection = workplaceTypeOptions.filter((option) => selectedSet.has(option));
-    if (nextSelection.length !== workplaceTypeOptions.length) {
-      for (const value of nextSelection) {
+    if (validSelection.length !== workplaceTypeOptions.length) {
+      for (const value of validSelection) {
         newParams.append("workplaceType", value);
       }
     }
@@ -174,24 +173,14 @@ export default function JobsIndex() {
                 Show non-technical roles
               </label>
 
-              <div className="flex items-center gap-2 text-sm text-harbour-600">
-                <span className="text-harbour-500">Workplace:</span>
-                <div className="flex flex-wrap items-center gap-3">
-                  {workplaceTypeOptions.map((option) => (
-                    <label
-                      key={option}
-                      className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedWorkplaceTypes.includes(option)}
-                        onChange={(e) => handleWorkplaceTypeChange(option, e.target.checked)}
-                        className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
-                      />
-                      {workplaceTypeLabels[option]}
-                    </label>
-                  ))}
-                </div>
+              <div className="min-w-[240px] max-w-sm flex-1">
+                <BaseMultiSelect
+                  name="workplaceType"
+                  options={workplaceTypeFilterOptions}
+                  selectedValues={selectedWorkplaceTypes}
+                  onChange={handleWorkplaceTypeChange}
+                  placeholder="Workplace types"
+                />
               </div>
             </div>
           </div>
