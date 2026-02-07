@@ -11,6 +11,11 @@ export async function loader({}: Route.LoaderArgs) {
     getPublishedNews(),
     getActiveJobs({ includeNonTechnical: true }),
   ]);
+  const newsCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const recentNews = newsArticles.filter((article) => {
+    const date = article.publishedAt ?? article.createdAt;
+    return date >= newsCutoff;
+  });
 
   // Combine all items with a common format
   type FeedItem = {
@@ -36,7 +41,7 @@ export async function loader({}: Route.LoaderArgs) {
         category: "Events",
       };
     }),
-    ...newsArticles.map((article) => ({
+    ...recentNews.map((article) => ({
       title: `News - ${article.title}`,
       link: `https://siliconharbour.dev/news/${article.slug}`,
       description:
@@ -64,9 +69,6 @@ export async function loader({}: Route.LoaderArgs) {
   // Sort by date, most recent first
   items.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
 
-  // Take most recent 50 items
-  const recentItems = items.slice(0, 50);
-
   const escapeXml = (str: string) =>
     str
       .replace(/&/g, "&amp;")
@@ -84,7 +86,7 @@ export async function loader({}: Route.LoaderArgs) {
     <language>en-ca</language>
     <lastBuildDate>${format(new Date(), "EEE, dd MMM yyyy HH:mm:ss xx")}</lastBuildDate>
     <atom:link href="https://siliconharbour.dev/feed.rss" rel="self" type="application/rss+xml"/>
-${recentItems
+${items
   .map(
     (item) => `    <item>
       <title>${escapeXml(item.title)}</title>
