@@ -17,6 +17,7 @@ import type {
   ValidationResult,
   WorkplaceType,
 } from "./types";
+import { htmlToText } from "./text.server";
 
 const BASE_URL = "https://ats.rippling.com";
 
@@ -136,23 +137,6 @@ function getWorkplaceType(
   if (!locations || locations.length === 0) return undefined;
   // Use the first location's workplace type
   return convertWorkplaceType(locations[0].workplaceType);
-}
-
-/**
- * Strip HTML tags and decode entities to get plain text
- */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<meta[^>]*>/g, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /**

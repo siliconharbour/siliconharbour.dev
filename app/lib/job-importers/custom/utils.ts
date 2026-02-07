@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { htmlToText as sharedHtmlToText, normalizeTextForDisplay } from "../text.server";
 
 /**
  * Custom scraper function signature
@@ -65,7 +66,7 @@ export async function extractPdfText(pdfUrl: string): Promise<string | null> {
 
     await execFileAsync("pdftotext", [pdfPath, textPath]);
     const extracted = await fs.readFile(textPath, "utf8");
-    const normalized = extracted.replace(/\s+/g, " ").trim();
+    const normalized = normalizeTextForDisplay(extracted);
     return normalized || null;
   } catch {
     return null;
@@ -78,17 +79,7 @@ export async function extractPdfText(pdfUrl: string): Promise<string | null> {
  * Strip HTML tags and decode entities to get plain text
  */
 export function htmlToText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
+  return sharedHtmlToText(html);
 }
 
 /**

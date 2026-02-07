@@ -7,6 +7,7 @@
  */
 
 import type { JobImporter, ImportSourceConfig, FetchedJob, ValidationResult } from "./types";
+import { htmlToText } from "./text.server";
 
 const API_BASE = "https://boards-api.greenhouse.io/v1/boards";
 
@@ -43,22 +44,6 @@ interface GreenhouseResponse {
   meta: {
     total: number;
   };
-}
-
-/**
- * Strip HTML tags and decode entities to get plain text
- */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /**

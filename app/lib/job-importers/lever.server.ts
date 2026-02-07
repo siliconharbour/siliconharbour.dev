@@ -18,6 +18,7 @@ import type {
   ValidationResult,
   WorkplaceType,
 } from "./types";
+import { htmlToText } from "./text.server";
 
 interface LeverCategories {
   commitment?: string; // e.g., "Full-time", "Part-time", "Internship"
@@ -41,22 +42,6 @@ interface LeverPosting {
   createdAt: number; // Unix timestamp in milliseconds
   updatedAt?: number;
   workplaceType?: string; // "unspecified", "on-site", "remote", "hybrid"
-}
-
-/**
- * Strip HTML tags and decode entities to get plain text
- */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /**

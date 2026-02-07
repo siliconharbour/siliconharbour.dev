@@ -19,6 +19,7 @@ import type {
   ValidationResult,
   WorkplaceType,
 } from "./types";
+import { htmlToText } from "./text.server";
 
 // Workday's Cloudflare protection blocks Node's default User-Agent.
 // We need to use a browser-like User-Agent to avoid 400 errors.
@@ -88,22 +89,6 @@ interface WorkdayJobDetail {
   hiringOrganization?: {
     name: string;
   };
-}
-
-/**
- * Strip HTML tags and decode entities to get plain text
- */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /**

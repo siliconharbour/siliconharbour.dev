@@ -8,6 +8,7 @@
 import { db } from "~/db";
 import { technologies, jobTechnologyMentions, jobs } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
+import { normalizeTextForDisplay } from "./text.server";
 
 interface TechPattern {
   id: number;
@@ -103,8 +104,8 @@ function extractContext(text: string, match: RegExpMatchArray, contextLength: nu
   let context = text.slice(start, end);
   if (start > 0) context = "..." + context;
   if (end < text.length) context = context + "...";
-  
-  return context.replace(/\s+/g, " ").trim();
+
+  return normalizeTextForDisplay(context);
 }
 
 /**

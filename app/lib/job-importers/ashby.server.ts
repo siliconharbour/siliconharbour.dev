@@ -7,6 +7,7 @@
  */
 
 import type { JobImporter, ImportSourceConfig, FetchedJob, ValidationResult, WorkplaceType } from "./types";
+import { htmlToText } from "./text.server";
 
 const ASHBY_BASE = "https://jobs.ashbyhq.com";
 
@@ -45,22 +46,6 @@ interface AshbyJobDetailAppData {
     workplaceType: string;
     employmentType: string;
   };
-}
-
-/**
- * Strip HTML tags and decode entities to get plain text
- */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /**

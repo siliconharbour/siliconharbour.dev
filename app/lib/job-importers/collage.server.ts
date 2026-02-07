@@ -17,6 +17,7 @@ import type {
   ValidationResult,
   WorkplaceType,
 } from "./types";
+import { htmlToText } from "./text.server";
 
 const BASE_URL = "https://secure.collage.co";
 
@@ -190,22 +191,6 @@ function parseDetailPage(html: string): {
   const descriptionHtml = descMatch ? descMatch[1].trim() : "";
 
   return { title, descriptionHtml, metadata };
-}
-
-/**
- * Strip HTML tags and decode entities to get plain text
- */
-function htmlToText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 /**
