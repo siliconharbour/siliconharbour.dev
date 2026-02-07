@@ -18,7 +18,6 @@ getcoding-list.csv
 
 # Package manager
 pnpm-lock.yaml
-pnpm-workspace.yaml
 
 convex-app
 video
