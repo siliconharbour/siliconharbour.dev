@@ -214,7 +214,7 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
                 {job.postedAt ? (
                   <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>
                 ) : job.firstSeenAt ? (
-                  <span>Seen {format(job.firstSeenAt, "MMM d, yyyy")}</span>
+                  <span>First seen {format(job.firstSeenAt, "MMM d, yyyy")}</span>
                 ) : null}
               </div>
             </div>
