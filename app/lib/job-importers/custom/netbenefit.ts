@@ -11,7 +11,7 @@
  */
 
 import type { FetchedJob } from "../types";
-import { fetchPage, htmlToText, slugify } from "./utils";
+import { fetchPage, htmlToText, slugify, extractPdfText } from "./utils";
 
 const CAREERS_URL = "https://www.netbenefitsoftware.com/careers";
 
@@ -49,12 +49,16 @@ export async function scrapeNetbenefit(): Promise<FetchedJob[]> {
       mailtoMatch ? decodeURIComponent(mailtoMatch[1]) : title
     );
 
+    const snippetText = description ? htmlToText(description) : "";
+    const pdfText = pdfUrl ? await extractPdfText(pdfUrl) : null;
+    const descriptionText = [snippetText, pdfText].filter(Boolean).join("\n\n").trim() || undefined;
+
     jobs.push({
       externalId,
       title,
       location: "St. John's, NL",
       descriptionHtml: description || undefined,
-      descriptionText: description ? htmlToText(description) : undefined,
+      descriptionText,
       url: pdfUrl || CAREERS_URL,
     });
   }

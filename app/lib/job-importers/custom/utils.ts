@@ -3,11 +3,17 @@
  */
 
 import type { FetchedJob } from "../types";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 /**
  * Custom scraper function signature
  */
 export type CustomScraper = (careersUrl: string) => Promise<FetchedJob[]>;
+const execFileAsync = promisify(execFile);
 
 /**
  * Fetch a page's HTML content
@@ -37,6 +43,35 @@ export async function fetchJson<T>(url: string): Promise<T> {
   }
 
   return response.json() as Promise<T>;
+}
+
+/**
+ * Extract text from a PDF URL using `pdftotext`.
+ * Returns null if extraction fails so callers can fall back gracefully.
+ */
+export async function extractPdfText(pdfUrl: string): Promise<string | null> {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "netbenefit-pdf-"));
+  const pdfPath = path.join(tempDir, "job.pdf");
+  const textPath = path.join(tempDir, "job.txt");
+
+  try {
+    const response = await fetch(pdfUrl);
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = Buffer.from(await response.arrayBuffer());
+    await fs.writeFile(pdfPath, data);
+
+    await execFileAsync("pdftotext", [pdfPath, textPath]);
+    const extracted = await fs.readFile(textPath, "utf8");
+    const normalized = extracted.replace(/\s+/g, " ").trim();
+    return normalized || null;
+  } catch {
+    return null;
+  } finally {
+    await fs.rm(tempDir, { recursive: true, force: true });
+  }
 }
 
 /**
