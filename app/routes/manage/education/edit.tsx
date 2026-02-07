@@ -210,7 +210,7 @@ export default function EditEducation() {
                   type="checkbox"
                   name="technl"
                   defaultChecked={institution.technl ?? false}
-                  className="rounded"
+                  className="border border-harbour-300"
                 />
                 <span className="text-sm text-harbour-600">TechNL Member</span>
               </label>
@@ -219,7 +219,7 @@ export default function EditEducation() {
                   type="checkbox"
                   name="genesis"
                   defaultChecked={institution.genesis ?? false}
-                  className="rounded"
+                  className="border border-harbour-300"
                 />
                 <span className="text-sm text-harbour-600">Genesis Centre</span>
               </label>
@@ -234,7 +234,7 @@ export default function EditEducation() {
                 name="visible"
                 value="true"
                 defaultChecked={institution.visible ?? true}
-                className="rounded"
+                className="border border-harbour-300"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>

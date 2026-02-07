@@ -192,7 +192,7 @@ export default function EditTechnology() {
                 name="visible"
                 value="true"
                 defaultChecked={technology.visible ?? true}
-                className="rounded"
+                className="border border-harbour-300"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>

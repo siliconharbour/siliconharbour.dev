@@ -233,7 +233,7 @@ export default function EditPerson() {
                 name="visible"
                 value="true"
                 defaultChecked={person.visible ?? true}
-                className="rounded"
+                className="border border-harbour-300"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>

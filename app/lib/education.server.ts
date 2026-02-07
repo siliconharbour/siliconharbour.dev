@@ -1,9 +1,9 @@
 import { db } from "~/db";
 import { education, companies, type Education, type NewEducation } from "~/db/schema";
 import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
-import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
+import { generateEntitySlug, getPaginatedBySearch } from "./crud-helpers.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: education.slug }).from(education);
@@ -11,21 +11,19 @@ async function getExistingSlugs(): Promise<string[]> {
 }
 
 export async function generateEducationSlug(name: string, excludeId?: number): Promise<string> {
-  const baseSlug = generateSlug(name);
-  let existingSlugs = await getExistingSlugs();
-
-  if (excludeId) {
-    const current = await db
-      .select({ slug: education.slug })
-      .from(education)
-      .where(eq(education.id, excludeId))
-      .get();
-    if (current) {
-      existingSlugs = existingSlugs.filter((s) => s !== current.slug);
-    }
-  }
-
-  return makeSlugUnique(baseSlug, existingSlugs);
+  return generateEntitySlug({
+    name,
+    excludeId,
+    getExistingSlugs,
+    getSlugForId: async (id) => {
+      const current = await db
+        .select({ slug: education.slug })
+        .from(education)
+        .where(eq(education.id, id))
+        .get();
+      return current?.slug ?? null;
+    },
+  });
 }
 
 export async function createEducation(item: Omit<NewEducation, "slug">): Promise<Education> {
@@ -112,44 +110,35 @@ export async function getPaginatedEducation(
   includeHidden: boolean = false,
 ): Promise<PaginatedEducation> {
   const visibilityFilter = includeHidden ? undefined : eq(education.visible, true);
-
-  // If searching, use FTS5
-  if (searchQuery && searchQuery.trim()) {
-    const matchingIds = searchContentIds("education", searchQuery);
-
-    if (matchingIds.length === 0) {
-      return { items: [], total: 0 };
-    }
-
-    const whereClause = visibilityFilter
-      ? and(inArray(education.id, matchingIds), visibilityFilter)
-      : inArray(education.id, matchingIds);
-
-    const items = await db
-      .select()
-      .from(education)
-      .where(whereClause)
-      .orderBy(asc(education.name))
-      .limit(limit)
-      .offset(offset);
-
-    const allMatching = await db.select({ id: education.id }).from(education).where(whereClause);
-
-    return { items, total: allMatching.length };
-  }
-
-  // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(education).where(visibilityFilter);
-
-  const items = await db
-    .select()
-    .from(education)
-    .where(visibilityFilter)
-    .orderBy(asc(education.name))
-    .limit(limit)
-    .offset(offset);
-
-  return { items, total };
+  return getPaginatedBySearch({
+    searchQuery,
+    getSearchIds: (query) => searchContentIds("education", query),
+    getAllWhenNoSearch: async () => {
+      const [{ total }] = await db.select({ total: count() }).from(education).where(visibilityFilter);
+      const items = await db
+        .select()
+        .from(education)
+        .where(visibilityFilter)
+        .orderBy(asc(education.name))
+        .limit(limit)
+        .offset(offset);
+      return { items, total };
+    },
+    getByIdsWhenSearch: async (matchingIds) => {
+      const whereClause = visibilityFilter
+        ? and(inArray(education.id, matchingIds), visibilityFilter)
+        : inArray(education.id, matchingIds);
+      const items = await db
+        .select()
+        .from(education)
+        .where(whereClause)
+        .orderBy(asc(education.name))
+        .limit(limit)
+        .offset(offset);
+      const allMatching = await db.select({ id: education.id }).from(education).where(whereClause);
+      return { items, total: allMatching.length };
+    },
+  });
 }
 
 // =============================================================================

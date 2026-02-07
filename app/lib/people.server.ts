@@ -1,9 +1,9 @@
 import { db } from "~/db";
 import { people, type Person, type NewPerson } from "~/db/schema";
 import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
-import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
+import { generateEntitySlug, getPaginatedBySearch } from "./crud-helpers.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: people.slug }).from(people);
@@ -11,21 +11,15 @@ async function getExistingSlugs(): Promise<string[]> {
 }
 
 export async function generatePersonSlug(name: string, excludeId?: number): Promise<string> {
-  const baseSlug = generateSlug(name);
-  let existingSlugs = await getExistingSlugs();
-
-  if (excludeId) {
-    const current = await db
-      .select({ slug: people.slug })
-      .from(people)
-      .where(eq(people.id, excludeId))
-      .get();
-    if (current) {
-      existingSlugs = existingSlugs.filter((s) => s !== current.slug);
-    }
-  }
-
-  return makeSlugUnique(baseSlug, existingSlugs);
+  return generateEntitySlug({
+    name,
+    excludeId,
+    getExistingSlugs,
+    getSlugForId: async (id) => {
+      const current = await db.select({ slug: people.slug }).from(people).where(eq(people.id, id)).get();
+      return current?.slug ?? null;
+    },
+  });
 }
 
 export async function createPerson(person: Omit<NewPerson, "slug">): Promise<Person> {
@@ -139,43 +133,33 @@ export async function getPaginatedPeople(
   includeHidden: boolean = false,
 ): Promise<PaginatedPeople> {
   const visibilityFilter = includeHidden ? undefined : eq(people.visible, true);
-
-  // If searching, use FTS5
-  if (searchQuery && searchQuery.trim()) {
-    const matchingIds = searchContentIds("person", searchQuery);
-
-    if (matchingIds.length === 0) {
-      return { items: [], total: 0 };
-    }
-
-    const whereClause = visibilityFilter
-      ? and(inArray(people.id, matchingIds), visibilityFilter)
-      : inArray(people.id, matchingIds);
-
-    const items = await db
-      .select()
-      .from(people)
-      .where(whereClause)
-      .orderBy(asc(people.name))
-      .limit(limit)
-      .offset(offset);
-
-    // Get accurate count with visibility filter
-    const allMatching = await db.select({ id: people.id }).from(people).where(whereClause);
-
-    return { items, total: allMatching.length };
-  }
-
-  // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(people).where(visibilityFilter);
-
-  const items = await db
-    .select()
-    .from(people)
-    .where(visibilityFilter)
-    .orderBy(asc(people.name))
-    .limit(limit)
-    .offset(offset);
-
-  return { items, total };
+  return getPaginatedBySearch({
+    searchQuery,
+    getSearchIds: (query) => searchContentIds("person", query),
+    getAllWhenNoSearch: async () => {
+      const [{ total }] = await db.select({ total: count() }).from(people).where(visibilityFilter);
+      const items = await db
+        .select()
+        .from(people)
+        .where(visibilityFilter)
+        .orderBy(asc(people.name))
+        .limit(limit)
+        .offset(offset);
+      return { items, total };
+    },
+    getByIdsWhenSearch: async (matchingIds) => {
+      const whereClause = visibilityFilter
+        ? and(inArray(people.id, matchingIds), visibilityFilter)
+        : inArray(people.id, matchingIds);
+      const items = await db
+        .select()
+        .from(people)
+        .where(whereClause)
+        .orderBy(asc(people.name))
+        .limit(limit)
+        .offset(offset);
+      const allMatching = await db.select({ id: people.id }).from(people).where(whereClause);
+      return { items, total: allMatching.length };
+    },
+  });
 }

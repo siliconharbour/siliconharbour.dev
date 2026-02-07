@@ -1,9 +1,9 @@
 import { db } from "~/db";
 import { groups, type Group, type NewGroup } from "~/db/schema";
 import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
-import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
+import { generateEntitySlug, getPaginatedBySearch } from "./crud-helpers.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: groups.slug }).from(groups);
@@ -11,21 +11,15 @@ async function getExistingSlugs(): Promise<string[]> {
 }
 
 export async function generateGroupSlug(name: string, excludeId?: number): Promise<string> {
-  const baseSlug = generateSlug(name);
-  let existingSlugs = await getExistingSlugs();
-
-  if (excludeId) {
-    const current = await db
-      .select({ slug: groups.slug })
-      .from(groups)
-      .where(eq(groups.id, excludeId))
-      .get();
-    if (current) {
-      existingSlugs = existingSlugs.filter((s) => s !== current.slug);
-    }
-  }
-
-  return makeSlugUnique(baseSlug, existingSlugs);
+  return generateEntitySlug({
+    name,
+    excludeId,
+    getExistingSlugs,
+    getSlugForId: async (id) => {
+      const current = await db.select({ slug: groups.slug }).from(groups).where(eq(groups.id, id)).get();
+      return current?.slug ?? null;
+    },
+  });
 }
 
 export async function createGroup(group: Omit<NewGroup, "slug">): Promise<Group> {
@@ -97,42 +91,33 @@ export async function getPaginatedGroups(
   includeHidden: boolean = false,
 ): Promise<PaginatedGroups> {
   const visibilityFilter = includeHidden ? undefined : eq(groups.visible, true);
-
-  // If searching, use FTS5
-  if (searchQuery && searchQuery.trim()) {
-    const matchingIds = searchContentIds("group", searchQuery);
-
-    if (matchingIds.length === 0) {
-      return { items: [], total: 0 };
-    }
-
-    const whereClause = visibilityFilter
-      ? and(inArray(groups.id, matchingIds), visibilityFilter)
-      : inArray(groups.id, matchingIds);
-
-    const items = await db
-      .select()
-      .from(groups)
-      .where(whereClause)
-      .orderBy(asc(groups.name))
-      .limit(limit)
-      .offset(offset);
-
-    const allMatching = await db.select({ id: groups.id }).from(groups).where(whereClause);
-
-    return { items, total: allMatching.length };
-  }
-
-  // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(groups).where(visibilityFilter);
-
-  const items = await db
-    .select()
-    .from(groups)
-    .where(visibilityFilter)
-    .orderBy(asc(groups.name))
-    .limit(limit)
-    .offset(offset);
-
-  return { items, total };
+  return getPaginatedBySearch({
+    searchQuery,
+    getSearchIds: (query) => searchContentIds("group", query),
+    getAllWhenNoSearch: async () => {
+      const [{ total }] = await db.select({ total: count() }).from(groups).where(visibilityFilter);
+      const items = await db
+        .select()
+        .from(groups)
+        .where(visibilityFilter)
+        .orderBy(asc(groups.name))
+        .limit(limit)
+        .offset(offset);
+      return { items, total };
+    },
+    getByIdsWhenSearch: async (matchingIds) => {
+      const whereClause = visibilityFilter
+        ? and(inArray(groups.id, matchingIds), visibilityFilter)
+        : inArray(groups.id, matchingIds);
+      const items = await db
+        .select()
+        .from(groups)
+        .where(whereClause)
+        .orderBy(asc(groups.name))
+        .limit(limit)
+        .offset(offset);
+      const allMatching = await db.select({ id: groups.id }).from(groups).where(whereClause);
+      return { items, total: allMatching.length };
+    },
+  });
 }

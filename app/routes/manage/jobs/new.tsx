@@ -1,10 +1,14 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
+import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { createJob } from "~/lib/jobs.server";
 import { db } from "~/db";
 import { companies } from "~/db/schema";
 import { asc } from "drizzle-orm";
+import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+import { actionError } from "~/lib/admin/action-result";
+import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Job - siliconharbour.dev" }];
@@ -26,31 +30,32 @@ export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
-
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const companyIdStr = formData.get("companyId") as string;
-  const location = (formData.get("location") as string) || null;
-  const department = (formData.get("department") as string) || null;
-  const workplaceType = (formData.get("workplaceType") as string) || null;
-  const salaryRange = (formData.get("salaryRange") as string) || null;
-  const url = formData.get("url") as string;
-
-  if (!title || !description || !url) {
-    return { error: "Title, description, and apply link are required" };
+  const schema = z.object({
+    title: zRequiredString("Title"),
+    description: zRequiredString("Description"),
+    companyId: zOptionalNullableString,
+    location: zOptionalNullableString,
+    department: zOptionalNullableString,
+    workplaceType: z.enum(["remote", "onsite", "hybrid"]).nullable(),
+    salaryRange: zOptionalNullableString,
+    url: zRequiredString("Apply link").url("Apply link must be a valid URL"),
+  });
+  const parsed = parseFormData(formData, schema);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  const companyId = companyIdStr ? parseInt(companyIdStr, 10) : null;
+  const companyId = parsed.data.companyId ? Number.parseInt(parsed.data.companyId, 10) : null;
 
   await createJob({
-    title,
-    description,
+    title: parsed.data.title,
+    description: parsed.data.description,
     companyId: companyId || null,
-    location,
-    department,
-    workplaceType: workplaceType as "remote" | "onsite" | "hybrid" | null,
-    salaryRange,
-    url,
+    location: parsed.data.location,
+    department: parsed.data.department,
+    workplaceType: parsed.data.workplaceType,
+    salaryRange: parsed.data.salaryRange,
+    url: parsed.data.url,
   });
 
   return redirect("/manage/jobs");
@@ -71,15 +76,10 @@ export default function NewJob() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">New Manual Job</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="title" className="font-medium text-harbour-700">
-              Job Title *
-            </label>
+          <ManageField label="Job Title *" htmlFor="title">
             <input
               type="text"
               id="title"
@@ -87,12 +87,13 @@ export default function NewJob() {
               required
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="companyId" className="font-medium text-harbour-700">
-              Company
-            </label>
+          <ManageField
+            label="Company"
+            htmlFor="companyId"
+            hint="Link to an existing company, or leave blank for external companies"
+          >
             <select
               id="companyId"
               name="companyId"
@@ -105,15 +106,9 @@ export default function NewJob() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-harbour-400">
-              Link to an existing company, or leave blank for external companies
-            </p>
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
-              Description * (Markdown)
-            </label>
+          <ManageField label="Description * (Markdown)" htmlFor="description">
             <textarea
               id="description"
               name="description"
@@ -121,7 +116,7 @@ export default function NewJob() {
               rows={10}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
-          </div>
+          </ManageField>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
@@ -182,10 +177,7 @@ export default function NewJob() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="url" className="font-medium text-harbour-700">
-              Apply Link *
-            </label>
+          <ManageField label="Apply Link *" htmlFor="url">
             <input
               type="url"
               id="url"
@@ -194,14 +186,9 @@ export default function NewJob() {
               placeholder="https://..."
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-          >
-            Create Job
-          </button>
+          <ManageSubmitButton>Create Job</ManageSubmitButton>
         </Form>
       </div>
     </div>

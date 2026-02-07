@@ -564,7 +564,7 @@ export default function EditCompany() {
                   type="checkbox"
                   name="technl"
                   defaultChecked={company.technl ?? false}
-                  className="rounded"
+                  className="border border-harbour-300"
                 />
                 <span className="text-sm text-harbour-600">TechNL Member</span>
               </label>
@@ -573,7 +573,7 @@ export default function EditCompany() {
                   type="checkbox"
                   name="genesis"
                   defaultChecked={company.genesis ?? false}
-                  className="rounded"
+                  className="border border-harbour-300"
                 />
                 <span className="text-sm text-harbour-600">Genesis Centre</span>
               </label>
@@ -717,7 +717,7 @@ export default function EditCompany() {
                 name="visible"
                 value="true"
                 defaultChecked={company.visible ?? true}
-                className="rounded"
+                className="border border-harbour-300"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>

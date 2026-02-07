@@ -476,7 +476,7 @@ export default function ImportGitHub() {
                 type="checkbox"
                 checked={downloadAvatars}
                 onChange={(e) => setDownloadAvatars(e.target.checked)}
-                className="rounded"
+                className="border border-harbour-300"
               />
               Download avatars
             </label>
@@ -586,7 +586,7 @@ export default function ImportGitHub() {
               </div>
 
               {/* Progress bar */}
-              <div className="h-2 bg-harbour-200 rounded-full overflow-hidden">
+              <div className="h-2 bg-harbour-200  overflow-hidden">
                 <div
                   className={`h-full transition-all duration-300 ${
                     bulkProgress.status === "completed"
@@ -767,11 +767,11 @@ export default function ImportGitHub() {
                       <img
                         src={user.avatar_url}
                         alt=""
-                        className={`w-10 h-10 object-cover rounded-full bg-harbour-100 ${blocked ? "grayscale" : ""}`}
+                        className={`w-10 h-10 object-cover  bg-harbour-100 ${blocked ? "grayscale" : ""}`}
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-harbour-100 rounded-full" />
+                      <div className="w-10 h-10 bg-harbour-100 " />
                     )}
 
                     <div className="flex-1 min-w-0">

@@ -66,7 +66,7 @@ export default function ManagePeopleIndex() {
                   className="px-4 py-2 bg-slate-500 hover:bg-slate-600 text-white font-medium transition-colors flex items-center gap-2"
                 >
                   Hide All
-                  <span className="px-1.5 py-0.5 bg-slate-600 text-xs rounded-full">
+                  <span className="px-1.5 py-0.5 bg-slate-600 text-xs ">
                     {visibleCount}
                   </span>
                 </button>
@@ -78,7 +78,7 @@ export default function ManagePeopleIndex() {
                 className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors flex items-center gap-2"
               >
                 Review
-                <span className="px-1.5 py-0.5 bg-amber-600 text-xs rounded-full">
+                <span className="px-1.5 py-0.5 bg-amber-600 text-xs ">
                   {hiddenCount}
                 </span>
               </Link>

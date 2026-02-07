@@ -195,7 +195,7 @@ export default function ManageOccurrences() {
                           <summary className="px-3 py-1 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 cursor-pointer list-none">
                             Edit
                           </summary>
-                          <div className="absolute right-0 mt-2 p-4 bg-white border border-harbour-200 shadow-lg z-10 min-w-72">
+                          <div className="absolute right-0 mt-2 p-4 bg-white border border-harbour-200  z-10 min-w-72">
                             <Form method="post" className="space-y-3">
                               <input type="hidden" name="_action" value="update" />
                               <input

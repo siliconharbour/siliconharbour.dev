@@ -412,7 +412,7 @@ export default function ReviewCompanies() {
         </div>
 
         {/* Company Card */}
-        <div className="bg-white border border-harbour-200 shadow-sm">
+        <div className="bg-white border border-harbour-200 ">
           {/* Card Header */}
           <div className="p-6 border-b border-harbour-100">
             <div className="flex gap-4">
@@ -661,11 +661,11 @@ export default function ReviewCompanies() {
 
         {/* Keyboard shortcuts help */}
         <div className="text-center text-xs text-harbour-400">
-          Keyboard: <kbd className="px-1 py-0.5 bg-harbour-100 rounded">Y</kbd> Approve ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">N</kbd> Skip ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">D</kbd> Reject ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">E</kbd> Edit ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 rounded ml-1">Esc</kbd> Cancel edit
+          Keyboard: <kbd className="px-1 py-0.5 bg-harbour-100">Y</kbd> Approve ·
+          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">N</kbd> Skip ·
+          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">D</kbd> Reject ·
+          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">E</kbd> Edit ·
+          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">Esc</kbd> Cancel edit
         </div>
       </div>
 

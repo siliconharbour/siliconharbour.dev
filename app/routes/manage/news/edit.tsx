@@ -1,10 +1,16 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
+import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { getNewsById, updateNews } from "~/lib/news.server";
-import { processAndSaveCoverImage, deleteImage } from "~/lib/images.server";
+import { processAndSaveCoverImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { newsTypes, type NewsType } from "~/db/schema";
+import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
+import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+import { actionError } from "~/lib/admin/action-result";
+import { resolveUpdatedImage } from "~/lib/admin/image-fields";
+import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 const typeLabels: Record<NewsType, string> = {
   announcement: "Announcement",
@@ -20,10 +26,7 @@ export function meta({ data }: Route.MetaArgs) {
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    throw new Response("Invalid ID", { status: 400 });
-  }
+  const id = parseIdOrThrow(params.id, "article");
 
   const article = await getNewsById(id);
   if (!article) {
@@ -36,57 +39,49 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid ID" };
-  }
+  const parsedId = parseIdOrError(params.id, "article");
+  if ("error" in parsedId) return parsedId;
+  const id = parsedId.id;
 
   const existing = await getNewsById(id);
   if (!existing) {
-    return { error: "Article not found" };
+    return actionError("Article not found");
   }
 
   const formData = await request.formData();
-
-  const title = formData.get("title") as string;
-  const content = formData.get("content") as string;
-  const excerpt = (formData.get("excerpt") as string) || null;
-  const type = (formData.get("type") as NewsType) || "announcement";
-  const publishNow = formData.get("publishNow") === "1";
-
-  if (!title || !content) {
-    return { error: "Title and content are required" };
+  const schema = z.object({
+    title: zRequiredString("Title"),
+    content: zRequiredString("Content"),
+    excerpt: zOptionalNullableString,
+    type: z.enum(newsTypes),
+    publishNow: z.preprocess((value) => value === "1", z.boolean()),
+  });
+  const parsed = parseFormData(formData, schema);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  let coverImage: string | null | undefined = undefined;
-  const coverImageData = formData.get("coverImageData") as string | null;
-  const existingCoverImage = formData.get("existingCoverImage") as string | null;
-
-  if (coverImageData) {
-    if (existing.coverImage) await deleteImage(existing.coverImage);
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  } else if (existingCoverImage) {
-    coverImage = existingCoverImage;
-  } else if (existing.coverImage) {
-    await deleteImage(existing.coverImage);
-    coverImage = null;
-  }
+  const coverImage = await resolveUpdatedImage({
+    formData,
+    uploadedImageField: "coverImageData",
+    existingImageField: "existingCoverImage",
+    currentImage: existing.coverImage,
+    processor: processAndSaveCoverImage,
+  });
 
   // Handle publish state
   let publishedAt: Date | null | undefined = undefined;
-  if (publishNow && !existing.publishedAt) {
+  if (parsed.data.publishNow && !existing.publishedAt) {
     publishedAt = new Date();
-  } else if (!publishNow) {
+  } else if (!parsed.data.publishNow) {
     publishedAt = null;
   }
 
   await updateNews(id, {
-    title,
-    content,
-    excerpt,
-    type,
+    title: parsed.data.title,
+    content: parsed.data.content,
+    excerpt: parsed.data.excerpt,
+    type: parsed.data.type as NewsType,
     ...(coverImage !== undefined && { coverImage }),
     ...(publishedAt !== undefined && { publishedAt }),
   });
@@ -109,9 +104,7 @@ export default function EditNews() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">Edit Article</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
           <ImageUpload
@@ -124,10 +117,7 @@ export default function EditNews() {
             helpText="Upload cover (16:9)"
           />
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="title" className="font-medium text-harbour-700">
-              Title *
-            </label>
+          <ManageField label="Title *" htmlFor="title">
             <input
               type="text"
               id="title"
@@ -136,12 +126,9 @@ export default function EditNews() {
               defaultValue={article.title}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="type" className="font-medium text-harbour-700">
-              Type
-            </label>
+          <ManageField label="Type" htmlFor="type">
             <select
               id="type"
               name="type"
@@ -152,14 +139,11 @@ export default function EditNews() {
                 <option key={t} value={t}>
                   {typeLabels[t]}
                 </option>
-              ))}
-            </select>
-          </div>
+                ))}
+              </select>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="excerpt" className="font-medium text-harbour-700">
-              Excerpt (for RSS/previews)
-            </label>
+          <ManageField label="Excerpt (for RSS/previews)" htmlFor="excerpt">
             <textarea
               id="excerpt"
               name="excerpt"
@@ -167,12 +151,9 @@ export default function EditNews() {
               defaultValue={article.excerpt ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="content" className="font-medium text-harbour-700">
-              Content * (Markdown)
-            </label>
+          <ManageField label="Content * (Markdown)" htmlFor="content">
             <textarea
               id="content"
               name="content"
@@ -181,7 +162,7 @@ export default function EditNews() {
               defaultValue={article.content}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
-          </div>
+          </ManageField>
 
           <div className="flex items-center gap-2">
             <input
@@ -197,12 +178,7 @@ export default function EditNews() {
             </label>
           </div>
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-          >
-            Update Article
-          </button>
+          <ManageSubmitButton>Update Article</ManageSubmitButton>
         </Form>
       </div>
     </div>

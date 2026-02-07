@@ -1,11 +1,16 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
+import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { createProduct } from "~/lib/products.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { processAndSaveCoverImage, processAndSaveIconImageWithPadding } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { productTypes } from "~/db/schema";
+import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+import { actionError } from "~/lib/admin/action-result";
+import { createImageFromFormData } from "~/lib/admin/image-fields";
+import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Product - siliconharbour.dev" }];
@@ -21,42 +26,27 @@ export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const type = formData.get("type") as string;
-  const companyId = formData.get("companyId") as string;
-
-  if (!name || !description) {
-    return { error: "Name and description are required" };
+  const schema = z.object({
+    name: zRequiredString("Name"),
+    description: zRequiredString("Description"),
+    website: zOptionalNullableString,
+    type: z.enum(productTypes),
+    companyId: zOptionalNullableString,
+  });
+  const parsed = parseFormData(formData, schema);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  // Process images
-  let logo: string | null = null;
-  let coverImage: string | null = null;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-
-  if (logoData) {
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImageWithPadding(buffer);
-  }
-
-  if (coverImageData) {
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  }
+  const logo = await createImageFromFormData(formData, "logoData", processAndSaveIconImageWithPadding);
+  const coverImage = await createImageFromFormData(formData, "coverImageData", processAndSaveCoverImage);
 
   await createProduct({
-    name,
-    description,
-    website,
-    type: type as (typeof productTypes)[number],
-    companyId: companyId ? parseInt(companyId, 10) : null,
+    name: parsed.data.name,
+    description: parsed.data.description,
+    website: parsed.data.website,
+    type: parsed.data.type,
+    companyId: parsed.data.companyId ? Number.parseInt(parsed.data.companyId, 10) : null,
     logo,
     coverImage,
   });
@@ -87,15 +77,10 @@ export default function NewProduct() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">New Product</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
-              Name *
-            </label>
+          <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
               id="name"
@@ -103,12 +88,9 @@ export default function NewProduct() {
               required
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
-              Description * (Markdown)
-            </label>
+          <ManageField label="Description * (Markdown)" htmlFor="description">
             <textarea
               id="description"
               name="description"
@@ -117,12 +99,9 @@ export default function NewProduct() {
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
               placeholder="Describe the product. You can use [[References]] to link to companies, people, etc."
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
-              Website
-            </label>
+          <ManageField label="Website" htmlFor="website">
             <input
               type="url"
               id="website"
@@ -130,7 +109,7 @@ export default function NewProduct() {
               placeholder="https://..."
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
@@ -188,12 +167,7 @@ export default function NewProduct() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-          >
-            Create Product
-          </button>
+          <ManageSubmitButton>Create Product</ManageSubmitButton>
         </Form>
       </div>
     </div>

@@ -1,9 +1,14 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
+import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { createGroup } from "~/lib/groups.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+import { actionError } from "~/lib/admin/action-result";
+import { createImageFromFormData } from "~/lib/admin/image-fields";
+import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Group - siliconharbour.dev" }];
@@ -18,39 +23,29 @@ export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const meetingFrequency = (formData.get("meetingFrequency") as string) || null;
-
-  if (!name || !description) {
-    return { error: "Name and description are required" };
+  const schema = z.object({
+    name: zRequiredString("Name"),
+    description: zRequiredString("Description"),
+    website: zOptionalNullableString,
+    meetingFrequency: zOptionalNullableString,
+  });
+  const parsed = parseFormData(formData, schema);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  let logo: string | null = null;
-  let coverImage: string | null = null;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-
-  if (logoData) {
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  }
-
-  if (coverImageData) {
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  }
+  const logo = await createImageFromFormData(formData, "logoData", processAndSaveIconImage);
+  const coverImage = await createImageFromFormData(
+    formData,
+    "coverImageData",
+    processAndSaveCoverImage,
+  );
 
   await createGroup({
-    name,
-    description,
-    website,
-    meetingFrequency,
+    name: parsed.data.name,
+    description: parsed.data.description,
+    website: parsed.data.website,
+    meetingFrequency: parsed.data.meetingFrequency,
     logo,
     coverImage,
   });
@@ -72,15 +67,10 @@ export default function NewGroup() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">New Group</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
-              Name *
-            </label>
+          <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
               id="name"
@@ -88,12 +78,9 @@ export default function NewGroup() {
               required
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
-              Description * (Markdown)
-            </label>
+          <ManageField label="Description * (Markdown)" htmlFor="description">
             <textarea
               id="description"
               name="description"
@@ -101,24 +88,18 @@ export default function NewGroup() {
               rows={8}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
-              Website
-            </label>
+          <ManageField label="Website" htmlFor="website">
             <input
               type="url"
               id="website"
               name="website"
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="meetingFrequency" className="font-medium text-harbour-700">
-              Meeting Frequency
-            </label>
+          <ManageField label="Meeting Frequency" htmlFor="meetingFrequency">
             <input
               type="text"
               id="meetingFrequency"
@@ -126,7 +107,7 @@ export default function NewGroup() {
               placeholder="e.g., Monthly, First Tuesday"
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ImageUpload
@@ -145,12 +126,7 @@ export default function NewGroup() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-          >
-            Create Group
-          </button>
+          <ManageSubmitButton>Create Group</ManageSubmitButton>
         </Form>
       </div>
     </div>

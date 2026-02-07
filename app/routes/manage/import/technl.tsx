@@ -364,7 +364,7 @@ export default function ImportTechNL() {
                   type="checkbox"
                   checked={downloadLogos}
                   onChange={(e) => setDownloadLogos(e.target.checked)}
-                  className="rounded"
+                  className="border border-harbour-300"
                 />
                 Download logos
               </label>

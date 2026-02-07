@@ -1,10 +1,15 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
+import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { createNews } from "~/lib/news.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { newsTypes, type NewsType } from "~/db/schema";
+import { actionError } from "~/lib/admin/action-result";
+import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+import { createImageFromFormData } from "~/lib/admin/image-fields";
+import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 const typeLabels: Record<NewsType, string> = {
   announcement: "Announcement",
@@ -26,33 +31,27 @@ export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
-
-  const title = formData.get("title") as string;
-  const content = formData.get("content") as string;
-  const excerpt = (formData.get("excerpt") as string) || null;
-  const type = (formData.get("type") as NewsType) || "announcement";
-  const publishNow = formData.get("publishNow") === "1";
-
-  if (!title || !content) {
-    return { error: "Title and content are required" };
+  const schema = z.object({
+    title: zRequiredString("Title"),
+    content: zRequiredString("Content"),
+    excerpt: zOptionalNullableString,
+    type: z.enum(newsTypes),
+    publishNow: z.preprocess((value) => value === "1", z.boolean()),
+  });
+  const parsed = parseFormData(formData, schema);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  let coverImage: string | null = null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-
-  if (coverImageData) {
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  }
+  const coverImage = await createImageFromFormData(formData, "coverImageData", processAndSaveCoverImage);
 
   await createNews({
-    title,
-    content,
-    excerpt,
-    type,
+    title: parsed.data.title,
+    content: parsed.data.content,
+    excerpt: parsed.data.excerpt,
+    type: parsed.data.type as NewsType,
     coverImage,
-    publishedAt: publishNow ? new Date() : null,
+    publishedAt: parsed.data.publishNow ? new Date() : null,
   });
 
   return redirect("/manage/news");
@@ -72,9 +71,7 @@ export default function NewNews() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">New Article</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
           <ImageUpload
@@ -85,10 +82,7 @@ export default function NewNews() {
             helpText="Upload cover (16:9)"
           />
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="title" className="font-medium text-harbour-700">
-              Title *
-            </label>
+          <ManageField label="Title *" htmlFor="title">
             <input
               type="text"
               id="title"
@@ -96,12 +90,9 @@ export default function NewNews() {
               required
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="type" className="font-medium text-harbour-700">
-              Type
-            </label>
+          <ManageField label="Type" htmlFor="type">
             <select
               id="type"
               name="type"
@@ -112,26 +103,20 @@ export default function NewNews() {
                 <option key={t} value={t}>
                   {typeLabels[t]}
                 </option>
-              ))}
-            </select>
-          </div>
+                ))}
+              </select>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="excerpt" className="font-medium text-harbour-700">
-              Excerpt (for RSS/previews)
-            </label>
+          <ManageField label="Excerpt (for RSS/previews)" htmlFor="excerpt">
             <textarea
               id="excerpt"
               name="excerpt"
               rows={2}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="content" className="font-medium text-harbour-700">
-              Content * (Markdown)
-            </label>
+          <ManageField label="Content * (Markdown)" htmlFor="content">
             <textarea
               id="content"
               name="content"
@@ -139,7 +124,7 @@ export default function NewNews() {
               rows={12}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
-          </div>
+          </ManageField>
 
           <div className="flex items-center gap-2">
             <input
@@ -154,12 +139,7 @@ export default function NewNews() {
             </label>
           </div>
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-          >
-            Create Article
-          </button>
+          <ManageSubmitButton>Create Article</ManageSubmitButton>
         </Form>
       </div>
     </div>

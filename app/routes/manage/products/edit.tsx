@@ -1,15 +1,20 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
+import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { getProductById, updateProduct } from "~/lib/products.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import {
   processAndSaveCoverImage,
   processAndSaveIconImageWithPadding,
-  deleteImage,
 } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { productTypes } from "~/db/schema";
+import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
+import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+import { actionError } from "~/lib/admin/action-result";
+import { resolveUpdatedImage } from "~/lib/admin/image-fields";
+import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.product?.name || "Product"} - siliconharbour.dev` }];
@@ -18,10 +23,7 @@ export function meta({ data }: Route.MetaArgs) {
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    throw new Response("Invalid product ID", { status: 400 });
-  }
+  const id = parseIdOrThrow(params.id, "product");
 
   const product = await getProductById(id);
   if (!product) {
@@ -36,73 +38,50 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid product ID" };
-  }
+  const parsedId = parseIdOrError(params.id, "product");
+  if ("error" in parsedId) return parsedId;
+  const id = parsedId.id;
 
   const existingProduct = await getProductById(id);
   if (!existingProduct) {
-    return { error: "Product not found" };
+    return actionError("Product not found");
   }
 
   const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const type = formData.get("type") as string;
-  const companyId = formData.get("companyId") as string;
-
-  if (!name || !description) {
-    return { error: "Name and description are required" };
+  const schema = z.object({
+    name: zRequiredString("Name"),
+    description: zRequiredString("Description"),
+    website: zOptionalNullableString,
+    type: z.enum(productTypes),
+    companyId: zOptionalNullableString,
+  });
+  const parsed = parseFormData(formData, schema);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  // Process images
-  let logo: string | null | undefined = undefined;
-  let coverImage: string | null | undefined = undefined;
+  const logo = await resolveUpdatedImage({
+    formData,
+    uploadedImageField: "logoData",
+    existingImageField: "existingLogo",
+    currentImage: existingProduct.logo,
+    processor: processAndSaveIconImageWithPadding,
+  });
 
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-  const existingLogo = formData.get("existingLogo") as string | null;
-  const existingCoverImage = formData.get("existingCoverImage") as string | null;
-
-  // Handle logo
-  if (logoData) {
-    if (existingProduct.logo) {
-      await deleteImage(existingProduct.logo);
-    }
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImageWithPadding(buffer);
-  } else if (existingLogo) {
-    logo = existingLogo;
-  } else if (existingProduct.logo) {
-    await deleteImage(existingProduct.logo);
-    logo = null;
-  }
-
-  // Handle cover image
-  if (coverImageData) {
-    if (existingProduct.coverImage) {
-      await deleteImage(existingProduct.coverImage);
-    }
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  } else if (existingCoverImage) {
-    coverImage = existingCoverImage;
-  } else if (existingProduct.coverImage) {
-    await deleteImage(existingProduct.coverImage);
-    coverImage = null;
-  }
+  const coverImage = await resolveUpdatedImage({
+    formData,
+    uploadedImageField: "coverImageData",
+    existingImageField: "existingCoverImage",
+    currentImage: existingProduct.coverImage,
+    processor: processAndSaveCoverImage,
+  });
 
   await updateProduct(id, {
-    name,
-    description,
-    website,
-    type: type as (typeof productTypes)[number],
-    companyId: companyId ? parseInt(companyId, 10) : null,
+    name: parsed.data.name,
+    description: parsed.data.description,
+    website: parsed.data.website,
+    type: parsed.data.type,
+    companyId: parsed.data.companyId ? Number.parseInt(parsed.data.companyId, 10) : null,
     ...(logo !== undefined && { logo }),
     ...(coverImage !== undefined && { coverImage }),
   });
@@ -133,15 +112,10 @@ export default function EditProduct() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">Edit Product</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
-              Name *
-            </label>
+          <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
               id="name"
@@ -150,12 +124,9 @@ export default function EditProduct() {
               defaultValue={product.name}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
-              Description * (Markdown)
-            </label>
+          <ManageField label="Description * (Markdown)" htmlFor="description">
             <textarea
               id="description"
               name="description"
@@ -164,12 +135,9 @@ export default function EditProduct() {
               defaultValue={product.description}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
-              Website
-            </label>
+          <ManageField label="Website" htmlFor="website">
             <input
               type="url"
               id="website"
@@ -178,7 +146,7 @@ export default function EditProduct() {
               placeholder="https://..."
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
@@ -240,12 +208,7 @@ export default function EditProduct() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-          >
-            Update Product
-          </button>
+          <ManageSubmitButton>Update Product</ManageSubmitButton>
         </Form>
       </div>
     </div>

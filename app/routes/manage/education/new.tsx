@@ -158,11 +158,11 @@ export default function NewEducation() {
             <span className="font-medium text-harbour-700">Directory Listings</span>
             <div className="flex gap-6">
               <label className="flex items-center gap-2">
-                <input type="checkbox" name="technl" className="rounded" />
+                <input type="checkbox" name="technl" className="border border-harbour-300" />
                 <span className="text-sm text-harbour-600">TechNL Member</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" name="genesis" className="rounded" />
+                <input type="checkbox" name="genesis" className="border border-harbour-300" />
                 <span className="text-sm text-harbour-600">Genesis Centre</span>
               </label>
             </div>

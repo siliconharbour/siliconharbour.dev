@@ -7,6 +7,8 @@ import {
   getCompaniesUsingTechnology,
   getProjectsUsingTechnology,
 } from "~/lib/technologies.server";
+import { parseIdOrThrow } from "~/lib/admin/route";
+import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Delete ${data?.technology?.name || "Technology"} - siliconharbour.dev` }];
@@ -15,10 +17,7 @@ export function meta({ data }: Route.MetaArgs) {
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    throw new Response("Invalid technology ID", { status: 400 });
-  }
+  const id = parseIdOrThrow(params.id, "technology");
 
   const technology = await getTechnologyById(id);
   if (!technology) {
@@ -36,10 +35,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    throw new Response("Invalid technology ID", { status: 400 });
-  }
+  const id = parseIdOrThrow(params.id, "technology");
 
   await deleteTechnology(id);
   return redirect("/manage/technologies");
@@ -49,15 +45,16 @@ export default function DeleteTechnology() {
   const { technology, usageCount } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white border border-harbour-200 p-6 flex flex-col gap-6">
-        <h1 className="text-xl font-semibold text-harbour-700">Delete Technology</h1>
-
-        <p className="text-harbour-500">
+    <DeleteConfirmationCard
+      title="Delete Technology"
+      message={
+        <>
           Are you sure you want to delete <strong>{technology.name}</strong>? This action cannot be
           undone.
-        </p>
-
+        </>
+      }
+    >
+      <>
         {usageCount > 0 && (
           <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
             This technology is currently assigned to {usageCount}{" "}
@@ -80,7 +77,7 @@ export default function DeleteTechnology() {
             Cancel
           </Link>
         </Form>
-      </div>
-    </div>
+      </>
+    </DeleteConfirmationCard>
   );
 }

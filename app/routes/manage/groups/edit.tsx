@@ -1,13 +1,18 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
+import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { getGroupById, updateGroup } from "~/lib/groups.server";
 import {
   processAndSaveCoverImage,
   processAndSaveIconImage,
-  deleteImage,
 } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
+import { parseFormData, zOptionalNullableString, zRequiredString, zTrueBoolean } from "~/lib/admin/form";
+import { actionError } from "~/lib/admin/action-result";
+import { resolveUpdatedImage } from "~/lib/admin/image-fields";
+import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.group?.name || "Group"} - siliconharbour.dev` }];
@@ -16,10 +21,7 @@ export function meta({ data }: Route.MetaArgs) {
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    throw new Response("Invalid group ID", { status: 400 });
-  }
+  const id = parseIdOrThrow(params.id, "group");
 
   const group = await getGroupById(id);
   if (!group) {
@@ -32,66 +34,50 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid group ID" };
-  }
+  const parsedId = parseIdOrError(params.id, "group");
+  if ("error" in parsedId) return parsedId;
+  const id = parsedId.id;
 
   const existingGroup = await getGroupById(id);
   if (!existingGroup) {
-    return { error: "Group not found" };
+    return actionError("Group not found");
   }
 
   const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const meetingFrequency = (formData.get("meetingFrequency") as string) || null;
-  const visible = formData.get("visible") === "true";
-
-  if (!name) {
-    return { error: "Name is required" };
+  const schema = z.object({
+    name: zRequiredString("Name"),
+    description: zOptionalNullableString,
+    website: zOptionalNullableString,
+    meetingFrequency: zOptionalNullableString,
+    visible: zTrueBoolean,
+  });
+  const parsed = parseFormData(formData, schema);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  let logo: string | null | undefined = undefined;
-  let coverImage: string | null | undefined = undefined;
+  const logo = await resolveUpdatedImage({
+    formData,
+    uploadedImageField: "logoData",
+    existingImageField: "existingLogo",
+    currentImage: existingGroup.logo,
+    processor: processAndSaveIconImage,
+  });
 
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-  const existingLogo = formData.get("existingLogo") as string | null;
-  const existingCoverImage = formData.get("existingCoverImage") as string | null;
-
-  if (logoData) {
-    if (existingGroup.logo) await deleteImage(existingGroup.logo);
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  } else if (existingLogo) {
-    logo = existingLogo;
-  } else if (existingGroup.logo) {
-    await deleteImage(existingGroup.logo);
-    logo = null;
-  }
-
-  if (coverImageData) {
-    if (existingGroup.coverImage) await deleteImage(existingGroup.coverImage);
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  } else if (existingCoverImage) {
-    coverImage = existingCoverImage;
-  } else if (existingGroup.coverImage) {
-    await deleteImage(existingGroup.coverImage);
-    coverImage = null;
-  }
+  const coverImage = await resolveUpdatedImage({
+    formData,
+    uploadedImageField: "coverImageData",
+    existingImageField: "existingCoverImage",
+    currentImage: existingGroup.coverImage,
+    processor: processAndSaveCoverImage,
+  });
 
   await updateGroup(id, {
-    name,
-    description,
-    website,
-    meetingFrequency,
-    visible,
+    name: parsed.data.name,
+    description: parsed.data.description,
+    website: parsed.data.website,
+    meetingFrequency: parsed.data.meetingFrequency,
+    visible: parsed.data.visible,
     ...(logo !== undefined && { logo }),
     ...(coverImage !== undefined && { coverImage }),
   });
@@ -114,15 +100,10 @@ export default function EditGroup() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">Edit Group</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
-              Name *
-            </label>
+          <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
               id="name"
@@ -131,12 +112,9 @@ export default function EditGroup() {
               defaultValue={group.name}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
-              Description (Markdown)
-            </label>
+          <ManageField label="Description (Markdown)" htmlFor="description">
             <textarea
               id="description"
               name="description"
@@ -144,12 +122,9 @@ export default function EditGroup() {
               defaultValue={group.description ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
-              Website
-            </label>
+          <ManageField label="Website" htmlFor="website">
             <input
               type="url"
               id="website"
@@ -157,12 +132,9 @@ export default function EditGroup() {
               defaultValue={group.website ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="meetingFrequency" className="font-medium text-harbour-700">
-              Meeting Frequency
-            </label>
+          <ManageField label="Meeting Frequency" htmlFor="meetingFrequency">
             <input
               type="text"
               id="meetingFrequency"
@@ -171,7 +143,7 @@ export default function EditGroup() {
               defaultValue={group.meetingFrequency ?? ""}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
-          </div>
+          </ManageField>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ImageUpload
@@ -202,7 +174,7 @@ export default function EditGroup() {
                 name="visible"
                 value="true"
                 defaultChecked={group.visible ?? true}
-                className="rounded"
+                className="border border-harbour-300"
               />
               <span className="text-sm text-harbour-600">Visible on public site</span>
             </label>
@@ -211,12 +183,7 @@ export default function EditGroup() {
             </p>
           </div>
 
-          <button
-            type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-          >
-            Update Group
-          </button>
+          <ManageSubmitButton>Update Group</ManageSubmitButton>
         </Form>
       </div>
     </div>

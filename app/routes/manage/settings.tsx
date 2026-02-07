@@ -123,7 +123,7 @@ export default function Settings() {
                     type="checkbox"
                     name={section}
                     defaultChecked={visibility[section]}
-                    className="mt-1 h-4 w-4 text-harbour-600 border-harbour-300 rounded focus:ring-harbour-500"
+                    className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
                   />
                   <div className="flex flex-col gap-1">
                     <span className="font-medium text-harbour-700">{sectionLabels[section]}</span>
@@ -151,7 +151,7 @@ export default function Settings() {
                     type="checkbox"
                     name={`comments_${contentType}`}
                     defaultChecked={commentVisibility[contentType]}
-                    className="mt-1 h-4 w-4 text-harbour-600 border-harbour-300 rounded focus:ring-harbour-500"
+                    className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
                   />
                   <div className="flex flex-col gap-1">
                     <span className="font-medium text-harbour-700">

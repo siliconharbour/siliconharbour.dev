@@ -2,6 +2,8 @@ import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getEventById, deleteEvent } from "~/lib/events.server";
+import { parseIdOrThrow } from "~/lib/admin/route";
+import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Delete ${data?.event?.title || "Event"} - siliconharbour.dev` }];
@@ -10,10 +12,7 @@ export function meta({ data }: Route.MetaArgs) {
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    throw new Response("Invalid event ID", { status: 400 });
-  }
+  const id = parseIdOrThrow(params.id, "event");
 
   const event = await getEventById(id);
   if (!event) {
@@ -26,10 +25,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAuth(request);
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    throw new Response("Invalid event ID", { status: 400 });
-  }
+  const id = parseIdOrThrow(params.id, "event");
 
   await deleteEvent(id);
   return redirect("/manage/events");
@@ -39,30 +35,29 @@ export default function DeleteEvent() {
   const { event } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white border border-harbour-200 p-6 flex flex-col gap-6">
-        <h1 className="text-xl font-semibold text-harbour-700">Delete Event</h1>
-
-        <p className="text-harbour-500">
+    <DeleteConfirmationCard
+      title="Delete Event"
+      message={
+        <>
           Are you sure you want to delete <strong>{event.title}</strong>? This action cannot be
           undone.
-        </p>
-
-        <Form method="post" className="flex gap-4">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
-          >
-            Delete
-          </button>
-          <Link
-            to="/manage/events"
-            className="px-4 py-2 text-harbour-600 hover:bg-harbour-50 font-medium transition-colors"
-          >
-            Cancel
-          </Link>
-        </Form>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <Form method="post" className="flex gap-4">
+        <button
+          type="submit"
+          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+        >
+          Delete
+        </button>
+        <Link
+          to="/manage/events"
+          className="px-4 py-2 text-harbour-600 hover:bg-harbour-50 font-medium transition-colors"
+        >
+          Cancel
+        </Link>
+      </Form>
+    </DeleteConfirmationCard>
   );
 }
