@@ -165,7 +165,7 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
           {isAdmin && importSourceId && (
             <Link
               to={`/manage/import/jobs/${importSourceId}`}
-              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:flex items-center gap-1"
+              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:flex items-center"
               title="Open import sync page"
               aria-label="Open import sync page"
             >
@@ -178,7 +178,6 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
                 />
                 <circle cx="11.183" cy="12" r="2.8" strokeWidth="2" />
               </svg>
-              <span>Sync</span>
             </Link>
           )}
           {(company.careersUrl || company.website) && (

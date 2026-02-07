@@ -107,6 +107,9 @@ export default function ManageImportJobs() {
   const fetcher = useFetcher<typeof action>();
   
   const isLoading = fetcher.state !== "idle";
+  const activeIntent = fetcher.formData?.get("intent");
+  const activeSourceId = Number(fetcher.formData?.get("sourceId"));
+  const isSyncAllLoading = isLoading && activeIntent === "sync-all";
   const syncResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync" ? fetcher.data : null;
   const syncAllResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync-all" ? fetcher.data : null;
 
@@ -129,7 +132,7 @@ export default function ManageImportJobs() {
                 disabled={isLoading}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
               >
-                {isLoading && fetcher.formData?.get("intent") === "sync-all" ? "Syncing All..." : "Sync All"}
+                {isSyncAllLoading ? "Syncing All..." : "Sync All"}
               </button>
             </fetcher.Form>
             <Link
@@ -208,70 +211,75 @@ export default function ManageImportJobs() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
-                {sources.map((source) => (
-                  <tr key={source.id} className="hover:bg-harbour-50">
-                    <td className="px-4 py-3">
-                      {source.company ? (
-                        <Link
-                          to={`/directory/companies/${source.company.slug}`}
-                          className="text-harbour-600 hover:underline font-medium"
-                        >
-                          {source.company.name}
-                        </Link>
-                      ) : (
-                        <span className="text-harbour-400">Unknown</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">
-                      {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] || source.sourceType}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-mono text-harbour-400">
-                      {source.sourceIdentifier}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700 font-medium">
-                        {source.activeJobCount}
-                      </span>
-                      {source.pendingReviewCount > 0 && (
-                        <span className="ml-1 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 font-medium" title="Pending review">
-                          {source.pendingReviewCount}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">
-                      {formatDate(source.lastFetchedAt)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <StatusBadge status={source.fetchStatus} />
-                      {source.fetchError && (
-                        <span className="ml-1 text-red-500 cursor-help" title={source.fetchError}>
-                          !
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <fetcher.Form method="post">
-                          <input type="hidden" name="intent" value="sync" />
-                          <input type="hidden" name="sourceId" value={source.id} />
-                          <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white transition-colors"
+                {sources.map((source) => {
+                  const isThisRowSyncing =
+                    isLoading && activeIntent === "sync" && activeSourceId === source.id;
+
+                  return (
+                    <tr key={source.id} className="hover:bg-harbour-50">
+                      <td className="px-4 py-3">
+                        {source.company ? (
+                          <Link
+                            to={`/directory/companies/${source.company.slug}`}
+                            className="text-harbour-600 hover:underline font-medium"
                           >
-                            {isLoading ? "..." : "Sync"}
-                          </button>
-                        </fetcher.Form>
-                        <Link
-                          to={`/manage/import/jobs/${source.id}`}
-                          className="px-2 py-1 text-xs bg-harbour-100 hover:bg-harbour-200 text-harbour-700 transition-colors"
-                        >
-                          View
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            {source.company.name}
+                          </Link>
+                        ) : (
+                          <span className="text-harbour-400">Unknown</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-harbour-500">
+                        {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] || source.sourceType}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-mono text-harbour-400">
+                        {source.sourceIdentifier}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700 font-medium">
+                          {source.activeJobCount}
+                        </span>
+                        {source.pendingReviewCount > 0 && (
+                          <span className="ml-1 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 font-medium" title="Pending review">
+                            {source.pendingReviewCount}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-harbour-400">
+                        {formatDate(source.lastFetchedAt)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <StatusBadge status={source.fetchStatus} />
+                        {source.fetchError && (
+                          <span className="ml-1 text-red-500 cursor-help" title={source.fetchError}>
+                            !
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <fetcher.Form method="post">
+                            <input type="hidden" name="intent" value="sync" />
+                            <input type="hidden" name="sourceId" value={source.id} />
+                            <button
+                              type="submit"
+                              disabled={isLoading}
+                              className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white transition-colors"
+                            >
+                              {isThisRowSyncing ? "..." : "Sync"}
+                            </button>
+                          </fetcher.Form>
+                          <Link
+                            to={`/manage/import/jobs/${source.id}`}
+                            className="px-2 py-1 text-xs bg-harbour-100 hover:bg-harbour-200 text-harbour-700 transition-colors"
+                          >
+                            View
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
