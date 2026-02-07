@@ -31,9 +31,10 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const showNonTechnical = url.searchParams.get("showNonTechnical") === "true";
-  const rawSelectedWorkplaceTypes = url.searchParams
-    .getAll("workplaceType")
+  const showNonTechnical = url.searchParams.get("technical") === "false";
+  const rawSelectedWorkplaceTypes = (url.searchParams.get("workplace") || "")
+    .split(",")
+    .map((value) => value.trim())
     .filter((value): value is WorkplaceFilterType =>
       workplaceTypeOptions.includes(value as WorkplaceFilterType),
     );
@@ -93,7 +94,7 @@ export default function JobsIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    if (searchParams.has("showNonTechnical")) {
+    if (searchParams.has("technical")) {
       return;
     }
     const persisted = window.localStorage.getItem(NON_TECH_STORAGE_KEY);
@@ -101,7 +102,7 @@ export default function JobsIndex() {
       return;
     }
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.set("showNonTechnical", "true");
+    nextParams.set("technical", "false");
     setSearchParams(nextParams, { replace: true });
   }, [searchParams, setSearchParams]);
 
@@ -109,9 +110,9 @@ export default function JobsIndex() {
     window.localStorage.setItem(NON_TECH_STORAGE_KEY, checked ? "true" : "false");
     const newParams = new URLSearchParams(searchParams);
     if (checked) {
-      newParams.set("showNonTechnical", "true");
+      newParams.set("technical", "false");
     } else {
-      newParams.delete("showNonTechnical");
+      newParams.delete("technical");
     }
     setSearchParams(newParams);
   };
@@ -125,12 +126,10 @@ export default function JobsIndex() {
     }
 
     const newParams = new URLSearchParams(searchParams);
-    newParams.delete("workplaceType");
+    newParams.delete("workplace");
 
     if (validSelection.length !== workplaceTypeOptions.length) {
-      for (const value of validSelection) {
-        newParams.append("workplaceType", value);
-      }
+      newParams.set("workplace", validSelection.join(","));
     }
 
     setSearchParams(newParams);
@@ -158,7 +157,10 @@ export default function JobsIndex() {
           {/* Filters */}
           <div className="flex flex-col gap-3">
             <div className="flex-1 min-w-[200px]">
-              <SearchInput placeholder="Search jobs..." />
+              <SearchInput
+                placeholder="Search jobs..."
+                preserveParams={["technical", "workplace"]}
+              />
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
