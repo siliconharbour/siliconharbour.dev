@@ -423,22 +423,48 @@ export default function CompanyDetail() {
             </div>
             {provenanceEntries.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                {provenanceEntries.length > 1 && (
-                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700">
-                    Multiple sources ({provenanceEntries.length})
-                  </span>
-                )}
-                {provenanceEntries.map((entry, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => setShowEvidence(true)}
-                    className="text-harbour-500 hover:text-harbour-700 hover:underline"
-                  >
-                    via {entry.source || "source"}
-                    {entry.lastVerified && <span> ({formatMonthYear(entry.lastVerified)})</span>}
-                  </button>
-                ))}
+                <span className="text-harbour-500">via</span>
+                {provenanceEntries.map((entry, index) => {
+                  const isLast = index === provenanceEntries.length - 1;
+                  const isSecondLast = index === provenanceEntries.length - 2;
+                  const separator =
+                    provenanceEntries.length <= 1 || isLast
+                      ? ""
+                      : isSecondLast
+                        ? ", &"
+                        : ",";
+                  const label = `${entry.source || "source"}${entry.lastVerified ? ` (${formatMonthYear(entry.lastVerified)})` : ""}`;
+                  const isGetBuilding = (entry.source || "").includes("Get Building");
+
+                  if (isGetBuilding && entry.sourceUrl) {
+                    return (
+                      <span key={index}>
+                        <a
+                          href={entry.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-harbour-500 hover:text-harbour-700 hover:underline"
+                        >
+                          {label}
+                        </a>
+                        {separator && <span>{separator}</span>}
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <span key={index}>
+                      <button
+                        type="button"
+                        onClick={() => setShowEvidence(true)}
+                        className="text-harbour-500 hover:text-harbour-700 hover:underline"
+                      >
+                        {label}
+                      </button>
+                      {separator && <span>{separator}</span>}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
