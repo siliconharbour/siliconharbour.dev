@@ -111,7 +111,7 @@ export default function JobsIndex() {
         ) : (
           <div className="flex flex-col gap-6">
             {companiesWithJobs.map((cwj) => (
-              <CompanyJobCard key={cwj.company.id} data={cwj} />
+              <CompanyJobCard key={cwj.company.id} data={cwj} isAdmin={isAdmin} />
             ))}
           </div>
         )}
@@ -120,8 +120,9 @@ export default function JobsIndex() {
   );
 }
 
-function CompanyJobCard({ data }: { data: CompanyWithJobs }) {
+function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boolean }) {
   const { company, jobs } = data;
+  const importSourceId = jobs.find((job) => job.sourceId)?.sourceId;
 
   return (
     <div className="ring-1 ring-harbour-200 bg-white overflow-hidden">
@@ -160,16 +161,37 @@ function CompanyJobCard({ data }: { data: CompanyWithJobs }) {
             </span>
           </div>
         </div>
-        {(company.careersUrl || company.website) && (
-          <a
-            href={company.careersUrl || company.website!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:block"
-          >
-            {company.careersUrl ? "Careers" : "Website"}
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {isAdmin && importSourceId && (
+            <Link
+              to={`/manage/import/jobs/${importSourceId}`}
+              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:flex items-center gap-1"
+              title="Open import sync page"
+              aria-label="Open import sync page"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M11.983 4.5a1.8 1.8 0 011.77 1.48l.09.49a6.96 6.96 0 011.39.8l.47-.16a1.8 1.8 0 012 .73l.8 1.38a1.8 1.8 0 01-.23 2.12l-.34.38c.07.47.07.95 0 1.42l.34.38a1.8 1.8 0 01.23 2.12l-.8 1.38a1.8 1.8 0 01-2 .73l-.47-.16a6.96 6.96 0 01-1.39.8l-.09.49a1.8 1.8 0 01-1.77 1.48h-1.6a1.8 1.8 0 01-1.77-1.48l-.09-.49a6.96 6.96 0 01-1.39-.8l-.47.16a1.8 1.8 0 01-2-.73l-.8-1.38a1.8 1.8 0 01.23-2.12l.34-.38a6.08 6.08 0 010-1.42l-.34-.38a1.8 1.8 0 01-.23-2.12l.8-1.38a1.8 1.8 0 012-.73l.47.16a6.96 6.96 0 011.39-.8l.09-.49A1.8 1.8 0 0110.383 4.5h1.6z"
+                />
+                <circle cx="11.183" cy="12" r="2.8" strokeWidth="2" />
+              </svg>
+              <span>Sync</span>
+            </Link>
+          )}
+          {(company.careersUrl || company.website) && (
+            <a
+              href={company.careersUrl || company.website!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:block"
+            >
+              {company.careersUrl ? "Careers" : "Website"}
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Jobs List */}

@@ -18,7 +18,7 @@ See `/design` for complete examples of buttons, forms, cards, tables, badges, an
 
 This project uses a CLI ticket system for task management.
 
-When you are asked to do something, you should first log it as a ticket using `tk`, before you start work on it, and when
+When you are asked to do something, do a brief initial investigation first (identify files, confirm scope, sanity-check approach), then log it as a ticket using `tk` before making edits or running substantive changes. When
 you get to the end of a task, see the list of tickets to figure out if there is more work to do.
 
 Run `tk help` if you are unaware how `tk` works.

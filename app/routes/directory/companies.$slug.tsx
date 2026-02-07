@@ -81,6 +81,8 @@ export default function CompanyDetail() {
     provenance,
     activeJobs,
   } = useLoaderData<typeof loader>();
+  const technicalJobs = activeJobs.filter((job) => job.isTechnical);
+  const nonTechnicalJobs = activeJobs.filter((job) => !job.isTechnical);
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
@@ -322,50 +324,106 @@ export default function CompanyDetail() {
         )}
 
         {activeJobs.length > 0 && (
-          <div className="border-t border-harbour-200 pt-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3">
+          <div className="border-t border-harbour-200 pt-6 flex flex-col gap-5">
+            <h2 className="text-lg font-semibold text-harbour-700">
               Open Positions ({activeJobs.length})
             </h2>
-            <div className="flex flex-col gap-2">
-              {activeJobs.map((job) => (
-                <a
-                  key={job.id}
-                  href={job.url || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 bg-white hover:bg-harbour-50 border border-harbour-200 transition-colors group"
-                >
-                  <div className="flex flex-col gap-0.5">
-                    <span className="font-medium text-harbour-700 group-hover:text-harbour-900">
-                      {job.title}
-                    </span>
-                    <div className="flex items-center gap-2 text-sm text-harbour-500">
-                      {job.location && <span>{job.location}</span>}
-                      {job.department && (
-                        <>
-                          {job.location && <span className="text-harbour-300">|</span>}
-                          <span>{job.department}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {job.workplaceType && (
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                        job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
-                        job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
-                        "bg-blue-100 text-blue-700"
-                      }`}>
-                        {job.workplaceType}
-                      </span>
-                    )}
-                    <svg className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </div>
-                </a>
-              ))}
-            </div>
+
+            {technicalJobs.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold text-harbour-700">
+                  Technical ({technicalJobs.length})
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {technicalJobs.map((job) => (
+                    <a
+                      key={job.id}
+                      href={job.url || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 bg-white hover:bg-harbour-50 border border-harbour-200 transition-colors group"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-harbour-700 group-hover:text-harbour-900">
+                          {job.title}
+                        </span>
+                        <div className="flex items-center gap-2 text-sm text-harbour-500">
+                          {job.location && <span>{job.location}</span>}
+                          {job.department && (
+                            <>
+                              {job.location && <span className="text-harbour-300">|</span>}
+                              <span>{job.department}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {job.workplaceType && (
+                          <span className={`px-2 py-0.5 text-xs font-medium ${
+                            job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
+                            job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
+                            "bg-blue-100 text-blue-700"
+                          }`}>
+                            {job.workplaceType}
+                          </span>
+                        )}
+                        <svg className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {nonTechnicalJobs.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold text-harbour-700">
+                  Non-technical ({nonTechnicalJobs.length})
+                </h3>
+                <div className="flex flex-col gap-2">
+                  {nonTechnicalJobs.map((job) => (
+                    <a
+                      key={job.id}
+                      href={job.url || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-3 bg-white hover:bg-harbour-50 border border-harbour-200 transition-colors group"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-medium text-harbour-700 group-hover:text-harbour-900">
+                          {job.title}
+                        </span>
+                        <div className="flex items-center gap-2 text-sm text-harbour-500">
+                          {job.location && <span>{job.location}</span>}
+                          {job.department && (
+                            <>
+                              {job.location && <span className="text-harbour-300">|</span>}
+                              <span>{job.department}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {job.workplaceType && (
+                          <span className={`px-2 py-0.5 text-xs font-medium ${
+                            job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
+                            job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
+                            "bg-blue-100 text-blue-700"
+                          }`}>
+                            {job.workplaceType}
+                          </span>
+                        )}
+                        <svg className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
