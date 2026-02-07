@@ -25,6 +25,7 @@ import { scrapeEnaimco } from "./custom/enaimco";
 import { scrapeTriware } from "./custom/triware";
 import { scrapeFocusfs } from "./custom/focusfs";
 import { scrapeBluedrop } from "./custom/bluedrop";
+import { scrapeVish } from "./custom/vish";
 
 /**
  * Registry of custom scrapers by company identifier
@@ -40,6 +41,7 @@ const scrapers: Record<string, CustomScraper> = {
   triware: () => scrapeTriware(),
   focusfs: () => scrapeFocusfs(),
   bluedrop: () => scrapeBluedrop(),
+  vish: (careersUrl: string) => scrapeVish(careersUrl),
 };
 
 export const customImporter: JobImporter = {
