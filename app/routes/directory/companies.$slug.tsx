@@ -13,6 +13,25 @@ import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 
+function formatMonthYear(value: string): string {
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const monthIndex = Number(dateOnlyMatch[2]) - 1;
+    return new Date(Date.UTC(year, monthIndex, 1)).toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `${data?.company?.name ?? "Company"} - siliconharbour.dev` }];
 }
@@ -314,7 +333,7 @@ export default function CompanyDetail() {
                   {provenance.lastVerified && (
                     <span>
                       {" "}
-                      ({new Date(provenance.lastVerified).toLocaleDateString("en-US", { month: "short", year: "numeric" })})
+                      ({formatMonthYear(provenance.lastVerified)})
                     </span>
                   )}
                 </span>

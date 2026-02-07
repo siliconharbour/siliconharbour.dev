@@ -8,6 +8,25 @@ import type { EventWithDates } from "~/lib/events.server";
 
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";
 
+function formatMonthYear(value: string): string {
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const monthIndex = Number(dateOnlyMatch[2]) - 1;
+    return new Date(Date.UTC(year, monthIndex, 1)).toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  }
+
+  return new Date(value).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // =============================================================================
 // Response helpers
 // =============================================================================
@@ -128,8 +147,7 @@ ${company.description}
     if (provenance && (provenance.source || provenance.sourceUrl)) {
       content += `*Source: ${provenance.sourceUrl ? `[${provenance.source || "link"}](${provenance.sourceUrl})` : provenance.source}`;
       if (provenance.lastVerified) {
-        const date = new Date(provenance.lastVerified);
-        content += ` (${date.toLocaleDateString("en-US", { month: "short", year: "numeric" })})`;
+        content += ` (${formatMonthYear(provenance.lastVerified)})`;
       }
       content += `*\n`;
     }
