@@ -98,6 +98,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
       jobCount: number;
       evidence: Array<{
         technology: string;
+        jobId: number | null;
         jobTitle: string | null;
         jobStatus: string | null;
         jobUrl: string | null;
@@ -116,6 +117,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         }
         existing.evidence.push({
           technology: item.technology.name,
+          jobId: evidence.jobId,
           jobTitle: evidence.jobTitle,
           jobStatus: evidence.jobStatus,
           jobUrl: evidence.jobUrl,
@@ -134,6 +136,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
         evidence: [
           {
             technology: item.technology.name,
+            jobId: evidence.jobId,
             jobTitle: evidence.jobTitle,
             jobStatus: evidence.jobStatus,
             jobUrl: evidence.jobUrl,
@@ -181,8 +184,15 @@ export default function CompanyDetail() {
   const technicalJobs = activeJobs.filter((job) => job.isTechnical);
   const nonTechnicalJobs = activeJobs.filter((job) => !job.isTechnical);
   const evidenceJobs = useMemo(
-    () =>
-      Array.from(
+    () => {
+      const descriptionByKey = new Map<string, string>();
+      for (const job of activeJobs) {
+        if (!job.url || !job.descriptionText) continue;
+        const key = `${job.title}::${job.url}`.toLowerCase();
+        descriptionByKey.set(key, job.descriptionText);
+      }
+
+      return Array.from(
         provenanceEntries
           .flatMap((entry) => entry.evidence)
           .filter((evidence) => evidence.jobTitle && evidence.jobUrl)
@@ -205,6 +215,7 @@ export default function CompanyDetail() {
                 title: evidence.jobTitle as string,
                 url: evidence.jobUrl as string,
                 status: evidence.jobStatus,
+                fullText: descriptionByKey.get(key) ?? null,
                 excerpts:
                   evidence.excerptText && evidence.excerptText.trim().length > 0
                     ? [evidence.excerptText]
@@ -218,13 +229,15 @@ export default function CompanyDetail() {
                 title: string;
                 url: string;
                 status: string | null;
+                fullText: string | null;
                 excerpts: string[];
               }
             >(),
           )
           .values(),
-      ),
-    [provenanceEntries],
+      );
+    },
+    [provenanceEntries, activeJobs],
   );
 
   return (
@@ -525,13 +538,13 @@ export default function CompanyDetail() {
                         >
                           Open job posting
                         </a>
-                        {job.excerpts.length > 0 && (
+                        {(job.fullText || job.excerpts.length > 0) && (
                           <details className="bg-harbour-50 border border-harbour-200 p-2">
                             <summary className="cursor-pointer text-xs font-medium text-harbour-700">
                               View full posting text
                             </summary>
                             <pre className="mt-2 text-xs text-harbour-600 whitespace-pre-wrap break-words font-mono">
-                              {job.excerpts.join("\n\n")}
+                              {job.fullText || job.excerpts.join("\n\n")}
                             </pre>
                           </details>
                         )}
