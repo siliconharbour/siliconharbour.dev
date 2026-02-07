@@ -1,5 +1,5 @@
 import type { Route } from "./+types/index";
-import { createCookie, data, Link, redirect, useLoaderData, useSearchParams } from "react-router";
+import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router";
 import { getJobsGroupedByCompany, type CompanyWithJobs } from "~/lib/jobs.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { SearchInput } from "~/components/SearchInput";
@@ -18,13 +18,6 @@ const workplaceTypeFilterOptions = workplaceTypeOptions.map((value) => ({
   value,
   label: workplaceTypeLabels[value],
 }));
-const showNonTechnicalCookie = createCookie("__jobs_show_non_technical", {
-  path: "/jobs",
-  sameSite: "lax",
-  httpOnly: false,
-  secure: process.env.NODE_ENV === "production",
-  maxAge: 60 * 60 * 24 * 365,
-});
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -37,28 +30,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
   const technicalParam = url.searchParams.get("technical");
-  const cookieHeader = request.headers.get("Cookie");
-  const cookiePref = await showNonTechnicalCookie.parse(cookieHeader);
-  const paramsForRedirect = new URLSearchParams(url.searchParams);
-  if (technicalParam === null && cookiePref === "1") {
-    paramsForRedirect.set("technical", "false");
-    throw redirect(`${url.pathname}?${paramsForRedirect.toString()}`);
-  }
-  if (technicalParam === "true") {
-    paramsForRedirect.delete("technical");
-    const target = paramsForRedirect.toString()
-      ? `${url.pathname}?${paramsForRedirect.toString()}`
-      : url.pathname;
-    throw redirect(target, {
-      headers: {
-        "Set-Cookie": await showNonTechnicalCookie.serialize("0"),
-      },
-    });
-  }
-
   const showNonTechnical = technicalParam === "false";
   const rawSelectedWorkplaceTypes = (url.searchParams.get("workplace") || "")
-    .split(",")
+    .split("|")
     .map((value) => value.trim())
     .filter((value): value is WorkplaceFilterType =>
       workplaceTypeOptions.includes(value as WorkplaceFilterType),
@@ -102,36 +76,35 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const totalJobs = companiesWithJobs.reduce((sum, cwj) => sum + cwj.jobs.length, 0);
-
-  const shouldPersistFromQuery = technicalParam === "false";
-  const setCookieHeader = shouldPersistFromQuery
-    ? await showNonTechnicalCookie.serialize("1")
-    : null;
-
-  return data({
+  return {
     companiesWithJobs,
     totalJobs,
     searchQuery,
     isAdmin,
     showNonTechnical,
     selectedWorkplaceTypes,
-  }, setCookieHeader ? { headers: { "Set-Cookie": setCookieHeader } } : undefined);
+  };
 }
 
 export default function JobsIndex() {
   const { companiesWithJobs, totalJobs, searchQuery, isAdmin, showNonTechnical, selectedWorkplaceTypes } =
     useLoaderData<typeof loader>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const navigateWithParams = (params: URLSearchParams) => {
+    const query = params.toString().replaceAll("%7C", "|");
+    navigate(query ? `?${query}` : "");
+  };
 
   const handleShowNonTechnicalChange = (checked: boolean) => {
     const newParams = new URLSearchParams(searchParams);
     if (checked) {
       newParams.set("technical", "false");
     } else {
-      // Use technical=true once so loader can clear cookie and canonicalize URL back to default.
-      newParams.set("technical", "true");
+      newParams.delete("technical");
     }
-    setSearchParams(newParams);
+    navigateWithParams(newParams);
   };
 
   const handleWorkplaceTypeChange = (nextSelected: string[]) => {
@@ -146,10 +119,10 @@ export default function JobsIndex() {
     newParams.delete("workplace");
 
     if (validSelection.length !== workplaceTypeOptions.length) {
-      newParams.set("workplace", validSelection.join(","));
+      newParams.set("workplace", validSelection.join("|"));
     }
 
-    setSearchParams(newParams);
+    navigateWithParams(newParams);
   };
 
   return (

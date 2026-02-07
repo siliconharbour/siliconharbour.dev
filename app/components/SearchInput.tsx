@@ -43,7 +43,8 @@ export function SearchInput({
     params.delete("offset");
 
     const queryString = params.toString();
-    navigate(queryString ? `?${queryString}` : "", { replace: true });
+    const readableQuery = queryString.replaceAll("%7C", "|");
+    navigate(readableQuery ? `?${readableQuery}` : "", { replace: true });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
