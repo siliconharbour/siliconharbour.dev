@@ -46,33 +46,34 @@ function getContentUrl(type: ContentType, slug: string): string {
 // =============================================================================
 
 const REFERENCE_REGEX = /\[\[([^\]]+)\]\]/g;
-// Matches the relation syntax: {Relation} at {Target}
-const RELATION_REGEX = /^\{([^}]+)\}\s+at\s+\{([^}]+)\}$/i;
+// Matches the relation syntax: {Relation} at|of {Target}
+const RELATION_REGEX = /^\{([^}]+)\}\s+(at|of)\s+\{([^}]+)\}$/i;
 
 /**
  * Pre-process markdown to convert [[references]] to links
  * Resolved refs become real links, unresolved ones stay as styled text
- * Supports both [[Target]] and [[{Relation} at {Target}]] syntax
+ * Supports both [[Target]] and [[{Relation} at|of {Target}]] syntax
  */
 function processReferences(content: string, resolvedRefs?: Record<string, ResolvedRef>): string {
   return content.replace(REFERENCE_REGEX, (match, text) => {
     const trimmed = text.trim();
 
-    // Check for relation syntax: [[{CEO} at {CoLab Software}]]
+    // Check for relation syntax: [[{CEO} at {CoLab Software}]] or [[{CEO} of {CoLab Software}]]
     const relationMatch = RELATION_REGEX.exec(trimmed);
     if (relationMatch) {
       const relation = relationMatch[1].trim();
-      const target = relationMatch[2].trim();
+      const connector = relationMatch[2].trim().toLowerCase();
+      const target = relationMatch[3].trim();
       const resolved = resolvedRefs?.[target];
 
       if (resolved) {
         const url = getContentUrl(resolved.type, resolved.slug);
-        // Display as "Relation at Target" with Target linked
-        return `${relation} at [${resolved.name}](${url})`;
+        // Display as "Relation at|of Target" with Target linked
+        return `${relation} ${connector} [${resolved.name}](${url})`;
       }
 
       // Unresolved - show the full text
-      return `${relation} at **${target}**`;
+      return `${relation} ${connector} **${target}**`;
     }
 
     // Simple syntax: [[Target]]

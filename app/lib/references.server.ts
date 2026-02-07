@@ -69,10 +69,10 @@ async function isEntityVisible(type: ContentType, id: number): Promise<boolean> 
 // Reference Parser - Extract [[references]] from markdown
 // =============================================================================
 
-// Matches both simple [[Target]] and relation [[{Relation} at {Target}]] syntax
+// Matches both simple [[Target]] and relation [[{Relation} at|of {Target}]] syntax
 const REFERENCE_REGEX = /\[\[([^\]]+)\]\]/g;
-// Matches the relation syntax: {Relation} at {Target}
-const RELATION_REGEX = /^\{([^}]+)\}\s+at\s+\{([^}]+)\}$/i;
+// Matches the relation syntax: {Relation} at|of {Target}
+const RELATION_REGEX = /^\{([^}]+)\}\s+(at|of)\s+\{([^}]+)\}$/i;
 
 export interface ParsedReference {
   text: string; // The target text (entity name)
@@ -83,7 +83,7 @@ export interface ParsedReference {
 
 /**
  * Extract all [[reference]] patterns from markdown content
- * Supports both simple [[Target]] and [[{Relation} at {Target}]] syntax
+ * Supports both simple [[Target]] and [[{Relation} at|of {Target}]] syntax
  */
 export function parseReferences(content: string): ParsedReference[] {
   const refs: ParsedReference[] = [];
@@ -94,9 +94,9 @@ export function parseReferences(content: string): ParsedReference[] {
     const relationMatch = RELATION_REGEX.exec(inner);
 
     if (relationMatch) {
-      // Relation syntax: [[{CEO} at {CoLab Software}]]
+      // Relation syntax: [[{CEO} at {CoLab Software}]] or [[{CEO} of {CoLab Software}]]
       refs.push({
-        text: relationMatch[2].trim(),
+        text: relationMatch[3].trim(),
         relation: relationMatch[1].trim(),
         fullMatch: match[0],
         index: match.index,
