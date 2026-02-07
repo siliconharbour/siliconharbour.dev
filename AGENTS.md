@@ -25,6 +25,11 @@ Run `tk help` if you are unaware how `tk` works.
 
 When given a set of tasks, **continue working until ALL tasks are complete**. Do not stop to ask for confirmation between tasks. Execute the full plan.
 
+## Package Manager
+
+This is a **pnpm** project. Use `pnpm` commands for dependency and script management.
+Do not use `npm` in this repository.
+
 ## Adding New Routes
 
 This project uses **explicit route definitions** in `app/routes.ts`. When adding new pages:
@@ -98,13 +103,13 @@ Add an entry to `drizzle/meta/_journal.json`:
 ### 4. Run Migration
 
 ```bash
-npm run db:migrate
+pnpm run db:migrate
 ```
 
 ## Session Completion
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until your work is in the local main branch.
 
-1. **Run quality gates** (if code changed) - `npm run lint:fix`, `npm run build`.
+1. **Run quality gates** (if code changed) - `pnpm run lint:fix`, `pnpm run build`.
 2. **Commit** - Write a simple commit message, have some lines of bullet point description if it makes sense.
 3. **Verify** - All changes committed to main
