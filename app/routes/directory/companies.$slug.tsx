@@ -506,16 +506,14 @@ export default function CompanyDetail() {
                           Open job posting
                         </a>
                         {job.excerpts.length > 0 && (
-                          <div className="bg-harbour-50 border border-harbour-200 p-2 flex flex-col gap-2">
-                            {job.excerpts.map((excerpt, excerptIndex) => (
-                              <p
-                                key={excerptIndex}
-                                className="text-xs text-harbour-600 whitespace-pre-wrap break-words"
-                              >
-                                {excerpt}
-                              </p>
-                            ))}
-                          </div>
+                          <details className="bg-harbour-50 border border-harbour-200 p-2">
+                            <summary className="cursor-pointer text-xs font-medium text-harbour-700">
+                              View full posting text
+                            </summary>
+                            <pre className="mt-2 text-xs text-harbour-600 whitespace-pre-wrap break-words font-mono">
+                              {job.excerpts.join("\n\n")}
+                            </pre>
+                          </details>
                         )}
                       </div>
                     ))
