@@ -11,6 +11,8 @@ interface BaseMultiSelectProps {
   selectedValues: string[];
   onChange: (values: string[]) => void;
   placeholder?: string;
+  showSelectedChipsInTrigger?: boolean;
+  showSelectedChipsBelow?: boolean;
 }
 
 export function BaseMultiSelect({
@@ -19,6 +21,8 @@ export function BaseMultiSelect({
   selectedValues,
   onChange,
   placeholder = "Select options...",
+  showSelectedChipsInTrigger = false,
+  showSelectedChipsBelow = true,
 }: BaseMultiSelectProps) {
   const selectedOptionLabels = options
     .filter((option) => selectedValues.includes(option.value))
@@ -34,7 +38,26 @@ export function BaseMultiSelect({
         <Select.Trigger className="w-full px-3 py-2 border border-harbour-300 bg-white text-left text-harbour-700 flex items-center justify-between focus:outline-none data-[popup-open]:border-harbour-500">
           <Select.Value placeholder={placeholder}>
             {(value) =>
-              Array.isArray(value) && value.length > 0 ? `${value.length} selected` : placeholder
+              Array.isArray(value) && value.length > 0 ? (
+                showSelectedChipsInTrigger ? (
+                  <div className="flex flex-wrap gap-1">
+                    {options
+                      .filter((option) => value.includes(option.value))
+                      .map((option) => (
+                        <span
+                          key={option.value}
+                          className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700"
+                        >
+                          {option.label}
+                        </span>
+                      ))}
+                  </div>
+                ) : (
+                  `${value.length} selected`
+                )
+              ) : (
+                placeholder
+              )
             }
           </Select.Value>
           <Select.Icon className="text-harbour-400">▼</Select.Icon>
@@ -63,7 +86,7 @@ export function BaseMultiSelect({
         <input key={value} type="hidden" name={name} value={value} />
       ))}
 
-      {selectedOptionLabels.length > 0 && (
+      {showSelectedChipsBelow && selectedOptionLabels.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {selectedOptionLabels.map((label) => (
             <span key={label} className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700">

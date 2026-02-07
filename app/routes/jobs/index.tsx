@@ -180,6 +180,8 @@ export default function JobsIndex() {
                   selectedValues={selectedWorkplaceTypes}
                   onChange={handleWorkplaceTypeChange}
                   placeholder="Workplace types"
+                  showSelectedChipsInTrigger
+                  showSelectedChipsBelow={false}
                 />
               </div>
             </div>
@@ -315,6 +317,9 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
               )}
               {job.workplaceType === "hybrid" && (
                 <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700">Hybrid</span>
+              )}
+              {job.workplaceType === "onsite" && (
+                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700">Onsite</span>
               )}
               {job.salaryRange && (
                 <span className="text-xs px-2 py-1 bg-harbour-100 text-harbour-600">
