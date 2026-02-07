@@ -34,6 +34,25 @@ function formatMonthYear(value: string): string {
   });
 }
 
+function getProvenanceSourceDisplayLabel(
+  sourceType: "job_posting" | "survey" | "manual",
+  sourceLabel: string | null,
+): string {
+  const trimmed = sourceLabel?.trim();
+  if (trimmed) return trimmed;
+
+  switch (sourceType) {
+    case "job_posting":
+      return "Job Postings";
+    case "survey":
+      return "Survey";
+    case "manual":
+      return "Manual";
+    default:
+      return "Source";
+  }
+}
+
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `${data?.company?.name ?? "Company"} - siliconharbour.dev` }];
 }
@@ -433,8 +452,9 @@ export default function CompanyDetail() {
                       : isSecondLast
                         ? ", &"
                         : ",";
-                  const label = `${entry.source || "source"}${entry.lastVerified ? ` (${formatMonthYear(entry.lastVerified)})` : ""}`;
-                  const isGetBuilding = (entry.source || "").includes("Get Building");
+                  const displaySource = getProvenanceSourceDisplayLabel(entry.sourceType, entry.source);
+                  const label = `${displaySource}${entry.lastVerified ? ` (${formatMonthYear(entry.lastVerified)})` : ""}`;
+                  const isGetBuilding = displaySource.includes("Get Building");
 
                   if (isGetBuilding && entry.sourceUrl) {
                     return (
