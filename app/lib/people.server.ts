@@ -54,7 +54,7 @@ export async function updatePerson(
 
   if (!updated) return null;
 
-  if (person.bio) {
+  if (person.bio !== undefined) {
     await syncReferences("person", id, person.bio);
   }
 

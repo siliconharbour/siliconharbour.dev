@@ -28,6 +28,7 @@ import { scrapeBluedrop } from "./custom/bluedrop";
 import { scrapeVish } from "./custom/vish";
 import { scrapeAkerSolutions } from "./custom/aker-solutions";
 import { scrapeDataFarms } from "./custom/data-farms";
+import { scrapeDigitalSix } from "./custom/digital-six";
 
 /**
  * Registry of custom scrapers by company identifier
@@ -46,6 +47,7 @@ const scrapers: Record<string, CustomScraper> = {
   vish: (careersUrl: string) => scrapeVish(careersUrl),
   "aker-solutions": (careersUrl: string) => scrapeAkerSolutions(careersUrl),
   "data-farms": (careersUrl: string) => scrapeDataFarms(careersUrl),
+  "digital-six-consulting": () => scrapeDigitalSix(),
 };
 
 export const customImporter: JobImporter = {
