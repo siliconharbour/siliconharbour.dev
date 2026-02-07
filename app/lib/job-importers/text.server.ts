@@ -20,11 +20,25 @@ export function normalizeTextForDisplay(text: string): string {
     .trim();
 }
 
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'");
+}
+
 /**
  * Convert HTML to plain text while preserving block-level breaks.
  */
 export function htmlToText(html: string): string {
-  const withBreaks = html
+  // Decode first so encoded tags like &lt;p&gt; are handled as HTML.
+  const decodedHtml = decodeHtmlEntities(html);
+
+  const withBreaks = decodedHtml
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<meta[^>]*>/gi, "")
@@ -33,14 +47,8 @@ export function htmlToText(html: string): string {
     .replace(/<\s*li[^>]*>/gi, "- ")
     .replace(/<[^>]+>/g, "");
 
-  const decoded = withBreaks
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/&#39;/g, "'");
+  // Decode one more time in case inner chunks were double-encoded.
+  const decodedText = decodeHtmlEntities(withBreaks);
 
-  return normalizeTextForDisplay(decoded);
+  return normalizeTextForDisplay(decodedText);
 }
