@@ -1,11 +1,11 @@
 import type { Route } from "./+types/projects";
-import { Link, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { getPaginatedProjects } from "~/lib/projects.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { parseProjectLinks } from "~/lib/project-links";
-import { Pagination, parsePaginationParams } from "~/components/Pagination";
-import { SearchInput } from "~/components/SearchInput";
 import type { ProjectType, ProjectStatus } from "~/db/schema";
+import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
+import { parsePublicListParams } from "~/lib/public-query.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Projects - Directory - siliconharbour.dev" }];
@@ -13,8 +13,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const { limit, offset } = parsePaginationParams(url);
-  const searchQuery = url.searchParams.get("q") || "";
+  const { limit, offset, searchQuery } = parsePublicListParams(url);
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
@@ -43,35 +42,20 @@ export default function DirectoryProjects() {
   const { items, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
 
   return (
-    <div className="flex flex-col gap-6">
-      {isAdmin && (
-        <div className="flex justify-end">
-          <Link
-            to="/manage/projects/new"
-            className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
-          >
-            + New Project
-          </Link>
-        </div>
-      )}
-
-      {/* Search */}
-      {(total > limit || searchQuery) && (
-        <div className="flex flex-col gap-2">
-          <SearchInput placeholder="Search projects..." />
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
-          )}
-        </div>
-      )}
-
-      {items.length === 0 ? (
-        <p className="text-harbour-400">
-          {searchQuery ? "No projects match your search." : "No projects listed yet."}
-        </p>
-      ) : (
+    <DirectoryListPage
+      isAdmin={isAdmin}
+      adminCreateTo="/manage/projects/new"
+      adminCreateLabel="New Project"
+      searchPlaceholder="Search projects..."
+      searchQuery={searchQuery}
+      total={total}
+      limit={limit}
+      offset={offset}
+      emptyMessage="No projects listed yet."
+      emptySearchMessage="No projects match your search."
+      hasItems={items.length > 0}
+    >
+      <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((project) => {
             const links = parseProjectLinks(project.links);
@@ -154,9 +138,7 @@ export default function DirectoryProjects() {
             );
           })}
         </div>
-      )}
-
-      <Pagination total={total} limit={limit} offset={offset} />
-    </div>
+      </>
+    </DirectoryListPage>
   );
 }

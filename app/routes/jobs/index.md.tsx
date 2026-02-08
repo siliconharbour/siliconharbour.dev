@@ -1,16 +1,15 @@
 import type { Route } from "./+types/index.md";
 import { getPaginatedJobs } from "~/lib/jobs.server";
-import { markdownResponse, listPageToMarkdown } from "~/lib/markdown.server";
+import { buildMarkdownListResponse } from "~/lib/markdown-route.server";
+import { parseMarkdownListParams } from "~/lib/public-query.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const limit = Math.min(parseInt(url.searchParams.get("limit") || "20", 10) || 20, 100);
-  const offset = parseInt(url.searchParams.get("offset") || "0", 10) || 0;
-  const searchQuery = url.searchParams.get("q") || "";
+  const { limit, offset, searchQuery } = parseMarkdownListParams(new URL(request.url));
 
   const { items, total } = await getPaginatedJobs(limit, offset, searchQuery);
 
-  const content = listPageToMarkdown({
+  return buildMarkdownListResponse({
+    request,
     title: "Jobs",
     description: "Tech job opportunities in St. John's and Newfoundland & Labrador.",
     items: items.map((j) => ({
@@ -23,10 +22,5 @@ export async function loader({ request }: Route.LoaderArgs) {
     basePath: "/jobs",
     apiPath: "/api/jobs",
     total,
-    limit,
-    offset,
-    searchQuery,
   });
-
-  return markdownResponse(content);
 }

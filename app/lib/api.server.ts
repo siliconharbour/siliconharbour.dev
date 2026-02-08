@@ -21,6 +21,10 @@ export interface PaginatedResponse<T> {
   };
 }
 
+interface ApiPaginationMeta extends PaginationParams {
+  total: number;
+}
+
 /**
  * Parse pagination params from URL search params
  */
@@ -100,6 +104,29 @@ export function jsonResponse<T>(
     status: options.status || 200,
     headers,
   });
+}
+
+export function paginatedJsonResponse<T>(url: URL, data: T[], pagination: ApiPaginationMeta): Response {
+  const { total, limit, offset } = pagination;
+  const baseUrl = url.origin + url.pathname;
+  const linkHeader = buildLinkHeader(baseUrl, { limit, offset }, total);
+
+  return jsonResponse(
+    {
+      data,
+      pagination: {
+        total,
+        limit,
+        offset,
+        hasMore: offset + limit < total,
+      },
+    },
+    { linkHeader },
+  );
+}
+
+export function apiErrorResponse(message: string, status: number): Response {
+  return jsonResponse({ error: message }, { status });
 }
 
 /**

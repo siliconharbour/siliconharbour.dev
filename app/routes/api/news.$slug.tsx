@@ -2,13 +2,13 @@ import type { Route } from "./+types/news.$slug";
 import { db } from "~/db";
 import { news } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
+import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const [article] = await db.select().from(news).where(eq(news.slug, params.slug));
 
   if (!article) {
-    return jsonResponse({ error: "Article not found" }, { status: 404 });
+    return notFoundResponse("Article not found");
   }
 
   return jsonResponse({

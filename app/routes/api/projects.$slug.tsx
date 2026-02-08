@@ -2,13 +2,13 @@ import type { Route } from "./+types/projects.$slug";
 import { db } from "~/db";
 import { projects } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
+import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const [project] = await db.select().from(projects).where(eq(projects.slug, params.slug));
 
   if (!project) {
-    return jsonResponse({ error: "Project not found" }, { status: 404 });
+    return notFoundResponse("Project not found");
   }
 
   return jsonResponse({

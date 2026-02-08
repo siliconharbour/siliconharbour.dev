@@ -1,12 +1,13 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
-import { getPaginatedEvents, getUpcomingEvents, type EventFilter } from "~/lib/events.server";
+import { getPaginatedEvents, getUpcomingEvents } from "~/lib/events.server";
 import { getOptionalUser } from "~/lib/session.server";
-import { Pagination, parsePaginationParams } from "~/components/Pagination";
+import { Pagination } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
 import { Calendar } from "~/components/Calendar";
 import { EventCard } from "~/components/EventCard";
 import { format, parse } from "date-fns";
+import { parseEventsQuery } from "~/lib/public-query.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -17,10 +18,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const { limit, offset } = parsePaginationParams(url);
-  const searchQuery = url.searchParams.get("q") || "";
-  const filter = (url.searchParams.get("filter") || "upcoming") as EventFilter;
-  const dateFilter = url.searchParams.get("date") || undefined;
+  const { limit, offset, searchQuery, filter, dateFilter } = parseEventsQuery(url);
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";

@@ -2,7 +2,7 @@ import type { Route } from "./+types/technologies.$slug";
 import { db } from "~/db";
 import { technologies, technologyAssignments, companies, projects } from "~/db/schema";
 import { eq, and, inArray, asc } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
+import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const [technology] = await db
@@ -11,7 +11,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     .where(eq(technologies.slug, params.slug));
 
   if (!technology) {
-    return jsonResponse({ error: "Technology not found" }, { status: 404 });
+    return notFoundResponse("Technology not found");
   }
 
   // Get companies using this technology

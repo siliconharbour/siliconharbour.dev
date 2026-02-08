@@ -2,13 +2,13 @@ import type { Route } from "./+types/groups.$slug";
 import { db } from "~/db";
 import { groups } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
+import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const [group] = await db.select().from(groups).where(eq(groups.slug, params.slug));
 
   if (!group) {
-    return jsonResponse({ error: "Group not found" }, { status: 404 });
+    return notFoundResponse("Group not found");
   }
 
   return jsonResponse({

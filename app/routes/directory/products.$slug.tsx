@@ -1,11 +1,7 @@
 import type { Route } from "./+types/products.$slug";
 import { useLoaderData, Link } from "react-router";
 import { getProductBySlugWithCompany } from "~/lib/products.server";
-import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
-import { getPublicComments, getAllComments } from "~/lib/comments.server";
-import { getTurnstileSiteKey } from "~/lib/turnstile.server";
-import { getOptionalUser } from "~/lib/session.server";
-import { areCommentsEnabled } from "~/lib/config.server";
+import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -21,19 +17,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw new Response("Product not found", { status: 404 });
   }
 
-  const user = await getOptionalUser(request);
-  const isAdmin = user?.user.role === "admin";
+  const common = await loadDirectoryCommonData({
+    request,
+    contentType: "product",
+    contentId: product.id,
+    description: product.description,
+    commentsSection: "products",
+  });
 
-  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
-    prepareRefsForClient(product.description),
-    getDetailedBacklinks("product", product.id),
-    isAdmin ? getAllComments("product", product.id) : getPublicComments("product", product.id),
-    areCommentsEnabled("products"),
-  ]);
-
-  const turnstileSiteKey = getTurnstileSiteKey();
-
-  return { product, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
+  return { product, ...common };
 }
 
 const typeLabels: Record<ProductType, string> = {

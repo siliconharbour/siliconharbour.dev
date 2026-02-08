@@ -2,13 +2,13 @@ import type { Route } from "./+types/products.$slug";
 import { db } from "~/db";
 import { products, companies } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
+import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const [product] = await db.select().from(products).where(eq(products.slug, params.slug));
 
   if (!product) {
-    return jsonResponse({ error: "Product not found" }, { status: 404 });
+    return notFoundResponse("Product not found");
   }
 
   let company = null;

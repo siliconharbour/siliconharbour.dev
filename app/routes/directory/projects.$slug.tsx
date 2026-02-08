@@ -2,11 +2,7 @@ import type { Route } from "./+types/projects.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getProjectBySlugWithImages } from "~/lib/projects.server";
 import { parseProjectLinks } from "~/lib/project-links";
-import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
-import { getPublicComments, getAllComments } from "~/lib/comments.server";
-import { getTurnstileSiteKey } from "~/lib/turnstile.server";
-import { getOptionalUser } from "~/lib/session.server";
-import { areCommentsEnabled } from "~/lib/config.server";
+import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -23,19 +19,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw new Response("Project not found", { status: 404 });
   }
 
-  const user = await getOptionalUser(request);
-  const isAdmin = user?.user.role === "admin";
+  const common = await loadDirectoryCommonData({
+    request,
+    contentType: "project",
+    contentId: project.id,
+    description: project.description,
+    commentsSection: "projects",
+  });
 
-  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
-    prepareRefsForClient(project.description),
-    getDetailedBacklinks("project", project.id),
-    isAdmin ? getAllComments("project", project.id) : getPublicComments("project", project.id),
-    areCommentsEnabled("projects"),
-  ]);
-
-  const turnstileSiteKey = getTurnstileSiteKey();
-
-  return { project, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
+  return { project, ...common };
 }
 
 const typeLabels: Record<ProjectType, string> = {

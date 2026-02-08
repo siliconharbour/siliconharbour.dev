@@ -1,9 +1,9 @@
 import type { Route } from "./+types/people";
-import { Link, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { getPaginatedPeople } from "~/lib/people.server";
 import { getOptionalUser } from "~/lib/session.server";
-import { Pagination, parsePaginationParams } from "~/components/Pagination";
-import { SearchInput } from "~/components/SearchInput";
+import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
+import { parsePublicListParams } from "~/lib/public-query.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "People - Directory - siliconharbour.dev" }];
@@ -11,8 +11,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const { limit, offset } = parsePaginationParams(url);
-  const searchQuery = url.searchParams.get("q") || "";
+  const { limit, offset, searchQuery } = parsePublicListParams(url);
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
@@ -26,38 +25,20 @@ export default function DirectoryPeople() {
   const { people, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Admin create button */}
-      {isAdmin && (
-        <div className="flex justify-end">
-          <Link
-            to="/manage/people/new"
-            className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
-          >
-            + New Person
-          </Link>
-        </div>
-      )}
-
-      {/* Search - only show if pagination is needed */}
-      {(total > limit || searchQuery) && (
-        <div className="flex flex-col gap-2">
-          <SearchInput placeholder="Search people..." />
-
-          {/* Result count */}
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
-          )}
-        </div>
-      )}
-
-      {people.length === 0 ? (
-        <p className="text-harbour-400">
-          {searchQuery ? "No people match your search." : "No people listed yet."}
-        </p>
-      ) : (
+    <DirectoryListPage
+      isAdmin={isAdmin}
+      adminCreateTo="/manage/people/new"
+      adminCreateLabel="New Person"
+      searchPlaceholder="Search people..."
+      searchQuery={searchQuery}
+      total={total}
+      limit={limit}
+      offset={offset}
+      emptyMessage="No people listed yet."
+      emptySearchMessage="No people match your search."
+      hasItems={people.length > 0}
+    >
+      <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {people.map((person) => (
             <a
@@ -86,9 +67,7 @@ export default function DirectoryPeople() {
             </a>
           ))}
         </div>
-      )}
-
-      <Pagination total={total} limit={limit} offset={offset} />
-    </div>
+      </>
+    </DirectoryListPage>
   );
 }

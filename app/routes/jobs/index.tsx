@@ -5,16 +5,16 @@ import { getOptionalUser } from "~/lib/session.server";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 import { BaseMultiSelect } from "~/components/BaseMultiSelect";
+import { parseJobsQuery } from "~/lib/public-query.server";
+import { jobsWorkplaceFilterOptions, type JobsWorkplaceFilterType } from "~/lib/public-query";
 
-const workplaceTypeOptions = ["remote", "hybrid", "onsite", "unknown"] as const;
-type WorkplaceFilterType = (typeof workplaceTypeOptions)[number];
-const workplaceTypeLabels: Record<WorkplaceFilterType, string> = {
+const workplaceTypeLabels: Record<JobsWorkplaceFilterType, string> = {
   remote: "Remote",
   hybrid: "Hybrid",
   onsite: "Onsite",
   unknown: "Unspecified",
 };
-const workplaceTypeFilterOptions = workplaceTypeOptions.map((value) => ({
+const workplaceTypeFilterOptions = jobsWorkplaceFilterOptions.map((value) => ({
   value,
   label: workplaceTypeLabels[value],
 }));
@@ -28,19 +28,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const searchQuery = url.searchParams.get("q") || "";
-  const technicalParam = url.searchParams.get("technical");
-  const showNonTechnical = technicalParam === "false";
-  const rawSelectedWorkplaceTypes = (url.searchParams.get("workplace") || "")
-    .split("|")
-    .map((value) => value.trim())
-    .filter((value): value is WorkplaceFilterType =>
-      workplaceTypeOptions.includes(value as WorkplaceFilterType),
-    );
-  const selectedWorkplaceTypes =
-    rawSelectedWorkplaceTypes.length > 0
-      ? rawSelectedWorkplaceTypes
-      : [...workplaceTypeOptions];
+  const { searchQuery, showNonTechnical, selectedWorkplaceTypes } = parseJobsQuery(url);
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
@@ -52,7 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     .map((cwj) => ({
       ...cwj,
       jobs: cwj.jobs.filter((job) => {
-        const workplaceType = (job.workplaceType ?? "unknown") as WorkplaceFilterType;
+        const workplaceType = (job.workplaceType ?? "unknown") as JobsWorkplaceFilterType;
         return selectedWorkplaceTypes.includes(workplaceType);
       }),
     }))
@@ -108,8 +96,8 @@ export default function JobsIndex() {
   };
 
   const handleWorkplaceTypeChange = (nextSelected: string[]) => {
-    const validSelection = nextSelected.filter((value): value is WorkplaceFilterType =>
-      workplaceTypeOptions.includes(value as WorkplaceFilterType),
+    const validSelection = nextSelected.filter((value): value is JobsWorkplaceFilterType =>
+      jobsWorkplaceFilterOptions.includes(value as JobsWorkplaceFilterType),
     );
     if (validSelection.length === 0) {
       return;
@@ -118,7 +106,7 @@ export default function JobsIndex() {
     const newParams = new URLSearchParams(searchParams);
     newParams.delete("workplace");
 
-    if (validSelection.length !== workplaceTypeOptions.length) {
+    if (validSelection.length !== jobsWorkplaceFilterOptions.length) {
       newParams.set("workplace", validSelection.join("|"));
     }
 

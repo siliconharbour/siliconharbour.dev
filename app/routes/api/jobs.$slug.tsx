@@ -2,7 +2,7 @@ import type { Route } from "./+types/jobs.$slug";
 import { db } from "~/db";
 import { jobs, companies } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { jsonResponse, contentUrl } from "~/lib/api.server";
+import { jsonResponse, contentUrl, notFoundResponse } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const [result] = await db
@@ -15,7 +15,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     .where(eq(jobs.slug, params.slug));
 
   if (!result) {
-    return jsonResponse({ error: "Job not found" }, { status: 404 });
+    return notFoundResponse("Job not found");
   }
 
   const { job, companyName } = result;

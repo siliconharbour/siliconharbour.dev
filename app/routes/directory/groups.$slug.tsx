@@ -1,11 +1,7 @@
 import type { Route } from "./+types/groups.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getGroupBySlug } from "~/lib/groups.server";
-import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
-import { getPublicComments, getAllComments } from "~/lib/comments.server";
-import { getTurnstileSiteKey } from "~/lib/turnstile.server";
-import { getOptionalUser } from "~/lib/session.server";
-import { areCommentsEnabled } from "~/lib/config.server";
+import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -20,19 +16,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw new Response("Group not found", { status: 404 });
   }
 
-  const user = await getOptionalUser(request);
-  const isAdmin = user?.user.role === "admin";
+  const common = await loadDirectoryCommonData({
+    request,
+    contentType: "group",
+    contentId: group.id,
+    description: group.description,
+    commentsSection: "groups",
+  });
 
-  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
-    prepareRefsForClient(group.description),
-    getDetailedBacklinks("group", group.id),
-    isAdmin ? getAllComments("group", group.id) : getPublicComments("group", group.id),
-    areCommentsEnabled("groups"),
-  ]);
-
-  const turnstileSiteKey = getTurnstileSiteKey();
-
-  return { group, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled };
+  return { group, ...common };
 }
 
 export default function GroupDetail() {

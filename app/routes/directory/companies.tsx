@@ -1,9 +1,9 @@
 import type { Route } from "./+types/companies";
-import { Link, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { getPaginatedCompanies } from "~/lib/companies.server";
 import { getOptionalUser } from "~/lib/session.server";
-import { Pagination, parsePaginationParams } from "~/components/Pagination";
-import { SearchInput } from "~/components/SearchInput";
+import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
+import { parsePublicListParams } from "~/lib/public-query.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Companies - Directory - siliconharbour.dev" }];
@@ -11,8 +11,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const { limit, offset } = parsePaginationParams(url);
-  const searchQuery = url.searchParams.get("q") || "";
+  const { limit, offset, searchQuery } = parsePublicListParams(url);
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
@@ -25,36 +24,20 @@ export default function DirectoryCompanies() {
   const { items, total, limit, offset, searchQuery, isAdmin } = useLoaderData<typeof loader>();
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Admin create button */}
-      {isAdmin && (
-        <div className="flex justify-end">
-          <Link
-            to="/manage/companies/new"
-            className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
-          >
-            + New Company
-          </Link>
-        </div>
-      )}
-
-      {/* Search */}
-      {(total > limit || searchQuery) && (
-        <div className="flex flex-col gap-2">
-          <SearchInput placeholder="Search companies..." />
-          {searchQuery && (
-            <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
-            </p>
-          )}
-        </div>
-      )}
-
-      {items.length === 0 ? (
-        <p className="text-harbour-400">
-          {searchQuery ? "No companies match your search." : "No companies listed yet."}
-        </p>
-      ) : (
+    <DirectoryListPage
+      isAdmin={isAdmin}
+      adminCreateTo="/manage/companies/new"
+      adminCreateLabel="New Company"
+      searchPlaceholder="Search companies..."
+      searchQuery={searchQuery}
+      total={total}
+      limit={limit}
+      offset={offset}
+      emptyMessage="No companies listed yet."
+      emptySearchMessage="No companies match your search."
+      hasItems={items.length > 0}
+    >
+      <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((company) => (
             <a
@@ -84,9 +67,7 @@ export default function DirectoryCompanies() {
             </a>
           ))}
         </div>
-      )}
-
-      <Pagination total={total} limit={limit} offset={offset} />
-    </div>
+      </>
+    </DirectoryListPage>
   );
 }

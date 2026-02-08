@@ -2,13 +2,13 @@ import type { Route } from "./+types/events.$slug";
 import { db } from "~/db";
 import { events, eventDates } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl } from "~/lib/api.server";
+import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const [event] = await db.select().from(events).where(eq(events.slug, params.slug));
 
   if (!event) {
-    return jsonResponse({ error: "Event not found" }, { status: 404 });
+    return notFoundResponse("Event not found");
   }
 
   const dates = await db

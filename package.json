@@ -16,12 +16,10 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "create-user": "tsx scripts/create-user.ts",
-    "db:seed": "tsx scripts/seed.ts",
     "sync-prod": "tsx scripts/sync-prod.ts",
     "backup-prod": "tsx scripts/sync-prod.ts backup",
     "migrate-prod": "tsx scripts/sync-prod.ts migrate",
-    "push-prod-db": "tsx scripts/sync-prod.ts push",
-    "images:stage-orphans": "tsx scripts/stage-orphaned-images.ts"
+    "push-prod-db": "tsx scripts/sync-prod.ts push"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",

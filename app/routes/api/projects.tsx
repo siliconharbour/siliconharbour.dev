@@ -4,8 +4,7 @@ import { projects } from "~/db/schema";
 import { asc, count } from "drizzle-orm";
 import {
   parsePagination,
-  buildLinkHeader,
-  jsonResponse,
+  paginatedJsonResponse,
   imageUrl,
   contentUrl,
 } from "~/lib/api.server";
@@ -38,14 +37,5 @@ export async function loader({ request }: Route.LoaderArgs) {
     updatedAt: project.updatedAt.toISOString(),
   }));
 
-  const baseUrl = url.origin + url.pathname;
-  const linkHeader = buildLinkHeader(baseUrl, { limit, offset }, total);
-
-  return jsonResponse(
-    {
-      data: items,
-      pagination: { total, limit, offset, hasMore: offset + limit < total },
-    },
-    { linkHeader },
-  );
+  return paginatedJsonResponse(url, items, { total, limit, offset });
 }

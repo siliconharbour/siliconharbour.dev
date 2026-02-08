@@ -1,11 +1,7 @@
 import type { Route } from "./+types/education.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getEducationBySlug } from "~/lib/education.server";
-import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
-import { getPublicComments, getAllComments } from "~/lib/comments.server";
-import { getTurnstileSiteKey } from "~/lib/turnstile.server";
-import { getOptionalUser } from "~/lib/session.server";
-import { areCommentsEnabled } from "~/lib/config.server";
+import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
@@ -20,29 +16,15 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw new Response("Institution not found", { status: 404 });
   }
 
-  const user = await getOptionalUser(request);
-  const isAdmin = user?.user.role === "admin";
+  const common = await loadDirectoryCommonData({
+    request,
+    contentType: "education",
+    contentId: institution.id,
+    description: institution.description,
+    commentsSection: "education",
+  });
 
-  const [resolvedRefs, backlinks, comments, commentsEnabled] = await Promise.all([
-    prepareRefsForClient(institution.description),
-    getDetailedBacklinks("education", institution.id),
-    isAdmin
-      ? getAllComments("education", institution.id)
-      : getPublicComments("education", institution.id),
-    areCommentsEnabled("education"),
-  ]);
-
-  const turnstileSiteKey = getTurnstileSiteKey();
-
-  return {
-    institution,
-    resolvedRefs,
-    backlinks,
-    comments,
-    turnstileSiteKey,
-    isAdmin,
-    commentsEnabled,
-  };
+  return { institution, ...common };
 }
 
 export default function EducationDetail() {

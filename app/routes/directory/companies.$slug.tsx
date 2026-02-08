@@ -3,11 +3,7 @@ import { Link, useLoaderData } from "react-router";
 import { useMemo, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { getCompanyBySlug } from "~/lib/companies.server";
-import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.server";
-import { getPublicComments, getAllComments } from "~/lib/comments.server";
-import { getTurnstileSiteKey } from "~/lib/turnstile.server";
-import { getOptionalUser } from "~/lib/session.server";
-import { areCommentsEnabled } from "~/lib/config.server";
+import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { getTechnologiesForContent } from "~/lib/technologies.server";
 import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
 import { getActiveJobsForCompany } from "~/lib/job-importers/sync.server";
@@ -63,19 +59,17 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw new Response("Company not found", { status: 404 });
   }
 
-  const user = await getOptionalUser(request);
-  const isAdmin = user?.user.role === "admin";
-
-  const [resolvedRefs, backlinks, comments, commentsEnabled, technologiesWithAssignments, activeJobs] = await Promise.all([
-    prepareRefsForClient(company.description),
-    getDetailedBacklinks("company", company.id),
-    isAdmin ? getAllComments("company", company.id) : getPublicComments("company", company.id),
-    areCommentsEnabled("companies"),
+  const [common, technologiesWithAssignments, activeJobs] = await Promise.all([
+    loadDirectoryCommonData({
+      request,
+      contentType: "company",
+      contentId: company.id,
+      description: company.description,
+      commentsSection: "companies",
+    }),
     getTechnologiesForContent("company", company.id),
     getActiveJobsForCompany(company.id),
   ]);
-
-  const turnstileSiteKey = getTurnstileSiteKey();
 
   // Group technologies by category for display
   const techByCategory = new Map<TechnologyCategory, typeof technologiesWithAssignments>();
@@ -155,12 +149,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   return {
     company,
-    resolvedRefs,
-    backlinks,
-    comments,
-    turnstileSiteKey,
-    isAdmin,
-    commentsEnabled,
+    ...common,
     techByCategory: Array.from(techByCategory.entries()),
     provenanceEntries,
     activeJobs,
