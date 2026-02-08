@@ -16,6 +16,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "create-user": "tsx scripts/create-user.ts",
+    "importers:validate": "tsx scripts/validate-importer-html-parsers.ts",
     "sync-prod": "tsx scripts/sync-prod.ts",
     "backup-prod": "tsx scripts/sync-prod.ts backup",
     "migrate-prod": "tsx scripts/sync-prod.ts migrate",

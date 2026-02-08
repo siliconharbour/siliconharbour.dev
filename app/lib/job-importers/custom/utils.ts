@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { parseHTML } from "linkedom";
 import { htmlToText as sharedHtmlToText, normalizeTextForDisplay } from "../text.server";
 
 /**
@@ -80,6 +81,15 @@ export async function extractPdfText(pdfUrl: string): Promise<string | null> {
  */
 export function htmlToText(html: string): string {
   return sharedHtmlToText(html);
+}
+
+export function parseHtmlDocument(html: string): Document {
+  return parseHTML(html).document;
+}
+
+export function getNodeText(node: Element | null | undefined): string {
+  if (!node) return "";
+  return normalizeTextForDisplay(node.textContent ?? "");
 }
 
 /**

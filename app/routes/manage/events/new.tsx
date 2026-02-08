@@ -4,7 +4,13 @@ import { requireAuth } from "~/lib/session.server";
 import { createEvent } from "~/lib/events.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
-import { parseAsTimezone } from "~/lib/timezone";
+import { actionError } from "~/lib/admin/action-result";
+import { createImageFromFormData } from "~/lib/admin/image-fields";
+import {
+  parseEventBaseForm,
+  parseEventRecurringForm,
+  parseOneTimeEventDates,
+} from "~/lib/admin/manage-schemas";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Event - siliconharbour.dev" }];
@@ -19,112 +25,64 @@ export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
-
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const link = formData.get("link") as string;
-  const location = (formData.get("location") as string) || null;
-  const organizer = (formData.get("organizer") as string) || null;
-  const eventType = formData.get("eventType") as string;
-  const requiresSignup = formData.get("requiresSignup") === "on";
-
-  if (!title || !description || !link) {
-    return { error: "Title, description, and link are required" };
+  const parsedBase = parseEventBaseForm(formData);
+  if (!parsedBase.success) {
+    return actionError(parsedBase.error);
   }
 
-  // Process images
-  let coverImage: string | null = null;
-  let iconImage: string | null = null;
-
-  const coverImageData = formData.get("coverImageData") as string | null;
-  const iconImageData = formData.get("iconImageData") as string | null;
-
-  if (coverImageData) {
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  }
-
-  if (iconImageData) {
-    const base64Data = iconImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    iconImage = await processAndSaveIconImage(buffer);
-  }
+  const coverImage = await createImageFromFormData(
+    formData,
+    "coverImageData",
+    processAndSaveCoverImage,
+  );
+  const iconImage = await createImageFromFormData(formData, "iconImageData", processAndSaveIconImage);
 
   // Check if this is a recurring event
-  const isRecurring = eventType === "recurring";
+  const isRecurring = parsedBase.data.eventType === "recurring";
 
   if (isRecurring) {
-    // Handle recurring event
-    const recurrenceRule = formData.get("recurrenceRule") as string;
-    const defaultStartTime = formData.get("defaultStartTime") as string;
-    const defaultEndTime = (formData.get("defaultEndTime") as string) || null;
-    const recurrenceEndStr = formData.get("recurrenceEnd") as string | null;
-    const recurrenceEnd = recurrenceEndStr ? new Date(recurrenceEndStr) : null;
-
-    if (!recurrenceRule) {
-      return { error: "Recurrence pattern is required for recurring events" };
+    const parsedRecurring = parseEventRecurringForm(formData);
+    if (!parsedRecurring.success) {
+      return actionError(parsedRecurring.error);
     }
 
     await createEvent(
       {
-        title,
-        description,
-        link,
-        location,
-        organizer,
+        title: parsedBase.data.title,
+        description: parsedBase.data.description,
+        link: parsedBase.data.link,
+        location: parsedBase.data.location,
+        organizer: parsedBase.data.organizer,
         coverImage,
         iconImage,
-        requiresSignup,
-        recurrenceRule,
-        recurrenceEnd,
-        defaultStartTime,
-        defaultEndTime,
+        requiresSignup: parsedBase.data.requiresSignup,
+        recurrenceRule: parsedRecurring.data.recurrenceRule,
+        recurrenceEnd: parsedRecurring.data.recurrenceEnd
+          ? new Date(parsedRecurring.data.recurrenceEnd)
+          : null,
+        defaultStartTime: parsedRecurring.data.defaultStartTime,
+        defaultEndTime: parsedRecurring.data.defaultEndTime,
       },
       [], // No explicit dates for recurring events
     );
   } else {
-    // Handle one-time event with explicit dates
-    const dates: { startDate: Date; endDate: Date | null }[] = [];
-    let dateIndex = 0;
-
-    while (formData.has(`dates[${dateIndex}][startDate]`)) {
-      const startDateStr = formData.get(`dates[${dateIndex}][startDate]`) as string;
-      const startTime = formData.get(`dates[${dateIndex}][startTime]`) as string;
-      const hasEnd = formData.get(`dates[${dateIndex}][hasEnd]`) === "1";
-
-      // Parse as Newfoundland timezone
-      const startDate = parseAsTimezone(startDateStr, startTime);
-      let endDate: Date | null = null;
-
-      if (hasEnd) {
-        const endDateStr = formData.get(`dates[${dateIndex}][endDate]`) as string;
-        const endTime = formData.get(`dates[${dateIndex}][endTime]`) as string;
-        if (endDateStr && endTime) {
-          endDate = parseAsTimezone(endDateStr, endTime);
-        }
-      }
-
-      dates.push({ startDate, endDate });
-      dateIndex++;
-    }
-
-    if (dates.length === 0) {
-      return { error: "At least one date is required for one-time events" };
+    const parsedDates = parseOneTimeEventDates(formData);
+    if (!parsedDates.success) {
+      return actionError(parsedDates.error);
     }
 
     await createEvent(
       {
-        title,
-        description,
-        link,
-        location,
-        organizer,
+        title: parsedBase.data.title,
+        description: parsedBase.data.description,
+        link: parsedBase.data.link,
+        location: parsedBase.data.location,
+        organizer: parsedBase.data.organizer,
         coverImage,
         iconImage,
-        requiresSignup,
+        requiresSignup: parsedBase.data.requiresSignup,
       },
-      dates,
+      parsedDates.data,
     );
   }
 

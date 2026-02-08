@@ -2,17 +2,10 @@ import type { Route } from "./+types/technologies.$slug";
 import { db } from "~/db";
 import { technologies, technologyAssignments, companies, projects } from "~/db/schema";
 import { eq, and, inArray, asc } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
+import { imageUrl, contentUrl } from "~/lib/api.server";
+import { createDetailApiLoader } from "~/lib/api-route.server";
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const [technology] = await db
-    .select()
-    .from(technologies)
-    .where(eq(technologies.slug, params.slug));
-
-  if (!technology) {
-    return notFoundResponse("Technology not found");
-  }
+const mapTechnology = async (technology: typeof technologies.$inferSelect) => {
 
   // Get companies using this technology
   const companyAssignments = await db
@@ -58,7 +51,7 @@ export async function loader({ params }: Route.LoaderArgs) {
       .orderBy(asc(projects.name));
   }
 
-  return jsonResponse({
+  return {
     id: technology.id,
     slug: technology.slug,
     name: technology.name,
@@ -81,5 +74,14 @@ export async function loader({ params }: Route.LoaderArgs) {
       name: p.name,
       url: contentUrl("directory/projects", p.slug),
     })),
-  });
-}
+  };
+};
+
+export const loader = createDetailApiLoader({
+  entityName: "Technology",
+  loadBySlug: async (slug) => {
+    const [technology] = await db.select().from(technologies).where(eq(technologies.slug, slug));
+    return technology ?? null;
+  },
+  mapEntity: mapTechnology,
+}) satisfies (args: Route.LoaderArgs) => Promise<Response>;

@@ -18,6 +18,7 @@ import type {
   WorkplaceType,
 } from "./types";
 import { htmlToText } from "./text.server";
+import { parseHTML } from "linkedom";
 
 const BASE_URL = "https://ats.rippling.com";
 
@@ -84,11 +85,13 @@ interface RipplingPageData {
  * Extract __NEXT_DATA__ JSON from a Rippling page
  */
 function extractNextData(html: string): RipplingPageData | null {
-  const match = html.match(/__NEXT_DATA__[^>]*>(.*?)<\/script>/);
-  if (!match) return null;
+  const { document } = parseHTML(html);
+  const script = document.querySelector('script#__NEXT_DATA__');
+  const payload = script?.textContent?.trim();
+  if (!payload) return null;
 
   try {
-    return JSON.parse(match[1]);
+    return JSON.parse(payload);
   } catch {
     return null;
   }
@@ -147,8 +150,13 @@ function buildDescriptionHtml(
 ): string {
   const parts: string[] = [];
 
-  // Strip <meta> tags from each section
-  const clean = (html: string) => html.replace(/<meta[^>]*>/g, "");
+  const clean = (raw: string) => {
+    const { document } = parseHTML(raw);
+    for (const meta of Array.from(document.querySelectorAll("meta"))) {
+      meta.remove();
+    }
+    return document.body?.innerHTML?.trim() ?? raw;
+  };
 
   if (description.company) parts.push(clean(description.company));
   if (description.role) parts.push(clean(description.role));

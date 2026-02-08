@@ -1,5 +1,5 @@
 import type { Route } from "./+types/github-by-location";
-import { Link, useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { searchNewfoundlandUsers, getUserProfiles, fetchAvatar } from "~/lib/github.server";
@@ -27,6 +27,7 @@ import {
   resetImport,
 } from "~/lib/github-import.server";
 import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
+import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from GitHub - siliconharbour.dev" }];
@@ -449,18 +450,12 @@ export default function ImportGitHub() {
       : 0;
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        <div>
-          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
-            &larr; Back to Dashboard
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-harbour-700">Import from GitHub</h1>
-        </div>
-
+    <ManagePage
+      title="Import from GitHub"
+      backTo="/manage"
+      backLabel="Back to Dashboard"
+      maxWidthClassName="max-w-6xl"
+    >
         <p className="text-harbour-500">
           Search for GitHub users in Newfoundland & Labrador and import them as people. Use "Import
           All" for automatic bulk import with rate limit handling.
@@ -889,7 +884,6 @@ export default function ImportGitHub() {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </ManagePage>
   );
 }

@@ -2,63 +2,61 @@ import type { Route } from "./+types/products";
 import { db } from "~/db";
 import { products, companies } from "~/db/schema";
 import { asc, count } from "drizzle-orm";
-import {
-  parsePagination,
-  paginatedJsonResponse,
-  imageUrl,
-  contentUrl,
-} from "~/lib/api.server";
+import { imageUrl, contentUrl } from "~/lib/api.server";
+import { createPaginatedApiLoader } from "~/lib/api-route.server";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const { limit, offset } = parsePagination(url);
+const mapProduct = (
+  product: typeof products.$inferSelect,
+  companyMap: Map<number, { id: number; slug: string; name: string }>,
+) => {
+  const company = product.companyId ? companyMap.get(product.companyId) : null;
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    description: product.description,
+    type: product.type,
+    website: product.website,
+    company: company
+      ? {
+          id: company.id,
+          slug: company.slug,
+          name: company.name,
+          url: contentUrl("companies", company.slug),
+        }
+      : null,
+    logo: imageUrl(product.logo),
+    coverImage: imageUrl(product.coverImage),
+    url: contentUrl("products", product.slug),
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+  };
+};
 
-  const [{ total }] = await db.select({ total: count() }).from(products);
+export const loader = createPaginatedApiLoader({
+  loadPage: async ({ limit, offset }) => {
+    const [{ total }] = await db.select({ total: count() }).from(products);
 
-  const data = await db
-    .select()
-    .from(products)
-    .orderBy(asc(products.name))
-    .limit(limit)
-    .offset(offset);
+    const productsPage = await db
+      .select()
+      .from(products)
+      .orderBy(asc(products.name))
+      .limit(limit)
+      .offset(offset);
 
-  // Batch fetch companies
-  const companyIds = [...new Set(data.filter((p) => p.companyId).map((p) => p.companyId!))];
-  const companyMap = new Map<number, { id: number; slug: string; name: string }>();
-
-  if (companyIds.length > 0) {
-    const companyList = await db
-      .select({ id: companies.id, slug: companies.slug, name: companies.name })
-      .from(companies);
-    for (const c of companyList) {
-      companyMap.set(c.id, c);
+    const companyIds = [...new Set(productsPage.filter((p) => p.companyId).map((p) => p.companyId!))];
+    const companyMap = new Map<number, { id: number; slug: string; name: string }>();
+    if (companyIds.length > 0) {
+      const companyRows = await db
+        .select({ id: companies.id, slug: companies.slug, name: companies.name })
+        .from(companies);
+      for (const company of companyRows) {
+        companyMap.set(company.id, company);
+      }
     }
-  }
 
-  const items = data.map((product) => {
-    const company = product.companyId ? companyMap.get(product.companyId) : null;
-    return {
-      id: product.id,
-      slug: product.slug,
-      name: product.name,
-      description: product.description,
-      type: product.type,
-      website: product.website,
-      company: company
-        ? {
-            id: company.id,
-            slug: company.slug,
-            name: company.name,
-            url: contentUrl("companies", company.slug),
-          }
-        : null,
-      logo: imageUrl(product.logo),
-      coverImage: imageUrl(product.coverImage),
-      url: contentUrl("products", product.slug),
-      createdAt: product.createdAt.toISOString(),
-      updatedAt: product.updatedAt.toISOString(),
-    };
-  });
-
-  return paginatedJsonResponse(url, items, { total, limit, offset });
-}
+    const items = productsPage.map((product) => mapProduct(product, companyMap));
+    return { items, total };
+  },
+  mapItem: (item) => item,
+}) satisfies (args: Route.LoaderArgs) => Promise<Response>;

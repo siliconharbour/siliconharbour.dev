@@ -7,15 +7,14 @@ import { db } from "~/db";
 import { jobs } from "~/db/schema";
 import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
 import { convertCompanyToEducation } from "~/lib/education.server";
-import {
-  processAndSaveCoverImage,
-  processAndSaveIconImage,
-  deleteImage,
-} from "~/lib/images.server";
+import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
 import { BaseMultiSelect } from "~/components/BaseMultiSelect";
 import { blockItem } from "~/lib/import-blocklist.server";
+import { actionError } from "~/lib/admin/action-result";
+import { parseCompanyForm } from "~/lib/admin/manage-schemas";
+import { resolveUpdatedImage } from "~/lib/admin/image-fields";
 import {
   getAllTechnologies,
   getTechnologiesForContent,
@@ -247,15 +246,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   }
 
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const wikipedia = (formData.get("wikipedia") as string) || null;
-  const github = (formData.get("github") as string) || null;
-  const location = (formData.get("location") as string) || null;
-  const founded = (formData.get("founded") as string) || null;
-  const technl = formData.get("technl") === "on";
-  const genesis = formData.get("genesis") === "on";
+  const parsed = parseCompanyForm(formData);
+  if (!parsed.success) {
+    return actionError(parsed.error);
+  }
   const visible = formData.get("visible") === "true";
   const technologyIds = formData.getAll("technologies").map((id) => parseInt(id as string, 10));
   const provenanceGroupIds = formData
@@ -288,59 +282,24 @@ export async function action({ request, params }: Route.ActionArgs) {
     } as const;
   });
 
-  if (!name) {
-    return { error: "Name is required" };
-  }
+  const logo = await resolveUpdatedImage({
+    formData,
+    uploadedImageField: "logoData",
+    existingImageField: "existingLogo",
+    currentImage: existingCompany.logo,
+    processor: processAndSaveIconImage,
+  });
 
-  // Process images
-  let logo: string | null | undefined = undefined;
-  let coverImage: string | null | undefined = undefined;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-  const existingLogo = formData.get("existingLogo") as string | null;
-  const existingCoverImage = formData.get("existingCoverImage") as string | null;
-
-  // Handle logo
-  if (logoData) {
-    if (existingCompany.logo) {
-      await deleteImage(existingCompany.logo);
-    }
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  } else if (existingLogo) {
-    logo = existingLogo;
-  } else if (existingCompany.logo) {
-    await deleteImage(existingCompany.logo);
-    logo = null;
-  }
-
-  // Handle cover image
-  if (coverImageData) {
-    if (existingCompany.coverImage) {
-      await deleteImage(existingCompany.coverImage);
-    }
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  } else if (existingCoverImage) {
-    coverImage = existingCoverImage;
-  } else if (existingCompany.coverImage) {
-    await deleteImage(existingCompany.coverImage);
-    coverImage = null;
-  }
+  const coverImage = await resolveUpdatedImage({
+    formData,
+    uploadedImageField: "coverImageData",
+    existingImageField: "existingCoverImage",
+    currentImage: existingCompany.coverImage,
+    processor: processAndSaveCoverImage,
+  });
 
   await updateCompany(id, {
-    name,
-    description,
-    website,
-    wikipedia,
-    github,
-    location,
-    founded,
-    technl,
-    genesis,
+    ...parsed.data,
     visible,
     ...(logo !== undefined && { logo }),
     ...(coverImage !== undefined && { coverImage }),

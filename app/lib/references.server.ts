@@ -14,6 +14,11 @@ import {
   type Reference,
 } from "~/db/schema";
 import { eq, and, asc, gte } from "drizzle-orm";
+import { parseReferences } from "~/lib/references/parser";
+import { getContentUrl } from "~/lib/references/url";
+
+export { parseReferences } from "~/lib/references/parser";
+export { getContentUrl } from "~/lib/references/url";
 
 // =============================================================================
 // Visibility helpers
@@ -68,51 +73,6 @@ async function isEntityVisible(type: ContentType, id: number): Promise<boolean> 
 // =============================================================================
 // Reference Parser - Extract [[references]] from markdown
 // =============================================================================
-
-// Matches both simple [[Target]] and relation [[{Relation} at|of {Target}]] syntax
-const REFERENCE_REGEX = /\[\[([^\]]+)\]\]/g;
-// Matches the relation syntax: {Relation} at|of {Target}
-const RELATION_REGEX = /^\{([^}]+)\}\s+(at|of)\s+\{([^}]+)\}$/i;
-
-export interface ParsedReference {
-  text: string; // The target text (entity name)
-  relation?: string; // Optional relation (e.g., "CEO", "Founder")
-  fullMatch: string; // The full [[...]] match
-  index: number; // Position in the string
-}
-
-/**
- * Extract all [[reference]] patterns from markdown content
- * Supports both simple [[Target]] and [[{Relation} at|of {Target}]] syntax
- */
-export function parseReferences(content: string): ParsedReference[] {
-  const refs: ParsedReference[] = [];
-  let match;
-
-  while ((match = REFERENCE_REGEX.exec(content)) !== null) {
-    const inner = match[1].trim();
-    const relationMatch = RELATION_REGEX.exec(inner);
-
-    if (relationMatch) {
-      // Relation syntax: [[{CEO} at {CoLab Software}]] or [[{CEO} of {CoLab Software}]]
-      refs.push({
-        text: relationMatch[3].trim(),
-        relation: relationMatch[1].trim(),
-        fullMatch: match[0],
-        index: match.index,
-      });
-    } else {
-      // Simple syntax: [[CoLab Software]]
-      refs.push({
-        text: inner,
-        fullMatch: match[0],
-        index: match.index,
-      });
-    }
-  }
-
-  return refs;
-}
 
 // =============================================================================
 // Reference Resolver - Match reference text to actual entities
@@ -463,26 +423,6 @@ export async function resolveOrganizers(organizer: string | null): Promise<
   }
 
   return items;
-}
-
-// =============================================================================
-// Content type URL helpers
-// =============================================================================
-
-const contentTypeRoutes: Record<ContentType, string> = {
-  event: "/events",
-  company: "/directory/companies",
-  group: "/directory/groups",
-  education: "/directory/education",
-  person: "/directory/people",
-  news: "/news",
-  job: "/jobs",
-  project: "/directory/projects",
-  product: "/directory/products",
-};
-
-export function getContentUrl(type: ContentType, slug: string): string {
-  return `${contentTypeRoutes[type]}/${slug}`;
 }
 
 // =============================================================================

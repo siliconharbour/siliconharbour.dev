@@ -2,15 +2,10 @@ import type { Route } from "./+types/products.$slug";
 import { db } from "~/db";
 import { products, companies } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
+import { imageUrl, contentUrl } from "~/lib/api.server";
+import { createDetailApiLoader } from "~/lib/api-route.server";
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const [product] = await db.select().from(products).where(eq(products.slug, params.slug));
-
-  if (!product) {
-    return notFoundResponse("Product not found");
-  }
-
+const mapProduct = async (product: typeof products.$inferSelect) => {
   let company = null;
   if (product.companyId) {
     const [c] = await db
@@ -27,7 +22,7 @@ export async function loader({ params }: Route.LoaderArgs) {
     }
   }
 
-  return jsonResponse({
+  return {
     id: product.id,
     slug: product.slug,
     name: product.name,
@@ -40,5 +35,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     url: contentUrl("products", product.slug),
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
-  });
-}
+  };
+};
+
+export const loader = createDetailApiLoader({
+  entityName: "Product",
+  loadBySlug: async (slug) => {
+    const [product] = await db.select().from(products).where(eq(products.slug, slug));
+    return product ?? null;
+  },
+  mapEntity: mapProduct,
+}) satisfies (args: Route.LoaderArgs) => Promise<Response>;

@@ -2,25 +2,11 @@ import type { Route } from "./+types/jobs.$slug";
 import { db } from "~/db";
 import { jobs, companies } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import { jsonResponse, contentUrl, notFoundResponse } from "~/lib/api.server";
+import { contentUrl } from "~/lib/api.server";
+import { createDetailApiLoader } from "~/lib/api-route.server";
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const [result] = await db
-    .select({
-      job: jobs,
-      companyName: companies.name,
-    })
-    .from(jobs)
-    .leftJoin(companies, eq(jobs.companyId, companies.id))
-    .where(eq(jobs.slug, params.slug));
-
-  if (!result) {
-    return notFoundResponse("Job not found");
-  }
-
-  const { job, companyName } = result;
-
-  return jsonResponse({
+const mapJob = ({ job, companyName }: { job: typeof jobs.$inferSelect; companyName: string | null }) => {
+  return {
     id: job.id,
     slug: job.slug,
     title: job.title,
@@ -35,5 +21,21 @@ export async function loader({ params }: Route.LoaderArgs) {
     detailUrl: job.slug ? contentUrl("jobs", job.slug) : null,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
-  });
-}
+  };
+};
+
+export const loader = createDetailApiLoader({
+  entityName: "Job",
+  loadBySlug: async (slug) => {
+    const [result] = await db
+      .select({
+        job: jobs,
+        companyName: companies.name,
+      })
+      .from(jobs)
+      .leftJoin(companies, eq(jobs.companyId, companies.id))
+      .where(eq(jobs.slug, slug));
+    return result ?? null;
+  },
+  mapEntity: mapJob,
+}) satisfies (args: Route.LoaderArgs) => Promise<Response>;

@@ -1,5 +1,5 @@
 import type { Route } from "./+types/github-following";
-import { Link, useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { useState, useMemo } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { fetchAvatar } from "~/lib/github.server";
@@ -26,6 +26,7 @@ import {
   updateCompany,
 } from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
+import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from GitHub Connections - siliconharbour.dev" }];
@@ -288,20 +289,12 @@ export default function ImportGitHubFollowing() {
     progress.status === "running" && !isWorking && progress.fetchedProfiles < progress.totalUsers;
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        <div>
-          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
-            &larr; Back to Dashboard
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-harbour-700">
-            Import from GitHub Connections
-          </h1>
-        </div>
-
+    <ManagePage
+      title="Import from GitHub Connections"
+      backTo="/manage"
+      backLabel="Back to Dashboard"
+      maxWidthClassName="max-w-6xl"
+    >
         <p className="text-harbour-500">
           Enter a GitHub username to fetch their following/followers and import them as people.
           Click "Fetch Next Batch" repeatedly to fetch profiles (10 at a time).
@@ -681,7 +674,6 @@ export default function ImportGitHubFollowing() {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </ManagePage>
   );
 }

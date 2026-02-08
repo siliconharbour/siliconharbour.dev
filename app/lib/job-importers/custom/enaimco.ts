@@ -12,64 +12,76 @@
  */
 
 import type { FetchedJob } from "../types";
-import { fetchPage, htmlToText, slugify } from "./utils";
+import { fetchPage, htmlToText, slugify, parseHtmlDocument, getNodeText } from "./utils";
 
 const CAREERS_URL = "https://enaimco.com/careers/";
 
 export async function scrapeEnaimco(): Promise<FetchedJob[]> {
   const html = await fetchPage(CAREERS_URL);
+  const document = parseHtmlDocument(html);
 
-  // Extract the "Available Positions" section content.
-  // It sits between the <h4>Available Positions</h4> heading and the
-  // next "Apply To Work With Us" section.
-  const sectionMatch = html.match(
-    /Available Positions<\/h4>([\s\S]*?)(?:<h4>Apply To Work With Us|<section)/i
+  const availableHeading = Array.from(document.querySelectorAll("h2, h3, h4, h5")).find((node) =>
+    /available positions/i.test(getNodeText(node)),
   );
-  if (!sectionMatch) return [];
+  if (!availableHeading) return [];
 
-  const section = sectionMatch[1];
+  const applyHeading = Array.from(document.querySelectorAll("h2, h3, h4, h5")).find((node) =>
+    /apply to work with us/i.test(getNodeText(node)),
+  );
+
+  const nodesInSection: Element[] = [];
+  let cursor: Element | null = availableHeading.nextElementSibling;
+  while (cursor && cursor !== applyHeading) {
+    nodesInSection.push(cursor);
+    cursor = cursor.nextElementSibling;
+  }
+  const sectionText = nodesInSection.map((node) => getNodeText(node)).join("\n");
 
   // If the section says there are no open positions, return empty
-  if (/no\s+open\s+positions/i.test(section)) {
+  if (/no\s+open\s+positions/i.test(sectionText)) {
     return [];
   }
 
   const jobs: FetchedJob[] = [];
-
-  // Split on headings (h2-h5) to find individual job blocks.
-  // Each heading is expected to be a job title.
-  const jobBlocks = section.split(/<h[2-5][^>]*>/i);
-
-  // First element is content before the first heading, skip it
-  for (let i = 1; i < jobBlocks.length; i++) {
-    const block = jobBlocks[i];
-
-    // Title is the text content of the heading (up to closing tag)
-    const titleMatch = block.match(/^([\s\S]*?)<\/h[2-5]>/i);
-    if (!titleMatch) continue;
-
-    const title = htmlToText(titleMatch[1]).trim();
-    if (!title) continue;
-
-    // Description is everything after the closing heading tag
-    const descStart = block.indexOf(titleMatch[0]) + titleMatch[0].length;
-    const descriptionHtml = block.substring(descStart).trim();
-
-    // Check for a link to a dedicated job page
-    const linkMatch = block.match(/href="(https?:\/\/enaimco\.com\/[^"]*?)"/i);
-    const jobUrl = linkMatch ? linkMatch[1] : CAREERS_URL;
-
-    const externalId = slugify(title);
-
+  let currentTitle = "";
+  let currentUrl = CAREERS_URL;
+  let currentParts: string[] = [];
+  const flushCurrent = () => {
+    if (!currentTitle) return;
+    const descriptionHtml = currentParts.join("\n").trim();
     jobs.push({
-      externalId,
-      title,
+      externalId: slugify(currentTitle),
+      title: currentTitle,
       location: "St. John's, NL",
       descriptionHtml: descriptionHtml || undefined,
       descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
-      url: jobUrl,
+      url: currentUrl,
     });
+    currentTitle = "";
+    currentUrl = CAREERS_URL;
+    currentParts = [];
+  };
+
+  for (const node of nodesInSection) {
+    if (/^H[2-5]$/.test(node.tagName)) {
+      flushCurrent();
+      const title = getNodeText(node);
+      if (!title) continue;
+      currentTitle = title;
+      const link = node.querySelector('a[href^="http"], a[href^="/"]');
+      const href = link?.getAttribute("href");
+      if (href) {
+        currentUrl = href.startsWith("http") ? href : new URL(href, CAREERS_URL).toString();
+      }
+      continue;
+    }
+
+    if (!currentTitle) continue;
+    const htmlPart = node.outerHTML.trim();
+    if (htmlPart) currentParts.push(htmlPart);
   }
+
+  flushCurrent();
 
   return jobs;
 }

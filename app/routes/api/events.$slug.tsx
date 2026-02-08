@@ -2,22 +2,17 @@ import type { Route } from "./+types/events.$slug";
 import { db } from "~/db";
 import { events, eventDates } from "~/db/schema";
 import { eq, asc } from "drizzle-orm";
-import { jsonResponse, imageUrl, contentUrl, notFoundResponse } from "~/lib/api.server";
+import { imageUrl, contentUrl } from "~/lib/api.server";
+import { createDetailApiLoader } from "~/lib/api-route.server";
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const [event] = await db.select().from(events).where(eq(events.slug, params.slug));
-
-  if (!event) {
-    return notFoundResponse("Event not found");
-  }
-
+const mapEvent = async (event: typeof events.$inferSelect) => {
   const dates = await db
     .select()
     .from(eventDates)
     .where(eq(eventDates.eventId, event.id))
     .orderBy(asc(eventDates.startDate));
 
-  return jsonResponse({
+  return {
     id: event.id,
     slug: event.slug,
     title: event.title,
@@ -33,5 +28,14 @@ export async function loader({ params }: Route.LoaderArgs) {
     url: contentUrl("events", event.slug),
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
-  });
-}
+  };
+};
+
+export const loader = createDetailApiLoader({
+  entityName: "Event",
+  loadBySlug: async (slug) => {
+    const [event] = await db.select().from(events).where(eq(events.slug, slug));
+    return event ?? null;
+  },
+  mapEntity: mapEvent,
+}) satisfies (args: Route.LoaderArgs) => Promise<Response>;

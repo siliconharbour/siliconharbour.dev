@@ -11,42 +11,29 @@
  */
 
 import type { FetchedJob } from "../types";
-import { fetchPage, htmlToText, slugify, extractPdfText } from "./utils";
+import { fetchPage, htmlToText, slugify, extractPdfText, parseHtmlDocument, getNodeText } from "./utils";
 
 const CAREERS_URL = "https://www.netbenefitsoftware.com/careers";
 
 export async function scrapeNetbenefit(): Promise<FetchedJob[]> {
   const html = await fetchPage(CAREERS_URL);
+  const document = parseHtmlDocument(html);
   const jobs: FetchedJob[] = [];
 
-  // Match each w-dyn-item (job listing block)
-  const itemRegex = /role="listitem"[^>]*class="[^"]*w-dyn-item[^"]*"[^>]*>([\s\S]*?)(?=role="listitem"|<\/div>\s*<\/div>\s*<\/div>\s*<\/section)/gi;
-
-  let match;
-  while ((match = itemRegex.exec(html)) !== null) {
-    const block = match[1];
-
-    // Extract title from div.h4
-    const titleMatch = block.match(/<div class="h4">([\s\S]*?)<\/div>/i);
-    if (!titleMatch) continue;
-    const title = htmlToText(titleMatch[1]).trim();
+  for (const item of Array.from(document.querySelectorAll('[role="listitem"].w-dyn-item'))) {
+    const title = getNodeText(item.querySelector("div.h4"));
     if (!title) continue;
 
-    // Extract description from p.paragraph
-    const descMatch = block.match(/<p class="paragraph">([\s\S]*?)<\/p>/i);
-    const description = descMatch ? descMatch[1] : undefined;
-
-    // Extract PDF link
-    const pdfMatch = block.match(/href="(https:\/\/cdn[^"]+\.pdf)"/i);
-    const pdfUrl = pdfMatch ? pdfMatch[1] : undefined;
-
-    // Extract mailto subject (serves as canonical title)
-    const mailtoMatch = block.match(
-      /mailto:careers@netbenefitsoftware\.com\?subject=([^"]+)/i
-    );
+    const description = item.querySelector("p.paragraph")?.innerHTML?.trim();
+    const pdfUrl =
+      item.querySelector('a[href*="cdn"][href$=".pdf"]')?.getAttribute("href") ?? undefined;
+    const mailtoHref = item
+      .querySelector('a[href^="mailto:careers@netbenefitsoftware.com"]')
+      ?.getAttribute("href");
+    const mailtoSubject = mailtoHref ? new URL(mailtoHref).searchParams.get("subject") : null;
 
     const externalId = slugify(
-      mailtoMatch ? decodeURIComponent(mailtoMatch[1]) : title
+      mailtoSubject ? decodeURIComponent(mailtoSubject) : title,
     );
 
     const snippetText = description ? htmlToText(description) : "";

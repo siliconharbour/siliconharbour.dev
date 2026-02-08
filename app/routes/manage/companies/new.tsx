@@ -4,6 +4,10 @@ import { requireAuth } from "~/lib/session.server";
 import { createCompany } from "~/lib/companies.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
+import { actionError } from "~/lib/admin/action-result";
+import { createImageFromFormData } from "~/lib/admin/image-fields";
+import { parseCompanyForm } from "~/lib/admin/manage-schemas";
+import { ManageErrorAlert } from "~/components/manage/ManageForm";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Company - siliconharbour.dev" }];
@@ -18,52 +22,22 @@ export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const wikipedia = (formData.get("wikipedia") as string) || null;
-  const github = (formData.get("github") as string) || null;
-  const location = (formData.get("location") as string) || null;
-  const founded = (formData.get("founded") as string) || null;
-  const technl = formData.get("technl") === "on";
-  const genesis = formData.get("genesis") === "on";
-
-  if (!name || !description) {
-    return { error: "Name and description are required" };
+  const parsed = parseCompanyForm(formData);
+  if (!parsed.success) {
+    return actionError(parsed.error);
   }
 
-  // Process images
-  let logo: string | null = null;
-  let coverImage: string | null = null;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-
-  if (logoData) {
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  }
-
-  if (coverImageData) {
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  }
+  const logo = await createImageFromFormData(formData, "logoData", processAndSaveIconImage);
+  const coverImage = await createImageFromFormData(
+    formData,
+    "coverImageData",
+    processAndSaveCoverImage,
+  );
 
   await createCompany({
-    name,
-    description,
-    website,
-    wikipedia,
-    github,
-    location,
-    founded,
+    ...parsed.data,
     logo,
     coverImage,
-    technl,
-    genesis,
   });
 
   return redirect("/manage/companies");
@@ -83,9 +57,7 @@ export default function NewCompany() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">New Company</h1>
 
-        {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
-        )}
+        {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">

@@ -1,5 +1,5 @@
 import type { Route } from "./+types/technl";
-import { Link, useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
 import { requireAuth } from "~/lib/session.server";
 import { scrapeTechNL, fetchImage, type ScrapedCompany } from "~/lib/scraper.server";
@@ -13,6 +13,7 @@ import {
 import { getAllEducation, getEducationByName, deleteEducation } from "~/lib/education.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
 import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
+import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from TechNL - siliconharbour.dev" }];
@@ -285,18 +286,12 @@ export default function ImportTechNL() {
   const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        <div>
-          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
-            &larr; Back to Dashboard
-          </Link>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-harbour-700">Import from TechNL</h1>
-        </div>
-
+    <ManagePage
+      title="Import from TechNL"
+      backTo="/manage"
+      backLabel="Back to Dashboard"
+      maxWidthClassName="max-w-6xl"
+    >
         <p className="text-harbour-500">
           Import company data from the TechNL member directory. Companies will be flagged as TechNL
           members with a dedicated link to their directory listing.
@@ -495,7 +490,6 @@ export default function ImportTechNL() {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </ManagePage>
   );
 }

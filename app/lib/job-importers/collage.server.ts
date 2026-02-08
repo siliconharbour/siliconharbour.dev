@@ -18,6 +18,7 @@ import type {
   WorkplaceType,
 } from "./types";
 import { htmlToText } from "./text.server";
+import { parseHTML } from "linkedom";
 
 const BASE_URL = "https://secure.collage.co";
 
@@ -57,91 +58,50 @@ function parseListingPage(
     url: string;
   }> = [];
 
-  // Match each ATS-posting block (department + its jobs)
-  const postingBlocks = html.split('class="ATS-posting"');
+  const { document } = parseHTML(html);
+  for (const posting of Array.from(document.querySelectorAll(".ATS-posting"))) {
+    const department = posting.querySelector(".ATS-department")?.textContent?.trim() ?? "";
+    for (const link of Array.from(posting.querySelectorAll(`a[href*="/jobs/${company}/"]`))) {
+      const href = link.getAttribute("href") ?? "";
+      const jobId = href.match(new RegExp(`/jobs/${escapeRegex(company)}/(\\d+)`))?.[1];
+      if (!jobId) continue;
 
-  for (let i = 1; i < postingBlocks.length; i++) {
-    const block = postingBlocks[i];
+      const title = link.querySelector(".ATS-position-title")?.textContent?.trim() ?? "";
+      if (!title) continue;
 
-    // Extract department
-    const deptMatch = block.match(
-      /class="ATS-department"[^>]*>([^<]+)</
-    );
-    const department = deptMatch ? deptMatch[1].trim() : "";
+      const metaNode = link.querySelector(".ATS-commitment-and-location");
+      const parts = (metaNode?.textContent ?? "")
+        .split("•")
+        .map((part) => part.trim())
+        .filter(Boolean);
 
-    // Extract all job links within this block
-    const jobLinkRegex = new RegExp(
-      `href="(?:https://secure\\.collage\\.co)?/jobs/${escapeRegex(company)}/(\\d+)"`,
-      "g"
-    );
-
-    let linkMatch;
-    while ((linkMatch = jobLinkRegex.exec(block)) !== null) {
-      const jobId = linkMatch[1];
-
-      // Find the title near this link
-      const linkPos = linkMatch.index;
-      const nearbyHtml = block.substring(linkPos, linkPos + 1000);
-
-      const titleMatch = nearbyHtml.match(
-        /class="ATS-position-title"[^>]*>([^<]+)</
-      );
-      const title = titleMatch ? titleMatch[1].trim() : "";
-
-      // Parse commitment and location from the outermost span
-      // Use greedy match to get the full content (inner spans contain bullet points)
-      const metaMatch = nearbyHtml.match(
-        /class="[^"]*ATS-commitment-and-location[^"]*"[^>]*>([\s\S]*)<\/span>/
-      );
-      let commitment = "";
-      let location = "";
+      let commitment = parts[0] ?? "";
+      let location = parts.slice(1).join(", ");
       let workplaceType: WorkplaceType | undefined;
-
-      if (metaMatch) {
-        // The span contains text separated by bullet point spans
-        const metaText = metaMatch[1]
-          .replace(/<[^>]+>/g, "|")
-          .replace(/\|+/g, "|")
-          .trim();
-        const parts = metaText
-          .split("|")
-          .map((p) => p.trim())
-          .filter(Boolean);
-
-        if (parts.length >= 1) commitment = parts[0];
-        if (parts.length >= 2) location = parts.slice(1).join(", ");
-
-        // Detect workplace type from location parts
-        const locationLower = location.toLowerCase();
-        if (locationLower.includes("remote")) {
-          workplaceType = locationLower.includes("hybrid") ? "hybrid" : "remote";
-          // Clean "Remote" from the location string
-          location = parts
-            .slice(1)
-            .filter(
-              (p) => p.toLowerCase() !== "remote" && p.toLowerCase() !== "hybrid"
-            )
-            .join(", ");
-        } else if (locationLower.includes("hybrid")) {
-          workplaceType = "hybrid";
-          location = parts
-            .slice(1)
-            .filter((p) => p.toLowerCase() !== "hybrid")
-            .join(", ");
-        }
+      const locationLower = location.toLowerCase();
+      if (locationLower.includes("remote")) {
+        workplaceType = locationLower.includes("hybrid") ? "hybrid" : "remote";
+        location = parts
+          .slice(1)
+          .filter((part) => !["remote", "hybrid"].includes(part.toLowerCase()))
+          .join(", ");
+      } else if (locationLower.includes("hybrid")) {
+        workplaceType = "hybrid";
+        location = parts
+          .slice(1)
+          .filter((part) => part.toLowerCase() !== "hybrid")
+          .join(", ");
       }
 
-      if (title && jobId) {
-        jobs.push({
-          id: jobId,
-          title,
-          department,
-          commitment,
-          location: location || "",
-          workplaceType,
-          url: `${BASE_URL}/jobs/${company}/${jobId}`,
-        });
-      }
+      jobs.push({
+        id: jobId,
+        title,
+        department,
+        commitment,
+        location: location || "",
+        workplaceType,
+        url: href.startsWith("http") ? href : `${BASE_URL}${href}`,
+      });
     }
   }
 
@@ -161,34 +121,23 @@ function parseDetailPage(html: string): {
   descriptionHtml: string;
   metadata: string[];
 } {
-  // Extract title
-  const titleMatch = html.match(
-    /class="[^"]*ATS-position-title-main[^"]*"[^>]*>([\s\S]*?)<\/h1>/
-  );
-  const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : "";
+  const { document } = parseHTML(html);
+  const title = document.querySelector(".ATS-position-title-main")?.textContent?.trim() ?? "";
 
-  // Extract metadata spans
-  const metaMatch = html.match(
-    /class="[^"]*ATS-commitment-and-location[^"]*"[^>]*>([\s\S]*?)<\/p>/
-  );
   const metadata: string[] = [];
-  if (metaMatch) {
-    const spanRegex = /<span[^>]*>([^<]*)<\/span>/g;
-    let spanMatch;
-    while ((spanMatch = spanRegex.exec(metaMatch[1])) !== null) {
-      const text = spanMatch[1].trim();
+  const metaNode = document.querySelector(".ATS-commitment-and-location");
+  if (metaNode) {
+    for (const span of Array.from(metaNode.querySelectorAll("span"))) {
+      const text = span.textContent?.trim();
       if (text) metadata.push(text);
+      span.remove();
     }
-    // Also check for salary text after spans (e.g., "Up to $120,000 CAD per year")
-    const afterSpans = metaMatch[1].replace(/<span[^>]*>.*?<\/span>/g, "").replace(/<[^>]+>/g, "").trim();
-    if (afterSpans) metadata.push(afterSpans);
+    const trailing = metaNode.textContent?.trim();
+    if (trailing) metadata.push(trailing);
   }
 
-  // Extract description
-  const descMatch = html.match(
-    /class="[^"]*ATS-position-description[^"]*"[^>]*>([\s\S]*?)<\/div>\s*(?:<div class="flex|<footer)/
-  );
-  const descriptionHtml = descMatch ? descMatch[1].trim() : "";
+  const descriptionNode = document.querySelector(".ATS-position-description");
+  const descriptionHtml = descriptionNode?.innerHTML?.trim() ?? "";
 
   return { title, descriptionHtml, metadata };
 }

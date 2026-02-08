@@ -9,7 +9,7 @@
  */
 
 import type { FetchedJob } from "../types";
-import { fetchPage, htmlToText, slugify } from "./utils";
+import { fetchPage, htmlToText, slugify, parseHtmlDocument, getNodeText } from "./utils";
 
 const DEFAULT_CAREERS_URL = "https://getvish.com/careers/";
 
@@ -29,36 +29,27 @@ function cleanJobTitle(title: string): string {
 
 export async function scrapeVish(careersUrl: string = DEFAULT_CAREERS_URL): Promise<FetchedJob[]> {
   const html = await fetchPage(careersUrl);
+  const document = parseHtmlDocument(html);
   const jobs: FetchedJob[] = [];
   const seenIds = new Set<string>();
 
-  const toggleRegex = /<div class="toggle accent-color"[\s\S]*?(?=<div class="toggle accent-color"|<h3 class="infobox_title"|<\/body>)/gi;
-  const blocks = html.match(toggleRegex) ?? [];
-
-  for (const block of blocks) {
-    const titleMatch = block.match(
-      /<h3 class="toggle-title">[\s\S]*?<a[^>]*class="[^"]*toggle-heading[^"]*"[^>]*>([\s\S]*?)<\/a>/i
-    );
-    if (!titleMatch) {
-      continue;
-    }
-
-    const title = cleanJobTitle(htmlToText(titleMatch[1]));
+  for (const toggle of Array.from(document.querySelectorAll("div.toggle.accent-color"))) {
+    const title = cleanJobTitle(getNodeText(toggle.querySelector("h3.toggle-title a.toggle-heading")));
     if (!title || isNonJobHeading(title)) {
       continue;
     }
 
-    const innerMatch = block.match(
-      /<div class="inner-toggle-wrap">([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i
-    );
-    if (!innerMatch) {
+    const contentNode = toggle.querySelector("div.inner-toggle-wrap");
+    if (!contentNode) {
       continue;
     }
 
-    const contentHtml = innerMatch[1]
-      .replace(/<form[\s\S]*?<\/form>/gi, "")
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .trim();
+    const contentClone = contentNode.cloneNode(true) as Element;
+    for (const node of Array.from(contentClone.querySelectorAll("form, script"))) {
+      node.remove();
+    }
+
+    const contentHtml = contentClone.innerHTML.trim();
     const contentText = htmlToText(contentHtml);
 
     if (!contentText || contentText.length < 80) continue;
