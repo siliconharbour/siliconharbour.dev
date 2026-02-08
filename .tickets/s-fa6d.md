@@ -3,12 +3,13 @@ id: s-fa6d
 status: closed
 deps: []
 links: []
-created: 2026-02-06T22:03:41Z
-type: task
-priority: 2
+created: 2026-02-08T03:01:37Z
+type: bug
+priority: 1
 assignee: Jack Arthur Harrhy
+tags: [bug, og-images, events]
 ---
-# Investigate Kraken Robotics careers/ATS
+# Fix events OG image display-style runtime error
 
-Check if Kraken Robotics has an ATS we can integrate with or careers page to fetch
+Investigate and fix /events/:slug.png server error from OG image rendering: explicit display style required for multi-child nodes.
 

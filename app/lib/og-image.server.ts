@@ -88,7 +88,7 @@ async function loadCoverImageForCard(imagePath: string): Promise<string | null> 
     }
 
     // Resize for card display area
-    const buffer = await sharp(fullPath).resize(400, 300, { fit: "cover" }).png().toBuffer();
+    const buffer = await sharp(fullPath).resize(520, 360, { fit: "cover" }).png().toBuffer();
 
     return `data:image/png;base64,${buffer.toString("base64")}`;
   } catch {
@@ -207,7 +207,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                   display: "flex",
                   flex: 1,
                   alignItems: "center",
-                  gap: "48px",
+                  gap: "40px",
                   marginTop: "32px",
                 },
                 children: [
@@ -271,8 +271,9 @@ async function generateSVG(data: OGImageData): Promise<string> {
                     type: "div",
                     props: {
                       style: {
-                        width: "280px",
-                        height: "210px",
+                        display: "flex",
+                        width: "420px",
+                        height: "300px",
                         flexShrink: 0,
                         overflow: "hidden",
                         position: "relative",
