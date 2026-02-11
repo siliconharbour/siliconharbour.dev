@@ -6,6 +6,7 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 import { IMAGES_DIR } from "./paths.server";
+import { formatInTimezone } from "./timezone";
 
 // OG Image dimensions (standard)
 const OG_WIDTH = 1200;
@@ -398,14 +399,7 @@ export function prepareEventOGData(event: {
 }): OGImageData {
   const nextDate = event.dates[0];
   const dateStr = nextDate
-    ? new Intl.DateTimeFormat("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      }).format(new Date(nextDate.startDate))
+    ? formatInTimezone(nextDate.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")
     : undefined;
 
   return {
