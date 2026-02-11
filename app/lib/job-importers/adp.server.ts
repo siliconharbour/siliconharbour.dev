@@ -223,6 +223,15 @@ function buildRecruitmentUrl(config: AdpConfig): string {
   return url.toString();
 }
 
+function buildRecruitmentJobUrl(config: AdpConfig, job: AdpJobRequisition): string {
+  const jobId = getStringFieldValue(job, "ExternalJobID") || job.clientRequisitionID || job.itemID;
+  const url = new URL("https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html");
+  url.searchParams.set("cid", config.cid);
+  url.searchParams.set("jobId", jobId);
+  url.searchParams.set("selectedMenuKey", "CurrentOpenings");
+  return url.toString();
+}
+
 export const adpImporter: JobImporter = {
   sourceType: "adp",
 
@@ -256,8 +265,7 @@ export const adpImporter: JobImporter = {
       }
 
       const converted = convertJob(detail);
-      // Prefer stable direct requisition endpoint URL when possible.
-      converted.url = buildRequisitionDetailUrl(adp, listing.itemID);
+      converted.url = buildRecruitmentJobUrl(adp, detail);
       if (!converted.externalId || !converted.title) continue;
       if (!converted.url) converted.url = fallbackUrl;
       results.push(converted);
@@ -271,7 +279,7 @@ export const adpImporter: JobImporter = {
     try {
       const detail = await fetchJson<AdpJobRequisition>(buildRequisitionDetailUrl(adp, jobId));
       const converted = convertJob(detail);
-      converted.url = buildRequisitionDetailUrl(adp, jobId);
+      converted.url = buildRecruitmentJobUrl(adp, detail);
       return converted;
     } catch {
       return null;
