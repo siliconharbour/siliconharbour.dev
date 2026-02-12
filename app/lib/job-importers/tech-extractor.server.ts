@@ -7,7 +7,7 @@
 
 import { db } from "~/db";
 import { technologies, jobTechnologyMentions, jobs } from "~/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { normalizeTextForDisplay } from "./text.server";
 
 interface TechPattern {
@@ -278,4 +278,133 @@ export async function clearTechMentionsForJob(jobId: number) {
   await db
     .delete(jobTechnologyMentions)
     .where(eq(jobTechnologyMentions.jobId, jobId));
+}
+
+const SOURCE_TECH_EXTRACTION_STATUSES = ["active", "pending_review", "hidden"] as const;
+
+export interface SourceTechnologyPreviewItem {
+  technologyId: number;
+  technologyName: string;
+  technologySlug: string;
+  category: string;
+  mentionCount: number;
+  jobCount: number;
+  examples: Array<{
+    jobId: number;
+    jobTitle: string;
+    jobUrl: string | null;
+    confidence: number;
+    context: string | null;
+  }>;
+}
+
+export async function extractTechnologiesForSource(sourceId: number): Promise<{ jobs: number; mentions: number }> {
+  const sourceJobs = await db
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(
+      and(
+        eq(jobs.sourceId, sourceId),
+        inArray(jobs.status, [...SOURCE_TECH_EXTRACTION_STATUSES]),
+      ),
+    );
+
+  let totalMentions = 0;
+  for (const job of sourceJobs) {
+    await clearTechMentionsForJob(job.id);
+    const result = await extractTechnologiesFromJob(job.id);
+    totalMentions += result.inserted;
+  }
+
+  return { jobs: sourceJobs.length, mentions: totalMentions };
+}
+
+export async function getTechnologyPreviewForSource(sourceId: number): Promise<{
+  jobsScanned: number;
+  mentionsFound: number;
+  uniqueTechnologies: number;
+  items: SourceTechnologyPreviewItem[];
+}> {
+  const rows = await db
+    .select({
+      mentionId: jobTechnologyMentions.id,
+      confidence: jobTechnologyMentions.confidence,
+      context: jobTechnologyMentions.context,
+      technologyId: technologies.id,
+      technologyName: technologies.name,
+      technologySlug: technologies.slug,
+      category: technologies.category,
+      jobId: jobs.id,
+      jobTitle: jobs.title,
+      jobUrl: jobs.url,
+    })
+    .from(jobTechnologyMentions)
+    .innerJoin(technologies, eq(jobTechnologyMentions.technologyId, technologies.id))
+    .innerJoin(jobs, eq(jobTechnologyMentions.jobId, jobs.id))
+    .where(
+      and(
+        eq(jobs.sourceId, sourceId),
+        inArray(jobs.status, [...SOURCE_TECH_EXTRACTION_STATUSES]),
+      ),
+    )
+    .orderBy(desc(jobTechnologyMentions.confidence), technologies.name, jobs.title);
+
+  const jobsScannedRows = await db
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(
+      and(
+        eq(jobs.sourceId, sourceId),
+        inArray(jobs.status, [...SOURCE_TECH_EXTRACTION_STATUSES]),
+      ),
+    );
+
+  const byTechnology = new Map<number, SourceTechnologyPreviewItem>();
+  for (const row of rows) {
+    const current = byTechnology.get(row.technologyId);
+    if (!current) {
+      byTechnology.set(row.technologyId, {
+        technologyId: row.technologyId,
+        technologyName: row.technologyName,
+        technologySlug: row.technologySlug,
+        category: row.category,
+        mentionCount: 1,
+        jobCount: 1,
+        examples: [{
+          jobId: row.jobId,
+          jobTitle: row.jobTitle,
+          jobUrl: row.jobUrl,
+          confidence: row.confidence ?? 0,
+          context: row.context,
+        }],
+      });
+      continue;
+    }
+
+    current.mentionCount += 1;
+    if (!current.examples.some((example) => example.jobId === row.jobId)) {
+      current.jobCount += 1;
+      if (current.examples.length < 3) {
+        current.examples.push({
+          jobId: row.jobId,
+          jobTitle: row.jobTitle,
+          jobUrl: row.jobUrl,
+          confidence: row.confidence ?? 0,
+          context: row.context,
+        });
+      }
+    }
+  }
+
+  const items = Array.from(byTechnology.values()).sort((a, b) => {
+    if (b.mentionCount !== a.mentionCount) return b.mentionCount - a.mentionCount;
+    return a.technologyName.localeCompare(b.technologyName);
+  });
+
+  return {
+    jobsScanned: jobsScannedRows.length,
+    mentionsFound: rows.length,
+    uniqueTechnologies: items.length,
+    items,
+  };
 }

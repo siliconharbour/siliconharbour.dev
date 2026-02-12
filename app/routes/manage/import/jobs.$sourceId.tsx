@@ -6,9 +6,17 @@ import type { FetchedJob } from "~/lib/job-importers/types";
 import { getImportSourceWithStats, syncJobs, syncJobsFromFetched, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical, approveJob, approveJobAsNonTechnical } from "~/lib/job-importers/sync.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
+import { extractTechnologiesForSource, getTechnologyPreviewForSource } from "~/lib/job-importers/tech-extractor.server";
+import { applyTechnologyEvidenceFromJobMentions } from "~/lib/technologies.server";
+import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
 
 const VERAFIN_SOURCE_ID = 3;
 const VERAFIN_SOURCE_IDENTIFIER = "nasdaq:Global_External_Site:verafin";
+
+function defaultLastVerifiedMonth(): string {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
 function isVerafinManualSource(source: { id: number; sourceType: string; sourceIdentifier: string }): boolean {
   return (
@@ -16,6 +24,13 @@ function isVerafinManualSource(source: { id: number; sourceType: string; sourceI
     source.sourceType === "workday" &&
     source.sourceIdentifier === VERAFIN_SOURCE_IDENTIFIER
   );
+}
+
+function parseSelectedTechnologyIds(formData: FormData): number[] {
+  return formData
+    .getAll("selectedTechnologyIds")
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0);
 }
 
 function sanitizeManualFetchedJob(input: unknown): FetchedJob | null {
@@ -175,6 +190,11 @@ export async function action({ request, params }: Route.ActionArgs) {
   await requireAuth(request);
   
   const sourceId = Number(params.sourceId);
+  const source = await getImportSourceWithStats(sourceId);
+  if (!source) {
+    return { success: false, error: "Source not found" };
+  }
+  const company = await getCompanyById(source.companyId);
   const formData = await request.formData();
   const intent = formData.get("intent");
   
@@ -184,7 +204,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   if (intent === "manual-sync") {
-    const source = await getImportSourceWithStats(sourceId);
     if (!source || !isVerafinManualSource(source)) {
       return { intent: "manual-sync", success: false, error: "Manual ingestion is not enabled for this source." };
     }
@@ -201,6 +220,63 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     const result = await syncJobsFromFetched(sourceId, parsed.jobs);
     return { intent: "manual-sync", parsedCount: parsed.jobs.length, ...result };
+  }
+
+  if (intent === "extract-tech-preview") {
+    const extraction = await extractTechnologiesForSource(sourceId);
+    const preview = await getTechnologyPreviewForSource(sourceId);
+
+    return {
+      intent: "extract-tech-preview",
+      success: true,
+      extraction,
+      preview,
+      defaults: {
+        sourceType: "job_posting",
+        sourceLabel: "Imported Job Postings",
+        sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || null,
+        lastVerified: defaultLastVerifiedMonth(),
+      },
+    };
+  }
+
+  if (intent === "apply-tech-preview") {
+    const selectedTechnologyIds = parseSelectedTechnologyIds(formData);
+    if (selectedTechnologyIds.length === 0) {
+      return { intent: "apply-tech-preview", success: false, error: "Select at least one technology to apply." };
+    }
+
+    const sourceTypeRaw = String(formData.get("sourceType") || "job_posting");
+    const sourceType = sourceTypeRaw === "job_posting" || sourceTypeRaw === "survey" || sourceTypeRaw === "manual"
+      ? sourceTypeRaw
+      : "job_posting";
+    const sourceLabel = String(formData.get("sourceLabel") || "").trim() || null;
+    const sourceUrl = String(formData.get("sourceUrl") || "").trim() || null;
+    const lastVerified = String(formData.get("lastVerified") || "").trim() || defaultLastVerifiedMonth();
+
+    const applyResult = await applyTechnologyEvidenceFromJobMentions({
+      companyId: source.companyId,
+      sourceId,
+      selectedTechnologyIds,
+      sourceType,
+      sourceLabel,
+      sourceUrl,
+      lastVerified,
+    });
+
+    const preview = await getTechnologyPreviewForSource(sourceId);
+    return {
+      intent: "apply-tech-preview",
+      success: true,
+      applyResult,
+      preview,
+      defaults: {
+        sourceType,
+        sourceLabel,
+        sourceUrl,
+        lastVerified,
+      },
+    };
   }
   
   if (intent === "delete") {
@@ -344,8 +420,10 @@ function JobTitleWithDescription({
 export default function ViewJobImportSource() {
   const { source, company, isVerafinManualMode } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const techFetcher = useFetcher<typeof action>();
   
   const isLoading = fetcher.state !== "idle";
+  const isTechLoading = techFetcher.state !== "idle";
   const careersPageUrl = source.sourceUrl || company?.careersUrl || company?.website || null;
   const companyDetailsPath = company?.slug ? `/directory/companies/${company.slug}` : null;
   const syncResult =
@@ -360,6 +438,18 @@ export default function ViewJobImportSource() {
   const activeJobs = source.jobs.filter(j => j.status === "active");
   const hiddenJobs = source.jobs.filter(j => j.status === "hidden");
   const removedJobs = source.jobs.filter(j => j.status !== "active" && j.status !== "hidden" && j.status !== "pending_review");
+  const techResult = techFetcher.data && "intent" in techFetcher.data && (
+    techFetcher.data.intent === "extract-tech-preview" || techFetcher.data.intent === "apply-tech-preview"
+  ) ? techFetcher.data : null;
+  const techPreview = techResult && "preview" in techResult ? techResult.preview : null;
+  const techDefaults = techResult && "defaults" in techResult
+    ? techResult.defaults
+    : {
+        sourceType: "job_posting",
+        sourceLabel: "Imported Job Postings",
+        sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || "",
+        lastVerified: defaultLastVerifiedMonth(),
+      };
 
   return (
     <div className="min-h-screen p-6">
@@ -528,6 +618,157 @@ export default function ViewJobImportSource() {
             </fetcher.Form>
           </div>
         )}
+
+        <div className="bg-white border border-harbour-200 p-6">
+          <h2 className="text-lg font-semibold text-harbour-700 mb-2">Technology Extraction</h2>
+          <p className="text-sm text-harbour-500 mb-4">
+            Extract technology mentions from this source&apos;s job descriptions, preview them, then apply selected items to company technology evidence.
+          </p>
+
+          <techFetcher.Form method="post" className="mb-4">
+            <input type="hidden" name="intent" value="extract-tech-preview" />
+            <button
+              type="submit"
+              disabled={isTechLoading}
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+            >
+              {isTechLoading ? "Extracting..." : "Extract Technologies (Preview)"}
+            </button>
+          </techFetcher.Form>
+
+          {techResult && "success" in techResult && !techResult.success && (
+            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 mb-4">
+              {"error" in techResult ? techResult.error : "Extraction failed."}
+            </div>
+          )}
+
+          {techPreview && (
+            <div className="border border-harbour-200">
+              <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
+                <p className="text-sm text-harbour-700 font-medium">
+                  Preview: {techPreview.uniqueTechnologies} technologies from {techPreview.jobsScanned} jobs ({techPreview.mentionsFound} mentions)
+                </p>
+                {techResult && "applyResult" in techResult && techResult.applyResult && (
+                  <p className="text-xs text-green-700 mt-1">
+                    Applied. Assigned: {techResult.applyResult.assignedCount}, Evidence Created: {techResult.applyResult.evidenceCreated}, Updated: {techResult.applyResult.evidenceUpdated}, Skipped: {techResult.applyResult.skipped}
+                  </p>
+                )}
+              </div>
+
+              <techFetcher.Form method="post" className="p-4 flex flex-col gap-4">
+                <input type="hidden" name="intent" value="apply-tech-preview" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="tech-sourceType" className="text-sm font-medium text-harbour-700">
+                      Source Type
+                    </label>
+                    <select
+                      id="tech-sourceType"
+                      name="sourceType"
+                      defaultValue={techDefaults.sourceType}
+                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                    >
+                      <option value="job_posting">job_posting</option>
+                      <option value="manual">manual</option>
+                      <option value="survey">survey</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="tech-lastVerified" className="text-sm font-medium text-harbour-700">
+                      Last Verified (YYYY-MM)
+                    </label>
+                    <input
+                      type="text"
+                      id="tech-lastVerified"
+                      name="lastVerified"
+                      defaultValue={techDefaults.lastVerified}
+                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="tech-sourceLabel" className="text-sm font-medium text-harbour-700">
+                      Source Label
+                    </label>
+                    <input
+                      type="text"
+                      id="tech-sourceLabel"
+                      name="sourceLabel"
+                      defaultValue={techDefaults.sourceLabel || "Imported Job Postings"}
+                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="tech-sourceUrl" className="text-sm font-medium text-harbour-700">
+                      Source URL
+                    </label>
+                    <input
+                      type="url"
+                      id="tech-sourceUrl"
+                      name="sourceUrl"
+                      defaultValue={techDefaults.sourceUrl || ""}
+                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="border border-harbour-200">
+                  <table className="w-full">
+                    <thead className="bg-harbour-50 border-b border-harbour-200">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600 w-10">Use</th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Technology</th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Category</th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Mentions</th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Jobs</th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Evidence</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-harbour-100">
+                      {techPreview.items.map((item) => (
+                        <tr key={item.technologyId}>
+                          <td className="px-3 py-2 align-top">
+                            <input
+                              type="checkbox"
+                              name="selectedTechnologyIds"
+                              value={item.technologyId}
+                              defaultChecked
+                              className="border border-harbour-300"
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-sm text-harbour-700">{item.technologyName}</td>
+                          <td className="px-3 py-2 text-sm text-harbour-500">
+                            {categoryLabels[item.category as TechnologyCategory] || item.category}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-harbour-500">{item.mentionCount}</td>
+                          <td className="px-3 py-2 text-sm text-harbour-500">{item.jobCount}</td>
+                          <td className="px-3 py-2 text-xs text-harbour-600">
+                            {item.examples.map((example) => (
+                              <details key={`${item.technologyId}-${example.jobId}`} className="mb-1">
+                                <summary className="cursor-pointer hover:text-harbour-700">
+                                  {example.jobTitle} (conf {example.confidence})
+                                </summary>
+                                <p className="mt-1 text-harbour-500">{example.context || "No context snippet"}</p>
+                              </details>
+                            ))}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isTechLoading}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors self-start"
+                >
+                  {isTechLoading ? "Applying..." : "Apply Selected to Company"}
+                </button>
+              </techFetcher.Form>
+            </div>
+          )}
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-5 gap-4">

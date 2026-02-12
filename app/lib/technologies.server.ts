@@ -263,6 +263,16 @@ export interface TechnologyEvidenceUpdateGroup {
   excerptText: string | null;
 }
 
+export interface ApplyJobMentionTechInput {
+  companyId: number;
+  sourceId: number;
+  selectedTechnologyIds: number[];
+  sourceType: TechnologyEvidenceSourceType;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+  lastVerified: string | null;
+}
+
 export async function setTechnologyProvenanceForContent(
   contentType: TechnologizedType,
   contentId: number,
@@ -366,6 +376,130 @@ export async function setTechnologyEvidenceForCompany(
       });
     }
   }
+}
+
+export async function applyTechnologyEvidenceFromJobMentions(
+  input: ApplyJobMentionTechInput,
+): Promise<{ assignedCount: number; evidenceCreated: number; evidenceUpdated: number; skipped: number }> {
+  if (input.selectedTechnologyIds.length === 0) {
+    return { assignedCount: 0, evidenceCreated: 0, evidenceUpdated: 0, skipped: 0 };
+  }
+
+  const uniqueTechnologyIds = Array.from(new Set(input.selectedTechnologyIds));
+  const assignments = await db
+    .select()
+    .from(technologyAssignments)
+    .where(
+      and(
+        eq(technologyAssignments.contentType, "company"),
+        eq(technologyAssignments.contentId, input.companyId),
+      ),
+    );
+
+  const assignmentsByTechId = new Map(assignments.map((assignment) => [assignment.technologyId, assignment]));
+  let assignedCount = 0;
+  for (const technologyId of uniqueTechnologyIds) {
+    const existing = assignmentsByTechId.get(technologyId);
+    if (existing) {
+      await db
+        .update(technologyAssignments)
+        .set({
+          source: input.sourceLabel,
+          sourceUrl: input.sourceUrl,
+          lastVerified: input.lastVerified,
+        })
+        .where(eq(technologyAssignments.id, existing.id));
+      continue;
+    }
+
+    const [created] = await db
+      .insert(technologyAssignments)
+      .values({
+        technologyId,
+        contentType: "company",
+        contentId: input.companyId,
+        source: input.sourceLabel,
+        sourceUrl: input.sourceUrl,
+        lastVerified: input.lastVerified,
+      })
+      .returning();
+    assignmentsByTechId.set(technologyId, created);
+    assignedCount++;
+  }
+
+  const mentionRows = await db
+    .select({
+      jobId: jobs.id,
+      technologyId: jobTechnologyMentions.technologyId,
+      context: jobTechnologyMentions.context,
+    })
+    .from(jobTechnologyMentions)
+    .innerJoin(jobs, eq(jobTechnologyMentions.jobId, jobs.id))
+    .where(
+      and(
+        eq(jobs.sourceId, input.sourceId),
+        inArray(jobTechnologyMentions.technologyId, uniqueTechnologyIds),
+      ),
+    );
+
+  let evidenceCreated = 0;
+  let evidenceUpdated = 0;
+  let skipped = 0;
+
+  const existingEvidence = await db
+    .select()
+    .from(technologyEvidence)
+    .where(
+      inArray(
+        technologyEvidence.technologyAssignmentId,
+        Array.from(assignmentsByTechId.values()).map((assignment) => assignment.id),
+      ),
+    );
+
+  const existingByAssignmentAndJob = new Map<string, (typeof existingEvidence)[number]>();
+  for (const evidence of existingEvidence) {
+    const key = `${evidence.technologyAssignmentId}:${evidence.jobId ?? "none"}:${evidence.sourceType}`;
+    if (!existingByAssignmentAndJob.has(key)) {
+      existingByAssignmentAndJob.set(key, evidence);
+    }
+  }
+
+  for (const mention of mentionRows) {
+    const assignment = assignmentsByTechId.get(mention.technologyId);
+    if (!assignment) {
+      skipped++;
+      continue;
+    }
+
+    const key = `${assignment.id}:${mention.jobId}:${input.sourceType}`;
+    const existing = existingByAssignmentAndJob.get(key);
+    if (existing) {
+      await db
+        .update(technologyEvidence)
+        .set({
+          sourceLabel: input.sourceLabel,
+          sourceUrl: input.sourceUrl,
+          excerptText: mention.context ?? existing.excerptText,
+          lastVerified: input.lastVerified,
+        })
+        .where(eq(technologyEvidence.id, existing.id));
+      evidenceUpdated++;
+      continue;
+    }
+
+    await db.insert(technologyEvidence).values({
+      technologyAssignmentId: assignment.id,
+      jobId: mention.jobId,
+      sourceType: input.sourceType,
+      sourceLabel: input.sourceLabel,
+      sourceUrl: input.sourceUrl,
+      excerptText: mention.context,
+      lastVerified: input.lastVerified,
+    });
+    evidenceCreated++;
+  }
+
+  return { assignedCount, evidenceCreated, evidenceUpdated, skipped };
 }
 
 export interface TechnologyEvidenceWithJob {
