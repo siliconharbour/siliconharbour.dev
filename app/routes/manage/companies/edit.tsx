@@ -4,7 +4,7 @@ import { Link, redirect, useActionData, useLoaderData, Form } from "react-router
 import { desc, eq } from "drizzle-orm";
 import { requireAuth } from "~/lib/session.server";
 import { db } from "~/db";
-import { jobs } from "~/db/schema";
+import { jobs, jobTechnologyMentions } from "~/db/schema";
 import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
 import { convertCompanyToEducation } from "~/lib/education.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
@@ -68,6 +68,15 @@ interface CompanyJobOption {
   id: number;
   title: string;
   status: string;
+}
+
+interface JobPostingEvidenceRow {
+  technologyId: number;
+  technologyName: string;
+  jobId: number;
+  jobTitle: string;
+  confidence: number | null;
+  excerptText: string | null;
 }
 
 interface ProvenanceGroup {
@@ -169,6 +178,55 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     .where(eq(jobs.companyId, id))
     .orderBy(desc(jobs.firstSeenAt));
 
+  const mentionRows = await db
+    .select({
+      jobId: jobTechnologyMentions.jobId,
+      technologyId: jobTechnologyMentions.technologyId,
+      confidence: jobTechnologyMentions.confidence,
+      context: jobTechnologyMentions.context,
+    })
+    .from(jobTechnologyMentions)
+    .innerJoin(jobs, eq(jobTechnologyMentions.jobId, jobs.id))
+    .where(eq(jobs.companyId, id));
+  const bestMentionByKey = new Map<string, { confidence: number | null; context: string | null }>();
+  for (const mention of mentionRows) {
+    const key = `${mention.technologyId}:${mention.jobId}`;
+    const existing = bestMentionByKey.get(key);
+    if (!existing || (mention.confidence ?? -1) > (existing.confidence ?? -1)) {
+      bestMentionByKey.set(key, {
+        confidence: mention.confidence ?? null,
+        context: mention.context ?? null,
+      });
+    }
+  }
+
+  const companyJobMap = new Map(companyJobs.map((job) => [job.id, job]));
+  const jobPostingEvidenceRowsMap = new Map<string, JobPostingEvidenceRow>();
+  for (const item of companyTechnologies) {
+    for (const evidence of item.evidence) {
+      if (evidence.sourceType !== "job_posting" || !evidence.jobId) continue;
+      const key = `${item.technologyId}:${evidence.jobId}`;
+      const mention = bestMentionByKey.get(key);
+      const job = companyJobMap.get(evidence.jobId);
+      if (!job) continue;
+      if (!jobPostingEvidenceRowsMap.has(key)) {
+        jobPostingEvidenceRowsMap.set(key, {
+          technologyId: item.technologyId,
+          technologyName: item.technology.name,
+          jobId: evidence.jobId,
+          jobTitle: job.title,
+          confidence: mention?.confidence ?? null,
+          excerptText: evidence.excerptText ?? mention?.context ?? null,
+        });
+      }
+    }
+  }
+  const jobPostingEvidenceRows = Array.from(jobPostingEvidenceRowsMap.values()).sort((a, b) => {
+    const byTech = a.technologyName.localeCompare(b.technologyName);
+    if (byTech !== 0) return byTech;
+    return a.jobTitle.localeCompare(b.jobTitle);
+  });
+
   return {
     company,
     allTechnologies,
@@ -185,6 +243,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         jobId: evidence.jobId,
       })),
     })),
+    jobPostingEvidenceRows,
   };
 }
 
@@ -306,8 +365,14 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditCompany() {
-  const { company, allTechnologies, companyJobs, selectedTechnologyIds, companyTechnologies } =
-    useLoaderData<typeof loader>();
+  const {
+    company,
+    allTechnologies,
+    companyJobs,
+    selectedTechnologyIds,
+    companyTechnologies,
+    jobPostingEvidenceRows,
+  } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [provenanceGroups, setProvenanceGroups] = useState<ProvenanceGroup[]>(() =>
     buildInitialProvenanceGroups(companyTechnologies),
@@ -594,14 +659,20 @@ export default function EditCompany() {
                         className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                       />
                     </div>
-                    <textarea
-                      name={`provenanceExcerpt_${group.id}`}
-                      value={group.excerptText}
-                      onChange={(e) => updateGroupField(group.id, "excerptText", e.target.value)}
-                      rows={2}
-                      placeholder="Evidence excerpt (optional)"
-                      className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
-                    />
+                    {group.sourceKey === "job_postings" ? (
+                      <p className="text-xs text-harbour-500">
+                        Snippets and confidence come from extracted job mentions and are shown below.
+                      </p>
+                    ) : (
+                      <textarea
+                        name={`provenanceExcerpt_${group.id}`}
+                        value={group.excerptText}
+                        onChange={(e) => updateGroupField(group.id, "excerptText", e.target.value)}
+                        rows={2}
+                        placeholder="Evidence excerpt (optional)"
+                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                      />
+                    )}
 
                     <div className="border border-harbour-200 p-2">
                       <p className="text-xs text-harbour-500 mb-2">Associate technologies</p>
@@ -645,6 +716,49 @@ export default function EditCompany() {
                         </p>
                       )}
                     </div>
+                    {group.sourceKey === "job_postings" && (
+                      <div className="border border-harbour-200">
+                        <div className="px-2 py-1 bg-harbour-50 border-b border-harbour-200">
+                          <p className="text-xs text-harbour-600">Extracted evidence (read-only)</p>
+                        </div>
+                        <table className="w-full">
+                          <thead className="bg-harbour-50 border-b border-harbour-200">
+                            <tr>
+                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                                Technology
+                              </th>
+                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">Job</th>
+                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                                Confidence
+                              </th>
+                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">Snippet</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-harbour-100">
+                            {jobPostingEvidenceRows
+                              .filter(
+                                (row) =>
+                                  group.technologyIds.includes(row.technologyId)
+                                  && group.jobIds.includes(row.jobId),
+                              )
+                              .map((row) => (
+                                <tr key={`${row.technologyId}:${row.jobId}`}>
+                                  <td className="px-2 py-1 text-xs text-harbour-700">{row.technologyName}</td>
+                                  <td className="px-2 py-1 text-xs text-harbour-700">{row.jobTitle}</td>
+                                  <td className="px-2 py-1 text-xs text-harbour-600">
+                                    {row.confidence ?? "-"}
+                                  </td>
+                                  <td className="px-2 py-1 text-xs text-harbour-600">
+                                    {row.excerptText && row.excerptText.trim().length > 0
+                                      ? row.excerptText
+                                      : "No snippet available"}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
