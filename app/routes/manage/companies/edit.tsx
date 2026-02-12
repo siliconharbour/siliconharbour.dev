@@ -22,8 +22,10 @@ import {
   setTechnologyEvidenceForCompany,
 } from "~/lib/technologies.server";
 import {
-  getTechnologyEvidenceGroupKey,
-  normalizeTechnologyEvidenceSourceLabel,
+  getTechnologyProvenanceSourceByKey,
+  inferTechnologyProvenanceSourceKey,
+  technologyProvenanceSourceOptions,
+  type TechnologyProvenanceSourceKey,
 } from "~/lib/technology-evidence";
 
 function normalizeUrl(url: string): string {
@@ -71,8 +73,7 @@ interface CompanyJobOption {
 
 interface ProvenanceGroup {
   id: string;
-  sourceType: "job_posting" | "survey" | "manual";
-  source: string;
+  sourceKey: TechnologyProvenanceSourceKey;
   sourceUrl: string;
   lastVerified: string;
   excerptText: string;
@@ -90,76 +91,52 @@ function toMonthInputValue(value: string | null): string {
 function buildInitialProvenanceGroups(
   companyTechnologies: CompanyTechnologyProvenance[],
 ): ProvenanceGroup[] {
-  const byProvenance = new Map<string, ProvenanceGroup>();
+  const byProvenance = new Map<TechnologyProvenanceSourceKey, ProvenanceGroup>(
+    technologyProvenanceSourceOptions.map((option) => [
+      option.key,
+      {
+        id: `existing-${option.key}`,
+        sourceKey: option.key,
+        sourceUrl: "",
+        lastVerified: "",
+        excerptText: "",
+        jobIds: [],
+        technologyIds: [],
+      },
+    ]),
+  );
 
   for (const item of companyTechnologies) {
-    if (item.evidence.length === 0) {
-      const noEvidenceKey = "manual|||";
-      const existingNoEvidence = byProvenance.get(noEvidenceKey);
-      if (existingNoEvidence) {
-        if (!existingNoEvidence.technologyIds.includes(item.technologyId)) {
-          existingNoEvidence.technologyIds.push(item.technologyId);
-        }
-      } else {
-        byProvenance.set(noEvidenceKey, {
-          id: `existing-${byProvenance.size + 1}`,
-          sourceType: "manual",
-          source: "",
-          sourceUrl: "",
-          lastVerified: "",
-          excerptText: "",
-          jobIds: [],
-          technologyIds: [item.technologyId],
-        });
-      }
-      continue;
+    const evidenceWithKey = item.evidence.map((evidence) => ({
+      evidence,
+      sourceKey: inferTechnologyProvenanceSourceKey(evidence.sourceType, evidence.sourceLabel),
+    }));
+    const preferredSourceKey = evidenceWithKey.some((entry) => entry.sourceKey === "job_postings")
+      ? "job_postings"
+      : "coding_reference";
+    const group = byProvenance.get(preferredSourceKey)!;
+    if (!group.technologyIds.includes(item.technologyId)) {
+      group.technologyIds.push(item.technologyId);
     }
 
-    for (const evidence of item.evidence) {
-      const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
-        evidence.sourceType,
-        evidence.sourceLabel,
-      );
-      const key = getTechnologyEvidenceGroupKey(
-        evidence.sourceType,
-        normalizedSourceLabel,
-        evidence.sourceUrl,
-        evidence.lastVerified,
-      );
-      const existing = byProvenance.get(key);
-      if (existing) {
-        if (!existing.technologyIds.includes(item.technologyId)) {
-          existing.technologyIds.push(item.technologyId);
-        }
-        if (evidence.jobId && !existing.jobIds.includes(evidence.jobId)) {
-          existing.jobIds.push(evidence.jobId);
-        }
-        if (!existing.excerptText && evidence.excerptText) {
-          existing.excerptText = evidence.excerptText;
-        }
-        if (!existing.sourceUrl && evidence.sourceUrl) {
-          existing.sourceUrl = evidence.sourceUrl;
-        }
-        if (!existing.lastVerified && evidence.lastVerified) {
-          existing.lastVerified = toMonthInputValue(evidence.lastVerified);
-        }
-        continue;
+    const relevantEvidence = evidenceWithKey.filter((entry) => entry.sourceKey === preferredSourceKey);
+    for (const { evidence } of relevantEvidence) {
+      if (evidence.jobId && !group.jobIds.includes(evidence.jobId)) {
+        group.jobIds.push(evidence.jobId);
       }
-
-      byProvenance.set(key, {
-        id: `existing-${byProvenance.size + 1}`,
-        sourceType: evidence.sourceType,
-        source: normalizedSourceLabel ?? "",
-        sourceUrl: evidence.sourceUrl ?? "",
-        lastVerified: toMonthInputValue(evidence.lastVerified),
-        excerptText: evidence.excerptText ?? "",
-        jobIds: evidence.jobId ? [evidence.jobId] : [],
-        technologyIds: [item.technologyId],
-      });
+      if (!group.excerptText && evidence.excerptText) {
+        group.excerptText = evidence.excerptText;
+      }
+      if (!group.sourceUrl && evidence.sourceUrl) {
+        group.sourceUrl = evidence.sourceUrl;
+      }
+      if (!group.lastVerified && evidence.lastVerified) {
+        group.lastVerified = toMonthInputValue(evidence.lastVerified);
+      }
     }
   }
 
-  return Array.from(byProvenance.values());
+  return technologyProvenanceSourceOptions.map((option) => byProvenance.get(option.key)!);
 }
 
 export function meta({ data }: Route.MetaArgs) {
@@ -277,10 +254,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     .filter((id) => id.length > 0);
 
   const evidenceGroups = provenanceGroupIds.map((groupId) => {
-    const sourceTypeRaw = normalizeNullableString(formData.get(`provenanceSourceType_${groupId}`));
-    const sourceType = sourceTypeRaw === "job_posting" || sourceTypeRaw === "survey"
-      ? sourceTypeRaw
-      : "manual";
+    const sourceKey = String(formData.get(`provenanceSourceKey_${groupId}`) || "coding_reference");
+    const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
     const technologyIdsForGroup = formData
       .getAll(`provenanceTech_${groupId}`)
       .map((id) => parseInt(String(id), 10))
@@ -292,11 +267,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     return {
       technologyIds: technologyIdsForGroup,
-      sourceType,
-      sourceLabel: normalizeTechnologyEvidenceSourceLabel(
-        sourceType,
-        normalizeNullableString(formData.get(`provenanceSource_${groupId}`)),
-      ),
+      sourceType: sourceDefinition.sourceType,
+      sourceLabel: sourceDefinition.sourceLabel,
       sourceUrl: normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
       lastVerified: normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`)),
       excerptText: normalizeNullableString(formData.get(`provenanceExcerpt_${groupId}`)),
@@ -345,29 +317,9 @@ export default function EditCompany() {
     a.technologyName.localeCompare(b.technologyName),
   );
 
-  const addProvenanceGroup = () => {
-    setProvenanceGroups((current) => [
-      ...current,
-      {
-        id: `new-${Date.now()}-${current.length + 1}`,
-        sourceType: "manual",
-        source: "",
-        sourceUrl: "",
-        lastVerified: "",
-        excerptText: "",
-        jobIds: [],
-        technologyIds: [],
-      },
-    ]);
-  };
-
-  const removeProvenanceGroup = (groupId: string) => {
-    setProvenanceGroups((current) => current.filter((group) => group.id !== groupId));
-  };
-
   const updateGroupField = (
     groupId: string,
-    field: "sourceType" | "source" | "sourceUrl" | "lastVerified" | "excerptText",
+    field: "sourceUrl" | "lastVerified" | "excerptText",
     value: string,
   ) => {
     setProvenanceGroups((current) =>
@@ -584,24 +536,16 @@ export default function EditCompany() {
             <div className="flex flex-col gap-3">
               <h2 className="font-medium text-harbour-700">Technology Provenance</h2>
               <p className="text-xs text-harbour-400">
-                Create provenance entries, then assign technologies to each one. A technology can be
-                attached to only one provenance entry.
+                Assign each technology to one source bucket.
               </p>
-              <button
-                type="button"
-                onClick={addProvenanceGroup}
-                className="self-start px-3 py-1.5 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 text-sm font-medium transition-colors"
-              >
-                + Add Provenance
-              </button>
               <div className="flex flex-col gap-3">
-                {provenanceGroups.map((group, index) => (
+                {provenanceGroups.map((group) => (
                   <div key={group.id} className="border border-harbour-200 p-3 flex flex-col gap-3">
                     <input type="hidden" name="provenanceGroupId" value={group.id} />
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <div className="flex items-center gap-2">
                         <h3 className="text-sm font-medium text-harbour-700">
-                          Provenance {index + 1}
+                          {getTechnologyProvenanceSourceByKey(group.sourceKey).label}
                         </h3>
                         {group.technologyIds.length === 0 && (
                           <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
@@ -609,34 +553,32 @@ export default function EditCompany() {
                           </span>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeProvenanceGroup(group.id)}
-                        className="text-xs px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
-                      >
-                        Remove
-                      </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                       <select
-                        name={`provenanceSourceType_${group.id}`}
-                        value={group.sourceType}
-                        onChange={(e) => updateGroupField(group.id, "sourceType", e.target.value)}
+                        name={`provenanceSourceKey_${group.id}`}
+                        value={group.sourceKey}
+                        disabled
+                        className="px-2 py-1 border border-harbour-300 bg-harbour-50 text-harbour-700 focus:outline-none"
+                      >
+                        {technologyProvenanceSourceOptions.map((option) => (
+                          <option key={option.key} value={option.key}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <input type="hidden" name={`provenanceSourceKey_${group.id}`} value={group.sourceKey} />
+                      <select
+                        name={`provenanceSourceLabel_${group.id}`}
+                        value={getTechnologyProvenanceSourceByKey(group.sourceKey).sourceLabel}
+                        disabled
                         className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                       >
-                        <option value="manual">Manual</option>
-                        <option value="survey">Survey</option>
-                        <option value="job_posting">Job Posting</option>
+                        <option>
+                          {getTechnologyProvenanceSourceByKey(group.sourceKey).sourceLabel}
+                        </option>
                       </select>
-                      <input
-                        type="text"
-                        name={`provenanceSource_${group.id}`}
-                        value={group.source}
-                        onChange={(e) => updateGroupField(group.id, "source", e.target.value)}
-                        placeholder="Source (e.g. Job Postings)"
-                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                      />
                       <input
                         type="url"
                         name={`provenanceSourceUrl_${group.id}`}
@@ -682,21 +624,27 @@ export default function EditCompany() {
                     </div>
                     <div className="border border-harbour-200 p-2">
                       <p className="text-xs text-harbour-500 mb-2">Supporting job postings</p>
-                      <BaseMultiSelect
-                        name={`provenanceJobs_${group.id}`}
-                        options={companyJobs.map((job: CompanyJobOption) => ({
-                          value: String(job.id),
-                          label: `${job.title}${job.status === "removed" ? " (removed)" : ""}`,
-                        }))}
-                        selectedValues={group.jobIds.map(String)}
-                        onChange={(selected) =>
-                          setGroupJobs(
-                            group.id,
-                            selected.map((value) => parseInt(value, 10)).filter((id) => !isNaN(id)),
-                          )
-                        }
-                        placeholder="Select job evidence..."
-                      />
+                      {group.sourceKey === "job_postings" ? (
+                        <BaseMultiSelect
+                          name={`provenanceJobs_${group.id}`}
+                          options={companyJobs.map((job: CompanyJobOption) => ({
+                            value: String(job.id),
+                            label: `${job.title}${job.status === "removed" ? " (removed)" : ""}`,
+                          }))}
+                          selectedValues={group.jobIds.map(String)}
+                          onChange={(selected) =>
+                            setGroupJobs(
+                              group.id,
+                              selected.map((value) => parseInt(value, 10)).filter((id) => !isNaN(id)),
+                            )
+                          }
+                          placeholder="Select job evidence..."
+                        />
+                      ) : (
+                        <p className="text-xs text-harbour-400">
+                          Job links only apply to the Job Postings source.
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}

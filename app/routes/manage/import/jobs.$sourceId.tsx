@@ -8,7 +8,11 @@ import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 import { extractTechnologiesForSource, getTechnologyPreviewForSource } from "~/lib/job-importers/tech-extractor.server";
 import { applyTechnologyEvidenceFromJobMentions } from "~/lib/technologies.server";
-import { normalizeTechnologyEvidenceSourceLabel } from "~/lib/technology-evidence";
+import {
+  getTechnologyProvenanceSourceByKey,
+  technologyProvenanceSourceOptions,
+  type TechnologyProvenanceSourceKey,
+} from "~/lib/technology-evidence";
 import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
 
 const VERAFIN_SOURCE_ID = 3;
@@ -233,8 +237,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       extraction,
       preview,
       defaults: {
-        sourceType: "job_posting",
-        sourceLabel: "Job Postings",
+        sourceKey: "job_postings",
         sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || null,
         lastVerified: defaultLastVerifiedMonth(),
       },
@@ -247,12 +250,8 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { intent: "apply-tech-preview", success: false, error: "Select at least one technology to apply." };
     }
 
-    const sourceTypeRaw = String(formData.get("sourceType") || "job_posting");
-    const sourceType = sourceTypeRaw === "job_posting" || sourceTypeRaw === "survey" || sourceTypeRaw === "manual"
-      ? sourceTypeRaw
-      : "job_posting";
-    const rawSourceLabel = String(formData.get("sourceLabel") || "").trim() || null;
-    const sourceLabel = normalizeTechnologyEvidenceSourceLabel(sourceType, rawSourceLabel);
+    const sourceKey = String(formData.get("sourceKey") || "job_postings");
+    const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
     const sourceUrl = String(formData.get("sourceUrl") || "").trim() || null;
     const lastVerified = String(formData.get("lastVerified") || "").trim() || defaultLastVerifiedMonth();
 
@@ -260,8 +259,8 @@ export async function action({ request, params }: Route.ActionArgs) {
       companyId: source.companyId,
       sourceId,
       selectedTechnologyIds,
-      sourceType,
-      sourceLabel,
+      sourceType: sourceDefinition.sourceType,
+      sourceLabel: sourceDefinition.sourceLabel,
       sourceUrl,
       lastVerified,
     });
@@ -273,8 +272,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       applyResult,
       preview,
       defaults: {
-        sourceType,
-        sourceLabel,
+        sourceKey: sourceDefinition.key,
         sourceUrl,
         lastVerified,
       },
@@ -447,8 +445,7 @@ export default function ViewJobImportSource() {
   const techDefaults = techResult && "defaults" in techResult
     ? techResult.defaults
     : {
-        sourceType: "job_posting",
-        sourceLabel: "Job Postings",
+        sourceKey: "job_postings" as TechnologyProvenanceSourceKey,
         sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || "",
         lastVerified: defaultLastVerifiedMonth(),
       };
@@ -662,18 +659,20 @@ export default function ViewJobImportSource() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="tech-sourceType" className="text-sm font-medium text-harbour-700">
-                      Source Type
+                    <label htmlFor="tech-sourceKey" className="text-sm font-medium text-harbour-700">
+                      Source
                     </label>
                     <select
-                      id="tech-sourceType"
-                      name="sourceType"
-                      defaultValue={techDefaults.sourceType}
+                      id="tech-sourceKey"
+                      name="sourceKey"
+                      defaultValue={techDefaults.sourceKey}
                       className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     >
-                      <option value="job_posting">job_posting</option>
-                      <option value="manual">manual</option>
-                      <option value="survey">survey</option>
+                      {technologyProvenanceSourceOptions.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
@@ -685,18 +684,6 @@ export default function ViewJobImportSource() {
                       id="tech-lastVerified"
                       name="lastVerified"
                       defaultValue={techDefaults.lastVerified}
-                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label htmlFor="tech-sourceLabel" className="text-sm font-medium text-harbour-700">
-                      Source Label
-                    </label>
-                    <input
-                      type="text"
-                      id="tech-sourceLabel"
-                      name="sourceLabel"
-                      defaultValue={techDefaults.sourceLabel || "Job Postings"}
                       className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     />
                   </div>

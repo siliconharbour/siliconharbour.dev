@@ -218,6 +218,13 @@
       "when": 1768715000000,
       "tag": "0030_normalize_job_posting_source_labels",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "6",
+      "when": 1768716000000,
+      "tag": "0031_canonicalize_technology_evidence_sources",
+      "breakpoints": true
     }
   ]
 }
