@@ -741,6 +741,7 @@ export default function EditCompany() {
                                   group.technologyIds.includes(row.technologyId)
                                   && group.jobIds.includes(row.jobId),
                               )
+                              .filter((row) => row.excerptText && row.excerptText.trim().length > 0)
                               .map((row) => (
                                 <tr key={`${row.technologyId}:${row.jobId}`}>
                                   <td className="px-2 py-1 text-xs text-harbour-700">{row.technologyName}</td>
@@ -749,9 +750,7 @@ export default function EditCompany() {
                                     {row.confidence ?? "-"}
                                   </td>
                                   <td className="px-2 py-1 text-xs text-harbour-600">
-                                    {row.excerptText && row.excerptText.trim().length > 0
-                                      ? row.excerptText
-                                      : "No snippet available"}
+                                    {row.excerptText}
                                   </td>
                                 </tr>
                               ))}

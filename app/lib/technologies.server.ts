@@ -398,6 +398,9 @@ export async function setTechnologyEvidenceForCompany(
             ?? mention?.context
             ?? null;
           const excerptForManual = group.excerptText ?? existingExcerpt ?? null;
+          if (group.sourceType === "job_posting" && (!excerptForJobPosting || excerptForJobPosting.trim().length === 0)) {
+            continue;
+          }
           await db.insert(technologyEvidence).values({
             technologyAssignmentId: assignment.id,
             jobId,

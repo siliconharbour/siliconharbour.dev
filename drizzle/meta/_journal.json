@@ -260,6 +260,13 @@
       "when": 1768721000000,
       "tag": "0036_clear_noisy_job_posting_snippets",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "6",
+      "when": 1768722000000,
+      "tag": "0037_delete_job_posting_evidence_without_snippets",
+      "breakpoints": true
     }
   ]
 }
