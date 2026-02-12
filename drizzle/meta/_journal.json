@@ -232,6 +232,20 @@
       "when": 1768717000000,
       "tag": "0032_set_get_coding_reference_url",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "6",
+      "when": 1768718000000,
+      "tag": "0033_normalize_job_posting_source_label_in_evidence",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "6",
+      "when": 1768719000000,
+      "tag": "0034_normalize_job_posting_source_in_assignments",
+      "breakpoints": true
     }
   ]
 }
