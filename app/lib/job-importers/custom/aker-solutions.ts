@@ -26,11 +26,11 @@ function extractJobPostId(url: string): string | null {
 }
 
 function cleanTitle(rawTitle: string): string {
-  return normalizeText(rawTitle)
-    .replace(/\s+St\.?\s*John'?s,\s*Canada.*$/i, "")
-    .replace(/\s+Position:\s*.+$/i, "")
-    .replace(/\s+Deadline:\s*.+$/i, "")
-    .trim();
+  const normalized = normalizeText(rawTitle);
+  const marker = normalized.match(/St\.?\s*John'?s,\s*Canada|Position:|Deadline:/i);
+  const markerIndex = marker?.index ?? -1;
+
+  return normalizeText(markerIndex > 0 ? normalized.slice(0, markerIndex) : normalized);
 }
 
 function detectWorkplaceType(text: string): WorkplaceType | undefined {
