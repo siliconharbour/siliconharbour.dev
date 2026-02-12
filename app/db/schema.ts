@@ -618,7 +618,6 @@ export const technologyEvidence = sqliteTable(
     sourceType: text("source_type", { enum: technologyEvidenceSourceTypes })
       .notNull()
       .default("manual"),
-    sourceLabel: text("source_label"),
     sourceUrl: text("source_url"),
     excerptText: text("excerpt_text"),
     lastVerified: text("last_verified"),

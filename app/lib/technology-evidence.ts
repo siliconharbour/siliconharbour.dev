@@ -41,14 +41,8 @@ export function getTechnologyProvenanceSourceByKey(
 
 export function inferTechnologyProvenanceSourceKey(
   sourceType: TechnologyEvidenceSourceType,
-  sourceLabel: string | null,
 ): TechnologyProvenanceSourceKey {
   if (sourceType === "job_posting") {
-    return "job_postings";
-  }
-
-  const normalized = sourceLabel?.trim().toLowerCase() ?? "";
-  if (normalized === "job postings") {
     return "job_postings";
   }
 
@@ -57,16 +51,14 @@ export function inferTechnologyProvenanceSourceKey(
 
 export function normalizeTechnologyEvidenceSourceLabel(
   sourceType: TechnologyEvidenceSourceType,
-  sourceLabel: string | null,
 ): string | null {
-  return getTechnologyProvenanceSourceByKey(inferTechnologyProvenanceSourceKey(sourceType, sourceLabel)).label;
+  return getTechnologyProvenanceSourceByKey(inferTechnologyProvenanceSourceKey(sourceType)).label;
 }
 
 export function getTechnologyEvidenceGroupKey(
   sourceType: TechnologyEvidenceSourceType,
-  sourceLabel: string | null,
   _sourceUrl: string | null,
   _lastVerified: string | null,
 ): string {
-  return inferTechnologyProvenanceSourceKey(sourceType, sourceLabel);
+  return inferTechnologyProvenanceSourceKey(sourceType);
 }

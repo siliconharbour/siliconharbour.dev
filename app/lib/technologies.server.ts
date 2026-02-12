@@ -258,7 +258,6 @@ export interface TechnologyProvenanceUpdate {
 export interface TechnologyEvidenceUpdateGroup {
   technologyIds: number[];
   sourceType: TechnologyEvidenceSourceType;
-  sourceLabel: string | null;
   sourceUrl: string | null;
   lastVerified: string | null;
   jobIds: number[];
@@ -270,7 +269,6 @@ export interface ApplyJobMentionTechInput {
   sourceId: number;
   selectedTechnologyIds: number[];
   sourceType: TechnologyEvidenceSourceType;
-  sourceLabel: string | null;
   sourceUrl: string | null;
   lastVerified: string | null;
 }
@@ -346,11 +344,6 @@ export async function setTechnologyEvidenceForCompany(
   const jobsById = new Map(jobRows.map((job) => [job.id, job]));
 
   for (const group of groups) {
-    const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
-      group.sourceType,
-      group.sourceLabel,
-    );
-
     for (const technologyId of group.technologyIds) {
       const assignment = assignmentsByTechnologyId.get(technologyId);
       if (!assignment) {
@@ -364,7 +357,6 @@ export async function setTechnologyEvidenceForCompany(
             technologyAssignmentId: assignment.id,
             jobId,
             sourceType: group.sourceType,
-            sourceLabel: normalizedSourceLabel,
             sourceUrl: group.sourceUrl,
             excerptText: group.excerptText ?? job?.descriptionText?.slice(0, 800) ?? null,
             lastVerified: group.lastVerified,
@@ -376,7 +368,6 @@ export async function setTechnologyEvidenceForCompany(
       await db.insert(technologyEvidence).values({
         technologyAssignmentId: assignment.id,
         sourceType: group.sourceType,
-        sourceLabel: normalizedSourceLabel,
         sourceUrl: group.sourceUrl,
         excerptText: group.excerptText,
         lastVerified: group.lastVerified,
@@ -392,10 +383,7 @@ export async function applyTechnologyEvidenceFromJobMentions(
     return { assignedCount: 0, evidenceCreated: 0, evidenceUpdated: 0, skipped: 0 };
   }
 
-  const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
-    input.sourceType,
-    input.sourceLabel,
-  );
+  const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(input.sourceType);
   const uniqueTechnologyIds = Array.from(new Set(input.selectedTechnologyIds));
   const assignments = await db
     .select()
@@ -488,7 +476,6 @@ export async function applyTechnologyEvidenceFromJobMentions(
       await db
         .update(technologyEvidence)
         .set({
-          sourceLabel: normalizedSourceLabel,
           sourceUrl: input.sourceUrl,
           excerptText: mention.context ?? existing.excerptText,
           lastVerified: input.lastVerified,
@@ -502,7 +489,6 @@ export async function applyTechnologyEvidenceFromJobMentions(
       technologyAssignmentId: assignment.id,
       jobId: mention.jobId,
       sourceType: input.sourceType,
-      sourceLabel: normalizedSourceLabel,
       sourceUrl: input.sourceUrl,
       excerptText: mention.context,
       lastVerified: input.lastVerified,
@@ -516,7 +502,6 @@ export async function applyTechnologyEvidenceFromJobMentions(
 export interface TechnologyEvidenceWithJob {
   id: number;
   sourceType: TechnologyEvidenceSourceType;
-  sourceLabel: string | null;
   sourceUrl: string | null;
   excerptText: string | null;
   lastVerified: string | null;
@@ -565,7 +550,6 @@ export async function getTechnologiesForContent(
     list.push({
       id: evidence.id,
       sourceType: evidence.sourceType,
-      sourceLabel: normalizeTechnologyEvidenceSourceLabel(evidence.sourceType, evidence.sourceLabel),
       sourceUrl: evidence.sourceUrl,
       excerptText: evidence.excerptText,
       lastVerified: evidence.lastVerified,

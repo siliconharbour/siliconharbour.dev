@@ -261,7 +261,6 @@ export async function action({ request, params }: Route.ActionArgs) {
       sourceId,
       selectedTechnologyIds,
       sourceType: sourceDefinition.sourceType,
-      sourceLabel: sourceDefinition.label,
       sourceUrl,
       lastVerified,
     });

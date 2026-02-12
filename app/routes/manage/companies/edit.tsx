@@ -57,7 +57,6 @@ interface CompanyTechnologyProvenance {
   technologyName: string;
   evidence: Array<{
     sourceType: "job_posting" | "survey" | "manual";
-    sourceLabel: string | null;
     sourceUrl: string | null;
     lastVerified: string | null;
     excerptText: string | null;
@@ -109,7 +108,7 @@ function buildInitialProvenanceGroups(
   for (const item of companyTechnologies) {
     const evidenceWithKey = item.evidence.map((evidence) => ({
       evidence,
-      sourceKey: inferTechnologyProvenanceSourceKey(evidence.sourceType, evidence.sourceLabel),
+      sourceKey: inferTechnologyProvenanceSourceKey(evidence.sourceType),
     }));
     const preferredSourceKey = evidenceWithKey.some((entry) => entry.sourceKey === "job_postings")
       ? "job_postings"
@@ -180,7 +179,6 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       technologyName: t.technology.name,
       evidence: t.evidence.map((evidence) => ({
         sourceType: evidence.sourceType,
-        sourceLabel: evidence.sourceLabel,
         sourceUrl: evidence.sourceUrl,
         lastVerified: evidence.lastVerified,
         excerptText: evidence.excerptText,
@@ -268,7 +266,6 @@ export async function action({ request, params }: Route.ActionArgs) {
     return {
       technologyIds: technologyIdsForGroup,
       sourceType: sourceDefinition.sourceType,
-      sourceLabel: sourceDefinition.label,
       sourceUrl:
         sourceDefinition.sourceUrl
         ?? normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),

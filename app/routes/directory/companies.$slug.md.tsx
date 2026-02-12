@@ -3,6 +3,7 @@ import { getCompanyBySlug } from "~/lib/companies.server";
 import { getTechnologiesForContent } from "~/lib/technologies.server";
 import { markdownResponse, companyToMarkdown } from "~/lib/markdown.server";
 import { categoryLabels } from "~/lib/technology-categories";
+import { normalizeTechnologyEvidenceSourceLabel } from "~/lib/technology-evidence";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const company = await getCompanyBySlug(params.slug);
@@ -21,7 +22,7 @@ export async function loader({ params }: Route.LoaderArgs) {
   const firstEvidence = technologiesWithAssignments.flatMap((assignment) => assignment.evidence)[0] ?? null;
   const provenance = firstEvidence
     ? {
-        source: firstEvidence.sourceLabel,
+        source: normalizeTechnologyEvidenceSourceLabel(firstEvidence.sourceType),
         sourceUrl: firstEvidence.sourceUrl,
         lastVerified: firstEvidence.lastVerified,
       }

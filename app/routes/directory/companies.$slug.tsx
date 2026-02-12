@@ -36,9 +36,8 @@ function formatMonthYear(value: string): string {
 
 function getProvenanceSourceDisplayLabel(
   sourceType: "job_posting" | "survey" | "manual",
-  sourceLabel: string | null,
 ): string {
-  const trimmed = normalizeTechnologyEvidenceSourceLabel(sourceType, sourceLabel);
+  const trimmed = normalizeTechnologyEvidenceSourceLabel(sourceType);
   if (trimmed) return trimmed;
 
   switch (sourceType) {
@@ -106,13 +105,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   >();
   for (const item of technologiesWithAssignments) {
     for (const evidence of item.evidence) {
-      const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
-        evidence.sourceType,
-        evidence.sourceLabel,
-      );
+      const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(evidence.sourceType);
       const key = getTechnologyEvidenceGroupKey(
         evidence.sourceType,
-        normalizedSourceLabel,
         evidence.sourceUrl,
         evidence.lastVerified,
       );
@@ -511,7 +506,7 @@ export default function CompanyDetail() {
                       : isSecondLast
                         ? ", &"
                         : ",";
-                  const displaySource = getProvenanceSourceDisplayLabel(entry.sourceType, entry.source);
+                  const displaySource = getProvenanceSourceDisplayLabel(entry.sourceType);
                   const label = `${displaySource}${entry.lastVerified ? ` (${formatMonthYear(entry.lastVerified)})` : ""}`;
                   const isGetBuilding = displaySource.includes("Get Building");
 

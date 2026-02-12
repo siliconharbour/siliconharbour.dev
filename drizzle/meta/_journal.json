@@ -246,6 +246,13 @@
       "when": 1768719000000,
       "tag": "0034_normalize_job_posting_source_in_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "6",
+      "when": 1768720000000,
+      "tag": "0035_drop_source_label_from_technology_evidence",
+      "breakpoints": true
     }
   ]
 }
