@@ -1,5 +1,5 @@
 import type { Route } from "./+types/index";
-import { Link, useLoaderData } from "react-router";
+import { Link, Form, useLoaderData, redirect } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { db } from "~/db";
 import { jobs, companies } from "~/db/schema";
@@ -8,6 +8,7 @@ import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 import { ManagePage } from "~/components/manage/ManagePage";
 import { ManageList, ManageListActions, ManageListEmpty, ManageListItem } from "~/components/manage/ManageList";
+import { deleteJob, getJobById } from "~/lib/jobs.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Jobs - siliconharbour.dev" }];
@@ -47,6 +48,31 @@ export async function loader({ request }: Route.LoaderArgs) {
   }));
 
   return { jobs: jobsList, searchQuery };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  await requireAuth(request);
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "hard-delete") {
+    const jobId = Number(formData.get("jobId"));
+    if (!jobId) {
+      return { success: false, error: "Invalid job ID." };
+    }
+
+    const job = await getJobById(jobId);
+    if (!job) {
+      return { success: false, error: "Job not found." };
+    }
+
+    await deleteJob(jobId);
+    const url = new URL(request.url);
+    return redirect(`${url.pathname}${url.search}`);
+  }
+
+  return { success: false, error: "Unknown action." };
 }
 
 export default function ManageJobsIndex() {
@@ -153,6 +179,23 @@ export default function ManageJobsIndex() {
                         Source
                       </Link>
                     )}
+                    <Form
+                      method="post"
+                      onSubmit={(e) => {
+                        if (!confirm(`Hard delete "${job.title}"? This cannot be undone.`)) {
+                          e.preventDefault();
+                        }
+                      }}
+                    >
+                      <input type="hidden" name="intent" value="hard-delete" />
+                      <input type="hidden" name="jobId" value={job.id} />
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        Hard Delete
+                      </button>
+                    </Form>
                   </>
                 )}
               </ManageListActions>
