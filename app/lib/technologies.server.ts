@@ -17,6 +17,7 @@ import {
 } from "~/db/schema";
 import { eq, asc, count, and, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
+import { normalizeTechnologyEvidenceSourceLabel } from "./technology-evidence";
 
 // =============================================================================
 // Technology CRUD
@@ -345,6 +346,11 @@ export async function setTechnologyEvidenceForCompany(
   const jobsById = new Map(jobRows.map((job) => [job.id, job]));
 
   for (const group of groups) {
+    const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
+      group.sourceType,
+      group.sourceLabel,
+    );
+
     for (const technologyId of group.technologyIds) {
       const assignment = assignmentsByTechnologyId.get(technologyId);
       if (!assignment) {
@@ -358,7 +364,7 @@ export async function setTechnologyEvidenceForCompany(
             technologyAssignmentId: assignment.id,
             jobId,
             sourceType: group.sourceType,
-            sourceLabel: group.sourceLabel,
+            sourceLabel: normalizedSourceLabel,
             sourceUrl: group.sourceUrl,
             excerptText: group.excerptText ?? job?.descriptionText?.slice(0, 800) ?? null,
             lastVerified: group.lastVerified,
@@ -370,7 +376,7 @@ export async function setTechnologyEvidenceForCompany(
       await db.insert(technologyEvidence).values({
         technologyAssignmentId: assignment.id,
         sourceType: group.sourceType,
-        sourceLabel: group.sourceLabel,
+        sourceLabel: normalizedSourceLabel,
         sourceUrl: group.sourceUrl,
         excerptText: group.excerptText,
         lastVerified: group.lastVerified,
@@ -386,6 +392,10 @@ export async function applyTechnologyEvidenceFromJobMentions(
     return { assignedCount: 0, evidenceCreated: 0, evidenceUpdated: 0, skipped: 0 };
   }
 
+  const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
+    input.sourceType,
+    input.sourceLabel,
+  );
   const uniqueTechnologyIds = Array.from(new Set(input.selectedTechnologyIds));
   const assignments = await db
     .select()
@@ -405,7 +415,7 @@ export async function applyTechnologyEvidenceFromJobMentions(
       await db
         .update(technologyAssignments)
         .set({
-          source: input.sourceLabel,
+          source: normalizedSourceLabel,
           sourceUrl: input.sourceUrl,
           lastVerified: input.lastVerified,
         })
@@ -419,7 +429,7 @@ export async function applyTechnologyEvidenceFromJobMentions(
         technologyId,
         contentType: "company",
         contentId: input.companyId,
-        source: input.sourceLabel,
+        source: normalizedSourceLabel,
         sourceUrl: input.sourceUrl,
         lastVerified: input.lastVerified,
       })
@@ -478,7 +488,7 @@ export async function applyTechnologyEvidenceFromJobMentions(
       await db
         .update(technologyEvidence)
         .set({
-          sourceLabel: input.sourceLabel,
+          sourceLabel: normalizedSourceLabel,
           sourceUrl: input.sourceUrl,
           excerptText: mention.context ?? existing.excerptText,
           lastVerified: input.lastVerified,
@@ -492,7 +502,7 @@ export async function applyTechnologyEvidenceFromJobMentions(
       technologyAssignmentId: assignment.id,
       jobId: mention.jobId,
       sourceType: input.sourceType,
-      sourceLabel: input.sourceLabel,
+      sourceLabel: normalizedSourceLabel,
       sourceUrl: input.sourceUrl,
       excerptText: mention.context,
       lastVerified: input.lastVerified,
@@ -555,7 +565,7 @@ export async function getTechnologiesForContent(
     list.push({
       id: evidence.id,
       sourceType: evidence.sourceType,
-      sourceLabel: evidence.sourceLabel,
+      sourceLabel: normalizeTechnologyEvidenceSourceLabel(evidence.sourceType, evidence.sourceLabel),
       sourceUrl: evidence.sourceUrl,
       excerptText: evidence.excerptText,
       lastVerified: evidence.lastVerified,

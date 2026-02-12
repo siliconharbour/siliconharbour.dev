@@ -21,6 +21,10 @@ import {
   setTechnologiesForContent,
   setTechnologyEvidenceForCompany,
 } from "~/lib/technologies.server";
+import {
+  getTechnologyEvidenceGroupKey,
+  normalizeTechnologyEvidenceSourceLabel,
+} from "~/lib/technology-evidence";
 
 function normalizeUrl(url: string): string {
   try {
@@ -112,7 +116,16 @@ function buildInitialProvenanceGroups(
     }
 
     for (const evidence of item.evidence) {
-      const key = `${evidence.sourceType}|${evidence.sourceLabel ?? ""}|${evidence.sourceUrl ?? ""}|${evidence.lastVerified ?? ""}`;
+      const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
+        evidence.sourceType,
+        evidence.sourceLabel,
+      );
+      const key = getTechnologyEvidenceGroupKey(
+        evidence.sourceType,
+        normalizedSourceLabel,
+        evidence.sourceUrl,
+        evidence.lastVerified,
+      );
       const existing = byProvenance.get(key);
       if (existing) {
         if (!existing.technologyIds.includes(item.technologyId)) {
@@ -124,13 +137,19 @@ function buildInitialProvenanceGroups(
         if (!existing.excerptText && evidence.excerptText) {
           existing.excerptText = evidence.excerptText;
         }
+        if (!existing.sourceUrl && evidence.sourceUrl) {
+          existing.sourceUrl = evidence.sourceUrl;
+        }
+        if (!existing.lastVerified && evidence.lastVerified) {
+          existing.lastVerified = toMonthInputValue(evidence.lastVerified);
+        }
         continue;
       }
 
       byProvenance.set(key, {
         id: `existing-${byProvenance.size + 1}`,
         sourceType: evidence.sourceType,
-        source: evidence.sourceLabel ?? "",
+        source: normalizedSourceLabel ?? "",
         sourceUrl: evidence.sourceUrl ?? "",
         lastVerified: toMonthInputValue(evidence.lastVerified),
         excerptText: evidence.excerptText ?? "",
@@ -274,7 +293,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     return {
       technologyIds: technologyIdsForGroup,
       sourceType,
-      sourceLabel: normalizeNullableString(formData.get(`provenanceSource_${groupId}`)),
+      sourceLabel: normalizeTechnologyEvidenceSourceLabel(
+        sourceType,
+        normalizeNullableString(formData.get(`provenanceSource_${groupId}`)),
+      ),
       sourceUrl: normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
       lastVerified: normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`)),
       excerptText: normalizeNullableString(formData.get(`provenanceExcerpt_${groupId}`)),

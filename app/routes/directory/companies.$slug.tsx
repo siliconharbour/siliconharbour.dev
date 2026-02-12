@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 import { getCompanyBySlug } from "~/lib/companies.server";
 import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { getTechnologiesForContent } from "~/lib/technologies.server";
+import {
+  getTechnologyEvidenceGroupKey,
+  normalizeTechnologyEvidenceSourceLabel,
+} from "~/lib/technology-evidence";
 import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
 import { getActiveJobsForCompany } from "~/lib/job-importers/sync.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
@@ -34,7 +38,7 @@ function getProvenanceSourceDisplayLabel(
   sourceType: "job_posting" | "survey" | "manual",
   sourceLabel: string | null,
 ): string {
-  const trimmed = sourceLabel?.trim();
+  const trimmed = normalizeTechnologyEvidenceSourceLabel(sourceType, sourceLabel);
   if (trimmed) return trimmed;
 
   switch (sourceType) {
@@ -102,12 +106,27 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   >();
   for (const item of technologiesWithAssignments) {
     for (const evidence of item.evidence) {
-      const key = `${evidence.sourceType}|${evidence.sourceLabel ?? ""}|${evidence.sourceUrl ?? ""}|${evidence.lastVerified ?? ""}`;
+      const normalizedSourceLabel = normalizeTechnologyEvidenceSourceLabel(
+        evidence.sourceType,
+        evidence.sourceLabel,
+      );
+      const key = getTechnologyEvidenceGroupKey(
+        evidence.sourceType,
+        normalizedSourceLabel,
+        evidence.sourceUrl,
+        evidence.lastVerified,
+      );
       const existing = provenanceMap.get(key);
       if (existing) {
         existing.count += 1;
         if (evidence.jobId) {
           existing.jobCount += 1;
+        }
+        if (!existing.sourceUrl && evidence.sourceUrl) {
+          existing.sourceUrl = evidence.sourceUrl;
+        }
+        if (!existing.lastVerified && evidence.lastVerified) {
+          existing.lastVerified = evidence.lastVerified;
         }
         existing.evidence.push({
           technology: item.technology.name,
@@ -122,7 +141,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
       provenanceMap.set(key, {
         sourceType: evidence.sourceType,
-        source: evidence.sourceLabel,
+        source: normalizedSourceLabel,
         sourceUrl: evidence.sourceUrl,
         lastVerified: evidence.lastVerified,
         count: 1,

@@ -8,6 +8,7 @@ import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 import { extractTechnologiesForSource, getTechnologyPreviewForSource } from "~/lib/job-importers/tech-extractor.server";
 import { applyTechnologyEvidenceFromJobMentions } from "~/lib/technologies.server";
+import { normalizeTechnologyEvidenceSourceLabel } from "~/lib/technology-evidence";
 import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
 
 const VERAFIN_SOURCE_ID = 3;
@@ -233,7 +234,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       preview,
       defaults: {
         sourceType: "job_posting",
-        sourceLabel: "Imported Job Postings",
+        sourceLabel: "Job Postings",
         sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || null,
         lastVerified: defaultLastVerifiedMonth(),
       },
@@ -250,7 +251,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     const sourceType = sourceTypeRaw === "job_posting" || sourceTypeRaw === "survey" || sourceTypeRaw === "manual"
       ? sourceTypeRaw
       : "job_posting";
-    const sourceLabel = String(formData.get("sourceLabel") || "").trim() || null;
+    const rawSourceLabel = String(formData.get("sourceLabel") || "").trim() || null;
+    const sourceLabel = normalizeTechnologyEvidenceSourceLabel(sourceType, rawSourceLabel);
     const sourceUrl = String(formData.get("sourceUrl") || "").trim() || null;
     const lastVerified = String(formData.get("lastVerified") || "").trim() || defaultLastVerifiedMonth();
 
@@ -446,7 +448,7 @@ export default function ViewJobImportSource() {
     ? techResult.defaults
     : {
         sourceType: "job_posting",
-        sourceLabel: "Imported Job Postings",
+        sourceLabel: "Job Postings",
         sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || "",
         lastVerified: defaultLastVerifiedMonth(),
       };
@@ -694,7 +696,7 @@ export default function ViewJobImportSource() {
                       type="text"
                       id="tech-sourceLabel"
                       name="sourceLabel"
-                      defaultValue={techDefaults.sourceLabel || "Imported Job Postings"}
+                      defaultValue={techDefaults.sourceLabel || "Job Postings"}
                       className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     />
                   </div>
