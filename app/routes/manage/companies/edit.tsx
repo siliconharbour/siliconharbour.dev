@@ -113,7 +113,7 @@ function buildInitialProvenanceGroups(
     }));
     const preferredSourceKey = evidenceWithKey.some((entry) => entry.sourceKey === "job_postings")
       ? "job_postings"
-      : "coding_reference";
+      : "get_coding_reference";
     const group = byProvenance.get(preferredSourceKey)!;
     if (!group.technologyIds.includes(item.technologyId)) {
       group.technologyIds.push(item.technologyId);
@@ -254,7 +254,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     .filter((id) => id.length > 0);
 
   const evidenceGroups = provenanceGroupIds.map((groupId) => {
-    const sourceKey = String(formData.get(`provenanceSourceKey_${groupId}`) || "coding_reference");
+    const sourceKey = String(formData.get(`provenanceSourceKey_${groupId}`) || "get_coding_reference");
     const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
     const technologyIdsForGroup = formData
       .getAll(`provenanceTech_${groupId}`)
@@ -268,8 +268,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     return {
       technologyIds: technologyIdsForGroup,
       sourceType: sourceDefinition.sourceType,
-      sourceLabel: sourceDefinition.sourceLabel,
-      sourceUrl: normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
+      sourceLabel: sourceDefinition.label,
+      sourceUrl:
+        sourceDefinition.sourceUrl
+        ?? normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
       lastVerified: normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`)),
       excerptText: normalizeNullableString(formData.get(`provenanceExcerpt_${groupId}`)),
       jobIds,
@@ -569,24 +571,24 @@ export default function EditCompany() {
                         ))}
                       </select>
                       <input type="hidden" name={`provenanceSourceKey_${group.id}`} value={group.sourceKey} />
-                      <select
-                        name={`provenanceSourceLabel_${group.id}`}
-                        value={getTechnologyProvenanceSourceByKey(group.sourceKey).sourceLabel}
-                        disabled
-                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                      >
-                        <option>
-                          {getTechnologyProvenanceSourceByKey(group.sourceKey).sourceLabel}
-                        </option>
-                      </select>
-                      <input
-                        type="url"
-                        name={`provenanceSourceUrl_${group.id}`}
-                        value={group.sourceUrl}
-                        onChange={(e) => updateGroupField(group.id, "sourceUrl", e.target.value)}
-                        placeholder="Source URL"
-                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                      />
+                      {group.sourceKey === "job_postings" ? (
+                        <input
+                          type="url"
+                          name={`provenanceSourceUrl_${group.id}`}
+                          value={group.sourceUrl}
+                          onChange={(e) => updateGroupField(group.id, "sourceUrl", e.target.value)}
+                          placeholder="Source URL"
+                          className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                        />
+                      ) : (
+                        <input
+                          type="url"
+                          name={`provenanceSourceUrl_${group.id}`}
+                          value={getTechnologyProvenanceSourceByKey(group.sourceKey).sourceUrl ?? ""}
+                          readOnly
+                          className="px-2 py-1 border border-harbour-300 bg-harbour-50 text-harbour-700 focus:outline-none"
+                        />
+                      )}
                       <input
                         type="month"
                         name={`provenanceLastVerified_${group.id}`}

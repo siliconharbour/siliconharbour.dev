@@ -1,11 +1,13 @@
 export type TechnologyEvidenceSourceType = "job_posting" | "survey" | "manual";
-export type TechnologyProvenanceSourceKey = "job_postings" | "coding_reference";
+export type TechnologyProvenanceSourceKey = "job_postings" | "get_coding_reference";
+export const GET_CODING_REFERENCE_URL =
+  "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0";
 
 export interface TechnologyProvenanceSourceDefinition {
   key: TechnologyProvenanceSourceKey;
   label: string;
   sourceType: TechnologyEvidenceSourceType;
-  sourceLabel: string;
+  sourceUrl: string | null;
 }
 
 export const technologyProvenanceSourceOptions: TechnologyProvenanceSourceDefinition[] = [
@@ -13,13 +15,13 @@ export const technologyProvenanceSourceOptions: TechnologyProvenanceSourceDefini
     key: "job_postings",
     label: "Job Postings",
     sourceType: "job_posting",
-    sourceLabel: "Job Postings",
+    sourceUrl: null,
   },
   {
-    key: "coding_reference",
-    label: "Coding Reference",
+    key: "get_coding_reference",
+    label: "Get Coding Reference",
     sourceType: "manual",
-    sourceLabel: "Coding Reference",
+    sourceUrl: GET_CODING_REFERENCE_URL,
   },
 ];
 
@@ -30,7 +32,11 @@ const sourceByKey = new Map(
 export function getTechnologyProvenanceSourceByKey(
   key: string | null | undefined,
 ): TechnologyProvenanceSourceDefinition {
-  return sourceByKey.get((key ?? "") as TechnologyProvenanceSourceKey) ?? sourceByKey.get("coding_reference")!;
+  if (key === "coding_reference") {
+    return sourceByKey.get("get_coding_reference")!;
+  }
+  return sourceByKey.get((key ?? "") as TechnologyProvenanceSourceKey)
+    ?? sourceByKey.get("get_coding_reference")!;
 }
 
 export function inferTechnologyProvenanceSourceKey(
@@ -46,16 +52,14 @@ export function inferTechnologyProvenanceSourceKey(
     return "job_postings";
   }
 
-  return "coding_reference";
+  return "get_coding_reference";
 }
 
 export function normalizeTechnologyEvidenceSourceLabel(
   sourceType: TechnologyEvidenceSourceType,
   sourceLabel: string | null,
 ): string | null {
-  return getTechnologyProvenanceSourceByKey(
-    inferTechnologyProvenanceSourceKey(sourceType, sourceLabel),
-  ).sourceLabel;
+  return getTechnologyProvenanceSourceByKey(inferTechnologyProvenanceSourceKey(sourceType, sourceLabel)).label;
 }
 
 export function getTechnologyEvidenceGroupKey(

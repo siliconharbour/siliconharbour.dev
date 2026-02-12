@@ -252,7 +252,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     const sourceKey = String(formData.get("sourceKey") || "job_postings");
     const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
-    const sourceUrl = String(formData.get("sourceUrl") || "").trim() || null;
+    const rawSourceUrl = String(formData.get("sourceUrl") || "").trim() || null;
+    const sourceUrl = sourceDefinition.sourceUrl ?? rawSourceUrl;
     const lastVerified = String(formData.get("lastVerified") || "").trim() || defaultLastVerifiedMonth();
 
     const applyResult = await applyTechnologyEvidenceFromJobMentions({
@@ -260,7 +261,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       sourceId,
       selectedTechnologyIds,
       sourceType: sourceDefinition.sourceType,
-      sourceLabel: sourceDefinition.sourceLabel,
+      sourceLabel: sourceDefinition.label,
       sourceUrl,
       lastVerified,
     });
