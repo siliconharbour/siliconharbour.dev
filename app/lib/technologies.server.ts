@@ -6,6 +6,7 @@ import {
   technologyCategories,
   companies,
   jobs,
+  jobTechnologyMentions,
   projects,
   type Technology,
   type NewTechnology,
