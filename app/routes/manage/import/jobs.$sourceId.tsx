@@ -2,9 +2,151 @@ import type { Route } from "./+types/jobs.$sourceId";
 import { Link, useLoaderData, useFetcher, redirect } from "react-router";
 import type { ReactNode } from "react";
 import { requireAuth } from "~/lib/session.server";
-import { getImportSourceWithStats, syncJobs, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical, approveJob, approveJobAsNonTechnical } from "~/lib/job-importers/sync.server";
+import type { FetchedJob } from "~/lib/job-importers/types";
+import { getImportSourceWithStats, syncJobs, syncJobsFromFetched, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical, approveJob, approveJobAsNonTechnical } from "~/lib/job-importers/sync.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
+
+const VERAFIN_SOURCE_ID = 3;
+const VERAFIN_SOURCE_IDENTIFIER = "nasdaq:Global_External_Site:verafin";
+
+function isVerafinManualSource(source: { id: number; sourceType: string; sourceIdentifier: string }): boolean {
+  return (
+    source.id === VERAFIN_SOURCE_ID &&
+    source.sourceType === "workday" &&
+    source.sourceIdentifier === VERAFIN_SOURCE_IDENTIFIER
+  );
+}
+
+function sanitizeManualFetchedJob(input: unknown): FetchedJob | null {
+  if (!input || typeof input !== "object") return null;
+
+  const value = input as Record<string, unknown>;
+  const externalId = typeof value.externalId === "string" ? value.externalId.trim() : "";
+  const title = typeof value.title === "string" ? value.title.trim() : "";
+  if (!externalId || !title) return null;
+
+  const postedAt =
+    typeof value.postedAt === "string" && value.postedAt.trim()
+      ? new Date(value.postedAt)
+      : undefined;
+
+  return {
+    externalId,
+    title,
+    location: typeof value.location === "string" ? value.location.trim() || undefined : undefined,
+    department: typeof value.department === "string" ? value.department.trim() || undefined : undefined,
+    descriptionHtml:
+      typeof value.descriptionHtml === "string" ? value.descriptionHtml.trim() || undefined : undefined,
+    descriptionText:
+      typeof value.descriptionText === "string" ? value.descriptionText.trim() || undefined : undefined,
+    url: typeof value.url === "string" ? value.url.trim() || undefined : undefined,
+    workplaceType:
+      value.workplaceType === "remote" || value.workplaceType === "onsite" || value.workplaceType === "hybrid"
+        ? value.workplaceType
+        : undefined,
+    postedAt: postedAt && !Number.isNaN(postedAt.getTime()) ? postedAt : undefined,
+    updatedAt: undefined,
+  };
+}
+
+function parseManualJobsJson(rawJson: string): { jobs?: FetchedJob[]; error?: string } {
+  try {
+    const parsed = JSON.parse(rawJson) as unknown;
+    const list = Array.isArray(parsed)
+      ? parsed
+      : parsed && typeof parsed === "object" && Array.isArray((parsed as Record<string, unknown>).jobs)
+        ? ((parsed as Record<string, unknown>).jobs as unknown[])
+        : null;
+
+    if (!list) {
+      return { error: "Manual JSON must be an array of jobs or an object with a jobs array." };
+    }
+
+    const jobs = list.map(sanitizeManualFetchedJob).filter(Boolean) as FetchedJob[];
+    if (jobs.length === 0) {
+      return { error: "No valid jobs found. Each job needs at least externalId and title." };
+    }
+
+    return { jobs };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Invalid JSON payload." };
+  }
+}
+
+const VERAFIN_BROWSER_SCRIPT = String.raw`(async () => {
+  const q = new URL(location.href).searchParams.get("q") ?? "";
+  const m = location.pathname.match(/^\/([^/]+)(?:\/|$)/);
+  if (!m) throw new Error("Could not infer Workday site from URL path.");
+
+  const site = m[1];
+  const company = location.hostname.split(".")[0];
+  const base = location.origin;
+  const apiBase = base + "/wday/cxs/" + company + "/" + site;
+  const headers = { "Accept": "application/json", "Content-Type": "application/json" };
+
+  const list = [];
+  let offset = 0;
+  const limit = 20;
+
+  while (true) {
+    const res = await fetch(apiBase + "/jobs", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ appliedFacets: {}, limit, offset, searchText: q }),
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Workday list fetch failed: " + res.status + " " + res.statusText);
+
+    const data = await res.json();
+    const postings = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
+    if (postings.length === 0) break;
+    list.push(...postings);
+    offset += postings.length;
+    if (offset >= (Number(data?.total) || 0)) break;
+  }
+
+  const jobs = [];
+  for (const posting of list) {
+    const fallbackId = String(posting.externalPath ?? posting.title ?? "").trim();
+    const fromPath = String(posting.externalPath ?? "").match(/_([A-Z0-9-]+(?:-\d+)?)$/i);
+    const defaultJob = {
+      externalId: fromPath?.[1] || fallbackId,
+      title: String(posting.title ?? "").trim(),
+      location: String(posting.locationsText ?? "").trim() || undefined,
+      url: base + "/" + site + String(posting.externalPath ?? ""),
+    };
+
+    try {
+      const dRes = await fetch(apiBase + String(posting.externalPath ?? ""), {
+        headers: { Accept: "application/json" },
+        credentials: "include",
+      });
+      if (!dRes.ok) {
+        jobs.push(defaultJob);
+        continue;
+      }
+
+      const detail = await dRes.json();
+      const info = detail?.jobPostingInfo ?? {};
+      jobs.push({
+        externalId: String(info.jobReqId || info.id || defaultJob.externalId).trim(),
+        title: String(info.title || defaultJob.title).trim(),
+        location: info.location ? String(info.location).trim() : defaultJob.location,
+        descriptionHtml: typeof info.jobDescription === "string" ? info.jobDescription : undefined,
+        descriptionText: undefined,
+        url: String(info.externalUrl || defaultJob.url).trim(),
+        postedAt: typeof info.startDate === "string" ? info.startDate : undefined,
+      });
+    } catch {
+      jobs.push(defaultJob);
+    }
+  }
+
+  const output = JSON.stringify(jobs, null, 2);
+  console.log(output);
+  if (typeof copy === "function") copy(output);
+})();`;
 
 export function meta({ data }: Route.MetaArgs) {
   const companyName = data?.company?.name || "Source";
@@ -26,7 +168,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   
   const company = await getCompanyById(source.companyId);
   
-  return { source, company };
+  return { source, company, isVerafinManualMode: isVerafinManualSource(source) };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -39,6 +181,26 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (intent === "sync") {
     const result = await syncJobs(sourceId);
     return { intent: "sync", ...result };
+  }
+
+  if (intent === "manual-sync") {
+    const source = await getImportSourceWithStats(sourceId);
+    if (!source || !isVerafinManualSource(source)) {
+      return { intent: "manual-sync", success: false, error: "Manual ingestion is not enabled for this source." };
+    }
+
+    const rawJson = String(formData.get("manualJobsJson") || "").trim();
+    if (!rawJson) {
+      return { intent: "manual-sync", success: false, error: "Paste the JSON from the browser console output." };
+    }
+
+    const parsed = parseManualJobsJson(rawJson);
+    if (!parsed.jobs) {
+      return { intent: "manual-sync", success: false, error: parsed.error || "Invalid manual JSON." };
+    }
+
+    const result = await syncJobsFromFetched(sourceId, parsed.jobs);
+    return { intent: "manual-sync", parsedCount: parsed.jobs.length, ...result };
   }
   
   if (intent === "delete") {
@@ -180,11 +342,16 @@ function JobTitleWithDescription({
 }
 
 export default function ViewJobImportSource() {
-  const { source, company } = useLoaderData<typeof loader>();
+  const { source, company, isVerafinManualMode } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   
   const isLoading = fetcher.state !== "idle";
-  const syncResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync" ? fetcher.data : null;
+  const syncResult =
+    fetcher.data &&
+    "intent" in fetcher.data &&
+    (fetcher.data.intent === "sync" || fetcher.data.intent === "manual-sync")
+      ? fetcher.data
+      : null;
   
   // Separate jobs by status
   const pendingReviewJobs = source.jobs.filter(j => j.status === "pending_review");
@@ -300,6 +467,45 @@ export default function ViewJobImportSource() {
             </fetcher.Form>
           </div>
         </div>
+
+        {isVerafinManualMode && (
+          <div className="bg-amber-50 border border-amber-200 p-6">
+            <h2 className="text-lg font-semibold text-amber-800 mb-2">Manual Workday Ingestion (Verafin)</h2>
+            <p className="text-sm text-amber-700 mb-3">
+              Cloudflare blocks server fetches for this source. Use this fallback: run the script on the Workday careers page, then paste the JSON output below.
+            </p>
+            <ol className="list-decimal list-inside text-sm text-amber-700 space-y-1 mb-4">
+              <li>Open the Verafin careers page in your browser.</li>
+              <li>Open DevTools Console, paste this script, and run it.</li>
+              <li>Copy the JSON output (it also tries to copy automatically).</li>
+              <li>Paste JSON below and click "Ingest Manual JSON".</li>
+            </ol>
+            <pre className="p-3 text-xs text-harbour-700 bg-white border border-amber-200 overflow-x-auto whitespace-pre-wrap break-words font-mono mb-4">
+              {VERAFIN_BROWSER_SCRIPT}
+            </pre>
+
+            <fetcher.Form method="post" className="space-y-3">
+              <input type="hidden" name="intent" value="manual-sync" />
+              <label className="block text-sm font-medium text-amber-800" htmlFor="manualJobsJson">
+                Manual JSON
+              </label>
+              <textarea
+                id="manualJobsJson"
+                name="manualJobsJson"
+                rows={12}
+                placeholder='Paste JSON array (or {"jobs":[...]}) from the console script'
+                className="w-full px-3 py-2 border border-amber-200 bg-white text-sm font-mono text-harbour-700"
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white font-medium transition-colors"
+              >
+                {isLoading ? "Ingesting..." : "Ingest Manual JSON"}
+              </button>
+            </fetcher.Form>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="grid grid-cols-5 gap-4">

@@ -6,7 +6,7 @@
 import { db } from "~/db";
 import { jobImportSources, jobs } from "~/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
-import type { SyncResult, ImportSourceConfig, JobSourceType } from "./types";
+import type { SyncResult, ImportSourceConfig, JobSourceType, FetchedJob } from "./types";
 import { getImporter } from "./index";
 
 /**
@@ -124,6 +124,116 @@ async function updateSource(
     .where(eq(jobImportSources.id, sourceId));
 }
 
+async function applyFetchedJobsToSource(
+  source: {
+    id: number;
+    companyId: number;
+  },
+  fetchedJobs: FetchedJob[],
+): Promise<SyncResult> {
+  const fetchedIds = new Set(fetchedJobs.map(j => j.externalId));
+
+  // 2. Get our existing jobs for this source
+  const existingJobs = await getJobsBySourceId(source.id);
+  const existingByExternalId = new Map(existingJobs.map(j => [j.externalId, j]));
+
+  const now = new Date();
+  const results = { added: 0, updated: 0, removed: 0, reactivated: 0 };
+
+  // 3. Process fetched jobs
+  for (const job of fetchedJobs) {
+    const existing = existingByExternalId.get(job.externalId);
+
+    if (!existing) {
+      // NEW JOB: insert with first_seen_at = now
+      await insertJob({
+        companyId: source.companyId,
+        sourceId: source.id,
+        externalId: job.externalId,
+        title: job.title,
+        location: job.location,
+        department: job.department,
+        descriptionHtml: job.descriptionHtml,
+        descriptionText: job.descriptionText,
+        url: job.url,
+        workplaceType: job.workplaceType,
+        postedAt: job.postedAt,
+        updatedAt: job.updatedAt,
+        firstSeenAt: now,
+        lastSeenAt: now,
+      });
+      results.added++;
+    } else if (existing.status === "hidden" || existing.status === "pending_review") {
+      // HIDDEN or PENDING_REVIEW: keep status, but refresh imported fields to avoid stale/noisy data.
+      await updateJob(existing.id, {
+        title: job.title,
+        location: job.location,
+        department: job.department,
+        descriptionHtml: job.descriptionHtml,
+        descriptionText: job.descriptionText,
+        url: job.url,
+        workplaceType: job.workplaceType,
+        postedAt: job.postedAt,
+        updatedAt: job.updatedAt,
+        lastSeenAt: now,
+      });
+      results.updated++;
+    } else if (existing.status !== "active") {
+      // REACTIVATED: job came back after being removed
+      await updateJob(existing.id, {
+        title: job.title,
+        location: job.location,
+        department: job.department,
+        descriptionHtml: job.descriptionHtml,
+        descriptionText: job.descriptionText,
+        url: job.url,
+        workplaceType: job.workplaceType,
+        postedAt: job.postedAt,
+        updatedAt: job.updatedAt,
+        lastSeenAt: now,
+        removedAt: null,
+        status: "active",
+      });
+      results.reactivated++;
+    } else {
+      // EXISTING: update last_seen_at and any changed fields
+      await updateJob(existing.id, {
+        title: job.title,
+        location: job.location,
+        department: job.department,
+        descriptionHtml: job.descriptionHtml,
+        descriptionText: job.descriptionText,
+        url: job.url,
+        workplaceType: job.workplaceType,
+        postedAt: job.postedAt,
+        updatedAt: job.updatedAt,
+        lastSeenAt: now,
+      });
+      results.updated++;
+    }
+  }
+
+  // 4. Mark jobs no longer in feed as removed
+  for (const existing of existingJobs) {
+    if (existing.status === "active" && existing.externalId && !fetchedIds.has(existing.externalId)) {
+      await updateJob(existing.id, { removedAt: now, status: "removed" });
+      results.removed++;
+    }
+  }
+
+  // 5. Update source metadata
+  await updateSource(source.id, { lastFetchedAt: now, fetchStatus: "success", fetchError: null });
+
+  // Count total active jobs
+  const totalActive = results.added + results.reactivated + (existingJobs.filter(j => j.status === "active").length - results.removed);
+
+  return {
+    success: true,
+    ...results,
+    totalActive,
+  };
+}
+
 /**
  * Sync jobs from an external source
  * 
@@ -167,111 +277,49 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
 
     // 1. Fetch current jobs from ATS
     const fetchedJobs = await importer.fetchJobs(config);
-    const fetchedIds = new Set(fetchedJobs.map(j => j.externalId));
-
-    // 2. Get our existing jobs for this source
-    const existingJobs = await getJobsBySourceId(sourceId);
-    const existingByExternalId = new Map(existingJobs.map(j => [j.externalId, j]));
-
-    const now = new Date();
-    const results = { added: 0, updated: 0, removed: 0, reactivated: 0 };
-
-    // 3. Process fetched jobs
-    for (const job of fetchedJobs) {
-      const existing = existingByExternalId.get(job.externalId);
-
-      if (!existing) {
-        // NEW JOB: insert with first_seen_at = now
-        await insertJob({
-          companyId: source.companyId,
-          sourceId: source.id,
-          externalId: job.externalId,
-          title: job.title,
-          location: job.location,
-          department: job.department,
-          descriptionHtml: job.descriptionHtml,
-          descriptionText: job.descriptionText,
-          url: job.url,
-          workplaceType: job.workplaceType,
-          postedAt: job.postedAt,
-          updatedAt: job.updatedAt,
-          firstSeenAt: now,
-          lastSeenAt: now,
-        });
-        results.added++;
-      } else if (existing.status === "hidden" || existing.status === "pending_review") {
-        // HIDDEN or PENDING_REVIEW: keep status, but refresh imported fields to avoid stale/noisy data.
-        await updateJob(existing.id, {
-          title: job.title,
-          location: job.location,
-          department: job.department,
-          descriptionHtml: job.descriptionHtml,
-          descriptionText: job.descriptionText,
-          url: job.url,
-          workplaceType: job.workplaceType,
-          postedAt: job.postedAt,
-          updatedAt: job.updatedAt,
-          lastSeenAt: now,
-        });
-        results.updated++;
-      } else if (existing.status !== "active") {
-        // REACTIVATED: job came back after being removed
-        await updateJob(existing.id, {
-          title: job.title,
-          location: job.location,
-          department: job.department,
-          descriptionHtml: job.descriptionHtml,
-          descriptionText: job.descriptionText,
-          url: job.url,
-          workplaceType: job.workplaceType,
-          postedAt: job.postedAt,
-          updatedAt: job.updatedAt,
-          lastSeenAt: now,
-          removedAt: null,
-          status: "active",
-        });
-        results.reactivated++;
-      } else {
-        // EXISTING: update last_seen_at and any changed fields
-        await updateJob(existing.id, {
-          title: job.title,
-          location: job.location,
-          department: job.department,
-          descriptionHtml: job.descriptionHtml,
-          descriptionText: job.descriptionText,
-          url: job.url,
-          workplaceType: job.workplaceType,
-          postedAt: job.postedAt,
-          updatedAt: job.updatedAt,
-          lastSeenAt: now,
-        });
-        results.updated++;
-      }
-    }
-
-    // 4. Mark jobs no longer in feed as removed
-    for (const existing of existingJobs) {
-      if (existing.status === "active" && existing.externalId && !fetchedIds.has(existing.externalId)) {
-        await updateJob(existing.id, { removedAt: now, status: "removed" });
-        results.removed++;
-      }
-    }
-
-    // 5. Update source metadata
-    await updateSource(sourceId, { lastFetchedAt: now, fetchStatus: "success", fetchError: null });
-
-    // Count total active jobs
-    const totalActive = results.added + results.reactivated + (existingJobs.filter(j => j.status === "active").length - results.removed);
-
-    return {
-      success: true,
-      ...results,
-      totalActive,
-    };
+    return applyFetchedJobsToSource(source, fetchedJobs);
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     await updateSource(sourceId, { fetchStatus: "error", fetchError: error });
     
+    return {
+      success: false,
+      error,
+      added: 0,
+      updated: 0,
+      removed: 0,
+      reactivated: 0,
+      totalActive: 0,
+    };
+  }
+}
+
+/**
+ * Sync jobs using a manually supplied fetched job list.
+ * Useful as a fallback for sources blocked by anti-bot protection.
+ */
+export async function syncJobsFromFetched(sourceId: number, fetchedJobs: FetchedJob[]): Promise<SyncResult> {
+  const source = await getSourceById(sourceId);
+  if (!source) {
+    return {
+      success: false,
+      error: "Source not found",
+      added: 0,
+      updated: 0,
+      removed: 0,
+      reactivated: 0,
+      totalActive: 0,
+    };
+  }
+
+  await updateSource(sourceId, { fetchStatus: "pending", fetchError: null });
+
+  try {
+    return await applyFetchedJobsToSource(source, fetchedJobs);
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e);
+    await updateSource(sourceId, { fetchStatus: "error", fetchError: error });
+
     return {
       success: false,
       error,
