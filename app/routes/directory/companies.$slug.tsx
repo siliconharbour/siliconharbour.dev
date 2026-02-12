@@ -324,14 +324,14 @@ export default function CompanyDetail() {
           company.technl ||
           company.genesis) && (
           <div className="flex flex-wrap gap-3">
-            {company.careersUrl && (
+            {company.website && (
               <a
-                href={company.careersUrl}
+                href={company.website}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors"
               >
-                Visit Careers Page
+                Visit Website
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -342,14 +342,14 @@ export default function CompanyDetail() {
                 </svg>
               </a>
             )}
-            {company.website && (
+            {company.careersUrl && (
               <a
-                href={company.website}
+                href={company.careersUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
               >
-                Visit Website
+                Visit Careers Page
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
