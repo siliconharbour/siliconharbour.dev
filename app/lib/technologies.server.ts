@@ -350,10 +350,6 @@ export async function setTechnologyEvidenceForCompany(
     .where(inArray(technologyEvidence.technologyAssignmentId, assignments.map((assignment) => assignment.id)));
 
   const allJobIds = Array.from(new Set(groups.flatMap((group) => group.jobIds)));
-  const jobRows = allJobIds.length
-    ? await db.select().from(jobs).where(inArray(jobs.id, allJobIds))
-    : [];
-  const jobsById = new Map(jobRows.map((job) => [job.id, job]));
   const allTechnologyIds = Array.from(new Set(groups.flatMap((group) => group.technologyIds)));
   const mentionRows =
     allJobIds.length > 0 && allTechnologyIds.length > 0
@@ -393,21 +389,21 @@ export async function setTechnologyEvidenceForCompany(
 
       if (group.jobIds.length > 0) {
         for (const jobId of group.jobIds) {
-          const job = jobsById.get(jobId);
           const existingKey = `${assignment.id}:${jobId}:${group.sourceType}`;
           const existingExcerpt = existingExcerptByKey.get(existingKey) ?? null;
           const mention = mentionContextByKey.get(`${jobId}:${technologyId}`);
+          const excerptForJobPosting =
+            group.excerptText
+            ?? existingExcerpt
+            ?? mention?.context
+            ?? null;
+          const excerptForManual = group.excerptText ?? existingExcerpt ?? null;
           await db.insert(technologyEvidence).values({
             technologyAssignmentId: assignment.id,
             jobId,
             sourceType: group.sourceType,
             sourceUrl: group.sourceUrl,
-            excerptText:
-              group.excerptText
-              ?? existingExcerpt
-              ?? mention?.context
-              ?? job?.descriptionText?.slice(0, 800)
-              ?? null,
+            excerptText: group.sourceType === "job_posting" ? excerptForJobPosting : excerptForManual,
             lastVerified: group.lastVerified,
           });
         }

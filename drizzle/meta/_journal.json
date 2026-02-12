@@ -253,6 +253,13 @@
       "when": 1768720000000,
       "tag": "0035_drop_source_label_from_technology_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "6",
+      "when": 1768721000000,
+      "tag": "0036_clear_noisy_job_posting_snippets",
+      "breakpoints": true
     }
   ]
 }
