@@ -14,6 +14,21 @@ import { fetchPage, htmlToText, slugify, parseHtmlDocument, getNodeText } from "
 
 const CAREERS_URL = "https://bluedropism.com/careers/";
 
+function isNonJobHeading(value: string): boolean {
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+  return (
+    normalized === "our current opportunities" ||
+    normalized === "current opportunities" ||
+    normalized === "available positions" ||
+    normalized === "open positions" ||
+    normalized === "career opportunities" ||
+    normalized === "careers" ||
+    normalized === "jobs" ||
+    /^no (current )?(jobs|openings|positions|opportunities)/.test(normalized)
+  );
+}
+
 export async function scrapeBluedrop(): Promise<FetchedJob[]> {
   const html = await fetchPage(CAREERS_URL);
   const document = parseHtmlDocument(html);
@@ -24,6 +39,7 @@ export async function scrapeBluedrop(): Promise<FetchedJob[]> {
       toggle.querySelector(".azc_tsh_toggle_title, h1, h2, h3, h4, h5, h6, a"),
     );
     if (!title) continue;
+    if (isNonJobHeading(title)) continue;
 
     const contentNode = toggle.querySelector(".azc_tsh_toggle_container, .azc_tsh_contents");
     const descriptionHtml = contentNode?.innerHTML?.trim();
@@ -47,7 +63,7 @@ export async function scrapeBluedrop(): Promise<FetchedJob[]> {
       for (const heading of Array.from(section.querySelectorAll("h2, h3"))) {
         const title = getNodeText(heading);
         if (!title) continue;
-        if (/careers|jobs|openings|positions/i.test(title) && title.length < 30) continue;
+        if (isNonJobHeading(title)) continue;
         jobs.push({
           externalId: slugify(title),
           title,
