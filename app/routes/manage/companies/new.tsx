@@ -124,6 +124,19 @@ export default function NewCompany() {
             />
           </div>
 
+          <div className="flex flex-col gap-2">
+            <label htmlFor="linkedin" className="font-medium text-harbour-700">
+              LinkedIn
+            </label>
+            <input
+              type="url"
+              id="linkedin"
+              name="linkedin"
+              placeholder="https://www.linkedin.com/company/..."
+              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="location" className="font-medium text-harbour-700">

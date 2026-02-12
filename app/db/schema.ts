@@ -110,6 +110,7 @@ export const companies = sqliteTable("companies", {
   website: text("website"), // external link
   careersUrl: text("careers_url"), // link to careers/jobs page
   wikipedia: text("wikipedia"), // wikipedia article URL
+  linkedin: text("linkedin"), // LinkedIn company page URL
   github: text("github"), // GitHub organization URL
   email: text("email"), // contact email
   location: text("location"),

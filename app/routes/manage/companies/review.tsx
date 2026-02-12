@@ -122,6 +122,7 @@ export async function action({ request }: Route.ActionArgs) {
         description: data.description,
         website: data.website,
         wikipedia: data.wikipedia,
+        linkedin: data.linkedin,
         github: data.github,
         email: data.email,
         location: data.location,
@@ -146,6 +147,7 @@ export async function action({ request }: Route.ActionArgs) {
       const description = formData.get("description") as string;
       const website = (formData.get("website") as string) || null;
       const wikipedia = (formData.get("wikipedia") as string) || null;
+      const linkedin = (formData.get("linkedin") as string) || null;
       const github = (formData.get("github") as string) || null;
       const location = (formData.get("location") as string) || null;
       const founded = (formData.get("founded") as string) || null;
@@ -201,6 +203,7 @@ export async function action({ request }: Route.ActionArgs) {
         description,
         website,
         wikipedia,
+        linkedin,
         github,
         location,
         founded,
@@ -518,7 +521,7 @@ export default function ReviewCompanies() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="location" className="text-sm font-medium text-harbour-700">
                     Location
@@ -553,6 +556,18 @@ export default function ReviewCompanies() {
                     id="github"
                     name="github"
                     defaultValue={currentCompany.github ?? ""}
+                    className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="linkedin" className="text-sm font-medium text-harbour-700">
+                    LinkedIn
+                  </label>
+                  <input
+                    type="url"
+                    id="linkedin"
+                    name="linkedin"
+                    defaultValue={currentCompany.linkedin ?? ""}
                     className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>

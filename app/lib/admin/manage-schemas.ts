@@ -12,6 +12,7 @@ export const companyFormSchema = z.object({
   description: zRequiredString("Description"),
   website: zOptionalNullableString,
   wikipedia: zOptionalNullableString,
+  linkedin: zOptionalNullableString,
   github: zOptionalNullableString,
   location: zOptionalNullableString,
   founded: zOptionalNullableString,
