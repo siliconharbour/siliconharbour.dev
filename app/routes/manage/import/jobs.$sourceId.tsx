@@ -346,6 +346,8 @@ export default function ViewJobImportSource() {
   const fetcher = useFetcher<typeof action>();
   
   const isLoading = fetcher.state !== "idle";
+  const careersPageUrl = source.sourceUrl || company?.careersUrl || company?.website || null;
+  const companyDetailsPath = company?.slug ? `/directory/companies/${company.slug}` : null;
   const syncResult =
     fetcher.data &&
     "intent" in fetcher.data &&
@@ -372,6 +374,26 @@ export default function ViewJobImportSource() {
           <h1 className="text-2xl font-semibold text-harbour-700">
             {company?.name || "Unknown Company"} - Job Import
           </h1>
+          <div className="ml-auto flex items-center gap-2">
+            {careersPageUrl && (
+              <a
+                href={careersPageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 text-sm font-medium transition-colors"
+              >
+                Careers Page
+              </a>
+            )}
+            {companyDetailsPath && (
+              <Link
+                to={companyDetailsPath}
+                className="px-3 py-2 bg-harbour-600 hover:bg-harbour-700 text-white text-sm font-medium transition-colors"
+              >
+                Company Page
+              </Link>
+            )}
+          </div>
         </div>
 
         {syncResult && "added" in syncResult && (
