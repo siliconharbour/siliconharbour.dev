@@ -31,7 +31,7 @@ export async function loader({}: Route.LoaderArgs) {
         }),
 
         title: event.title,
-        description: event.description,
+        description: `https://siliconharbour.dev/events/${event.slug}\n\n${event.description}`,
         location: event.location || undefined,
         url: `https://siliconharbour.dev/events/${event.slug}`,
 
