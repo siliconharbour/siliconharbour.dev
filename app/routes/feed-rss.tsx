@@ -2,7 +2,6 @@ import type { Route } from "./+types/feed-rss";
 import { getUpcomingEvents } from "~/lib/events.server";
 import { getPublishedNews } from "~/lib/news.server";
 import { getActiveJobs } from "~/lib/jobs.server";
-import { format } from "date-fns";
 import { formatInTimezone } from "~/lib/timezone";
 
 export async function loader({}: Route.LoaderArgs) {
@@ -25,6 +24,7 @@ export async function loader({}: Route.LoaderArgs) {
     pubDate: Date;
     guid: string;
     category: string;
+    author?: string;
   };
 
   const items: FeedItem[] = [
@@ -39,6 +39,9 @@ export async function loader({}: Route.LoaderArgs) {
         pubDate: event.createdAt,
         guid: `event-${event.id}`,
         category: "Events",
+        author: event.organizer
+          ? `events@siliconharbour.dev (${event.organizer})`
+          : undefined,
       };
     }),
     ...recentNews.map((article) => ({
@@ -84,7 +87,8 @@ export async function loader({}: Route.LoaderArgs) {
     <link>https://siliconharbour.dev</link>
     <description>Events, news, and jobs from the St. John's tech community</description>
     <language>en-ca</language>
-    <lastBuildDate>${format(new Date(), "EEE, dd MMM yyyy HH:mm:ss xx")}</lastBuildDate>
+    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+    <ttl>60</ttl>
     <atom:link href="https://siliconharbour.dev/feed.rss" rel="self" type="application/rss+xml"/>
 ${items
   .map(
@@ -92,9 +96,9 @@ ${items
       <title>${escapeXml(item.title)}</title>
       <link>${item.link}</link>
       <description>${escapeXml(item.description)}</description>
-      <pubDate>${format(item.pubDate, "EEE, dd MMM yyyy HH:mm:ss xx")}</pubDate>
+      <pubDate>${item.pubDate.toUTCString()}</pubDate>
       <guid isPermaLink="false">${item.guid}</guid>
-      <category>${item.category}</category>
+      <category>${item.category}</category>${item.author ? `\n      <author>${escapeXml(item.author)}</author>` : ""}
     </item>`,
   )
   .join("\n")}
