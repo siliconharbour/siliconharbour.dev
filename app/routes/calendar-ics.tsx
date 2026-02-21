@@ -1,8 +1,16 @@
 import type { Route } from "./+types/calendar-ics";
 import { createEvents, type EventAttributes } from "ics";
 import { getUpcomingEvents } from "~/lib/events.server";
-import { toZonedTime } from "date-fns-tz";
-import { SITE_TIMEZONE } from "~/lib/timezone";
+
+function toDateArray(d: Date): [number, number, number, number, number] {
+  return [
+    d.getUTCFullYear(),
+    d.getUTCMonth() + 1,
+    d.getUTCDate(),
+    d.getUTCHours(),
+    d.getUTCMinutes(),
+  ];
+}
 
 export async function loader({}: Route.LoaderArgs) {
   const events = await getUpcomingEvents();
@@ -11,37 +19,33 @@ export async function loader({}: Route.LoaderArgs) {
 
   for (const event of events) {
     for (const date of event.dates) {
-      // Convert to Newfoundland timezone for display
-      const start = toZonedTime(date.startDate, SITE_TIMEZONE);
-      const endDate = date.endDate || new Date(date.startDate.getTime() + 60 * 60 * 1000);
-      const end = toZonedTime(endDate, SITE_TIMEZONE);
+      const startDate = date.startDate;
+      const endDate = date.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
-      icsEvents.push({
+      const attrs: EventAttributes = {
         title: event.title,
         description: event.description,
         location: event.location || undefined,
         url: event.link,
-        organizer: event.organizer ? { name: event.organizer } : undefined,
-        start: [
-          start.getFullYear(),
-          start.getMonth() + 1,
-          start.getDate(),
-          start.getHours(),
-          start.getMinutes(),
-        ],
-        startInputType: "local",
-        startOutputType: "local",
-        end: [
-          end.getFullYear(),
-          end.getMonth() + 1,
-          end.getDate(),
-          end.getHours(),
-          end.getMinutes(),
-        ],
-        endInputType: "local",
-        endOutputType: "local",
+        start: toDateArray(startDate),
+        startInputType: "utc",
+        startOutputType: "utc",
+        end: toDateArray(endDate),
+        endInputType: "utc",
+        endOutputType: "utc",
         uid: `${event.id}-${date.id}@siliconharbour.dev`,
-      });
+      };
+
+      // ORGANIZER requires a mailto: URI per RFC 5545.
+      // We only have a display name, so use a noreply address.
+      if (event.organizer) {
+        attrs.organizer = {
+          name: event.organizer,
+          email: "events@siliconharbour.dev",
+        };
+      }
+
+      icsEvents.push(attrs);
     }
   }
 
@@ -55,7 +59,7 @@ export async function loader({}: Route.LoaderArgs) {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'attachment; filename="siliconharbour-events.ics"',
-      "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+      "Cache-Control": "public, max-age=3600",
     },
   });
 }
