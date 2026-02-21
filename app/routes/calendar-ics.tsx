@@ -26,7 +26,7 @@ export async function loader({}: Route.LoaderArgs) {
         title: event.title,
         description: event.description,
         location: event.location || undefined,
-        url: event.link,
+        url: `https://siliconharbour.dev/events/${event.slug}`,
         start: toDateArray(startDate),
         startInputType: "utc",
         startOutputType: "utc",
