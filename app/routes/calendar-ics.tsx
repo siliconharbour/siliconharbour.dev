@@ -43,20 +43,11 @@ export async function loader({}: Route.LoaderArgs) {
         endOutputType: "utc",
 
         status: "CONFIRMED" as const,
-        transp: "OPAQUE" as const,
+        transp: "TRANSPARENT" as const,
         categories: ["Tech", "Community"],
 
         created: toDateArray(event.createdAt),
         lastModified: toDateArray(event.updatedAt),
-
-        // Default reminder 1 hour before
-        alarms: [
-          {
-            action: "display",
-            description: "Reminder",
-            trigger: { hours: 1, minutes: 0, before: true },
-          },
-        ],
 
         uid: `${event.id}-${date.id}@siliconharbour.dev`,
       };
