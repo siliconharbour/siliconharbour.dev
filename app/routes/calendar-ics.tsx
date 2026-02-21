@@ -57,7 +57,7 @@ export async function loader({}: Route.LoaderArgs) {
       if (event.organizer) {
         attrs.organizer = {
           name: event.organizer,
-          email: "events@siliconharbour.dev",
+          email: "admin@siliconharbour.dev",
         };
       }
 

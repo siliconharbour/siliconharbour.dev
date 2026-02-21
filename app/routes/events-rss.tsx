@@ -34,7 +34,7 @@ ${events
       <description>${escapeXml(event.description.slice(0, 500))}${event.description.length > 500 ? "..." : ""}</description>
       <pubDate>${event.createdAt.toUTCString()}</pubDate>
       <guid isPermaLink="false">event-${event.id}</guid>
-      <category>Events</category>${event.organizer ? `\n      <author>events@siliconharbour.dev (${escapeXml(event.organizer)})</author>` : ""}
+      <category>Events</category>${event.organizer ? `\n      <author>admin@siliconharbour.dev (${escapeXml(event.organizer)})</author>` : ""}
     </item>`;
   })
   .join("\n")}

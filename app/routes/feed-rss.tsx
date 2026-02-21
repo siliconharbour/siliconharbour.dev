@@ -40,7 +40,7 @@ export async function loader({}: Route.LoaderArgs) {
         guid: `event-${event.id}`,
         category: "Events",
         author: event.organizer
-          ? `events@siliconharbour.dev (${event.organizer})`
+          ? `admin@siliconharbour.dev (${event.organizer})`
           : undefined,
       };
     }),
