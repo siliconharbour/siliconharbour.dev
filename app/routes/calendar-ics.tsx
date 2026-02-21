@@ -16,6 +16,7 @@ export async function loader({}: Route.LoaderArgs) {
   const events = await getUpcomingEvents();
 
   const icsEvents: EventAttributes[] = [];
+  let isFirst = true;
 
   for (const event of events) {
     for (const date of event.dates) {
@@ -23,16 +24,40 @@ export async function loader({}: Route.LoaderArgs) {
       const endDate = date.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
       const attrs: EventAttributes = {
+        // Calendar-level metadata (only needed on the first event)
+        ...(isFirst && {
+          calName: "Silicon Harbour",
+          productId: "siliconharbour.dev/ics",
+        }),
+
         title: event.title,
         description: event.description,
         location: event.location || undefined,
         url: `https://siliconharbour.dev/events/${event.slug}`,
+
         start: toDateArray(startDate),
         startInputType: "utc",
         startOutputType: "utc",
         end: toDateArray(endDate),
         endInputType: "utc",
         endOutputType: "utc",
+
+        status: "CONFIRMED" as const,
+        transp: "OPAQUE" as const,
+        categories: ["Tech", "Community"],
+
+        created: toDateArray(event.createdAt),
+        lastModified: toDateArray(event.updatedAt),
+
+        // Default reminder 1 hour before
+        alarms: [
+          {
+            action: "display",
+            description: "Reminder",
+            trigger: { hours: 1, minutes: 0, before: true },
+          },
+        ],
+
         uid: `${event.id}-${date.id}@siliconharbour.dev`,
       };
 
@@ -46,6 +71,7 @@ export async function loader({}: Route.LoaderArgs) {
       }
 
       icsEvents.push(attrs);
+      isFirst = false;
     }
   }
 
