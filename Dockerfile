@@ -1,4 +1,4 @@
-FROM platformatic/node-caged:25-alpine AS pnpm-base
+FROM node:25-alpine AS pnpm-base
 RUN npm install -g pnpm@9
 
 FROM pnpm-base AS development-dependencies-env
