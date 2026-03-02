@@ -52,9 +52,6 @@ export default function PublicLayoutRoute() {
               <img src="/siliconharbour.svg" alt="Silicon Harbour" className="h-8 w-auto" />
               <span className="font-semibold text-harbour-700">siliconharbour.dev</span>
             </Link>
-            <span className="hidden sm:inline-flex text-xs px-2 py-0.5 bg-amber-100 text-amber-700 border border-amber-300">
-              Under Construction
-            </span>
           </div>
 
           {/* Desktop nav */}

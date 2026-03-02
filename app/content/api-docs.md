@@ -7,8 +7,6 @@ description: Public JSON API for accessing St. John's tech community data
 
 A read-only JSON API for accessing community data. No authentication required. CORS enabled.
 
-> **Note:** While this site is under construction, the API is subject to change. Don't build against it for production use yet.
-
 ## Base URL
 
 ```

@@ -55,13 +55,6 @@ export default function SubscribePage() {
           constantly.
         </p>
 
-        <div className="not-prose bg-red-50 border border-red-200 px-4 py-3 my-6">
-          <p className="text-sm text-red-800">
-            While this site is under construction, I wouldn't subscribe to these if I were you -
-            this is all subject to change heavily!
-          </p>
-        </div>
-
         <h2>Calendar</h2>
 
         <p>
