@@ -78,7 +78,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
       <StackedWrapper isRecurring={!!event.recurrenceRule}>
         <Link
           to={`/events/${event.slug}`}
-          className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+          className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
         >
           {event.coverImage && (
             <div className="img-tint aspect-[4/1] relative overflow-hidden bg-harbour-100">
@@ -169,7 +169,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
     <StackedWrapper isRecurring={!!event.recurrenceRule}>
       <Link
         to={`/events/${event.slug}`}
-        className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+        className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
       >
         {event.coverImage && (
           <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
