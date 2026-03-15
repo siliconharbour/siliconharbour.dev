@@ -144,22 +144,43 @@ export default function Home() {
                 </section>
               )}
 
-              {/* Upcoming events */}
-              {visibility.events && futureEvents.length > 0 && (
-                <section className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-harbour-700">Upcoming Events</h2>
-                    <Link to="/events" className="text-sm text-harbour-500 hover:text-harbour-700">
-                      View all
-                    </Link>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {futureEvents.slice(0, 4).map((event) => (
-                      <EventCard key={event.id} event={event} />
-                    ))}
-                  </div>
-                </section>
-              )}
+              {/* Upcoming events -- one-off first, then recurring below */}
+              {visibility.events && futureEvents.length > 0 && (() => {
+                const oneOffEvents = futureEvents.filter((e) => !e.recurrenceRule);
+                const recurringEvents = futureEvents.filter((e) => !!e.recurrenceRule);
+
+                return (
+                  <section className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold text-harbour-700">Upcoming Events</h2>
+                      <Link to="/events" className="text-sm text-harbour-500 hover:text-harbour-700">
+                        View all
+                      </Link>
+                    </div>
+
+                    {oneOffEvents.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {oneOffEvents.slice(0, 4).map((event) => (
+                          <EventCard key={event.id} event={event} />
+                        ))}
+                      </div>
+                    )}
+
+                    {recurringEvents.length > 0 && (
+                      <>
+                        <div className="border-t border-harbour-200 pt-4">
+                          <h3 className="text-sm font-medium text-harbour-500">Recurring</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {recurringEvents.map((event) => (
+                            <EventCard key={event.id} event={event} variant="compact" />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </section>
+                );
+              })()}
 
               {/* No events state */}
               {visibility.events && !hasEvents && (

@@ -5,7 +5,7 @@ import { formatInTimezone } from "~/lib/timezone";
 
 type EventCardProps = {
   event: Event & { dates: EventDate[] };
-  variant?: "featured" | "default";
+  variant?: "featured" | "default" | "compact";
   resolvedRefs?: Record<string, ResolvedRef>;
 };
 
@@ -156,6 +156,52 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                   resolvedRefs={resolvedRefs}
                   className="prose-harbour"
                 />
+              </div>
+            </div>
+          </div>
+        </Link>
+      </StackedWrapper>
+    );
+  }
+
+  // Compact card -- smaller, no cover image, used for recurring events section
+  if (variant === "compact") {
+    return (
+      <StackedWrapper isRecurring={!!event.recurrenceRule}>
+        <Link
+          to={`/events/${event.slug}`}
+          className="group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+        >
+          <div className="relative bg-white p-3">
+            <div className="flex items-start gap-2.5">
+              {event.iconImage && (
+                <div className="img-tint relative w-10 h-10 flex-shrink-0">
+                  <img
+                    src={`/images/${event.iconImage}`}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                <h3 className="font-semibold text-sm leading-tight text-harbour-700 group-hover:text-harbour-600">
+                  {event.title}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-harbour-500">
+                  {event.recurrenceRule && (
+                    <span className="text-harbour-400">
+                      {describeRecurrence(event.recurrenceRule)}
+                    </span>
+                  )}
+                  {nextDate && (
+                    <span className="text-harbour-400">
+                      Next: {formatInTimezone(nextDate.startDate, "MMM d")}
+                    </span>
+                  )}
+                </div>
+                {event.location && (
+                  <p className="text-xs text-harbour-400 truncate">{event.location}</p>
+                )}
               </div>
             </div>
           </div>
