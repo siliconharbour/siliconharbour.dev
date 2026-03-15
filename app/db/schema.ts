@@ -56,6 +56,7 @@ export const events = sqliteTable("events", {
   requiresSignup: integer("requires_signup", { mode: "boolean" }).notNull().default(false),
   // Recurrence fields
   recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
+  recurrenceStart: integer("recurrence_start", { mode: "timestamp" }), // When the series begins (null = use createdAt)
   recurrenceEnd: integer("recurrence_end", { mode: "timestamp" }), // When recurrence stops (null = indefinite)
   defaultStartTime: text("default_start_time"), // HH:mm format for recurring events
   defaultEndTime: text("default_end_time"), // HH:mm format for recurring events

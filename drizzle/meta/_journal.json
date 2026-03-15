@@ -267,6 +267,13 @@
       "when": 1768722000000,
       "tag": "0037_delete_job_posting_evidence_without_snippets",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "6",
+      "when": 1768723000000,
+      "tag": "0038_add_recurrence_start",
+      "breakpoints": true
     }
   ]
 }
