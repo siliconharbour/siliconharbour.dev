@@ -9,6 +9,43 @@ type EventCardProps = {
   resolvedRefs?: Record<string, ResolvedRef>;
 };
 
+function describeRecurrence(rule: string | null): string | null {
+  if (!rule) return null;
+  const parts = rule.split(";");
+  let freq = "";
+  let interval = 1;
+  let dayCode = "";
+  let position = 0;
+
+  for (const part of parts) {
+    const [key, value] = part.split("=");
+    if (key === "FREQ") freq = value;
+    if (key === "INTERVAL") interval = parseInt(value, 10);
+    if (key === "BYDAY") {
+      const match = value.match(/^(-?\d)?([A-Z]{2})$/);
+      if (match) {
+        if (match[1]) position = parseInt(match[1], 10);
+        dayCode = match[2];
+      }
+    }
+  }
+
+  const dayNames: Record<string, string> = {
+    SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday",
+    TH: "Thursday", FR: "Friday", SA: "Saturday",
+  };
+  const day = dayNames[dayCode] || dayCode;
+
+  if (freq === "WEEKLY") {
+    return interval === 2 ? `Every other ${day}` : `Every ${day}`;
+  }
+  if (freq === "MONTHLY") {
+    const positions: Record<number, string> = { 1: "First", 2: "Second", 3: "Third", 4: "Fourth", [-1]: "Last" };
+    return `${positions[position] || ""} ${day} of every month`.trim();
+  }
+  return "Recurring";
+}
+
 export function EventCard({ event, variant = "default", resolvedRefs }: EventCardProps) {
   const nextDate = event.dates[0];
   const hasMultipleDates = event.dates.length > 1;
@@ -19,8 +56,15 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
     return (
       <Link
         to={`/events/${event.slug}`}
-        className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+        className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mt-2 ml-2" : ""}`}
       >
+        {/* Stacked card effect for recurring events */}
+        {event.recurrenceRule && (
+          <>
+            <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50/50 -z-20" />
+            <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50/80 -z-10" />
+          </>
+        )}
         {event.coverImage && (
           <div className="img-tint aspect-[4/1] relative overflow-hidden bg-harbour-100">
             <img
@@ -77,11 +121,15 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                   )}
                 </div>
               )}
-              {hasMultipleDates && (
+              {event.recurrenceRule ? (
+                <span className="text-xs text-harbour-400">
+                  {describeRecurrence(event.recurrenceRule)}
+                </span>
+              ) : hasMultipleDates ? (
                 <span className="text-xs text-harbour-400">
                   +{event.dates.length - 1} more date{event.dates.length > 2 ? "s" : ""}
                 </span>
-              )}
+              ) : null}
               {event.location && (
                 <span className="text-harbour-400 truncate">{event.location}</span>
               )}
@@ -104,8 +152,15 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
   return (
     <Link
       to={`/events/${event.slug}`}
-      className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+      className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mt-2 ml-2" : ""}`}
     >
+      {/* Stacked card effect for recurring events */}
+      {event.recurrenceRule && (
+        <>
+          <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50/50 -z-20" />
+          <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50/80 -z-10" />
+        </>
+      )}
       {event.coverImage && (
         <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
           <img
@@ -152,9 +207,13 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                 {formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
               </time>
             )}
-            {hasMultipleDates && (
+            {event.recurrenceRule ? (
+              <span className="text-xs text-harbour-400 ml-2">
+                {describeRecurrence(event.recurrenceRule)}
+              </span>
+            ) : hasMultipleDates ? (
               <span className="text-xs text-harbour-400 ml-2">+{event.dates.length - 1} more</span>
-            )}
+            ) : null}
           </div>
 
           {event.location && <p className="text-sm text-harbour-400 truncate">{event.location}</p>}
