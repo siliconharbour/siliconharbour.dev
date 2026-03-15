@@ -56,13 +56,13 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
     return (
       <Link
         to={`/events/${event.slug}`}
-        className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mt-2 ml-2" : ""}`}
+        className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mb-2 mr-2" : ""}`}
       >
         {/* Stacked card effect for recurring events */}
         {event.recurrenceRule && (
           <>
-            <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
-            <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
+            <div className="absolute top-2 left-2 -right-2 -bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
+            <div className="absolute top-1 left-1 -right-1 -bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
           </>
         )}
         <div className="relative z-[2]">
@@ -154,13 +154,13 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
   return (
     <Link
       to={`/events/${event.slug}`}
-      className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mt-2 ml-2" : ""}`}
+      className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mb-2 mr-2" : ""}`}
     >
       {/* Stacked card effect for recurring events */}
       {event.recurrenceRule && (
         <>
-          <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
-          <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
+          <div className="absolute top-2 left-2 -right-2 -bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
+          <div className="absolute top-1 left-1 -right-1 -bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
         </>
       )}
       <div className="relative z-[2]">
