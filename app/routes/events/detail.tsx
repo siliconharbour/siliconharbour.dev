@@ -217,8 +217,14 @@ export default function EventDetail() {
                             dateTime={occ.date.toISOString()}
                             className="font-semibold text-harbour-700"
                           >
-                            {formatInTimezone(occ.date, "EEEE, MMMM d, yyyy")}
+                            {formatInTimezone(occ.date, "EEEE, MMMM d, yyyy 'at' h:mm a")}
                           </time>
+                          {occ.endDate && (
+                            <span className="font-semibold text-harbour-700">
+                              {" - "}
+                              {formatInTimezone(occ.endDate, "h:mm a")}
+                            </span>
+                          )}
                           {occ.cancelled && <span className="ml-2 text-red-500">(Cancelled)</span>}
                           {occ.location && occ.location !== event.location && (
                             <span className="ml-2 text-harbour-400">at {occ.location}</span>
