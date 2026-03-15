@@ -274,7 +274,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                       style: {
                         display: "flex",
                         width: "420px",
-                        height: "300px",
+                        height: data.type === "event" ? "140px" : "300px",
                         flexShrink: 0,
                         overflow: "hidden",
                         position: "relative",
