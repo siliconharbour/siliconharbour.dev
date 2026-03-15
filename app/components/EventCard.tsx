@@ -81,7 +81,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
           className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
         >
           {event.coverImage && (
-            <div className="img-tint aspect-[4/1] relative overflow-hidden bg-harbour-100">
+            <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
               <img
                 src={`/images/${event.coverImage}`}
                 alt=""

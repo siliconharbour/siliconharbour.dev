@@ -37,7 +37,7 @@ export async function processAndSaveCoverImage(buffer: Buffer, crop?: CropArea):
 
   await image
     .resize(COVER_MAX_WIDTH, COVER_MAX_HEIGHT, {
-      fit: "cover",
+      fit: "inside",
       withoutEnlargement: true,
     })
     .webp({ quality: 85 })

@@ -326,7 +326,7 @@ export function EventForm({ event, error }: EventFormProps) {
                 <img
                   src={coverImagePreview}
                   alt="Cover preview"
-                  className="w-full aspect-video object-cover"
+                  className="w-full aspect-[3/1] object-cover"
                 />
                 <button
                   type="button"
@@ -347,7 +347,7 @@ export function EventForm({ event, error }: EventFormProps) {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full aspect-video border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-harbour-50 transition-colors">
+              <label className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-harbour-50 transition-colors">
                 <svg
                   className="w-8 h-8 text-harbour-300"
                   fill="none"
