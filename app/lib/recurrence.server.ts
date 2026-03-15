@@ -1,6 +1,12 @@
 /**
  * Recurrence rule utilities for generating event occurrences.
  *
+ * IMPORTANT: All date arithmetic uses noon UTC of the Newfoundland calendar day
+ * to avoid timezone-related day-of-week shifts. The site timezone is America/St_Johns
+ * (UTC-2:30 or UTC-3:30), so a UTC midnight timestamp can fall on the previous day
+ * in Newfoundland. Using noon UTC provides a safe buffer (±12h) that no timezone
+ * offset can shift across a day boundary.
+ *
  * Supports a simplified RRULE format:
  * - FREQ=WEEKLY;BYDAY=TH (every Thursday)
  * - FREQ=WEEKLY;INTERVAL=2;BYDAY=TH (every other Thursday)
@@ -8,6 +14,24 @@
  * - FREQ=MONTHLY;BYDAY=2TH (second Thursday of month)
  * - FREQ=MONTHLY;BYDAY=-1TH (last Thursday of month)
  */
+
+import { toZonedTime } from "date-fns-tz";
+import { SITE_TIMEZONE } from "./timezone";
+
+/**
+ * Convert a UTC date to noon UTC of the corresponding calendar day in the site timezone.
+ * This ensures .getUTCDay() and .getUTCDate() reflect the Newfoundland day,
+ * and downstream getDateInTimezone() also resolves correctly.
+ */
+function toNoonUTCForSiteDay(date: Date): Date {
+  const zoned = toZonedTime(date, SITE_TIMEZONE);
+  // zoned's local getters now reflect Newfoundland wall-clock time
+  const y = zoned.getFullYear();
+  const m = zoned.getMonth();
+  const d = zoned.getDate();
+  // Return noon UTC on that calendar day
+  return new Date(Date.UTC(y, m, d, 12, 0, 0, 0));
+}
 
 export interface RecurrenceRule {
   freq: "WEEKLY" | "MONTHLY";
@@ -92,7 +116,11 @@ export function serializeRecurrenceRule(rule: RecurrenceRule): string {
 }
 
 /**
- * Generate occurrence dates for a recurring event
+ * Generate occurrence dates for a recurring event.
+ *
+ * All arithmetic uses noon UTC of the Newfoundland calendar day to avoid
+ * timezone-related day-of-week mismatches on servers running in UTC or
+ * other timezones that differ from America/St_Johns.
  */
 export function generateOccurrences(
   rule: RecurrenceRule,
@@ -105,41 +133,41 @@ export function generateOccurrences(
   // Default end date is 3 months from now
   const effectiveEnd = endDate || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-  let current = new Date(startDate);
-  current.setHours(0, 0, 0, 0);
+  // Convert anchor to noon UTC of the Newfoundland calendar day
+  let current = toNoonUTCForSiteDay(startDate);
 
   if (rule.freq === "WEEKLY") {
-    // For weekly, find the first occurrence on the target day
-    const targetDay = rule.byDay ? DAY_TO_JS_INDEX[rule.byDay] : current.getDay();
+    // For weekly, find the first occurrence on the target day (using UTC day-of-week)
+    const targetDay = rule.byDay ? DAY_TO_JS_INDEX[rule.byDay] : current.getUTCDay();
 
     // Advance to the first occurrence
-    while (current.getDay() !== targetDay) {
-      current.setDate(current.getDate() + 1);
+    while (current.getUTCDay() !== targetDay) {
+      current = new Date(current.getTime() + 24 * 60 * 60 * 1000);
     }
 
     // Generate occurrences
     while (current <= effectiveEnd && occurrences.length < maxOccurrences) {
       occurrences.push(new Date(current));
-      current.setDate(current.getDate() + 7 * rule.interval);
+      current = new Date(current.getTime() + 7 * rule.interval * 24 * 60 * 60 * 1000);
     }
   } else if (rule.freq === "MONTHLY") {
     // For monthly with BYDAY (e.g., "first Thursday")
-    const targetDay = rule.byDay ? DAY_TO_JS_INDEX[rule.byDay] : current.getDay();
+    const targetDay = rule.byDay ? DAY_TO_JS_INDEX[rule.byDay] : current.getUTCDay();
     const position = rule.byDayPosition || 1;
 
-    // Start from the beginning of the start month
-    current.setDate(1);
+    // Start from the beginning of the start month (noon UTC on the 1st)
+    current = new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 1, 12, 0, 0, 0));
 
     while (current <= effectiveEnd && occurrences.length < maxOccurrences) {
       const occurrence = getNthWeekdayOfMonth(current, targetDay, position);
 
-      if (occurrence && occurrence >= startDate && occurrence <= effectiveEnd) {
+      if (occurrence && occurrence >= toNoonUTCForSiteDay(startDate) && occurrence <= effectiveEnd) {
         occurrences.push(occurrence);
       }
 
-      // Move to next month
-      current.setMonth(current.getMonth() + rule.interval);
-      current.setDate(1);
+      // Move to next month (noon UTC on the 1st)
+      const nextMonth = current.getUTCMonth() + rule.interval;
+      current = new Date(Date.UTC(current.getUTCFullYear(), nextMonth, 1, 12, 0, 0, 0));
     }
   }
 
@@ -147,19 +175,21 @@ export function generateOccurrences(
 }
 
 /**
- * Get the nth occurrence of a weekday in a given month
- * @param monthDate - Any date in the target month
+ * Get the nth occurrence of a weekday in a given month.
+ * Uses UTC methods and returns noon UTC dates for timezone safety.
+ *
+ * @param monthDate - Any date in the target month (expected to be noon UTC)
  * @param weekday - Day of week (0 = Sunday, 6 = Saturday)
  * @param n - Which occurrence (1 = first, 2 = second, -1 = last)
  */
 function getNthWeekdayOfMonth(monthDate: Date, weekday: number, n: number): Date | null {
-  const year = monthDate.getFullYear();
-  const month = monthDate.getMonth();
+  const year = monthDate.getUTCFullYear();
+  const month = monthDate.getUTCMonth();
 
   if (n > 0) {
     // Find nth occurrence from start of month
-    const firstOfMonth = new Date(year, month, 1);
-    const firstWeekday = firstOfMonth.getDay();
+    const firstOfMonth = new Date(Date.UTC(year, month, 1, 12, 0, 0, 0));
+    const firstWeekday = firstOfMonth.getUTCDay();
 
     // Calculate the first occurrence of the target weekday
     let dayOfMonth = 1 + ((weekday - firstWeekday + 7) % 7);
@@ -168,17 +198,17 @@ function getNthWeekdayOfMonth(monthDate: Date, weekday: number, n: number): Date
     dayOfMonth += (n - 1) * 7;
 
     // Check if this date is still in the same month
-    const result = new Date(year, month, dayOfMonth);
-    if (result.getMonth() !== month) {
+    const result = new Date(Date.UTC(year, month, dayOfMonth, 12, 0, 0, 0));
+    if (result.getUTCMonth() !== month) {
       return null; // The nth occurrence doesn't exist in this month
     }
 
     return result;
   } else {
     // Find nth occurrence from end of month (n = -1 means last)
-    const lastOfMonth = new Date(year, month + 1, 0);
-    const lastDay = lastOfMonth.getDate();
-    const lastWeekday = lastOfMonth.getDay();
+    const lastOfMonth = new Date(Date.UTC(year, month + 1, 0, 12, 0, 0, 0));
+    const lastDay = lastOfMonth.getUTCDate();
+    const lastWeekday = lastOfMonth.getUTCDay();
 
     // Calculate the last occurrence of the target weekday
     let dayOfMonth = lastDay - ((lastWeekday - weekday + 7) % 7);
@@ -190,7 +220,7 @@ function getNthWeekdayOfMonth(monthDate: Date, weekday: number, n: number): Date
       return null; // The nth-from-last occurrence doesn't exist
     }
 
-    return new Date(year, month, dayOfMonth);
+    return new Date(Date.UTC(year, month, dayOfMonth, 12, 0, 0, 0));
   }
 }
 
