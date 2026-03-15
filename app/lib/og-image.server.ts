@@ -206,12 +206,54 @@ async function generateSVG(data: OGImageData): Promise<string> {
               props: {
                 style: {
                   display: "flex",
+                  flexDirection: data.type === "event" ? "column" : "row",
                   flex: 1,
-                  alignItems: "center",
-                  gap: "40px",
+                  alignItems: data.type === "event" ? "stretch" : "center",
+                  gap: data.type === "event" ? "24px" : "40px",
                   marginTop: "32px",
                 },
                 children: [
+                  // Cover image -- above text for events, right of text for news
+                  coverImageBase64 &&
+                    data.type === "event" && {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          width: "100%",
+                          height: "200px",
+                          overflow: "hidden",
+                          position: "relative",
+                        },
+                        children: [
+                          {
+                            type: "img",
+                            props: {
+                              src: coverImageBase64,
+                              style: {
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              },
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                backgroundColor: colors.harbour200,
+                                opacity: 0.15,
+                              },
+                            },
+                          },
+                        ],
+                      },
+                    },
                   // Text content
                   {
                     type: "div",
@@ -267,48 +309,48 @@ async function generateSVG(data: OGImageData): Promise<string> {
                       ].filter(Boolean),
                     },
                   },
-                  // Cover image (if exists)
-                  coverImageBase64 && {
-                    type: "div",
-                    props: {
-                      style: {
-                        display: "flex",
-                        width: "420px",
-                        height: data.type === "event" ? "140px" : "300px",
-                        flexShrink: 0,
-                        overflow: "hidden",
-                        position: "relative",
+                  // Cover image -- right of text for news
+                  coverImageBase64 &&
+                    data.type !== "event" && {
+                      type: "div",
+                      props: {
+                        style: {
+                          display: "flex",
+                          width: "420px",
+                          height: "300px",
+                          flexShrink: 0,
+                          overflow: "hidden",
+                          position: "relative",
+                        },
+                        children: [
+                          {
+                            type: "img",
+                            props: {
+                              src: coverImageBase64,
+                              style: {
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              },
+                            },
+                          },
+                          {
+                            type: "div",
+                            props: {
+                              style: {
+                                position: "absolute",
+                                top: 0,
+                                left: 0,
+                                width: "100%",
+                                height: "100%",
+                                backgroundColor: colors.harbour200,
+                                opacity: 0.15,
+                              },
+                            },
+                          },
+                        ],
                       },
-                      children: [
-                        {
-                          type: "img",
-                          props: {
-                            src: coverImageBase64,
-                            style: {
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            },
-                          },
-                        },
-                        // Harbour tint overlay
-                        {
-                          type: "div",
-                          props: {
-                            style: {
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              width: "100%",
-                              height: "100%",
-                              backgroundColor: colors.harbour200,
-                              opacity: 0.15,
-                            },
-                          },
-                        },
-                      ],
                     },
-                  },
                 ].filter(Boolean),
               },
             },
