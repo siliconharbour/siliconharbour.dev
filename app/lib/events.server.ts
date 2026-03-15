@@ -243,8 +243,8 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
       // For recurring events, generate upcoming dates
       if (eventData.recurrenceRule) {
         const generatedDates = getGeneratedOccurrences(eventData, now, threeMonthsFromNow);
-        // Convert generated dates to EventDate format for consistency
-        const syntheticDates: EventDate[] = generatedDates.map((date, i) => {
+        // Only keep next 3 dates for listing display (cards only need the next occurrence)
+        const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
           // Get the date string in Newfoundland timezone
           const dateStr = getDateInTimezone(date);
 
@@ -440,7 +440,8 @@ export async function getPaginatedEvents(
       // For recurring events, generate synthetic dates
       if (event.recurrenceRule) {
         const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
-        const syntheticDates: EventDate[] = generatedDates.map((date, i) => {
+        // Only keep next 3 dates for listing display
+        const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
           // Get the date string in Newfoundland timezone
           const dateStr = getDateInTimezone(date);
 
