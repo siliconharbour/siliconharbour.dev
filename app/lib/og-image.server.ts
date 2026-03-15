@@ -224,6 +224,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                           height: "200px",
                           overflow: "hidden",
                           position: "relative",
+                          backgroundColor: colors.harbour50,
                         },
                         children: [
                           {
@@ -233,7 +234,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                               style: {
                                 width: "100%",
                                 height: "100%",
-                                objectFit: "cover",
+                                objectFit: "contain",
                               },
                             },
                           },
