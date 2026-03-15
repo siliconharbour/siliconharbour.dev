@@ -552,52 +552,71 @@ export function EventForm({ event, error }: EventFormProps) {
                     </label>
                   </div>
 
-                  {dateEntry.isRange && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                      <div>
-                        <label className="block text-xs text-harbour-500 mb-1">End Date</label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setActiveDatePicker(
-                              activeDatePicker === `${dateEntry.id}-end`
-                                ? null
-                                : `${dateEntry.id}-end`,
-                            )
-                          }
-                          className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
-                        >
-                          {dateEntry.endDate
-                            ? formatInTimezone(dateEntry.endDate, "MMM d, yyyy")
-                            : "Select date"}
-                        </button>
-                        {activeDatePicker === `${dateEntry.id}-end` && (
-                          <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
-                            <DayPicker
-                              mode="single"
-                              selected={dateEntry.endDate || undefined}
-                              onSelect={(date) => {
-                                if (date) {
-                                  updateDate(dateEntry.id, { endDate: date });
-                                  setActiveDatePicker(null);
-                                }
-                              }}
+                  {dateEntry.isRange && (() => {
+                    const startDateStr = getDateInTimezone(dateEntry.startDate);
+                    const endDateStr = dateEntry.endDate ? getDateInTimezone(dateEntry.endDate) : null;
+                    const endIsBeforeStart =
+                      endDateStr != null &&
+                      (endDateStr < startDateStr ||
+                        (endDateStr === startDateStr &&
+                          dateEntry.endTime !== "" &&
+                          dateEntry.endTime < dateEntry.startTime));
+
+                    return (
+                      <div className="mt-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-harbour-500 mb-1">End Date</label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActiveDatePicker(
+                                  activeDatePicker === `${dateEntry.id}-end`
+                                    ? null
+                                    : `${dateEntry.id}-end`,
+                                )
+                              }
+                              className={`w-full px-3 py-2 text-left border bg-white ${endIsBeforeStart ? "border-red-400" : "border-harbour-200"}`}
+                            >
+                              {dateEntry.endDate
+                                ? formatInTimezone(dateEntry.endDate, "MMM d, yyyy")
+                                : "Select date"}
+                            </button>
+                            {activeDatePicker === `${dateEntry.id}-end` && (
+                              <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                                <DayPicker
+                                  mode="single"
+                                  selected={dateEntry.endDate || undefined}
+                                  disabled={{ before: dateEntry.startDate }}
+                                  onSelect={(date) => {
+                                    if (date) {
+                                      updateDate(dateEntry.id, { endDate: date });
+                                      setActiveDatePicker(null);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-xs text-harbour-500 mb-1">End Time</label>
+                            <input
+                              type="time"
+                              value={dateEntry.endTime}
+                              onChange={(e) => updateDate(dateEntry.id, { endTime: e.target.value })}
+                              className={`w-full px-3 py-2 border bg-white ${endIsBeforeStart ? "border-red-400" : "border-harbour-200"}`}
                             />
                           </div>
+                        </div>
+                        {endIsBeforeStart && (
+                          <p className="text-xs text-red-600 mt-1">
+                            End date/time is before the start date/time
+                          </p>
                         )}
                       </div>
-
-                      <div>
-                        <label className="block text-xs text-harbour-500 mb-1">End Time</label>
-                        <input
-                          type="time"
-                          value={dateEntry.endTime}
-                          onChange={(e) => updateDate(dateEntry.id, { endTime: e.target.value })}
-                          className="w-full px-3 py-2 border border-harbour-200 bg-white"
-                        />
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Hidden inputs for this date */}
                   <input

@@ -403,16 +403,20 @@ export function prepareEventOGData(event: {
   let dateStr: string | undefined;
 
   if (firstDate && lastDate) {
-    // Multiple dates: show the date range
+    // Multiple dates: show the date range from earliest start to latest end
+    const allTimestamps = event.dates.flatMap((d) =>
+      [d.startDate.getTime(), d.endDate?.getTime()].filter((t): t is number => t != null),
+    );
+    const rangeEnd = new Date(Math.max(...allTimestamps));
+
     const startStr = formatInTimezone(firstDate.startDate, "MMMM d");
-    const endDate = lastDate.endDate ?? lastDate.startDate;
     const startYear = formatInTimezone(firstDate.startDate, "yyyy");
-    const endYear = formatInTimezone(endDate, "yyyy");
+    const endYear = formatInTimezone(rangeEnd, "yyyy");
     if (startYear === endYear) {
-      dateStr = `${startStr} – ${formatInTimezone(endDate, "MMMM d, yyyy")}`;
+      dateStr = `${startStr} – ${formatInTimezone(rangeEnd, "MMMM d, yyyy")}`;
     } else {
       const startWithYear = formatInTimezone(firstDate.startDate, "MMMM d, yyyy");
-      dateStr = `${startWithYear} – ${formatInTimezone(endDate, "MMMM d, yyyy")}`;
+      dateStr = `${startWithYear} – ${formatInTimezone(rangeEnd, "MMMM d, yyyy")}`;
     }
   } else if (firstDate?.endDate) {
     // Single date with end time: show day with time range
