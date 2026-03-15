@@ -32,6 +32,7 @@ export const eventBaseSchema = z.object({
 
 export const eventRecurringSchema = z.object({
   recurrenceRule: zRequiredString("Recurrence pattern"),
+  recurrenceStart: zOptionalNullableString,
   defaultStartTime: zRequiredString("Default start time"),
   defaultEndTime: zOptionalNullableString,
   recurrenceEnd: zOptionalNullableString,

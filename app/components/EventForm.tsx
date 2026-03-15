@@ -101,6 +101,10 @@ export function EventForm({ event, error }: EventFormProps) {
     event?.recurrenceEnd || null,
   );
   const [showRecurrenceEndPicker, setShowRecurrenceEndPicker] = useState(false);
+  const [recurrenceStartDate, setRecurrenceStartDate] = useState<Date | null>(
+    event?.recurrenceStart || null,
+  );
+  const [showRecurrenceStartPicker, setShowRecurrenceStartPicker] = useState(false);
   const [requiresSignup, setRequiresSignup] = useState(event?.requiresSignup ?? false);
 
   // One-time event dates
@@ -636,6 +640,44 @@ export function EventForm({ event, error }: EventFormProps) {
           <div className="p-4 border border-harbour-200 bg-harbour-50/30 space-y-4">
             <h3 className="text-sm font-medium text-harbour-700">Recurrence Settings</h3>
 
+            {/* Series Start Date */}
+            <div>
+              <label className="block text-xs text-harbour-500 mb-1">Series Start Date (optional)</label>
+              <p className="text-xs text-harbour-400 mb-2">When this series began. Leave empty to use creation date.</p>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowRecurrenceStartPicker(!showRecurrenceStartPicker)}
+                  className="w-full md:w-auto px-3 py-2 text-left border border-harbour-200 bg-white"
+                >
+                  {recurrenceStartDate
+                    ? formatInTimezone(recurrenceStartDate, "MMM d, yyyy")
+                    : "No start date set"}
+                </button>
+                {recurrenceStartDate && (
+                  <button
+                    type="button"
+                    onClick={() => setRecurrenceStartDate(null)}
+                    className="ml-2 text-sm text-red-600 hover:underline"
+                  >
+                    Clear
+                  </button>
+                )}
+                {showRecurrenceStartPicker && (
+                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
+                    <DayPicker
+                      mode="single"
+                      selected={recurrenceStartDate || undefined}
+                      onSelect={(date) => {
+                        setRecurrenceStartDate(date || null);
+                        setShowRecurrenceStartPicker(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Frequency */}
             <div>
               <label className="block text-xs text-harbour-500 mb-1">Frequency *</label>
@@ -756,6 +798,13 @@ export function EventForm({ event, error }: EventFormProps) {
 
             {/* Hidden inputs for recurrence */}
             <input type="hidden" name="recurrenceRule" value={buildRecurrenceRule()} />
+            {recurrenceStartDate && (
+              <input
+                type="hidden"
+                name="recurrenceStart"
+                value={recurrenceStartDate.toISOString().split("T")[0]}
+              />
+            )}
             <input type="hidden" name="defaultStartTime" value={defaultStartTime} />
             {hasEndTime && <input type="hidden" name="defaultEndTime" value={defaultEndTime} />}
             {recurrenceEndDate && (

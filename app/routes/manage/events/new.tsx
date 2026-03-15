@@ -56,6 +56,9 @@ export async function action({ request }: Route.ActionArgs) {
         coverImage,
         iconImage,
         requiresSignup: parsedBase.data.requiresSignup,
+        recurrenceStart: parsedRecurring.data.recurrenceStart
+          ? new Date(parsedRecurring.data.recurrenceStart)
+          : null,
         recurrenceRule: parsedRecurring.data.recurrenceRule,
         recurrenceEnd: parsedRecurring.data.recurrenceEnd
           ? new Date(parsedRecurring.data.recurrenceEnd)

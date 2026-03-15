@@ -82,6 +82,9 @@ export async function action({ request, params }: Route.ActionArgs) {
         requiresSignup: parsedBase.data.requiresSignup,
         ...(coverImage !== undefined && { coverImage }),
         ...(iconImage !== undefined && { iconImage }),
+        recurrenceStart: parsedRecurring.data.recurrenceStart
+          ? new Date(parsedRecurring.data.recurrenceStart)
+          : null,
         recurrenceRule: parsedRecurring.data.recurrenceRule,
         recurrenceEnd: parsedRecurring.data.recurrenceEnd
           ? new Date(parsedRecurring.data.recurrenceEnd)
@@ -110,6 +113,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         ...(iconImage !== undefined && { iconImage }),
         // Clear recurrence when switching to one-time
         recurrenceRule: null,
+        recurrenceStart: null,
         recurrenceEnd: null,
         defaultStartTime: null,
         defaultEndTime: null,
