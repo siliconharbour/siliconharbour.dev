@@ -428,12 +428,10 @@ export async function getPaginatedEvents(
 
   const total = filteredEventIds.length;
 
-  // Get the paginated slice of event IDs
-  const paginatedIds = filteredEventIds.slice(offset, offset + limit);
-
-  // Fetch full event data with dates (including generated dates for recurring events)
+  // Fetch full event data with dates for all matching events, then sort and paginate.
+  // Sorting requires date data, so we fetch first and slice after.
   const eventsWithDates = await Promise.all(
-    paginatedIds.map(async (id) => {
+    filteredEventIds.map(async (id) => {
       const event = await getEventById(id);
       if (!event) return null;
 
@@ -473,15 +471,34 @@ export async function getPaginatedEvents(
 
   // Sort by next date
   items.sort((a, b) => {
-    const aNext = a.dates.find((d) => (filter === "past" ? true : d.startDate >= now))?.startDate;
-    const bNext = b.dates.find((d) => (filter === "past" ? true : d.startDate >= now))?.startDate;
-    if (!aNext || !bNext) return 0;
-    return filter === "past"
-      ? bNext.getTime() - aNext.getTime() // Past: newest first
-      : aNext.getTime() - bNext.getTime(); // Upcoming: soonest first
+    if (filter === "past") {
+      // Past: most recent first (use last date)
+      const aDate = a.dates[a.dates.length - 1]?.startDate;
+      const bDate = b.dates[b.dates.length - 1]?.startDate;
+      if (!aDate || !bDate) return 0;
+      return bDate.getTime() - aDate.getTime();
+    }
+
+    // Upcoming and All: upcoming events first (soonest), then past (most recent first)
+    const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
+    const bNext = b.dates.find((d) => d.startDate >= now)?.startDate;
+
+    // Both have upcoming dates: sort soonest first
+    if (aNext && bNext) return aNext.getTime() - bNext.getTime();
+    // Only one has upcoming: it goes first
+    if (aNext && !bNext) return -1;
+    if (!aNext && bNext) return 1;
+    // Neither has upcoming (both past): most recent first
+    const aLast = a.dates[a.dates.length - 1]?.startDate;
+    const bLast = b.dates[b.dates.length - 1]?.startDate;
+    if (!aLast || !bLast) return 0;
+    return bLast.getTime() - aLast.getTime();
   });
 
-  return { items, total };
+  // Paginate after sorting
+  const paginatedItems = items.slice(offset, offset + limit);
+
+  return { items: paginatedItems, total };
 }
 
 // =============================================================================
