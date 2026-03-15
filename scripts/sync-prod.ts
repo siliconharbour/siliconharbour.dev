@@ -4,9 +4,9 @@ import { join } from "path";
 import * as readline from "readline";
 
 const REMOTE_HOST = "jack@jackharrhy.dev";
-const REMOTE_PATH = "~/cookie-ops/core/volumes/siliconharbour/";
-const REMOTE_DB_FILE = "~/cookie-ops/core/volumes/siliconharbour/siliconharbour.db";
-const REMOTE_COMPOSE_DIR = "~/cookie-ops/core";
+const REMOTE_PATH = "~/infra/hosts/mug/volumes/siliconharbour/";
+const REMOTE_DB_FILE = "~/infra/hosts/mug/volumes/siliconharbour/siliconharbour.db";
+const REMOTE_COMPOSE_DIR = "~/infra/hosts/mug";
 const SERVICE_NAME = "siliconharbour";
 const LOCAL_DATA_PATH = "./data/";
 const LOCAL_DB_FILE = "./data/siliconharbour.db";
@@ -228,7 +228,7 @@ async function runMigrate() {
   // Step 4: Run migrations locally
   console.log("[4/6] Running migrations on local database...");
   try {
-    execSync("npm run db:migrate", { stdio: "inherit" });
+    execSync("pnpm run db:migrate", { stdio: "inherit" });
     console.log("Migrations completed successfully.");
   } catch {
     console.error("");
