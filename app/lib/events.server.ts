@@ -594,7 +594,12 @@ export function getGeneratedOccurrences(
   const effectiveEnd =
     event.recurrenceEnd && event.recurrenceEnd < endDate ? event.recurrenceEnd : endDate;
 
-  return generateOccurrences(rule, startDate, effectiveEnd);
+  // Use recurrenceStart as the generation anchor, falling back to createdAt.
+  // Generate from the series start so biweekly/monthly patterns stay consistent,
+  // then filter to only return dates in the requested [startDate, effectiveEnd] window.
+  const generationStart = event.recurrenceStart || event.createdAt;
+  const allOccurrences = generateOccurrences(rule, generationStart, effectiveEnd);
+  return allOccurrences.filter((d) => d >= startDate);
 }
 
 /**
