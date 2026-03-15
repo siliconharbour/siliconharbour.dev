@@ -208,7 +208,7 @@ export default function EventDetail() {
                 {isRecurring ? (
                   occurrences.length > 0 ? (
                     <>
-                      {occurrences.slice(0, 8).map((occ, i) => (
+                      {occurrences.slice(0, 3).map((occ, i) => (
                         <div
                           key={i}
                           className={`${occ.cancelled ? "line-through text-harbour-400" : ""}`}
@@ -217,24 +217,16 @@ export default function EventDetail() {
                             dateTime={occ.date.toISOString()}
                             className="font-semibold text-harbour-700"
                           >
-                            {formatInTimezone(occ.date, "EEEE, MMMM d, yyyy 'at' h:mm a")}
+                            {formatInTimezone(occ.date, "EEEE, MMMM d, yyyy")}
                           </time>
-                          {occ.endDate && (
-                            <span className="font-semibold text-harbour-700">
-                              {" - "}
-                              {formatInTimezone(occ.endDate, "h:mm a")}
-                            </span>
-                          )}
                           {occ.cancelled && <span className="ml-2 text-red-500">(Cancelled)</span>}
                           {occ.location && occ.location !== event.location && (
                             <span className="ml-2 text-harbour-400">at {occ.location}</span>
                           )}
                         </div>
                       ))}
-                      {occurrences.length > 8 && (
-                        <p className="text-sm text-harbour-400">
-                          + {occurrences.length - 8} more dates
-                        </p>
+                      {occurrences.length > 3 && (
+                        <span className="text-harbour-400">&hellip;</span>
                       )}
                     </>
                   ) : (
