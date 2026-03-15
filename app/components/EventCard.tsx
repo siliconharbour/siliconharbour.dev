@@ -46,6 +46,27 @@ function describeRecurrence(rule: string | null): string | null {
   return "Recurring";
 }
 
+/**
+ * Wrapper that adds a stacked-papers effect behind recurring event cards.
+ * Two offset divs peek out bottom-right behind the card content.
+ */
+function StackedWrapper({ isRecurring, children }: { isRecurring: boolean; children: React.ReactNode }) {
+  if (!isRecurring) return <>{children}</>;
+
+  return (
+    <div className="relative pb-[6px] pr-[6px]">
+      {/* Back card (furthest) */}
+      <div className="absolute top-[6px] left-[6px] right-0 bottom-0 ring-1 ring-harbour-200/50 bg-harbour-50" />
+      {/* Middle card */}
+      <div className="absolute top-[3px] left-[3px] right-[3px] bottom-[3px] ring-1 ring-harbour-200/70 bg-harbour-50" />
+      {/* Front card (the actual content) */}
+      <div className="relative">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function EventCard({ event, variant = "default", resolvedRefs }: EventCardProps) {
   const nextDate = event.dates[0];
   const hasMultipleDates = event.dates.length > 1;
@@ -54,20 +75,104 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
 
   if (isFeatured) {
     return (
+      <StackedWrapper isRecurring={!!event.recurrenceRule}>
+        <Link
+          to={`/events/${event.slug}`}
+          className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+        >
+          {event.coverImage && (
+            <div className="img-tint aspect-[4/1] relative overflow-hidden bg-harbour-100">
+              <img
+                src={`/images/${event.coverImage}`}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+              />
+            </div>
+          )}
+
+          {/* Overlapping content card */}
+          <div
+            className={`relative bg-white p-3 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
+          >
+            <div className="flex items-start gap-3">
+              {event.iconImage && (
+                <div className="img-tint relative w-14 h-14 flex-shrink-0">
+                  <img
+                    src={`/images/${event.iconImage}`}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-lg leading-tight text-harbour-700 group-hover:text-harbour-600">
+                    {event.title}
+                  </h3>
+                  {event.recurrenceRule && (
+                    <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
+                      Recurring
+                    </span>
+                  )}
+                </div>
+                {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
+              </div>
+            </div>
+
+            <div className="mt-2 flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-harbour-500">
+                {nextDate && (
+                  <div className="flex items-center gap-2">
+                    <time dateTime={nextDate.startDate.toISOString()}>
+                      {formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
+                    </time>
+                    {nextDate.endDate && (
+                      <>
+                        <span className="text-harbour-300">-</span>
+                        <time dateTime={nextDate.endDate.toISOString()}>
+                          {formatInTimezone(nextDate.endDate, "h:mm a")}
+                        </time>
+                      </>
+                    )}
+                  </div>
+                )}
+                {event.recurrenceRule ? (
+                  <span className="text-xs text-harbour-400">
+                    {describeRecurrence(event.recurrenceRule)}
+                  </span>
+                ) : hasMultipleDates ? (
+                  <span className="text-xs text-harbour-400">
+                    +{event.dates.length - 1} more date{event.dates.length > 2 ? "s" : ""}
+                  </span>
+                ) : null}
+                {event.location && (
+                  <span className="text-harbour-400 truncate">{event.location}</span>
+                )}
+              </div>
+
+              <div className="text-sm text-harbour-500 line-clamp-2">
+                <RichMarkdown
+                  content={event.description}
+                  resolvedRefs={resolvedRefs}
+                  className="prose-harbour"
+                />
+              </div>
+            </div>
+          </div>
+        </Link>
+      </StackedWrapper>
+    );
+  }
+
+  // Default (non-featured) card
+  return (
+    <StackedWrapper isRecurring={!!event.recurrenceRule}>
       <Link
         to={`/events/${event.slug}`}
-        className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mb-2 mr-2" : ""}`}
+        className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
       >
-        {/* Stacked card effect for recurring events */}
-        {event.recurrenceRule && (
-          <>
-            <div className="absolute top-2 left-2 -right-2 -bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
-            <div className="absolute top-1 left-1 -right-1 -bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
-          </>
-        )}
-        <div className="relative z-[2]">
         {event.coverImage && (
-          <div className="img-tint aspect-[4/1] relative overflow-hidden bg-harbour-100">
+          <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
             <img
               src={`/images/${event.coverImage}`}
               alt=""
@@ -78,7 +183,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
 
         {/* Overlapping content card */}
         <div
-          className={`relative bg-white p-3 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
+          className={`relative bg-white p-4 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
         >
           <div className="flex items-start gap-3">
             {event.iconImage && (
@@ -92,7 +197,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
             )}
             <div className="min-w-0 flex-1 flex flex-col gap-0.5">
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg leading-tight text-harbour-700 group-hover:text-harbour-600">
+                <h3 className="font-semibold text-base leading-tight text-harbour-700 group-hover:text-harbour-600">
                   {event.title}
                 </h3>
                 {event.recurrenceRule && (
@@ -105,124 +210,26 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
             </div>
           </div>
 
-          <div className="mt-2 flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-harbour-500">
+          <div className="mt-2 flex flex-col gap-1">
+            <div className="text-sm text-harbour-500">
               {nextDate && (
-                <div className="flex items-center gap-2">
-                  <time dateTime={nextDate.startDate.toISOString()}>
-                    {formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
-                  </time>
-                  {nextDate.endDate && (
-                    <>
-                      <span className="text-harbour-300">-</span>
-                      <time dateTime={nextDate.endDate.toISOString()}>
-                        {formatInTimezone(nextDate.endDate, "h:mm a")}
-                      </time>
-                    </>
-                  )}
-                </div>
+                <time dateTime={nextDate.startDate.toISOString()}>
+                  {formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
+                </time>
               )}
               {event.recurrenceRule ? (
-                <span className="text-xs text-harbour-400">
+                <span className="text-xs text-harbour-400 ml-2">
                   {describeRecurrence(event.recurrenceRule)}
                 </span>
               ) : hasMultipleDates ? (
-                <span className="text-xs text-harbour-400">
-                  +{event.dates.length - 1} more date{event.dates.length > 2 ? "s" : ""}
-                </span>
+                <span className="text-xs text-harbour-400 ml-2">+{event.dates.length - 1} more</span>
               ) : null}
-              {event.location && (
-                <span className="text-harbour-400 truncate">{event.location}</span>
-              )}
             </div>
 
-            <div className="text-sm text-harbour-500 line-clamp-2">
-              <RichMarkdown
-                content={event.description}
-                resolvedRefs={resolvedRefs}
-                className="prose-harbour"
-              />
-            </div>
+            {event.location && <p className="text-sm text-harbour-400 truncate">{event.location}</p>}
           </div>
-        </div>
         </div>
       </Link>
-    );
-  }
-
-  // Default (non-featured) card
-  return (
-    <Link
-      to={`/events/${event.slug}`}
-      className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mb-2 mr-2" : ""}`}
-    >
-      {/* Stacked card effect for recurring events */}
-      {event.recurrenceRule && (
-        <>
-          <div className="absolute top-2 left-2 -right-2 -bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
-          <div className="absolute top-1 left-1 -right-1 -bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
-        </>
-      )}
-      <div className="relative z-[2]">
-      {event.coverImage && (
-        <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
-          <img
-            src={`/images/${event.coverImage}`}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
-          />
-        </div>
-      )}
-
-      {/* Overlapping content card */}
-      <div
-        className={`relative bg-white p-4 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
-      >
-        <div className="flex items-start gap-3">
-          {event.iconImage && (
-            <div className="img-tint relative w-14 h-14 flex-shrink-0">
-              <img
-                src={`/images/${event.iconImage}`}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-          <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-base leading-tight text-harbour-700 group-hover:text-harbour-600">
-                {event.title}
-              </h3>
-              {event.recurrenceRule && (
-                <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
-                  Recurring
-                </span>
-              )}
-            </div>
-            {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
-          </div>
-        </div>
-
-        <div className="mt-2 flex flex-col gap-1">
-          <div className="text-sm text-harbour-500">
-            {nextDate && (
-              <time dateTime={nextDate.startDate.toISOString()}>
-                {formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
-              </time>
-            )}
-            {event.recurrenceRule ? (
-              <span className="text-xs text-harbour-400 ml-2">
-                {describeRecurrence(event.recurrenceRule)}
-              </span>
-            ) : hasMultipleDates ? (
-              <span className="text-xs text-harbour-400 ml-2">+{event.dates.length - 1} more</span>
-            ) : null}
-          </div>
-
-          {event.location && <p className="text-sm text-harbour-400 truncate">{event.location}</p>}
-        </div>
-      </div>
-      </div>
-    </Link>
+    </StackedWrapper>
   );
 }
