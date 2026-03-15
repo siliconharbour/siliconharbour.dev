@@ -61,10 +61,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
         {/* Stacked card effect for recurring events */}
         {event.recurrenceRule && (
           <>
-            <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50/50 -z-20" />
-            <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50/80 -z-10" />
+            <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
+            <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
           </>
         )}
+        <div className="relative z-[2]">
         {event.coverImage && (
           <div className="img-tint aspect-[4/1] relative overflow-hidden bg-harbour-100">
             <img
@@ -144,6 +145,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
             </div>
           </div>
         </div>
+        </div>
       </Link>
     );
   }
@@ -157,10 +159,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
       {/* Stacked card effect for recurring events */}
       {event.recurrenceRule && (
         <>
-          <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50/50 -z-20" />
-          <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50/80 -z-10" />
+          <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50 z-0" />
+          <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50 z-[1]" />
         </>
       )}
+      <div className="relative z-[2]">
       {event.coverImage && (
         <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
           <img
@@ -218,6 +221,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
 
           {event.location && <p className="text-sm text-harbour-400 truncate">{event.location}</p>}
         </div>
+      </div>
       </div>
     </Link>
   );
