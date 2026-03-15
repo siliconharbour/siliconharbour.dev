@@ -393,14 +393,37 @@ export function cleanupCache(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): number
  */
 export function prepareEventOGData(event: {
   title: string;
-  dates: { startDate: Date }[];
+  dates: { startDate: Date; endDate?: Date | null }[];
   location?: string | null;
   coverImage?: string | null;
 }): OGImageData {
-  const nextDate = event.dates[0];
-  const dateStr = nextDate
-    ? formatInTimezone(nextDate.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")
-    : undefined;
+  const firstDate = event.dates[0];
+  const lastDate = event.dates.length > 1 ? event.dates[event.dates.length - 1] : null;
+
+  let dateStr: string | undefined;
+
+  if (firstDate && lastDate) {
+    // Multiple dates: show the date range
+    const startStr = formatInTimezone(firstDate.startDate, "MMMM d");
+    const endDate = lastDate.endDate ?? lastDate.startDate;
+    const startYear = formatInTimezone(firstDate.startDate, "yyyy");
+    const endYear = formatInTimezone(endDate, "yyyy");
+    if (startYear === endYear) {
+      dateStr = `${startStr} – ${formatInTimezone(endDate, "MMMM d, yyyy")}`;
+    } else {
+      const startWithYear = formatInTimezone(firstDate.startDate, "MMMM d, yyyy");
+      dateStr = `${startWithYear} – ${formatInTimezone(endDate, "MMMM d, yyyy")}`;
+    }
+  } else if (firstDate?.endDate) {
+    // Single date with end time: show day with time range
+    const dayStr = formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy");
+    const startTime = formatInTimezone(firstDate.startDate, "h:mm a");
+    const endTime = formatInTimezone(firstDate.endDate, "h:mm a");
+    dateStr = `${dayStr} · ${startTime} – ${endTime}`;
+  } else if (firstDate) {
+    // Single date, no end time
+    dateStr = formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a");
+  }
 
   return {
     title: event.title,
