@@ -1,18 +1,28 @@
 import { useDatePicker } from "@rehookify/datepicker";
-import { useState, useMemo } from "react";
-import { isSameDay, addMonths, subMonths } from "date-fns";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { isSameDay, addMonths, subMonths, format } from "date-fns";
 import { useNavigate } from "react-router";
 import type { Event, EventDate } from "~/db/schema";
 import { formatInTimezone } from "~/lib/timezone";
+
+/**
+ * Minimal calendar event data returned from /api/calendar-events
+ */
+interface CalendarEventData {
+  id: number;
+  slug: string;
+  title: string;
+  dates: string[]; // "YYYY-MM-DD" strings
+}
 
 type CalendarProps = {
   events: (Event & { dates: EventDate[] })[];
   /** If true, clicking a date navigates to event(s). Default: true */
   navigateOnClick?: boolean;
-  /** If true, always filter by date even for single events. Default: false (single events navigate directly) */
+  /** If true, always filter by date even for single events. Default: false */
   alwaysFilterByDate?: boolean;
-  /** Custom handler for date clicks (overrides default navigation) */
-  onDateClick?: (date: Date, events: (Event & { dates: EventDate[] })[]) => void;
+  /** Custom handler for date clicks */
+  onDateClick?: (date: Date, events: CalendarEventData[]) => void;
 };
 
 export function Calendar({
@@ -24,6 +34,48 @@ export function Calendar({
   const navigate = useNavigate();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [offsetDate, setOffsetDate] = useState<Date>(new Date());
+  const [loading, setLoading] = useState(false);
+
+  // Cache: month key "YYYY-MM" -> CalendarEventData[]
+  const [monthCache, setMonthCache] = useState<Record<string, CalendarEventData[]>>(() => {
+    // Seed cache with initial server data for the current month
+    const now = new Date();
+    const currentMonthKey = format(now, "yyyy-MM");
+    const initialData: CalendarEventData[] = events.map((event) => ({
+      id: event.id,
+      slug: event.slug,
+      title: event.title,
+      dates: event.dates.map((d) => {
+        const startDate = d.startDate instanceof Date ? d.startDate : new Date(d.startDate);
+        return formatInTimezone(startDate, "yyyy-MM-dd");
+      }),
+    }));
+    return { [currentMonthKey]: initialData };
+  });
+
+  const currentMonthKey = format(offsetDate, "yyyy-MM");
+
+  // Fetch month data when navigating
+  const fetchMonth = useCallback(async (monthKey: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/calendar-events?month=${monthKey}`);
+      if (res.ok) {
+        const data: CalendarEventData[] = await res.json();
+        setMonthCache((prev) => ({ ...prev, [monthKey]: data }));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!monthCache[currentMonthKey]) {
+      fetchMonth(currentMonthKey);
+    }
+  }, [currentMonthKey, monthCache, fetchMonth]);
+
+  const activeEvents = monthCache[currentMonthKey] || [];
 
   const {
     data: { calendars, weekDays },
@@ -39,44 +91,34 @@ export function Calendar({
   const goToPreviousMonth = () => setOffsetDate((d) => subMonths(d, 1));
   const goToNextMonth = () => setOffsetDate((d) => addMonths(d, 1));
 
-  // Create a map of dates that have events
+  // Build a map of dates -> events for the active month
   const eventDateMap = useMemo(() => {
-    const map = new Map<string, (Event & { dates: EventDate[] })[]>();
-
-    events.forEach((event) => {
-      event.dates.forEach((eventDate) => {
-        // Handle both Date objects and date strings (from JSON serialization)
-        const startDate =
-          eventDate.startDate instanceof Date ? eventDate.startDate : new Date(eventDate.startDate);
-        const dateKey = formatInTimezone(startDate, "yyyy-MM-dd");
-        const existing = map.get(dateKey) || [];
+    const map = new Map<string, CalendarEventData[]>();
+    for (const event of activeEvents) {
+      for (const dateStr of event.dates) {
+        const existing = map.get(dateStr) || [];
         if (!existing.find((e) => e.id === event.id)) {
-          map.set(dateKey, [...existing, event]);
+          map.set(dateStr, [...existing, event]);
         }
-      });
-    });
-
+      }
+    }
     return map;
-  }, [events]);
+  }, [activeEvents]);
 
   const handleDayClick = (date: Date) => {
     const dateKey = formatInTimezone(date, "yyyy-MM-dd");
     const dayEvents = eventDateMap.get(dateKey) || [];
 
-    // If custom handler provided, use it
     if (onDateClick) {
       onDateClick(date, dayEvents);
       return;
     }
 
-    // Default navigation behavior
     if (!navigateOnClick || dayEvents.length === 0) return;
 
     if (dayEvents.length === 1 && !alwaysFilterByDate) {
-      // Single event - go directly to it (only on homepage)
       navigate(`/events/${dayEvents[0].slug}`);
     } else {
-      // Multiple events or alwaysFilterByDate - go to events page filtered by date
       navigate(`/events?filter=all&date=${dateKey}`);
     }
   };
@@ -127,7 +169,7 @@ export function Calendar({
       </div>
 
       {/* Days grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className={`grid grid-cols-7 gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}>
         {days.map((dpDay) => {
           const dateKey = formatInTimezone(dpDay.$date, "yyyy-MM-dd");
           const dayEvents = eventDateMap.get(dateKey) || [];
