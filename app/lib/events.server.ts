@@ -284,6 +284,108 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
     });
 }
 
+/**
+ * Calendar event data - minimal payload for rendering dots on a calendar
+ */
+export interface CalendarEventData {
+  id: number;
+  slug: string;
+  title: string;
+  dates: string[]; // Array of "YYYY-MM-DD" date strings within the month
+}
+
+/**
+ * Get all events that have occurrences in a given month.
+ * Returns a minimal payload for calendar dot rendering.
+ */
+export async function getEventsForMonth(
+  year: number,
+  month: number, // 1-indexed (1 = January)
+): Promise<CalendarEventData[]> {
+  // Build month boundaries in Newfoundland timezone
+  const monthStart = parseAsTimezone(
+    `${year}-${String(month).padStart(2, "0")}-01`,
+    "00:00",
+  );
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const monthEnd = parseAsTimezone(
+    `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`,
+    "00:00",
+  );
+
+  const result: CalendarEventData[] = [];
+  const seenEventIds = new Set<number>();
+
+  // 1. One-time events with dates in this month
+  const oneTimeDates = await db
+    .select()
+    .from(eventDates)
+    .where(and(gte(eventDates.startDate, monthStart), lte(eventDates.startDate, monthEnd)));
+
+  // Group by event
+  const eventDateMap = new Map<number, string[]>();
+  for (const ed of oneTimeDates) {
+    const dateStr = getDateInTimezone(ed.startDate);
+    if (!eventDateMap.has(ed.eventId)) {
+      eventDateMap.set(ed.eventId, []);
+    }
+    eventDateMap.get(ed.eventId)!.push(dateStr);
+  }
+
+  // Fetch event details for one-time events
+  for (const [eventId, dateStrs] of eventDateMap) {
+    const event = await db.select().from(events).where(eq(events.id, eventId)).get();
+    if (event) {
+      seenEventIds.add(eventId);
+      result.push({
+        id: event.id,
+        slug: event.slug,
+        title: event.title,
+        dates: dateStrs,
+      });
+    }
+  }
+
+  // 2. Recurring events - generate occurrences for this month
+  const recurringEventsResult = await db
+    .select()
+    .from(events)
+    .where(gte(events.recurrenceRule, ""));
+
+  const recurringEventsList = recurringEventsResult.filter((e) => e.recurrenceRule);
+
+  for (const event of recurringEventsList) {
+    if (seenEventIds.has(event.id)) continue;
+
+    const generatedDates = getGeneratedOccurrences(event, monthStart, monthEnd);
+    if (generatedDates.length === 0) continue;
+
+    // Get overrides to check for cancellations
+    const overrides = await getEventOccurrenceOverrides(event.id);
+    const cancelledDates = new Set(
+      overrides
+        .filter((o) => o.cancelled)
+        .map((o) => getDateInTimezone(o.occurrenceDate)),
+    );
+
+    const dateStrs = generatedDates
+      .map((d) => getDateInTimezone(d))
+      .filter((d) => !cancelledDates.has(d));
+
+    if (dateStrs.length > 0) {
+      result.push({
+        id: event.id,
+        slug: event.slug,
+        title: event.title,
+        dates: dateStrs,
+      });
+    }
+  }
+
+  return result;
+}
+
 export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   const now = new Date();
   const weekFromNow = new Date();
