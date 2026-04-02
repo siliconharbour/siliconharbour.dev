@@ -97,10 +97,10 @@ export default function ImportEvents() {
           </div>
         </div>
 
-        {actionData && "added" in actionData && (
+        {actionData && ("added" in actionData || "error" in actionData) && (
           <div className="border border-harbour-200 bg-harbour-50 p-3 text-sm text-harbour-700">
-            {actionData.success
-              ? `Sync complete — Added: ${actionData.added}, Skipped: ${"skipped" in actionData ? actionData.skipped : 0}, Removed: ${actionData.removed}`
+            {"success" in actionData && actionData.success
+              ? `Sync complete — Added: ${"added" in actionData ? actionData.added : 0}, Skipped: ${"skipped" in actionData ? actionData.skipped : 0}, Removed: ${"removed" in actionData ? actionData.removed : 0}`
               : `Error: ${"error" in actionData ? actionData.error : "Unknown error"}`}
           </div>
         )}

@@ -132,9 +132,9 @@ export default function EventImportSourceDetail() {
           </fetcher.Form>
         </div>
 
-        {source.fetchStatus === "error" && source.fetchError && (
+        {source.fetchStatus === "error" && (
           <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            Last sync error: {source.fetchError}
+            Last sync error: {source.fetchError ?? "Unknown error"}
           </div>
         )}
 
