@@ -23,6 +23,13 @@ export type EventWithDates = Event & { dates: EventDate[] };
 /** Filter: show manually-created events (importStatus IS NULL) and published imports */
 const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
 
+/** An event date is "upcoming or in progress" if it starts in the future OR has already started but not yet ended */
+function isUpcomingOrInProgress(date: EventDate, now: Date): boolean {
+  if (date.startDate >= now) return true;
+  if (date.endDate && date.endDate >= now) return true;
+  return false;
+}
+
 /**
  * Represents a single occurrence of an event (either from eventDates or generated from recurrence)
  */
@@ -228,11 +235,19 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   const now = new Date();
   const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-  // Get all events that have at least one explicit date >= now
+  // Get all events that have at least one explicit date that is upcoming or currently in progress
   const upcomingEventIds = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(gte(eventDates.startDate, now));
+    .where(
+      or(
+        gte(eventDates.startDate, now),                    // starts in the future
+        and(                                               // or: started already but end is still future
+          lte(eventDates.startDate, now),
+          gte(eventDates.endDate, now),
+        ),
+      ),
+    );
 
   // Also get recurring events
   const recurringEventsResult = await db
@@ -291,10 +306,10 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   return eventsWithDates
     .filter((e): e is EventWithDates => e !== null)
     .filter((e) => e.importStatus === null || e.importStatus === "published")
-    .filter((e) => e.dates.some((d) => d.startDate >= now))
+    .filter((e) => e.dates.some((d) => isUpcomingOrInProgress(d, now)))
     .sort((a, b) => {
-      const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
-      const bNext = b.dates.find((d) => d.startDate >= now)?.startDate;
+      const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
+      const bNext = b.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
       if (!aNext || !bNext) return 0;
       return aNext.getTime() - bNext.getTime();
     });
