@@ -1,29 +1,24 @@
 /**
  * Luma User Account Event Importer
  *
- * Luma embeds event data as JSON in __NEXT_DATA__ on user profile pages.
- * We fetch the user page, extract hosted event stubs, then fetch each
- * individual event page for full details.
+ * Uses the api2.luma.com internal API that Luma's own frontend calls.
+ * No auth required — just needs the x-luma-client-type header.
  *
- * No API key required — uses public HTML pages only.
+ * Fetches both future and past events so we catch everything the user has hosted.
+ * Description is fetched from the individual event page's OG meta tag.
  */
 
 import type { EventImporter, ImportSourceConfig, FetchedEvent, ValidationResult } from "./types";
 
+const LUMA_API = "https://api2.luma.com";
 const LUMA_BASE = "https://luma.com";
 
-interface LumaNextData {
-  props?: {
-    pageProps?: {
-      initialData?: {
-        events_hosted?: LumaEventStub[];
-        user?: { name?: string };
-      };
-    };
-  };
-}
+const LUMA_HEADERS = {
+  accept: "*/*",
+  "x-luma-client-type": "luma-web",
+};
 
-interface LumaEventStub {
+interface LumaApiEntry {
   api_id: string;
   event?: {
     api_id?: string;
@@ -33,121 +28,164 @@ interface LumaEventStub {
     cover_url?: string;
     location_type?: string;
     url?: string;
-  };
-  calendar?: {
-    name?: string;
-    slug?: string;
-  };
-}
-
-interface LumaEventDetail {
-  event?: {
-    api_id?: string;
-    name?: string;
-    description?: string;
-    start_at?: string;
-    end_at?: string;
-    cover_url?: string;
-    location_type?: string;
-  };
-  geo_address_info?: {
-    full_address?: string;
-    city?: string;
+    timezone?: string;
+    geo_address_info?: {
+      full_address?: string;
+      city?: string;
+      city_state?: string;
+    };
   };
   calendar?: {
     name?: string;
   };
+  hosts?: Array<{ name?: string }>;
+  start_at?: string;
 }
 
-function extractNextData<T>(html: string): T | null {
-  const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (!match) return null;
+interface LumaApiResponse {
+  entries: LumaApiEntry[];
+  has_more: boolean;
+  next_cursor?: string;
+}
+
+/**
+ * Fetch all pages of hosted events for a given period ("future" | "past").
+ */
+async function fetchHostedEventsPaged(
+  userApiId: string,
+  period: "future" | "past",
+): Promise<LumaApiEntry[]> {
+  const all: LumaApiEntry[] = [];
+  let cursor: string | undefined = undefined;
+
+  while (true) {
+    const params = new URLSearchParams({
+      pagination_limit: "50",
+      period,
+      user_api_id: userApiId,
+    });
+    if (cursor) params.set("pagination_cursor", cursor);
+
+    const res = await fetch(`${LUMA_API}/user/profile/events-hosting?${params}`, {
+      headers: LUMA_HEADERS,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Luma API error ${res.status} for user ${userApiId} (${period})`);
+    }
+
+    const data: LumaApiResponse = await res.json();
+    all.push(...data.entries);
+
+    if (!data.has_more || !data.next_cursor) break;
+    cursor = data.next_cursor;
+  }
+
+  return all;
+}
+
+/**
+ * Fetch the OG description from an event's public page.
+ * Returns empty string on any error.
+ */
+async function fetchEventDescription(eventSlug: string): Promise<string> {
   try {
-    return JSON.parse(match[1]) as T;
+    const res = await fetch(`${LUMA_BASE}/${eventSlug}`, {
+      headers: { accept: "text/html" },
+    });
+    if (!res.ok) return "";
+    const html = await res.text();
+    const match = html.match(/<meta[^>]+name="description"[^>]+content="([^"]{0,2000})"/i)
+      ?? html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]{0,2000})"/i);
+    return match ? match[1].trim() : "";
   } catch {
-    return null;
+    return "";
   }
 }
 
-function parseISOToDateAndTime(isoString: string | undefined): {
-  date: string;
-  time: string | null;
-} {
+/**
+ * Parse the local date and time from a Luma ISO string + timezone name.
+ *
+ * Luma start_at/end_at are UTC ISO strings (e.g. "2026-04-01T15:30:00.000Z").
+ * The event.timezone tells us the intended local timezone (e.g. "America/St_Johns").
+ * We convert to local time so the stored HH:mm matches what the organizer set.
+ */
+function parseToLocalDateAndTime(
+  isoString: string | undefined,
+  timezone: string | undefined,
+): { date: string; time: string | null } {
   if (!isoString) return { date: "", time: null };
   try {
-    // Extract date and time directly from the ISO string to preserve local timezone
-    // ISO format: "YYYY-MM-DDTHH:mm:ss±HH:mm" or "YYYY-MM-DDTHH:mm:ssZ"
-    const match = isoString.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
-    if (!match) return { date: "", time: null };
-    return { date: match[1], time: match[2] };
+    const tz = timezone ?? "America/St_Johns";
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(new Date(isoString));
+    const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+    const date = `${get("year")}-${get("month")}-${get("day")}`;
+    const time = `${get("hour")}:${get("minute")}`;
+    return { date, time };
   } catch {
     return { date: "", time: null };
   }
 }
 
-async function fetchLumaPage(url: string): Promise<string> {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",
-      Accept: "text/html",
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch ${url}: ${response.status}`);
-  }
-  return response.text();
-}
-
-async function fetchEventDetails(eventSlug: string): Promise<LumaEventDetail | null> {
-  try {
-    const html = await fetchLumaPage(`${LUMA_BASE}/${eventSlug}`);
-    const data = extractNextData<{ props?: { pageProps?: { initialData?: LumaEventDetail } } }>(html);
-    return data?.props?.pageProps?.initialData ?? null;
-  } catch {
-    return null;
-  }
-}
-
 async function fetchUserEvents(userApiId: string): Promise<FetchedEvent[]> {
-  const html = await fetchLumaPage(`${LUMA_BASE}/user/${userApiId}`);
-  const nextData = extractNextData<LumaNextData>(html);
+  // Fetch both future and past events, then deduplicate by api_id
+  const [future, past] = await Promise.all([
+    fetchHostedEventsPaged(userApiId, "future"),
+    fetchHostedEventsPaged(userApiId, "past"),
+  ]);
 
-  const hostedEvents = nextData?.props?.pageProps?.initialData?.events_hosted ?? [];
-  const userName = nextData?.props?.pageProps?.initialData?.user?.name ?? "Unknown";
+  const seen = new Set<string>();
+  const allEntries: LumaApiEntry[] = [];
+  for (const entry of [...future, ...past]) {
+    const id = entry.event?.api_id ?? entry.api_id;
+    if (!seen.has(id)) {
+      seen.add(id);
+      allEntries.push(entry);
+    }
+  }
 
   const results: FetchedEvent[] = [];
 
-  for (const stub of hostedEvents) {
-    const ev = stub.event;
-    if (!ev?.api_id) continue;
-
-    // The event URL slug on Luma is typically the calendar slug or a short ID
-    // Try fetching the event detail page using the event url field if available
-    const eventUrl = ev.url ?? ev.api_id;
-    const detail = await fetchEventDetails(eventUrl);
+  for (const entry of allEntries) {
+    const ev = entry.event;
+    if (!ev?.api_id || !ev.name?.trim()) continue;
 
     const externalId = ev.api_id;
-    const title = detail?.event?.name ?? ev.name ?? "";
-    if (!title) continue;
+    const title = ev.name.trim();
+    const eventSlug = ev.url ?? ev.api_id;
+    const timezone = ev.timezone ?? "America/St_Johns";
 
-    const description = detail?.event?.description ?? "";
+    const geo = ev.geo_address_info;
     const location =
-      detail?.geo_address_info?.full_address ??
-      detail?.geo_address_info?.city ??
+      geo?.full_address ??
+      geo?.city_state ??
+      geo?.city ??
       (ev.location_type === "online" ? "Online" : "");
-    const organizer = detail?.calendar?.name ?? stub.calendar?.name ?? userName;
-    const link = `${LUMA_BASE}/${eventUrl}`;
-    const coverImageUrl = detail?.event?.cover_url ?? ev.cover_url ?? null;
 
-    const { date: startDate, time: startTime } = parseISOToDateAndTime(
-      detail?.event?.start_at ?? ev.start_at,
-    );
-    const { date: endDate, time: endTime } = parseISOToDateAndTime(
-      detail?.event?.end_at ?? ev.end_at,
-    );
+    const organizer =
+      entry.hosts?.[0]?.name ??
+      entry.calendar?.name ??
+      "Unknown";
+
+    const link = `${LUMA_BASE}/${eventSlug}`;
+    const coverImageUrl = ev.cover_url ?? null;
+
+    const { date: startDate, time: startTime } = parseToLocalDateAndTime(ev.start_at, timezone);
+    const { date: endDate, time: endTime } = parseToLocalDateAndTime(ev.end_at, timezone);
 
     if (!startDate) continue;
+
+    // Fetch description from event page — do this after checking other required fields
+    const description = await fetchEventDescription(eventSlug);
 
     results.push({
       externalId,
@@ -161,7 +199,7 @@ async function fetchUserEvents(userApiId: string): Promise<FetchedEvent[]> {
       startTime,
       endTime,
       coverImageUrl,
-      timezone: "America/St_Johns",
+      timezone,
     });
   }
 
@@ -177,12 +215,25 @@ export const lumaUserImporter: EventImporter = {
 
   async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     try {
-      const events = await fetchUserEvents(config.sourceIdentifier);
-      return { valid: true, eventCount: events.length };
+      // Fetch just one page of future events to validate the user ID is real
+      const params = new URLSearchParams({
+        pagination_limit: "1",
+        period: "future",
+        user_api_id: config.sourceIdentifier,
+      });
+      const res = await fetch(`${LUMA_API}/user/profile/events-hosting?${params}`, {
+        headers: LUMA_HEADERS,
+      });
+      if (!res.ok) {
+        return { valid: false, error: `Luma API returned ${res.status} — check the user ID` };
+      }
+      const data: LumaApiResponse = await res.json();
+      // Count is approximate (one page only), just confirms the user exists
+      return { valid: true, eventCount: data.entries.length };
     } catch (err) {
       return {
         valid: false,
-        error: err instanceof Error ? err.message : "Failed to fetch Luma user events",
+        error: err instanceof Error ? err.message : "Failed to reach Luma API",
       };
     }
   },
