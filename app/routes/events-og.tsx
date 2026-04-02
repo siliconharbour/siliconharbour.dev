@@ -1,11 +1,11 @@
 import type { Route } from "./+types/events-og";
-import { getEventBySlug } from "~/lib/events.server";
+import { getPublicEventBySlug } from "~/lib/events.server";
 import { generateOGImage, prepareEventOGData } from "~/lib/og-image.server";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const slug = params.slug;
 
-  const event = await getEventBySlug(slug);
+  const event = await getPublicEventBySlug(slug);
   if (!event) {
     throw new Response("Event not found", { status: 404 });
   }

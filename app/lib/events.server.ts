@@ -195,6 +195,18 @@ export async function getEventBySlug(slug: string): Promise<EventWithDates | nul
   return { ...event, dates };
 }
 
+/**
+ * Public-safe variant of getEventBySlug.
+ * Blocks access to imported events that haven't been published yet.
+ */
+export async function getPublicEventBySlug(slug: string): Promise<EventWithDates | null> {
+  const event = await getEventBySlug(slug);
+  if (!event) return null;
+  // Block access to unpublished imported events
+  if (event.importStatus !== null && event.importStatus !== "published") return null;
+  return event;
+}
+
 export async function getAllEvents(): Promise<EventWithDates[]> {
   const allEvents = await db.select().from(events).orderBy(desc(events.createdAt));
 

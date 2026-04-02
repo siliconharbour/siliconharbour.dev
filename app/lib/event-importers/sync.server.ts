@@ -7,7 +7,7 @@
 import { db } from "~/db";
 import { eventImportSources, events, eventDates, groups } from "~/db/schema";
 import type { EventSourceType } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { generateEventSlug } from "~/lib/events.server";
 import { fetchImage } from "~/lib/scraper.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
@@ -101,6 +101,30 @@ export async function createEventImportSource(data: {
 }
 
 export async function deleteEventImportSource(sourceId: number) {
+  // Delete pending/hidden/removed events — they were never published, not worth keeping
+  const eventsToDelete = await db
+    .select({ id: events.id })
+    .from(events)
+    .where(
+      and(
+        eq(events.importSourceId, sourceId),
+        inArray(events.importStatus, ["pending_review", "hidden", "removed"]),
+      ),
+    );
+
+  for (const event of eventsToDelete) {
+    // Delete event_dates first (no cascade in SQLite without FK pragma)
+    await db.delete(eventDates).where(eq(eventDates.eventId, event.id));
+    await db.delete(events).where(eq(events.id, event.id));
+  }
+
+  // Detach approved/published events — keep them but remove the source link
+  await db
+    .update(events)
+    .set({ importSourceId: null, updatedAt: new Date() })
+    .where(eq(events.importSourceId, sourceId));
+
+  // Delete the source
   await db.delete(eventImportSources).where(eq(eventImportSources.id, sourceId));
 }
 
@@ -277,10 +301,20 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
     for (const fetched of fetchedEvents) {
       const existing = existingByExternalId.get(fetched.externalId);
 
-      if (!existing) {
-        // New event — insert as pending_review
-        await insertImportedEvent(sourceId, source.groupId, fetched);
-        results.added++;
+      if (!existing || existing.importStatus === "removed") {
+        // New or re-appeared event — insert or re-insert as pending_review
+        if (!existing) {
+          await insertImportedEvent(sourceId, source.groupId, fetched);
+          results.added++;
+        } else {
+          // Re-appeared: reset to pending_review and refresh fields
+          await refreshPendingEvent(existing.id, fetched);
+          await db
+            .update(events)
+            .set({ importStatus: "pending_review", updatedAt: new Date() })
+            .where(eq(events.id, existing.id));
+          results.added++;
+        }
       } else if (existing.importStatus === "pending_review") {
         // Still pending — refresh fields from source
         await refreshPendingEvent(existing.id, fetched);

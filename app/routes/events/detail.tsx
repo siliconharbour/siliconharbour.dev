@@ -1,7 +1,7 @@
 import type { Route } from "./+types/detail";
 import { Link, useLoaderData } from "react-router";
 import {
-  getEventBySlug,
+  getPublicEventBySlug,
   getEventWithOccurrences,
   type EventOccurrenceDisplay,
 } from "~/lib/events.server";
@@ -35,7 +35,7 @@ export function meta({ data, params }: Route.MetaArgs) {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const event = await getEventBySlug(params.slug);
+  const event = await getPublicEventBySlug(params.slug);
   if (!event) {
     throw new Response("Event not found", { status: 404 });
   }
