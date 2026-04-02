@@ -7,6 +7,22 @@ import type { EventImporter, ImportSourceConfig, FetchedEvent, ValidationResult 
 
 const TECHNL_EVENTS_URL = "https://technl.ca/news-events/";
 
+const HTML_ENTITIES: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&#039;": "'",
+  "&apos;": "'",
+  "&#038;": "&",
+  "&nbsp;": " ",
+};
+
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&[#\w]+;/g, (entity) => HTML_ENTITIES[entity] ?? entity);
+}
+
 interface SchemaOrgEvent {
   "@type": string;
   name?: string;
@@ -45,7 +61,7 @@ async function fetchTechNLEvents(): Promise<FetchedEvent[]> {
       const data: SchemaOrgEvent = JSON.parse(match[1]);
       if (data["@type"] !== "Event") continue;
 
-      const title = data.name?.trim() ?? "";
+      const title = decodeHtmlEntities(data.name?.trim() ?? "");
       if (!title) continue;
 
       const registrationUrl = data.offers?.url ?? data.url ?? "";
@@ -54,11 +70,11 @@ async function fetchTechNLEvents(): Promise<FetchedEvent[]> {
       // Use registration URL as stable externalId (it's unique per event on techNL)
       const externalId = registrationUrl;
 
-      const description = data.description?.trim() ?? "";
-      const locationName = data.location?.name?.trim() ?? "";
-      const locationAddress = data.location?.address?.trim() ?? "";
+      const description = decodeHtmlEntities(data.description?.trim() ?? "");
+      const locationName = decodeHtmlEntities(data.location?.name?.trim() ?? "");
+      const locationAddress = decodeHtmlEntities(data.location?.address?.trim() ?? "");
       const location = [locationName, locationAddress].filter(Boolean).join(", ");
-      const organizer = data.organizer?.name?.trim() ?? "techNL";
+      const organizer = decodeHtmlEntities(data.organizer?.name?.trim() ?? "techNL");
 
       // Parse date — techNL provides "YYYY-MM-DD" strings
       const startDate = data.startDate ?? "";
