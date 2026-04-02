@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 
 // =============================================================================
 // Auth tables
@@ -66,6 +66,11 @@ export const events = sqliteTable("events", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
+  importSourceId: integer("import_source_id").references((): AnySQLiteColumn => eventImportSources.id),
+  externalId: text("external_id"),
+  importStatus: text("import_status"),
+  firstSeenAt: integer("first_seen_at", { mode: "timestamp" }),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
 });
 
 export const eventDates = sqliteTable("event_dates", {
@@ -150,6 +155,27 @@ export const groups = sqliteTable("groups", {
     .notNull()
     .$defaultFn(() => new Date()),
 });
+
+// =============================================================================
+// Event Import Sources - Track external sources for importing events
+// =============================================================================
+
+export const eventImportSources = sqliteTable("event_import_sources", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  groupId: integer("group_id").references(() => groups.id),
+  sourceType: text("source_type").notNull(),
+  sourceIdentifier: text("source_identifier").notNull(),
+  sourceUrl: text("source_url").notNull(),
+  lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
+  fetchStatus: text("fetch_status").notNull().default("pending"),
+  fetchError: text("fetch_error"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+});
+
+export type EventImportSource = typeof eventImportSources.$inferSelect;
+export type NewEventImportSource = typeof eventImportSources.$inferInsert;
 
 // Education - educational institutions and resources
 export const education = sqliteTable("education", {
