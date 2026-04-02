@@ -185,6 +185,7 @@ async function insertImportedEvent(
       location: fetched.location ?? "",
       link: fetched.link,
       organizer: fetched.organizer,
+      coverImageUrl: fetched.coverImageUrl,
       importSourceId: sourceId,
       externalId: fetched.externalId,
       importStatus: "pending_review",

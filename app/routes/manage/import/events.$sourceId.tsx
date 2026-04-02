@@ -182,7 +182,7 @@ export default function EventImportSourceDetail() {
                     <fetcher.Form method="post">
                       <input type="hidden" name="intent" value="approve" />
                       <input type="hidden" name="eventId" value={event.id} />
-                      <input type="hidden" name="coverImageUrl" value={event.coverImage ?? ""} />
+                      <input type="hidden" name="coverImageUrl" value={event.coverImageUrl ?? ""} />
                       <button
                         type="submit"
                         disabled={isLoading}
