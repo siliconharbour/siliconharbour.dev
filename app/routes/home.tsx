@@ -168,7 +168,7 @@ export default function Home() {
 
                     {recurringEvents.length > 0 && (
                       <>
-                        <div className="border-t border-harbour-200 pt-4">
+                        <div className={oneOffEvents.length > 0 ? "border-t border-harbour-200 pt-4" : ""}>
                           <h3 className="text-sm font-medium text-harbour-500">Recurring</h3>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
