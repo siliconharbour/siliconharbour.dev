@@ -75,12 +75,11 @@ function parseISOToDateAndTime(isoString: string | undefined): {
 } {
   if (!isoString) return { date: "", time: null };
   try {
-    const d = new Date(isoString);
-    const date = d.toISOString().split("T")[0]; // "YYYY-MM-DD"
-    const hours = d.getUTCHours().toString().padStart(2, "0");
-    const minutes = d.getUTCMinutes().toString().padStart(2, "0");
-    const time = `${hours}:${minutes}`;
-    return { date, time };
+    // Extract date and time directly from the ISO string to preserve local timezone
+    // ISO format: "YYYY-MM-DDTHH:mm:ss±HH:mm" or "YYYY-MM-DDTHH:mm:ssZ"
+    const match = isoString.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    if (!match) return { date: "", time: null };
+    return { date: match[1], time: match[2] };
   } catch {
     return { date: "", time: null };
   }
