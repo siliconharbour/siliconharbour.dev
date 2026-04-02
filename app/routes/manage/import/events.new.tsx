@@ -126,12 +126,12 @@ export default function NewEventImportSource() {
               id="sourceIdentifier"
               name="sourceIdentifier"
               type="text"
-              placeholder="e.g. usr-bSGJmqMm6oO62Ze (for Luma user)"
+              placeholder="e.g. usr-bSGJmqMm6oO62Ze or EthanDenny (for Luma user)"
               className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
               required
             />
             <p className="text-xs text-harbour-400">
-              For Luma users: the user ID from the profile URL (e.g. usr-xxxx). For techNL: use{" "}
+              For Luma users: the user ID (e.g. usr-xxxx) or username (e.g. EthanDenny) from the profile URL. For techNL: use{" "}
               <code>technl</code>.
             </p>
           </div>
