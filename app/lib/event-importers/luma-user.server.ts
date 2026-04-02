@@ -49,6 +49,31 @@ interface LumaApiResponse {
 }
 
 /**
+ * Resolve a user identifier to a usr-xxx API ID.
+ * Luma profile URLs can use either a usr-xxx ID or a human-readable username.
+ * The API requires the usr-xxx form, so we resolve usernames via the page's __NEXT_DATA__.
+ */
+async function resolveUserApiId(identifier: string): Promise<string> {
+  if (identifier.startsWith("usr-")) return identifier;
+
+  // It's a username — fetch the profile page and extract the api_id
+  const res = await fetch(`${LUMA_BASE}/user/${identifier}`, {
+    headers: { accept: "text/html" },
+  });
+  if (!res.ok) throw new Error(`Could not load Luma profile for "${identifier}": ${res.status}`);
+
+  const html = await res.text();
+  const match = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!match) throw new Error(`No __NEXT_DATA__ found on Luma profile page for "${identifier}"`);
+
+  const data = JSON.parse(match[1]);
+  const apiId = data?.props?.pageProps?.initialData?.user?.api_id as string | undefined;
+  if (!apiId) throw new Error(`Could not find user api_id for "${identifier}"`);
+
+  return apiId;
+}
+
+/**
  * Fetch all pages of hosted events for a given period ("future" | "past").
  */
 async function fetchHostedEventsPaged(
@@ -136,7 +161,10 @@ function parseToLocalDateAndTime(
   }
 }
 
-async function fetchUserEvents(userApiId: string): Promise<FetchedEvent[]> {
+async function fetchUserEvents(identifier: string): Promise<FetchedEvent[]> {
+  // Resolve username → usr-xxx if needed (e.g. "EthanDenny" → "usr-MftWJcJzCV9lQ51")
+  const userApiId = await resolveUserApiId(identifier);
+
   // Fetch both future and past events, then deduplicate by api_id
   const [future, past] = await Promise.all([
     fetchHostedEventsPaged(userApiId, "future"),
