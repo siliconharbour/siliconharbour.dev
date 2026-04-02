@@ -12,6 +12,9 @@ import {
   parseEventRecurringForm,
   parseOneTimeEventDates,
 } from "~/lib/admin/manage-schemas";
+import { db } from "~/db";
+import { eq } from "drizzle-orm";
+import { events as eventsTable } from "~/db/schema";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.event?.title || "Event"} - siliconharbour.dev` }];
@@ -43,6 +46,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const formData = await request.formData();
+  const intent = formData.get("intent") as string | null;
   const parsedBase = parseEventBaseForm(formData);
   if (!parsedBase.success) {
     return actionError(parsedBase.error);
@@ -122,6 +126,18 @@ export async function action({ request, params }: Route.ActionArgs) {
     );
   }
 
+  // Publish imported event if requested
+  if (intent === "save-and-publish") {
+    await db
+      .update(eventsTable)
+      .set({ importStatus: "published", updatedAt: new Date() })
+      .where(eq(eventsTable.id, id));
+
+    if (existingEvent.importSourceId) {
+      return redirect(`/manage/import/events/${existingEvent.importSourceId}`);
+    }
+  }
+
   return redirect("/manage/events");
 }
 
@@ -129,13 +145,17 @@ export default function EditEvent() {
   const { event } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const isRecurring = !!event.recurrenceRule;
+  const isApprovedImport = event.importStatus === "approved";
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
-          <Link to="/manage/events" className="text-sm text-harbour-400 hover:text-harbour-600">
-            &larr; Back to Events
+          <Link
+            to={event.importSourceId ? `/manage/import/events/${event.importSourceId}` : "/manage/events"}
+            className="text-sm text-harbour-400 hover:text-harbour-600"
+          >
+            &larr; Back
           </Link>
         </div>
 
@@ -151,7 +171,13 @@ export default function EditEvent() {
           )}
         </div>
 
-        <EventForm event={event} error={actionData?.error} />
+        {isApprovedImport && (
+          <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            This event was imported and is not yet public. Use <strong>Save &amp; Publish</strong> when ready to make it live.
+          </div>
+        )}
+
+        <EventForm event={event} error={actionData?.error} showPublish={isApprovedImport} />
       </div>
     </div>
   );

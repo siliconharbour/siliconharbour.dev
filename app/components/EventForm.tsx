@@ -9,6 +9,7 @@ import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/ti
 type EventFormProps = {
   event?: Event & { dates: EventDate[] };
   error?: string;
+  showPublish?: boolean;
 };
 
 type DateEntry = {
@@ -78,7 +79,7 @@ function parseRecurrenceRule(rule: string | null): {
   return { frequency: freq, dayOfWeek, monthlyPosition };
 }
 
-export function EventForm({ event, error }: EventFormProps) {
+export function EventForm({ event, error, showPublish }: EventFormProps) {
   // Determine if this is a recurring event
   const isExistingRecurring = !!event?.recurrenceRule;
 
@@ -861,6 +862,16 @@ export function EventForm({ event, error }: EventFormProps) {
           >
             {event ? "Update Event" : "Create Event"}
           </button>
+          {showPublish && (
+            <button
+              type="submit"
+              name="intent"
+              value="save-and-publish"
+              className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 text-sm font-medium"
+            >
+              Save &amp; Publish
+            </button>
+          )}
         </div>
       </Form>
 
