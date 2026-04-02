@@ -70,6 +70,16 @@ export async function getEventImportSourceWithStats(sourceId: number) {
   return { ...source, group, pending, approved, published, hidden, removed };
 }
 
+export async function validateEventImportSourceConfig(config: {
+  groupId: number | null;
+  sourceType: string;
+  sourceIdentifier: string;
+  sourceUrl: string;
+}): Promise<{ valid: boolean; error?: string }> {
+  const importer = getEventImporter(config.sourceType);
+  return importer.validateConfig(config);
+}
+
 export async function createEventImportSource(data: {
   name: string;
   groupId: number | null;
