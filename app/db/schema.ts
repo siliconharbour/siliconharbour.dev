@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer, index, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import { sql } from "drizzle-orm";
+import { sqliteTable, text, integer, index, uniqueIndex, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 
 // =============================================================================
 // Auth tables
@@ -71,7 +72,12 @@ export const events = sqliteTable("events", {
   importStatus: text("import_status"),
   firstSeenAt: integer("first_seen_at", { mode: "timestamp" }),
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
-});
+},
+(table) => ({
+  importSourceExternalIdUnique: uniqueIndex("events_import_source_external_id_unique")
+    .on(table.importSourceId, table.externalId)
+    .where(sql`${table.importSourceId} IS NOT NULL AND ${table.externalId} IS NOT NULL`),
+}));
 
 export const eventDates = sqliteTable("event_dates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -160,19 +166,31 @@ export const groups = sqliteTable("groups", {
 // Event Import Sources - Track external sources for importing events
 // =============================================================================
 
-export const eventImportSources = sqliteTable("event_import_sources", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  groupId: integer("group_id").references(() => groups.id),
-  sourceType: text("source_type").notNull(),
-  sourceIdentifier: text("source_identifier").notNull(),
-  sourceUrl: text("source_url").notNull(),
-  lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
-  fetchStatus: text("fetch_status").notNull().default("pending"),
-  fetchError: text("fetch_error"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-});
+export const fetchStatuses = ["pending", "success", "error"] as const;
+export type FetchStatus = (typeof fetchStatuses)[number];
+
+export const eventSourceTypes = ["luma-user", "technl"] as const;
+export type EventSourceType = (typeof eventSourceTypes)[number];
+
+export const eventImportSources = sqliteTable(
+  "event_import_sources",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    groupId: integer("group_id").references(() => groups.id),
+    sourceType: text("source_type", { enum: eventSourceTypes }).notNull(),
+    sourceIdentifier: text("source_identifier").notNull(),
+    sourceUrl: text("source_url").notNull(),
+    lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
+    fetchStatus: text("fetch_status", { enum: fetchStatuses }).notNull().default("pending"),
+    fetchError: text("fetch_error"),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    groupIdx: index("event_import_sources_group_idx").on(table.groupId),
+  }),
+);
 
 export type EventImportSource = typeof eventImportSources.$inferSelect;
 export type NewEventImportSource = typeof eventImportSources.$inferInsert;
@@ -674,9 +692,6 @@ export const atsSourceTypes = [
   "custom",
 ] as const;
 export type AtsSourceType = (typeof atsSourceTypes)[number];
-
-export const fetchStatuses = ["pending", "success", "error"] as const;
-export type FetchStatus = (typeof fetchStatuses)[number];
 
 // Track job import sources per company
 export const jobImportSources = sqliteTable(
