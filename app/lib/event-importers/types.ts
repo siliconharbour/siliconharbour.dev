@@ -67,4 +67,5 @@ export interface EventImporter {
 export const sourceTypeLabels: Record<string, string> = {
   "luma-user": "Luma (User)",
   technl: "techNL",
+  netbenefit: "NetBenefit Software",
 };

@@ -58,7 +58,7 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect(`/manage/import/events/${source.id}`);
 }
 
-const SOURCE_TYPES = ["luma-user", "technl"] as const;
+const SOURCE_TYPES = ["luma-user", "technl", "netbenefit"] as const;
 
 export default function NewEventImportSource() {
   const { groups } = useLoaderData<typeof loader>();
