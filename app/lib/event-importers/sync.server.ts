@@ -15,6 +15,45 @@ import type { EventSyncResult, ImportSourceConfig, FetchedEvent } from "./types"
 import { getEventImporter } from "./index";
 
 // =============================================================================
+// Date helpers
+// =============================================================================
+
+/**
+ * Convert a local date+time (in the event's own timezone) to a UTC Date.
+ *
+ * Importer scrapers return dates as local strings (e.g. "2026-04-07", "18:00") in
+ * the event's timezone. Constructing `new Date("2026-04-07T18:00:00")` without a
+ * timezone suffix is parsed as the server's local time, which is wrong on a UTC server.
+ *
+ * This function correctly offsets to UTC regardless of where the server runs.
+ *
+ * For date-only events (no time), we anchor to noon local time so the stored
+ * timestamp never drifts to the wrong calendar day due to timezone offsets.
+ */
+function localDateTimeToUTC(dateStr: string, timeStr: string | null, timezone: string | null): Date {
+  const tz = timezone ?? "America/St_Johns";
+  const time = timeStr ?? "12:00"; // noon anchor for date-only events
+
+  // Treat the local date+time as if it were UTC (a "fake UTC" date)
+  const fakeUTC = new Date(`${dateStr}T${time}:00Z`);
+
+  // Find out what local date+time the fake UTC date represents in the target timezone
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const parts = formatter.formatToParts(fakeUTC);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const localISO = `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:00Z`;
+
+  // The drift is the difference between our fake UTC and the actual local time
+  // Adding it back gives us the true UTC equivalent of the local time
+  const drift = fakeUTC.getTime() - new Date(localISO).getTime();
+  return new Date(fakeUTC.getTime() + drift);
+}
+
+// =============================================================================
 // Source CRUD
 // =============================================================================
 
@@ -221,9 +260,11 @@ async function insertImportedEvent(
     .returning({ id: events.id });
 
   // Insert event_dates row
-  const startDate = new Date(fetched.startDate + (fetched.startTime ? `T${fetched.startTime}:00` : "T00:00:00"));
+  // localDateTimeToUTC converts a local date+time in the event's timezone to a UTC Date,
+  // so the stored timestamp is correct regardless of what timezone the server runs in.
+  const startDate = localDateTimeToUTC(fetched.startDate, fetched.startTime, fetched.timezone);
   const endDate = fetched.endDate
-    ? new Date(fetched.endDate + (fetched.endTime ? `T${fetched.endTime}:00` : "T23:59:59"))
+    ? localDateTimeToUTC(fetched.endDate, fetched.endTime, fetched.timezone)
     : null;
 
   await db.insert(eventDates).values({
@@ -257,9 +298,9 @@ async function refreshPendingEvent(eventId: number, fetched: FetchedEvent) {
     .where(eq(eventDates.eventId, eventId))
     .limit(1);
 
-  const startDate = new Date(fetched.startDate + (fetched.startTime ? `T${fetched.startTime}:00` : "T00:00:00"));
+  const startDate = localDateTimeToUTC(fetched.startDate, fetched.startTime, fetched.timezone);
   const endDate = fetched.endDate
-    ? new Date(fetched.endDate + (fetched.endTime ? `T${fetched.endTime}:00` : "T23:59:59"))
+    ? localDateTimeToUTC(fetched.endDate, fetched.endTime, fetched.timezone)
     : null;
 
   if (existingDate) {
