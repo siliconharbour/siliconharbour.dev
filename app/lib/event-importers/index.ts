@@ -4,9 +4,13 @@
  */
 
 import type { EventImporter } from "./types";
+import { lumaUserImporter } from "./luma-user.server";
+import { technlImporter } from "./technl.server";
 
-// Importers registered here after implementation
-const importers: Record<string, EventImporter> = {};
+const importers: Record<string, EventImporter> = {
+  "luma-user": lumaUserImporter,
+  "technl": technlImporter,
+};
 
 /**
  * Get an importer for the given source type
