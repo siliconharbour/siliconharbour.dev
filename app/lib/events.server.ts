@@ -10,7 +10,7 @@ import {
   type EventOccurrence,
   type NewEventOccurrence,
 } from "~/db/schema";
-import { eq, gte, and, lte, asc, desc } from "drizzle-orm";
+import { eq, gte, and, lte, asc, desc, isNull, or } from "drizzle-orm";
 import { deleteImage } from "./images.server";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences, syncOrganizerReferences } from "./references.server";
@@ -19,6 +19,9 @@ import { parseRecurrenceRule, generateOccurrences } from "./recurrence.server";
 import { parseAsTimezone, getDateInTimezone } from "./timezone";
 
 export type EventWithDates = Event & { dates: EventDate[] };
+
+/** Filter: show manually-created events (importStatus IS NULL) and published imports */
+const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
 
 /**
  * Represents a single occurrence of an event (either from eventDates or generated from recurrence)
@@ -223,7 +226,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   const recurringEventsResult = await db
     .select()
     .from(events)
-    .where(gte(events.recurrenceRule, ""));
+    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
 
   const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
 
@@ -272,9 +275,10 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
     }),
   );
 
-  // Filter nulls, filter to only those with upcoming dates, and sort
+  // Filter nulls, filter unpublished imports, filter to only those with upcoming dates, and sort
   return eventsWithDates
     .filter((e): e is EventWithDates => e !== null)
+    .filter((e) => e.importStatus === null || e.importStatus === "published")
     .filter((e) => e.dates.some((d) => d.startDate >= now))
     .sort((a, b) => {
       const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
@@ -335,7 +339,11 @@ export async function getEventsForMonth(
 
   // Fetch event details for one-time events
   for (const [eventId, dateStrs] of eventDateMap) {
-    const event = await db.select().from(events).where(eq(events.id, eventId)).get();
+    const event = await db
+      .select()
+      .from(events)
+      .where(and(eq(events.id, eventId), isPubliclyVisible))
+      .get();
     if (event) {
       seenEventIds.add(eventId);
       result.push({
@@ -351,7 +359,7 @@ export async function getEventsForMonth(
   const recurringEventsResult = await db
     .select()
     .from(events)
-    .where(gte(events.recurrenceRule, ""));
+    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
 
   const recurringEventsList = recurringEventsResult.filter((e) => e.recurrenceRule);
 
@@ -406,6 +414,7 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
 
   return eventsWithDates
     .filter((e): e is EventWithDates => e !== null)
+    .filter((e) => e.importStatus === null || e.importStatus === "published")
     .sort((a, b) => {
       const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
       const bNext = b.dates.find((d) => d.startDate >= now)?.startDate;
@@ -431,7 +440,9 @@ export async function getEventsByMonth(year: number, month: number): Promise<Eve
     }),
   );
 
-  return eventsWithDates.filter((e): e is EventWithDates => e !== null);
+  return eventsWithDates
+    .filter((e): e is EventWithDates => e !== null)
+    .filter((e) => e.importStatus === null || e.importStatus === "published");
 }
 
 // =============================================================================
@@ -459,7 +470,7 @@ export async function getPaginatedEvents(
   const recurringEventsResult = await db
     .select()
     .from(events)
-    .where(gte(events.recurrenceRule, ""));
+    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
   const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
   const recurringEventIds = recurringEvents
     .filter((e) => !e.recurrenceEnd || e.recurrenceEnd > now)
@@ -569,7 +580,9 @@ export async function getPaginatedEvents(
     }),
   );
 
-  const items = eventsWithDates.filter((e): e is EventWithDates => e !== null);
+  const items = eventsWithDates
+    .filter((e): e is EventWithDates => e !== null)
+    .filter((e) => e.importStatus === null || e.importStatus === "published");
 
   // Sort by next date
   items.sort((a, b) => {
