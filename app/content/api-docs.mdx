@@ -26,7 +26,8 @@ List endpoints support pagination:
 
 Responses include a `pagination` object:
 
-<CodeBlock>{`{
+```json
+{
   "data": [...],
   "pagination": {
     "total": 42,
@@ -34,12 +35,15 @@ Responses include a `pagination` object:
     "offset": 0,
     "hasMore": true
   }
-}`}</CodeBlock>
+}
+```
 
 Responses also include [RFC 5988](https://tools.ietf.org/html/rfc5988) `Link` headers for navigation:
 
-<CodeBlock>{`Link: <https://siliconharbour.dev/api/companies?limit=20&offset=20>; rel="next",
-      <https://siliconharbour.dev/api/companies?limit=20&offset=0>; rel="first"`}</CodeBlock>
+```
+Link: <https://siliconharbour.dev/api/companies?limit=20&offset=20>; rel="next",
+      <https://siliconharbour.dev/api/companies?limit=20&offset=0>; rel="first"
+```
 
 ## OpenAPI Specification
 
