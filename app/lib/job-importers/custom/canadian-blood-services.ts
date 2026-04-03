@@ -50,7 +50,7 @@ interface JobPageData {
 /**
  * Parse a CBS job page for title, all work locations, and description.
  */
-function parseJobPage(html: string, url: string): JobPageData | null {
+function parseJobPage(html: string, _url: string): JobPageData | null {
   const doc = parseHtmlDocument(html);
 
   // Title — CBS uses <h1> or <h2> with class containing "job-title"
@@ -123,7 +123,7 @@ function formatLocations(locations: Array<{ city: string; region: string }>): st
 }
 
 export async function scrapeCanadianBloodServices(
-  careersUrl: string = SITEMAP_URL,
+  _careersUrl: string = SITEMAP_URL,
 ): Promise<FetchedJob[]> {
   // Step 1: get all job URLs from the sitemap
   const jobUrls = await fetchJobUrls();
