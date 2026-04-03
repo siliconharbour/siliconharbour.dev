@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { EntityPicker } from "~/components/EntityPicker";
 import { Form } from "react-router";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -304,18 +305,12 @@ export function EventForm({ event, error, showPublish }: EventFormProps) {
         </div>
 
         {/* Organizer */}
-        <div>
-          <label htmlFor="organizer" className="block text-sm font-medium mb-1 text-harbour-700">
-            Organizer (optional)
-          </label>
-          <input
-            type="text"
-            id="organizer"
-            name="organizer"
-            defaultValue={event?.organizer || ""}
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
-          />
-        </div>
+        <EntityPicker
+          name="organizer"
+          defaultValue={event?.organizer ?? ""}
+          label="Organizer (optional)"
+          placeholder="Search companies, groups, people..."
+        />
 
         {/* Images */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
