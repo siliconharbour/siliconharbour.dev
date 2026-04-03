@@ -23,26 +23,32 @@ export function buildReadModuleJs(data: ReadData): string {
   return `
 const _data = ${d};
 
-export async function events(_opts) {
-  return _data.events;
+function _slice(arr, opts) {
+  const offset = (opts && opts.offset) || 0;
+  const limit = (opts && opts.limit) || 20;
+  return arr.slice(offset, offset + limit);
 }
-export async function jobs(_opts) {
-  return _data.jobs;
+
+export async function events(opts) {
+  return _slice(_data.events, opts);
 }
-export async function companies(_opts) {
-  return _data.companies;
+export async function jobs(opts) {
+  return _slice(_data.jobs, opts);
 }
-export async function groups(_opts) {
-  return _data.groups;
+export async function companies(opts) {
+  return _slice(_data.companies, opts);
 }
-export async function people(_opts) {
-  return _data.people;
+export async function groups(opts) {
+  return _slice(_data.groups, opts);
 }
-export async function technologies(_opts) {
-  return _data.technologies;
+export async function people(opts) {
+  return _slice(_data.people, opts);
 }
-export async function education(_opts) {
-  return _data.education;
+export async function technologies(opts) {
+  return _slice(_data.technologies, opts);
+}
+export async function education(opts) {
+  return _slice(_data.education, opts);
 }
 `;
 }
