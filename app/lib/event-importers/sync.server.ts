@@ -89,10 +89,25 @@ export async function getEventImportSourceWithStats(sourceId: number) {
   const source = await getEventImportSourceById(sourceId);
   if (!source) return null;
 
-  const allEvents = await db
-    .select()
+  // Join event_dates so we can show start date in the review UI
+  const rows = await db
+    .select({
+      event: events,
+      startDate: eventDates.startDate,
+    })
     .from(events)
+    .leftJoin(eventDates, eq(eventDates.eventId, events.id))
     .where(eq(events.importSourceId, sourceId));
+
+  // Deduplicate by event id (recurring events could have multiple date rows)
+  const seen = new Set<number>();
+  const allEvents = rows
+    .filter((r) => {
+      if (seen.has(r.event.id)) return false;
+      seen.add(r.event.id);
+      return true;
+    })
+    .map((r) => ({ ...r.event, startDate: r.startDate }));
 
   const pending = allEvents.filter((e) => e.importStatus === "pending_review");
   const approved = allEvents.filter((e) => e.importStatus === "approved");

@@ -11,9 +11,21 @@ import {
   downloadAndSaveCoverImage,
 } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
+import { format, isPast } from "date-fns";
 import { db } from "~/db";
 import { events as eventsTable } from "~/db/schema";
 import { eq } from "drizzle-orm";
+
+function EventDate({ date }: { date: Date | null }) {
+  if (!date) return null;
+  const past = isPast(date);
+  return (
+    <span className={`text-xs ${past ? "text-red-500" : "text-harbour-500"}`}>
+      {format(date, "MMM d, yyyy")}
+      {past ? " (past)" : ""}
+    </span>
+  );
+}
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `${data?.source?.name ?? "Event Source"} - Import - siliconharbour.dev` }];
@@ -164,9 +176,12 @@ export default function EventImportSourceDetail() {
                 <div key={event.id} className="flex items-start justify-between p-4 gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
-                    {event.location && (
-                      <div className="text-xs text-harbour-400 mt-0.5">{event.location}</div>
-                    )}
+                    <div className="flex flex-wrap gap-2 mt-0.5">
+                      <EventDate date={event.startDate} />
+                      {event.location && (
+                        <span className="text-xs text-harbour-400">{event.location}</span>
+                      )}
+                    </div>
                     {event.link && (
                       <a
                         href={event.link}
@@ -221,7 +236,10 @@ export default function EventImportSourceDetail() {
             <div className="border border-harbour-200 divide-y divide-harbour-100">
               {source.approved.map((event) => (
                 <div key={event.id} className="flex items-center justify-between p-4">
-                  <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                    <EventDate date={event.startDate} />
+                  </div>
                   <div className="flex gap-2">
                     <Link
                       to={`/manage/events/${event.id}`}
@@ -259,7 +277,10 @@ export default function EventImportSourceDetail() {
             <div className="border border-harbour-200 divide-y divide-harbour-100">
               {source.published.map((event) => (
                 <div key={event.id} className="flex items-center justify-between p-4">
-                  <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                    <EventDate date={event.startDate} />
+                  </div>
                   <div className="flex gap-2">
                     <Link
                       to={`/manage/events/${event.id}`}
@@ -292,7 +313,10 @@ export default function EventImportSourceDetail() {
             <div className="border border-harbour-200 divide-y divide-harbour-100">
               {source.hidden.map((event) => (
                 <div key={event.id} className="flex items-center justify-between p-4">
-                  <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                    <EventDate date={event.startDate} />
+                  </div>
                   <fetcher.Form method="post">
                     <input type="hidden" name="intent" value="unhide" />
                     <input type="hidden" name="eventId" value={event.id} />
