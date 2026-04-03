@@ -65,13 +65,12 @@ Currently uses `react-router-serve`. Switching to a custom Express server is req
 **Script changes:**
 ```json
 "dev":   "tsx watch server.ts",
-"build": "react-router build && esbuild server.ts --bundle --platform=node --outfile=build/server/server.js --external:./build/server/index.js",
-"start": "NODE_ENV=production node build/server/server.js"
+"start": "NODE_ENV=production tsx server.ts"
 ```
 
-`esbuild` bundles `server.ts` alongside the React Router build output. The custom server imports the React Router build as an external so it doesn't get double-bundled. `esbuild` is already in the project (used by Vite internally) and can be invoked directly.
+`tsx` handles TypeScript directly in both dev and production — no separate bundle step needed for the custom server. The React Router build (`react-router build`) still produces `build/server/index.js` as before; `server.ts` imports it at runtime.
 
-**Dockerfile:** `CMD` changes from `react-router-serve ./build/server/index.js` to `node build/server/server.js`.
+**Dockerfile:** `CMD` changes from `react-router-serve ./build/server/index.js` to `tsx server.ts`.
 
 ---
 
@@ -308,4 +307,4 @@ SITE_URL=https://siliconharbour.dev  — already exists
 
 - **`@jitl/quickjs-ng-wasmfile-release-sync` vs async variant:** the sync variant blocks the event loop during execution. For 5s query timeouts this is likely fine; for 60s execute timeouts (sync operations), the async variant (`@jitl/quickjs-ng-wasmfile-release-asyncify`) is preferable to avoid blocking other requests. To confirm during implementation.
 - **QuickJS WASM startup cost:** `loadQuickJs` is resource-intensive and must be called once at server startup, not per request. The `runSandboxed` handle is stored in module scope and reused.
-- **esbuild vs tsx for production server bundle:** the build step uses esbuild to bundle `server.ts`. If the project adds more server-only dependencies, the `--external` list may need expanding. Alternative: use `tsx` directly in production (no bundle step, just `tsx server.ts`) — simpler but slower cold start.
+- **tsx cold start in production:** `tsx server.ts` does JIT TypeScript compilation on startup rather than running pre-bundled JS. For a long-running server process this is a one-time cost and acceptable. If startup time ever becomes an issue, switching to esbuild bundling is straightforward.
