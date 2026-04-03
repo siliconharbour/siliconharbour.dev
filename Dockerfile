@@ -24,5 +24,9 @@ COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
 COPY ./app/assets /app/app/assets
 COPY ./public /app/public
+COPY server.ts /app/server.ts
 WORKDIR /app
+# Required env vars:
+# MCP_API_TOKEN=<random secret> — required for execute tool authentication
+# Generate with: openssl rand -hex 32
 CMD ["pnpm", "run", "start"]
