@@ -7,6 +7,9 @@ const { runSandboxed } = await loadQuickJs(variant as any);
 
 export type BridgeData = Record<string, unknown>;
 
+/** Extra globals to inject into the sandbox context before running user code */
+export type SandboxGlobals = Record<string, unknown>;
+
 /**
  * Runs user-supplied JS code in a QuickJS WASM sandbox.
  *
@@ -29,12 +32,21 @@ export async function runInSandbox(
   code: string,
   moduleJs: string,
   timeoutMs = 5_000,
+  extraGlobals: SandboxGlobals = {},
 ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
   // Wrap bare async arrow functions in export default
   const wrappedCode =
     code.trim().startsWith("async") && !code.includes("export default")
       ? `export default await (${code.trim()})()`
       : code;
+
+  // Build a globals injection prologue — runs before user code
+  // Injects extra globals (e.g. __syncResults__) as JSON-serialised values
+  const globalsCode = Object.entries(extraGlobals)
+    .map(([k, v]) => `globalThis.${k} = ${JSON.stringify(v)};`)
+    .join("\n");
+
+  const finalCode = globalsCode ? `${globalsCode}\n${wrappedCode}` : wrappedCode;
 
   const options: SandboxOptions = {
     allowFetch: false,
@@ -49,7 +61,7 @@ export async function runInSandbox(
 
   try {
     const result = await runSandboxed(
-      async ({ evalCode }) => evalCode(wrappedCode),
+      async ({ evalCode }) => evalCode(finalCode),
       options,
     );
 
