@@ -29,9 +29,7 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompanyList"
-                }
+                "schema": { "$ref": "#/components/schemas/CompanyList" }
               }
             }
           }
@@ -59,7 +57,7 @@
     "/api/events": {
       "get": {
         "summary": "List events",
-        "description": "Get a paginated list of events",
+        "description": "Get a paginated list of upcoming and recent events. Only published events are included.",
         "parameters": [
           { "$ref": "#/components/parameters/limit" },
           { "$ref": "#/components/parameters/offset" }
@@ -135,7 +133,7 @@
     "/api/jobs": {
       "get": {
         "summary": "List jobs",
-        "description": "Get a paginated list of active job postings",
+        "description": "Get a paginated list of active job postings. Includes both technical and non-technical roles from local companies.",
         "parameters": [
           { "$ref": "#/components/parameters/limit" },
           { "$ref": "#/components/parameters/offset" }
@@ -170,10 +168,10 @@
         }
       }
     },
-    "/api/learning": {
+    "/api/education": {
       "get": {
-        "summary": "List learning resources",
-        "description": "Get a paginated list of learning institutions and resources",
+        "summary": "List educational institutions",
+        "description": "Get a paginated list of educational institutions and programs",
         "parameters": [
           { "$ref": "#/components/parameters/limit" },
           { "$ref": "#/components/parameters/offset" }
@@ -183,24 +181,24 @@
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LearningList" }
+                "schema": { "$ref": "#/components/schemas/EducationList" }
               }
             }
           }
         }
       }
     },
-    "/api/learning/{slug}": {
+    "/api/education/{slug}": {
       "get": {
-        "summary": "Get learning resource",
-        "description": "Get a single learning resource by slug",
+        "summary": "Get educational institution",
+        "description": "Get a single educational institution by slug",
         "parameters": [{ "$ref": "#/components/parameters/slug" }],
         "responses": {
           "200": {
             "description": "Successful response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Learning" }
+                "schema": { "$ref": "#/components/schemas/Education" }
               }
             }
           },
@@ -321,6 +319,82 @@
           "404": { "$ref": "#/components/responses/NotFound" }
         }
       }
+    },
+    "/api/products": {
+      "get": {
+        "summary": "List products",
+        "description": "Get a paginated list of products built by local companies",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProductList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/products/{slug}": {
+      "get": {
+        "summary": "Get product",
+        "description": "Get a single product by slug",
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Product" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/technologies": {
+      "get": {
+        "summary": "List technologies",
+        "description": "Get a paginated list of technologies used by local companies",
+        "parameters": [
+          { "$ref": "#/components/parameters/limit" },
+          { "$ref": "#/components/parameters/offset" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TechnologyList" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/technologies/{slug}": {
+      "get": {
+        "summary": "Get technology",
+        "description": "Get a single technology by slug, including associated companies",
+        "parameters": [{ "$ref": "#/components/parameters/slug" }],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Technology" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
     }
   },
   "components": {
@@ -389,11 +463,12 @@
           "name": { "type": "string" },
           "description": { "type": "string" },
           "website": { "type": "string", "nullable": true },
+          "wikipedia": { "type": "string", "nullable": true },
           "location": { "type": "string", "nullable": true },
           "founded": { "type": "string", "nullable": true },
           "logo": { "type": "string", "nullable": true },
           "coverImage": { "type": "string", "nullable": true },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -421,10 +496,10 @@
           "description": { "type": "string" },
           "organizer": { "type": "string", "nullable": true },
           "location": { "type": "string", "nullable": true },
-          "link": { "type": "string" },
+          "link": { "type": "string", "description": "External registration or info link" },
           "coverImage": { "type": "string", "nullable": true },
           "dates": { "type": "array", "items": { "$ref": "#/components/schemas/EventDate" } },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -447,7 +522,7 @@
           "meetingFrequency": { "type": "string", "nullable": true },
           "logo": { "type": "string", "nullable": true },
           "coverImage": { "type": "string", "nullable": true },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -463,17 +538,21 @@
         "type": "object",
         "properties": {
           "id": { "type": "integer" },
-          "slug": { "type": "string" },
+          "slug": { "type": "string", "nullable": true },
           "title": { "type": "string" },
-          "description": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
           "companyName": { "type": "string", "nullable": true },
           "location": { "type": "string", "nullable": true },
-          "remote": { "type": "boolean" },
+          "department": { "type": "string", "nullable": true },
+          "workplaceType": {
+            "type": "string",
+            "enum": ["remote", "onsite", "hybrid"],
+            "nullable": true
+          },
           "salaryRange": { "type": "string", "nullable": true },
-          "applyLink": { "type": "string" },
-          "postedAt": { "type": "string", "format": "date-time" },
-          "expiresAt": { "type": "string", "format": "date-time", "nullable": true },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "External application or job listing URL" },
+          "detailUrl": { "type": "string", "nullable": true, "description": "Canonical URL on siliconharbour.dev, if the job has a slug" },
+          "postedAt": { "type": "string", "format": "date-time", "nullable": true },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -485,7 +564,7 @@
           "pagination": { "$ref": "#/components/schemas/Pagination" }
         }
       },
-      "Learning": {
+      "Education": {
         "type": "object",
         "properties": {
           "id": { "type": "integer" },
@@ -499,15 +578,15 @@
           "website": { "type": "string", "nullable": true },
           "logo": { "type": "string", "nullable": true },
           "coverImage": { "type": "string", "nullable": true },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
       },
-      "LearningList": {
+      "EducationList": {
         "type": "object",
         "properties": {
-          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Learning" } },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Education" } },
           "pagination": { "$ref": "#/components/schemas/Pagination" }
         }
       },
@@ -521,7 +600,7 @@
           "excerpt": { "type": "string", "nullable": true },
           "coverImage": { "type": "string", "nullable": true },
           "publishedAt": { "type": "string", "format": "date-time", "nullable": true },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -539,11 +618,11 @@
           "id": { "type": "integer" },
           "slug": { "type": "string" },
           "name": { "type": "string" },
-          "bio": { "type": "string" },
+          "bio": { "type": "string", "nullable": true },
           "website": { "type": "string", "nullable": true },
           "avatar": { "type": "string", "nullable": true },
           "socialLinks": { "type": "object", "nullable": true },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -570,7 +649,7 @@
           "links": { "type": "object", "nullable": true },
           "logo": { "type": "string", "nullable": true },
           "coverImage": { "type": "string", "nullable": true },
-          "url": { "type": "string" },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
         }
@@ -579,6 +658,50 @@
         "type": "object",
         "properties": {
           "data": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "website": { "type": "string", "nullable": true },
+          "logo": { "type": "string", "nullable": true },
+          "coverImage": { "type": "string", "nullable": true },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProductList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Product" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "Technology": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "slug": { "type": "string" },
+          "name": { "type": "string" },
+          "category": { "type": "string", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "website": { "type": "string", "nullable": true },
+          "icon": { "type": "string", "nullable": true },
+          "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TechnologyList": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Technology" } },
           "pagination": { "$ref": "#/components/schemas/Pagination" }
         }
       }

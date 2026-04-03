@@ -137,11 +137,24 @@ export function imageUrl(filename: string | null): string | null {
   return `${SITE_URL}/images/${filename}`;
 }
 
+// Content types that live under /directory/ on the public site
+const DIRECTORY_TYPES = new Set([
+  "companies",
+  "people",
+  "groups",
+  "education",
+  "technologies",
+  "projects",
+  "products",
+]);
+
 /**
- * Transform content URLs
+ * Generate the canonical public URL for a content item.
+ * Directory types live under /directory/, others at root.
  */
 export function contentUrl(type: string, slug: string): string {
-  return `${SITE_URL}/${type}/${slug}`;
+  const prefix = DIRECTORY_TYPES.has(type) ? "directory/" : "";
+  return `${SITE_URL}/${prefix}${type}/${slug}`;
 }
 
 /**

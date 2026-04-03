@@ -22,6 +22,8 @@ const endpoints: Endpoint[] = [
   { path: "/api/projects/:slug", description: "Get project" },
   { path: "/api/products", description: "List products" },
   { path: "/api/products/:slug", description: "Get product" },
+  { path: "/api/technologies", description: "List technologies" },
+  { path: "/api/technologies/:slug", description: "Get technology" },
 ];
 
 /**

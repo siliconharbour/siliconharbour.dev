@@ -90,7 +90,9 @@ function mdxToMarkdown(content: string): string {
 | \`GET /api/projects\` | List projects |
 | \`GET /api/projects/:slug\` | Get project |
 | \`GET /api/products\` | List products |
-| \`GET /api/products/:slug\` | Get product |`;
+| \`GET /api/products/:slug\` | Get product |
+| \`GET /api/technologies\` | List technologies |
+| \`GET /api/technologies/:slug\` | Get technology |`;
   markdown = markdown.replace(/<ApiTable\s*\/>/g, apiTableMarkdown);
 
   // Clean up extra blank lines

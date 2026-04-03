@@ -8,6 +8,7 @@ import { jobImportSources, jobs } from "~/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import type { SyncResult, ImportSourceConfig, JobSourceType, FetchedJob } from "./types";
 import { getImporter } from "./index";
+import { generateJobSlug } from "~/lib/jobs.server";
 
 /**
  * Get an import source by ID with company info
@@ -52,11 +53,13 @@ async function insertJob(data: {
   lastSeenAt: Date;
 }) {
   const now = new Date();
+  const slug = await generateJobSlug(data.title);
   await db.insert(jobs).values({
     companyId: data.companyId,
     sourceId: data.sourceId,
     sourceType: "imported",
     externalId: data.externalId,
+    slug,
     title: data.title,
     location: data.location,
     department: data.department,
