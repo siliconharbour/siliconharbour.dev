@@ -45,11 +45,13 @@ app.post("/mcp", async (req, res) => {
 
     await server.connect(transport);
 
+    // Handle the initialize request — this generates the sessionId
+    await transport.handleRequest(req, res, req.body);
+
+    // Store transport after handleRequest so sessionId is populated
     if (transport.sessionId) {
       transports.set(transport.sessionId, transport);
     }
-
-    await transport.handleRequest(req, res, req.body);
   } catch (err) {
     console.error("MCP POST error:", err);
     if (!res.headersSent) {
