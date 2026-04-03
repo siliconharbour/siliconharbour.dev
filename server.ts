@@ -1,5 +1,5 @@
 import express from "express";
-import { createRequestHandler } from "@react-router/express/dist/index.mjs";
+import { createRequestHandler } from "@react-router/express";
 import { randomUUID } from "node:crypto";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
