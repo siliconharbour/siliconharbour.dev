@@ -178,7 +178,7 @@ export const eventImportSources = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
-    groupId: integer("group_id").references(() => groups.id),
+    organizer: text("organizer"),
     sourceType: text("source_type", { enum: eventSourceTypes }).notNull(),
     sourceIdentifier: text("source_identifier").notNull(),
     sourceUrl: text("source_url").notNull(),
@@ -188,9 +188,6 @@ export const eventImportSources = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
     updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
   },
-  (table) => ({
-    groupIdx: index("event_import_sources_group_idx").on(table.groupId),
-  }),
 );
 
 export type EventImportSource = typeof eventImportSources.$inferSelect;

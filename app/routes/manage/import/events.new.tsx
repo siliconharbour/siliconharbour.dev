@@ -1,13 +1,13 @@
 import type { Route } from "./+types/events.new";
 import { useState } from "react";
-import { Link, redirect, useActionData, useLoaderData } from "react-router";
+import { Link, redirect, useActionData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllGroups } from "~/lib/groups.server";
 import {
   createEventImportSource,
   validateEventImportSourceConfig,
 } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
+import { EntityPicker } from "~/components/EntityPicker";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Add Event Import Source - siliconharbour.dev" }];
@@ -15,8 +15,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const groups = await getAllGroups();
-  return { groups };
+  return {};
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -27,8 +26,7 @@ export async function action({ request }: Route.ActionArgs) {
   const sourceType = formData.get("sourceType") as string;
   const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
   const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
-  const groupIdRaw = formData.get("groupId") as string;
-  const groupId = groupIdRaw ? Number(groupIdRaw) : null;
+  const organizer = (formData.get("organizer") as string)?.trim() || null;
 
   if (!name || !sourceType || !sourceIdentifier || !sourceUrl) {
     return { error: "All fields are required." };
@@ -36,7 +34,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   try {
     const validation = await validateEventImportSourceConfig({
-      groupId,
+      organizer,
       sourceType,
       sourceIdentifier,
       sourceUrl,
@@ -50,7 +48,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const source = await createEventImportSource({
     name,
-    groupId,
+    organizer,
     sourceType,
     sourceIdentifier,
     sourceUrl,
@@ -61,14 +59,12 @@ export async function action({ request }: Route.ActionArgs) {
 
 const SOURCE_TYPES = ["luma-user", "technl", "netbenefit"] as const;
 
-// Single-instance sources have a fixed identifier and URL — no need for the user to enter them
 const FIXED_SOURCES: Partial<Record<string, { identifier: string; url: string }>> = {
   technl: { identifier: "technl", url: "https://technl.ca/news-events/" },
   netbenefit: { identifier: "netbenefit", url: "https://www.netbenefitsoftware.com/events" },
 };
 
 export default function NewEventImportSource() {
-  const { groups } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const [selectedType, setSelectedType] = useState<string>("");
 
@@ -171,21 +167,14 @@ export default function NewEventImportSource() {
           )}
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-harbour-600" htmlFor="groupId">
-              Group <span className="text-harbour-400 font-normal">(optional)</span>
-            </label>
-            <select
-              id="groupId"
-              name="groupId"
-              className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
-            >
-              <option value="">None</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
+            <EntityPicker
+              name="organizer"
+              label="Organizer (optional)"
+              placeholder="Search companies, groups, people..."
+            />
+            <p className="text-xs text-harbour-400">
+              Pre-populates the organizer field on imported events.
+            </p>
           </div>
 
           <div className="flex gap-2 pt-2">

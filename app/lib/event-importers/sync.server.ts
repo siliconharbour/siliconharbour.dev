@@ -5,7 +5,7 @@
  */
 
 import { db } from "~/db";
-import { eventImportSources, events, eventDates, groups } from "~/db/schema";
+import { eventImportSources, events, eventDates } from "~/db/schema";
 import type { EventSourceType } from "~/db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 import { generateEventSlug } from "~/lib/events.server";
@@ -100,17 +100,11 @@ export async function getEventImportSourceWithStats(sourceId: number) {
   const hidden = allEvents.filter((e) => e.importStatus === "hidden");
   const removed = allEvents.filter((e) => e.importStatus === "removed");
 
-  let group = null;
-  if (source.groupId) {
-    const [g] = await db.select().from(groups).where(eq(groups.id, source.groupId)).limit(1);
-    group = g ?? null;
-  }
-
-  return { ...source, group, pending, approved, published, hidden, removed };
+  return { ...source, pending, approved, published, hidden, removed };
 }
 
 export async function validateEventImportSourceConfig(config: {
-  groupId: number | null;
+  organizer: string | null;
   sourceType: string;
   sourceIdentifier: string;
   sourceUrl: string;
@@ -121,7 +115,7 @@ export async function validateEventImportSourceConfig(config: {
 
 export async function createEventImportSource(data: {
   name: string;
-  groupId: number | null;
+  organizer: string | null;
   sourceType: string;
   sourceIdentifier: string;
   sourceUrl: string;
@@ -130,7 +124,7 @@ export async function createEventImportSource(data: {
     .insert(eventImportSources)
     .values({
       name: data.name,
-      groupId: data.groupId,
+      organizer: data.organizer,
       sourceType: data.sourceType as EventSourceType,
       sourceIdentifier: data.sourceIdentifier,
       sourceUrl: data.sourceUrl,
@@ -233,7 +227,7 @@ async function getEventsBySourceId(sourceId: number) {
 
 async function insertImportedEvent(
   sourceId: number,
-  _groupId: number | null,
+  sourceOrganizer: string | null,
   fetched: FetchedEvent,
 ): Promise<number> {
   const now = new Date();
@@ -247,7 +241,7 @@ async function insertImportedEvent(
       description: fetched.description,
       location: fetched.location ?? "",
       link: fetched.link,
-      organizer: fetched.organizer,
+      organizer: fetched.organizer || sourceOrganizer || "",
       coverImageUrl: fetched.coverImageUrl,
       importSourceId: sourceId,
       externalId: fetched.externalId,
@@ -325,7 +319,7 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
     const importer = getEventImporter(source.sourceType);
     const config: ImportSourceConfig = {
       id: source.id,
-      groupId: source.groupId,
+      organizer: source.organizer ?? null,
       sourceType: source.sourceType,
       sourceIdentifier: source.sourceIdentifier,
       sourceUrl: source.sourceUrl,
@@ -345,7 +339,7 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
       if (!existing || existing.importStatus === "removed") {
         // New or re-appeared event — insert or re-insert as pending_review
         if (!existing) {
-          await insertImportedEvent(sourceId, source.groupId, fetched);
+          await insertImportedEvent(sourceId, source.organizer ?? null, fetched);
           results.added++;
         } else {
           // Re-appeared: reset to pending_review and refresh fields

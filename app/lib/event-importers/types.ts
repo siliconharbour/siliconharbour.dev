@@ -20,7 +20,7 @@ export interface FetchedEvent {
 
 export interface ImportSourceConfig {
   id: number;
-  groupId: number | null;
+  organizer: string | null;
   sourceType: string;
   sourceIdentifier: string;
   sourceUrl: string;

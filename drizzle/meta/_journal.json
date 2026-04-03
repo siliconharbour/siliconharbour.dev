@@ -288,6 +288,13 @@
       "when": 1768725000000,
       "tag": "0040_add_events_cover_image_url",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1768726000000,
+      "tag": "0041_event_import_sources_organizer",
+      "breakpoints": true
     }
   ]
 }

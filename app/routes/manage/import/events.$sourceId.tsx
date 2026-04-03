@@ -108,7 +108,7 @@ export default function EventImportSourceDetail() {
             <h1 className="text-2xl font-semibold text-harbour-700">{source.name}</h1>
             <p className="text-sm text-harbour-400 mt-1">
               {sourceTypeLabels[source.sourceType] ?? source.sourceType}
-              {source.group ? ` · ${source.group.name}` : ""}
+              {source.organizer ? ` · ${source.organizer}` : ""}
               {" · "}
               <a
                 href={source.sourceUrl}
