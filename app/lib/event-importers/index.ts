@@ -7,11 +7,13 @@ import type { EventImporter } from "./types";
 import { lumaUserImporter } from "./luma-user.server";
 import { technlImporter } from "./technl.server";
 import { netbenefitImporter } from "./netbenefit.server";
+import { eventbriteImporter } from "./eventbrite.server";
 
 const importers: Record<string, EventImporter> = {
   "luma-user": lumaUserImporter,
   "technl": technlImporter,
   "netbenefit": netbenefitImporter,
+  "eventbrite": eventbriteImporter,
 };
 
 /**

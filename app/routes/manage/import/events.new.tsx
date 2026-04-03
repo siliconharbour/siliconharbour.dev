@@ -57,7 +57,7 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect(`/manage/import/events/${source.id}`);
 }
 
-const SOURCE_TYPES = ["luma-user", "technl", "netbenefit"] as const;
+const SOURCE_TYPES = ["luma-user", "technl", "netbenefit", "eventbrite"] as const;
 
 const FIXED_SOURCES: Partial<Record<string, { identifier: string; url: string }>> = {
   technl: { identifier: "technl", url: "https://technl.ca/news-events/" },
