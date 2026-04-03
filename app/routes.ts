@@ -78,6 +78,7 @@ export default [
   route("api/technologies", "routes/api/technologies.tsx"),
   route("api/technologies/:slug", "routes/api/technologies.$slug.tsx"),
   route("api/calendar-events", "routes/api/calendar-events.tsx"),
+  route("api/entities/search", "routes/api/entities.search.tsx"),
 
 
   // Design system reference
