@@ -2,13 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { searchSpec } from "./search.js";
 import { runInSandbox } from "./sandbox.js";
-import { buildReadModuleJs } from "./modules/siliconharbour-read.js";
-import { buildExecuteModuleJs } from "./modules/siliconharbour-execute.js";
-import {
-  fetchReadData,
-  fetchExecuteData,
-  runSyncOperations,
-} from "./bridge.js";
+import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
 
 export async function createMcpServer(): Promise<McpServer> {
   const server = new McpServer({
@@ -44,33 +38,26 @@ export async function createMcpServer(): Promise<McpServer> {
         "Import from 'siliconharbour': events({ upcoming?, limit?, offset? }), jobs({ query?, limit?, offset? }), " +
         "companies({ query?, limit?, offset? }), groups({ limit?, offset? }), people({ query?, limit?, offset? }), " +
         "technologies({ limit?, offset? }), education({ limit?, offset? }). " +
+        "Each function calls the real database on-demand — no pre-fetching. " +
         "Your code must export a default value. Use 'search' first to discover available fields. " +
         "Example: import { events } from 'siliconharbour'; export default await events({ upcoming: true, limit: 5 }) " +
-        "Timeout: 5 seconds.",
+        "Timeout: 10 seconds.",
       inputSchema: {
         code: z
           .string()
           .describe(
             "JavaScript module with 'export default' returning the data you want. " +
-              "Can import from 'siliconharbour'. Data is pre-fetched (limit 50 per entity).",
+              "Can import functions from 'siliconharbour' — each call hits the real DB.",
           ),
       },
     },
     async ({ code }) => {
       try {
-        const data = await fetchReadData();
-        const moduleJs = buildReadModuleJs(data);
-        const result = await runInSandbox(code, moduleJs, 5_000);
-
+        const result = await runInSandbox(code, buildReadFunctions(), 10_000);
         if (result.ok) {
-          return {
-            content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }],
-          };
+          return { content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }] };
         }
-        return {
-          content: [{ type: "text", text: `Error: ${result.error}` }],
-          isError: true,
-        };
+        return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
       } catch (err) {
         return {
           content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
@@ -90,13 +77,13 @@ export async function createMcpServer(): Promise<McpServer> {
         "Additional imports from 'siliconharbour': eventImportSources(), jobImportSources(), " +
         "pendingEvents(), pendingJobs(), syncEventSource(id), syncAllEventSources(), " +
         "syncJobSource(id), syncAllJobSources(). " +
-        "Sync functions run before the sandbox — if code contains syncAll*, all sources are synced. " +
-        "Timeout: 60 seconds. If sync times out, use query/pendingEvents/pendingJobs instead.",
+        "All functions call the real database on-demand. " +
+        "Timeout: 60 seconds. If sync times out, use pendingEvents/pendingJobs instead.",
       inputSchema: {
         code: z
           .string()
           .describe(
-            "JavaScript module with 'export default'. Can import sync/pending functions from 'siliconharbour'.",
+            "JavaScript module with 'export default'. Can import any siliconharbour function.",
           ),
         apiToken: z.string().describe("Bearer token matching MCP_API_TOKEN env var"),
       },
@@ -108,28 +95,12 @@ export async function createMcpServer(): Promise<McpServer> {
           isError: true,
         };
       }
-
       try {
-        // Run any sync operations mentioned in the code before entering the sandbox
-        const syncResults = await runSyncOperations(code);
-
-        // Fetch all data including pending state (post-sync so counts are fresh)
-        const data = await fetchExecuteData();
-        const moduleJs = buildExecuteModuleJs(data);
-
-        const result = await runInSandbox(code, moduleJs, 60_000, {
-          __syncResults__: syncResults,
-        });
-
+        const result = await runInSandbox(code, buildExecuteFunctions(), 60_000);
         if (result.ok) {
-          return {
-            content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }],
-          };
+          return { content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }] };
         }
-        return {
-          content: [{ type: "text", text: `Error: ${result.error}` }],
-          isError: true,
-        };
+        return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
       } catch (err) {
         return {
           content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],

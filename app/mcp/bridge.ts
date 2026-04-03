@@ -1,9 +1,10 @@
 /**
- * Host bridge: fetches data from the real DB and returns it as plain JSON-serialisable
- * objects suitable for baking into the QuickJS virtual module strings.
+ * Host bridge: real DB/sync functions exposed directly into the QuickJS sandbox.
+ * Each function is called on-demand by user code — no pre-fetching.
  */
 
-import { getUpcomingEvents } from "~/lib/events.server";
+import type { HostFunctions } from "./sandbox.js";
+import { getUpcomingEvents, getPaginatedEvents } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getPaginatedCompanies } from "~/lib/companies.server";
 import { getPaginatedGroups } from "~/lib/groups.server";
@@ -21,10 +22,8 @@ import {
 import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
-import type { ReadData } from "./modules/siliconharbour-read.js";
-import type { ExecuteData } from "./modules/siliconharbour-execute.js";
 
-/** Strip non-serialisable values (Dates → ISO strings, undefined → null, etc.) */
+/** Strip non-serialisable values (Dates → ISO strings, etc.) */
 function toPlain<T>(val: T): T {
   return JSON.parse(
     JSON.stringify(val, (_key, value) => {
@@ -34,174 +33,149 @@ function toPlain<T>(val: T): T {
   );
 }
 
-export async function fetchReadData(): Promise<ReadData> {
-  const [eventsResult, jobsResult, companiesResult, groupsResult, peopleResult, techsResult, eduResult] =
-    await Promise.all([
-      getUpcomingEvents().then((items) => toPlain(items.slice(0, 50))),
-      getPaginatedJobs(50, 0, undefined, { includeNonTechnical: true }).then((r) => toPlain(r.items)),
-      getPaginatedCompanies(50, 0).then((r) => toPlain(r.items)),
-      getPaginatedGroups(50, 0).then((r) => toPlain(r.items)),
-      getPaginatedPeople(50, 0).then((r) => toPlain(r.items)),
-      getAllTechnologies().then((items) => toPlain(items.slice(0, 100))),
-      getPaginatedEducation(50, 0).then((r) => toPlain(r.items)),
-    ]);
-
+/** Read-only host functions — safe to expose without auth */
+export function buildReadFunctions(): HostFunctions {
   return {
-    events: eventsResult,
-    jobs: jobsResult,
-    companies: companiesResult,
-    groups: groupsResult,
-    people: peopleResult,
-    technologies: techsResult,
-    education: eduResult,
+    async events(opts: unknown) {
+      const o = (opts ?? {}) as { limit?: number; offset?: number; upcoming?: boolean };
+      const limit = o.limit ?? 20;
+      const offset = o.offset ?? 0;
+      if (o.upcoming) {
+        const all = await getUpcomingEvents();
+        return toPlain(all.slice(offset, offset + limit));
+      }
+      const result = await getPaginatedEvents(limit, offset);
+      return toPlain((result as { events?: unknown[] }).events ?? result);
+    },
+
+    async jobs(opts: unknown) {
+      const o = (opts ?? {}) as { limit?: number; offset?: number; query?: string };
+      const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, { includeNonTechnical: true });
+      return toPlain(result.items);
+    },
+
+    async companies(opts: unknown) {
+      const o = (opts ?? {}) as { limit?: number; offset?: number; query?: string };
+      const result = await getPaginatedCompanies(o.limit ?? 20, o.offset ?? 0, o.query);
+      return toPlain(result.items);
+    },
+
+    async groups(opts: unknown) {
+      const o = (opts ?? {}) as { limit?: number; offset?: number };
+      const result = await getPaginatedGroups(o.limit ?? 20, o.offset ?? 0);
+      return toPlain(result.items);
+    },
+
+    async people(opts: unknown) {
+      const o = (opts ?? {}) as { limit?: number; offset?: number; query?: string };
+      const result = await getPaginatedPeople(o.limit ?? 20, o.offset ?? 0, o.query);
+      return toPlain(result.items);
+    },
+
+    async technologies(opts: unknown) {
+      const o = (opts ?? {}) as { limit?: number; offset?: number };
+      const all = await getAllTechnologies();
+      const offset = o.offset ?? 0;
+      return toPlain(all.slice(offset, offset + (o.limit ?? 20)));
+    },
+
+    async education(opts: unknown) {
+      const o = (opts ?? {}) as { limit?: number; offset?: number };
+      const result = await getPaginatedEducation(o.limit ?? 20, o.offset ?? 0);
+      return toPlain(result.items);
+    },
   };
 }
 
-export async function fetchPendingEvents(): Promise<unknown[]> {
-  const sources = await getAllEventImportSources();
-  const pending: unknown[] = [];
-
-  for (const source of sources) {
-    const evts = await db
-      .select({ id: events.id, title: events.title, firstSeenAt: events.firstSeenAt })
-      .from(events)
-      .where(and(eq(events.importSourceId, source.id), eq(events.importStatus, "pending_review")))
-      .limit(50);
-
-    for (const e of evts) {
-      pending.push({
-        sourceId: source.id,
-        sourceName: source.name,
-        eventId: e.id,
-        title: e.title,
-        firstSeenAt: e.firstSeenAt,
-      });
-    }
-  }
-
-  return toPlain(pending);
-}
-
-export async function fetchPendingJobs(): Promise<unknown[]> {
-  const sources = await getAllImportSources();
-  const pending: unknown[] = [];
-
-  for (const source of sources) {
-    const jobRows = await db
-      .select({ id: jobs.id, title: jobs.title, companyId: jobs.companyId })
-      .from(jobs)
-      .where(and(eq(jobs.sourceId, source.id), eq(jobs.status, "pending_review")))
-      .limit(50);
-
-    for (const j of jobRows) {
-      const [company] = j.companyId
-        ? await db
-            .select({ name: companies.name })
-            .from(companies)
-            .where(eq(companies.id, j.companyId))
-            .limit(1)
-        : [];
-
-      pending.push({
-        sourceId: source.id,
-        sourceName: source.sourceIdentifier,
-        jobId: j.id,
-        title: j.title,
-        companyName: company?.name ?? null,
-      });
-    }
-  }
-
-  return toPlain(pending);
-}
-
-export async function fetchExecuteData(): Promise<ExecuteData> {
-  const [readData, eventSources, jobSources, pendingEvts, pendingJobsList] = await Promise.all([
-    fetchReadData(),
-    getAllEventImportSources().then((sources) =>
-      toPlain(
-        sources.map((s) => ({
-          id: s.id,
-          name: s.name,
-          sourceType: s.sourceType,
-          lastFetchedAt: s.lastFetchedAt,
-          fetchStatus: s.fetchStatus,
-          pendingCount: s.pendingCount,
-        })),
-      ),
-    ),
-    getAllImportSources().then((sources) =>
-      toPlain(
-        sources.map((s) => ({
-          id: s.id,
-          name: s.sourceIdentifier,
-          sourceType: s.sourceType,
-          lastFetchedAt: s.lastFetchedAt,
-          fetchStatus: s.fetchStatus,
-        })),
-      ),
-    ),
-    fetchPendingEvents(),
-    fetchPendingJobs(),
-  ]);
-
+/** Execute host functions — superset of read, adds sync and pending actions */
+export function buildExecuteFunctions(): HostFunctions {
   return {
-    ...readData,
-    eventImportSources: eventSources,
-    jobImportSources: jobSources,
-    pendingEvents: pendingEvts,
-    pendingJobs: pendingJobsList,
-    _syncEnabled: true,
+    ...buildReadFunctions(),
+
+    async eventImportSources() {
+      const sources = await getAllEventImportSources();
+      return toPlain(sources.map((s) => ({
+        id: s.id,
+        name: s.name,
+        sourceType: s.sourceType,
+        lastFetchedAt: s.lastFetchedAt,
+        fetchStatus: s.fetchStatus,
+        pendingCount: s.pendingCount,
+      })));
+    },
+
+    async jobImportSources() {
+      const sources = await getAllImportSources();
+      return toPlain(sources.map((s) => ({
+        id: s.id,
+        name: s.sourceIdentifier,
+        sourceType: s.sourceType,
+        lastFetchedAt: s.lastFetchedAt,
+        fetchStatus: s.fetchStatus,
+      })));
+    },
+
+    async pendingEvents() {
+      const sources = await getAllEventImportSources();
+      const pending: unknown[] = [];
+      for (const source of sources) {
+        const evts = await db
+          .select({ id: events.id, title: events.title, firstSeenAt: events.firstSeenAt })
+          .from(events)
+          .where(and(eq(events.importSourceId, source.id), eq(events.importStatus, "pending_review")))
+          .limit(50);
+        for (const e of evts) {
+          pending.push({ sourceId: source.id, sourceName: source.name, eventId: e.id, title: e.title, firstSeenAt: e.firstSeenAt });
+        }
+      }
+      return toPlain(pending);
+    },
+
+    async pendingJobs() {
+      const sources = await getAllImportSources();
+      const pending: unknown[] = [];
+      for (const source of sources) {
+        const jobRows = await db
+          .select({ id: jobs.id, title: jobs.title, companyId: jobs.companyId })
+          .from(jobs)
+          .where(and(eq(jobs.sourceId, source.id), eq(jobs.status, "pending_review")))
+          .limit(50);
+        for (const j of jobRows) {
+          const [company] = j.companyId
+            ? await db.select({ name: companies.name }).from(companies).where(eq(companies.id, j.companyId)).limit(1)
+            : [];
+          pending.push({ sourceId: source.id, sourceName: source.sourceIdentifier, jobId: j.id, title: j.title, companyName: company?.name ?? null });
+        }
+      }
+      return toPlain(pending);
+    },
+
+    async syncEventSource(sourceId: unknown) {
+      return toPlain(await syncEvents(Number(sourceId)));
+    },
+
+    async syncAllEventSources() {
+      const sources = await getAllEventImportSources();
+      const results = [];
+      for (const source of sources) {
+        const result = await syncEvents(source.id);
+        results.push({ sourceId: source.id, name: source.name, ...result });
+      }
+      return toPlain(results);
+    },
+
+    async syncJobSource(sourceId: unknown) {
+      return toPlain(await syncJobs(Number(sourceId)));
+    },
+
+    async syncAllJobSources() {
+      const sources = await getAllImportSources();
+      const results = [];
+      for (const source of sources) {
+        const result = await syncJobs(source.id);
+        results.push({ sourceId: source.id, name: source.sourceIdentifier, ...result });
+      }
+      return toPlain(results);
+    },
   };
-}
-
-export type SyncResults = Record<string, unknown>;
-
-/**
- * Pre-execute any sync operations mentioned in the user's code.
- * Detects calls to syncEventSource, syncAllEventSources, etc. and runs them,
- * storing results in a map that the module injects as globalThis.__syncResults__.
- *
- * This is a simple approach: if the code mentions a sync function, run it.
- * The results are baked into the module as __syncResults__.
- */
-export async function runSyncOperations(code: string): Promise<SyncResults> {
-  const results: SyncResults = {};
-
-  if (code.includes("syncAllEventSources")) {
-    const sources = await getAllEventImportSources();
-    const syncResultsList = [];
-    for (const source of sources) {
-      const result = await syncEvents(source.id);
-      syncResultsList.push({ sourceId: source.id, name: source.name, ...result });
-    }
-    results["syncAllEventSources"] = toPlain(syncResultsList);
-  } else if (code.includes("syncEventSource")) {
-    // Extract sourceId from code: syncEventSource(N)
-    const matches = [...code.matchAll(/syncEventSource\((\d+)\)/g)];
-    for (const m of matches) {
-      const sourceId = Number(m[1]);
-      const result = await syncEvents(sourceId);
-      results[`syncEventSource:${sourceId}`] = toPlain(result);
-    }
-  }
-
-  if (code.includes("syncAllJobSources")) {
-    const sources = await getAllImportSources();
-    const syncResultsList = [];
-    for (const source of sources) {
-      const result = await syncJobs(source.id);
-      syncResultsList.push({ sourceId: source.id, name: source.sourceIdentifier, ...result });
-    }
-    results["syncAllJobSources"] = toPlain(syncResultsList);
-  } else if (code.includes("syncJobSource")) {
-    const matches = [...code.matchAll(/syncJobSource\((\d+)\)/g)];
-    for (const m of matches) {
-      const sourceId = Number(m[1]);
-      const result = await syncJobs(sourceId);
-      results[`syncJobSource:${sourceId}`] = toPlain(result);
-    }
-  }
-
-  return results;
 }
