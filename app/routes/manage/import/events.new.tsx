@@ -1,4 +1,5 @@
 import type { Route } from "./+types/events.new";
+import { useState } from "react";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getAllGroups } from "~/lib/groups.server";
@@ -60,9 +61,16 @@ export async function action({ request }: Route.ActionArgs) {
 
 const SOURCE_TYPES = ["luma-user", "technl", "netbenefit"] as const;
 
+// Single-instance sources have a fixed identifier and URL — no need for the user to enter them
+const FIXED_SOURCES: Partial<Record<string, { identifier: string; url: string }>> = {
+  technl: { identifier: "technl", url: "https://technl.ca/news-events/" },
+  netbenefit: { identifier: "netbenefit", url: "https://www.netbenefitsoftware.com/events" },
+};
+
 export default function NewEventImportSource() {
   const { groups } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const [selectedType, setSelectedType] = useState<string>("");
 
   return (
     <div className="min-h-screen p-6">
@@ -106,6 +114,8 @@ export default function NewEventImportSource() {
             <select
               id="sourceType"
               name="sourceType"
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
               className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
               required
             >
@@ -118,37 +128,47 @@ export default function NewEventImportSource() {
             </select>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-harbour-600" htmlFor="sourceIdentifier">
-              Source Identifier
-            </label>
-            <input
-              id="sourceIdentifier"
-              name="sourceIdentifier"
-              type="text"
-              placeholder="e.g. usr-bSGJmqMm6oO62Ze or EthanDenny (for Luma user)"
-              className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
-              required
-            />
-            <p className="text-xs text-harbour-400">
-              For Luma users: the user ID (e.g. usr-xxxx) or username (e.g. EthanDenny) from the profile URL. For techNL: use{" "}
-              <code>technl</code>.
-            </p>
-          </div>
+          {!FIXED_SOURCES[selectedType] && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-harbour-600" htmlFor="sourceIdentifier">
+                Source Identifier
+              </label>
+              <input
+                id="sourceIdentifier"
+                name="sourceIdentifier"
+                type="text"
+                placeholder="e.g. usr-bSGJmqMm6oO62Ze or EthanDenny"
+                className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
+                required
+              />
+              <p className="text-xs text-harbour-400">
+                The user ID (e.g. usr-xxxx) or username from the Luma profile URL.
+              </p>
+            </div>
+          )}
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-harbour-600" htmlFor="sourceUrl">
-              Source URL
-            </label>
-            <input
-              id="sourceUrl"
-              name="sourceUrl"
-              type="url"
-              placeholder="https://luma.com/user/usr-xxxx"
-              className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
-              required
-            />
-          </div>
+          {FIXED_SOURCES[selectedType] && (
+            <>
+              <input type="hidden" name="sourceIdentifier" value={FIXED_SOURCES[selectedType]!.identifier} />
+              <input type="hidden" name="sourceUrl" value={FIXED_SOURCES[selectedType]!.url} />
+            </>
+          )}
+
+          {!FIXED_SOURCES[selectedType] && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-harbour-600" htmlFor="sourceUrl">
+                Source URL
+              </label>
+              <input
+                id="sourceUrl"
+                name="sourceUrl"
+                type="url"
+                placeholder="https://luma.com/user/usr-xxxx"
+                className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
+                required
+              />
+            </div>
+          )}
 
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-harbour-600" htmlFor="groupId">
