@@ -49,6 +49,74 @@ Link: <https://siliconharbour.dev/api/companies?limit=20&offset=20>; rel="next",
 
 [View OpenAPI Spec](/openapi.json)
 
+## MCP Server
+
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server is available at `/mcp` for AI assistants and agents.
+
+**Endpoint:** `https://siliconharbour.dev/mcp`
+
+### Tools
+
+| Tool | Description | Auth required |
+|---|---|---|
+| `search` | Search the API schema to discover available data types and field shapes | No |
+| `query` | Execute JavaScript in a secure sandbox to query community data on-demand | No |
+| `execute` | Like `query` but also exposes sync and pending-review actions | Yes |
+
+### Setup (Claude Desktop / OpenCode)
+
+Public access — no token needed:
+
+```json
+{
+  "mcpServers": {
+    "siliconharbour": {
+      "url": "https://siliconharbour.dev/mcp"
+    }
+  }
+}
+```
+
+The `execute` tool (for triggering import syncs and reviewing pending items) requires a Bearer token provided by the site owner. Authenticated access:
+
+```json
+{
+  "mcpServers": {
+    "siliconharbour": {
+      "url": "https://siliconharbour.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer <your-token>"
+      }
+    }
+  }
+}
+```
+
+### Example queries
+
+```js
+// Upcoming events
+import { events } from 'siliconharbour'
+export default await events({ upcoming: true, limit: 5 })
+```
+
+```js
+// Jobs filtered by keyword
+import { jobs } from 'siliconharbour'
+export default await jobs({ query: 'developer', limit: 10 })
+```
+
+```js
+// Cross-entity query
+import { events, companies, groups } from 'siliconharbour'
+const [upcoming, cos, grps] = await Promise.all([
+  events({ upcoming: true }),
+  companies({ limit: 5 }),
+  groups({ limit: 5 }),
+])
+export default { upcoming: upcoming.length, companies: cos.map(c => c.name), groups: grps.map(g => g.name) }
+```
+
 ## Feeds
 
 RSS feeds and an iCal calendar are also available. See [Stay Connected](/stay-connected) for details.

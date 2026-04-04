@@ -130,6 +130,29 @@ export default function SubscribePage() {
         <div className="not-prose p-6 ring-1 ring-harbour-200/50 bg-harbour-50/50 text-center my-4">
           <p className="text-harbour-400 text-sm">Coming soon</p>
         </div>
+
+        <h2>AI Assistant (MCP)</h2>
+
+        <p>
+          If you use an AI assistant that supports{" "}
+          <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">
+            MCP
+          </a>
+          , you can connect it directly to siliconharbour.dev. It can answer questions about
+          upcoming events, local companies, job postings, community groups, and more — all from
+          live data.
+        </p>
+
+        <p>
+          Add this to your MCP client config (Claude Desktop, OpenCode, Cursor, etc.):
+        </p>
+
+        <CopyUrlCard url="https://siliconharbour.dev/mcp" label="MCP endpoint" />
+
+        <p>
+          See the <a href="/api">API docs</a> for full details including example queries and
+          authenticated access for import sync actions.
+        </p>
       </article>
     </div>
   );
