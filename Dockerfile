@@ -23,6 +23,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
 COPY ./app/assets /app/app/assets
+COPY ./app/content /app/app/content
 COPY ./app/mcp /app/app/mcp
 COPY ./app/lib /app/app/lib
 COPY ./app/db /app/app/db
