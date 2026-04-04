@@ -1,14 +1,13 @@
 import type { Route } from "./+types/about";
 import AboutContent, { frontmatter } from "~/content/about.mdx";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: `${frontmatter?.title ?? "About"} - siliconharbour.dev` },
-    {
-      name: "description",
-      content: frontmatter?.description ?? "About siliconharbour.dev",
-    },
-  ];
+  return buildSeoMeta({
+    title: frontmatter?.title ?? "About siliconharbour.dev",
+    description: frontmatter?.description ?? "About siliconharbour.dev — a community directory for the tech scene in St. John's, Newfoundland & Labrador.",
+    url: "/about",
+  });
 }
 
 export default function AboutPage() {

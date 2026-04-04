@@ -6,9 +6,56 @@ import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
+import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
 export function meta({ data }: Route.MetaArgs) {
-  return [{ title: `${data?.job?.title ?? "Job"} - siliconharbour.dev` }];
+  const job = data?.job;
+  const title = job?.title ?? "Job";
+  const company = (job as { company?: { name?: string } } | undefined)?.company?.name;
+  const companyStr = company ? ` at ${company}` : "";
+  const rawDesc = (job as { descriptionText?: string } | undefined)?.descriptionText
+    ?? (job as { description?: string } | undefined)?.description;
+  const description = rawDesc
+    ? stripMarkdown(rawDesc)
+    : `${title}${companyStr} — tech job in St. John's, NL.`;
+  const slug = (job as { slug?: string } | undefined)?.slug ?? "";
+  const postedAt = (job as { postedAt?: string | Date } | undefined)?.postedAt;
+  const seoTags = buildSeoMeta({
+    title: `${title}${companyStr} — St. John's Tech Job`,
+    description,
+    url: `/jobs/${slug}`,
+  });
+
+  // JobPosting JSON-LD for Google Jobs
+  if (job) {
+    const jobUrl = (job as { url?: string }).url ?? `https://siliconharbour.dev/jobs/${slug}`;
+    const jsonLd: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "JobPosting",
+      title,
+      description,
+      datePosted: postedAt ? new Date(postedAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      jobLocation: {
+        "@type": "Place",
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: "St. John's",
+          addressRegion: "NL",
+          addressCountry: "CA",
+        },
+      },
+      url: jobUrl,
+      directApply: true,
+    };
+    if (company) {
+      jsonLd.hiringOrganization = { "@type": "Organization", name: company };
+    }
+    const workplaceType = (job as { workplaceType?: string }).workplaceType;
+    if (workplaceType === "remote") jsonLd.jobLocationType = "TELECOMMUTE";
+    seoTags.push({ "script:ld+json": JSON.stringify(jsonLd) });
+  }
+
+  return seoTags;
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {

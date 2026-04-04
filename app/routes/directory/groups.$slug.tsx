@@ -5,9 +5,19 @@ import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
+import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
 export function meta({ data }: Route.MetaArgs) {
-  return [{ title: `${data?.group?.name ?? "Group"} - siliconharbour.dev` }];
+  const group = data?.group;
+  const name = group?.name ?? "Group";
+  const description = group?.description
+    ? stripMarkdown(group.description)
+    : `${name} is a tech community group in St. John's, NL.`;
+  return buildSeoMeta({
+    title: `${name} — St. John's Tech Group`,
+    description,
+    url: `/directory/groups/${group?.slug ?? ""}`,
+  });
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -79,7 +89,7 @@ export default function GroupDetail() {
             <div className="w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
               <img
                 src={`/images/${group.logo}`}
-                alt=""
+                alt={`${group.name} logo`}
                 className="absolute inset-0 w-full h-full object-contain"
               />
             </div>

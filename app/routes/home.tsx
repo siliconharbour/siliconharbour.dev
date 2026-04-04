@@ -13,15 +13,14 @@ import { format } from "date-fns";
 import type { ResolvedRef } from "~/components/RichMarkdown";
 import type { SectionKey } from "~/db/schema";
 import { Footer } from "~/components/Footer";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "siliconharbour.dev" },
-    {
-      name: "description",
-      content: "Discover St. John's tech, events, companies, people, and more.",
-    },
-  ];
+  return buildSeoMeta({
+    title: "St. John's Tech Scene — Events, Jobs & Companies",
+    description: "Discover the tech scene in St. John's, NL. Find local events, companies, jobs, groups, and people in the Newfoundland tech community.",
+    url: "/",
+  });
 }
 
 export async function loader({}: Route.LoaderArgs) {
@@ -259,7 +258,7 @@ export default function Home() {
                           <div className="w-12 h-12 relative overflow-hidden bg-harbour-100">
                             <img
                               src={`/images/${company.logo}`}
-                              alt=""
+                              alt={`${company.name} logo`}
                               className="absolute inset-0 w-full h-full object-contain"
                             />
                           </div>

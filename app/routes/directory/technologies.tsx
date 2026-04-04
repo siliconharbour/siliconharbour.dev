@@ -3,9 +3,14 @@ import { Link, useLoaderData } from "react-router";
 import { getTechnologiesWithUsage, type TechnologyWithUsage } from "~/lib/technologies.server";
 import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 import { getOptionalUser } from "~/lib/session.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Technologies - Directory - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "Technologies Used in St. John's Tech Companies",
+    description: "Programming languages, frameworks, and technologies used by tech companies in St. John's, Newfoundland & Labrador.",
+    url: "/directory/technologies",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

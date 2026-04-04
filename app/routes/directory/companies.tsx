@@ -4,9 +4,14 @@ import { getPaginatedCompanies } from "~/lib/companies.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
 import { parsePublicListParams } from "~/lib/public-query.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Companies - Directory - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "Tech Companies in St. John's, NL",
+    description: "Directory of technology companies in St. John's, Newfoundland & Labrador. Find local software companies, startups, and tech employers.",
+    url: "/directory/companies",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

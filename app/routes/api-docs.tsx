@@ -1,14 +1,13 @@
 import type { Route } from "./+types/api-docs";
 import ApiDocsContent, { frontmatter } from "~/content/api-docs.mdx";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: `${frontmatter?.title ?? "API"} - siliconharbour.dev` },
-    {
-      name: "description",
-      content: frontmatter?.description ?? "Public JSON API for siliconharbour.dev",
-    },
-  ];
+  return buildSeoMeta({
+    title: frontmatter?.title ?? "API",
+    description: frontmatter?.description ?? "Public JSON API for accessing St. John's tech community data — events, jobs, companies, groups, and more.",
+    url: "/api",
+  });
 }
 
 export default function ApiDocsPage() {

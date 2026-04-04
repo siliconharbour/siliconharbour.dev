@@ -5,9 +5,14 @@ import { getOptionalUser } from "~/lib/session.server";
 import type { ProductType } from "~/db/schema";
 import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
 import { parsePublicListParams } from "~/lib/public-query.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Products - Directory - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "Products Built in St. John's, NL",
+    description: "Software products, apps, and tools built by tech companies in St. John's, Newfoundland & Labrador.",
+    url: "/directory/products",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

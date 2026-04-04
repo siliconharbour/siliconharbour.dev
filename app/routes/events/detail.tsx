@@ -15,23 +15,50 @@ import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { formatInTimezone } from "~/lib/timezone";
+import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
 export function meta({ data, params }: Route.MetaArgs) {
-  const title = data?.event?.title ?? "Event";
-  const siteUrl = "https://siliconharbour.dev";
-  const ogImageUrl = `${siteUrl}/events/${params.slug}.png`;
+  const event = data?.event;
+  const title = event?.title ?? "Event";
+  const description = event?.description
+    ? stripMarkdown(event.description)
+    : `${title} — a tech event in St. John's, NL.`;
+  const slug = params.slug ?? "";
+  const ogImageUrl = `https://siliconharbour.dev/events/${slug}.png`;
 
-  return [
-    { title: `${title} - siliconharbour.dev` },
-    { property: "og:title", content: title },
-    { property: "og:type", content: "website" },
-    { property: "og:image", content: ogImageUrl },
-    { property: "og:image:width", content: "1200" },
-    { property: "og:image:height", content: "630" },
-    { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: title },
-    { name: "twitter:image", content: ogImageUrl },
-  ];
+  const seoTags = buildSeoMeta({
+    title,
+    description,
+    url: `/events/${params.slug ?? ""}`,
+    ogImage: ogImageUrl,
+    ogType: "article",
+  });
+
+  // Event JSON-LD schema for Google event cards
+  const firstDate = event?.dates?.[0];
+  if (firstDate) {
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "Event",
+      name: title,
+      description,
+      startDate: firstDate.startDate,
+      endDate: firstDate.endDate ?? firstDate.startDate,
+      location: event?.location
+        ? { "@type": "Place", name: event.location }
+        : { "@type": "VirtualLocation" },
+      url: `https://siliconharbour.dev/events/${slug}`,
+      organizer: event?.organizer
+        ? { "@type": "Organization", name: event.organizer }
+        : undefined,
+      image: event?.coverImage
+        ? `https://siliconharbour.dev/images/${event.coverImage}`
+        : ogImageUrl,
+    };
+    seoTags.push({ "script:ld+json": JSON.stringify(jsonLd) });
+  }
+
+  return seoTags;
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {

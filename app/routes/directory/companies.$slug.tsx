@@ -14,6 +14,7 @@ import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { CompanyEvidenceDialog } from "~/components/directory/CompanyEvidenceDialog";
+import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
 function formatMonthYear(value: string): string {
   const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -53,7 +54,16 @@ function getProvenanceSourceDisplayLabel(
 }
 
 export function meta({ data }: Route.MetaArgs) {
-  return [{ title: `${data?.company?.name ?? "Company"} - siliconharbour.dev` }];
+  const company = data?.company;
+  const name = company?.name ?? "Company";
+  const description = company?.description
+    ? stripMarkdown(company.description)
+    : `${name} is a tech company in St. John's, NL.`;
+  return buildSeoMeta({
+    title: `${name} — St. John's Tech Company`,
+    description,
+    url: `/directory/companies/${company?.slug ?? ""}`,
+  });
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -291,7 +301,7 @@ export default function CompanyDetail() {
             <div className="w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
               <img
                 src={`/images/${company.logo}`}
-                alt=""
+                alt={`${company.name} logo`}
                 className="absolute inset-0 w-full h-full object-contain"
               />
             </div>

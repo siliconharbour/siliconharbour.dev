@@ -8,12 +8,14 @@ import { Calendar } from "~/components/Calendar";
 import { EventCard } from "~/components/EventCard";
 import { format, parse } from "date-fns";
 import { parseEventsQuery } from "~/lib/public-query.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Events - siliconharbour.dev" },
-    { name: "description", content: "Tech events in St. John's" },
-  ];
+  return buildSeoMeta({
+    title: "Tech Events in St. John's, NL",
+    description: "Upcoming tech meetups, talks, hackathons, and events in St. John's, Newfoundland. Discover what's on in the local tech scene.",
+    url: "/events",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

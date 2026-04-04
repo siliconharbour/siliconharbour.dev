@@ -4,9 +4,14 @@ import { getPaginatedPeople } from "~/lib/people.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
 import { parsePublicListParams } from "~/lib/public-query.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "People - Directory - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "People in St. John's Tech Scene",
+    description: "Developers, founders, designers, and other tech people in St. John's, Newfoundland & Labrador.",
+    url: "/directory/people",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

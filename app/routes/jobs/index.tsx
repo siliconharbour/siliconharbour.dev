@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { BaseMultiSelect } from "~/components/BaseMultiSelect";
 import { parseJobsQuery } from "~/lib/public-query.server";
 import { jobsWorkplaceFilterOptions, type JobsWorkplaceFilterType } from "~/lib/public-query";
+import { buildSeoMeta } from "~/lib/seo";
 
 const workplaceTypeLabels: Record<JobsWorkplaceFilterType, string> = {
   remote: "Remote",
@@ -20,10 +21,11 @@ const workplaceTypeFilterOptions = jobsWorkplaceFilterOptions.map((value) => ({
 }));
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Jobs - siliconharbour.dev" },
-    { name: "description", content: "Tech job opportunities in St. John's" },
-  ];
+  return buildSeoMeta({
+    title: "Tech Jobs in St. John's, NL",
+    description: "Software engineering, development, and tech job opportunities in St. John's, Newfoundland. Find your next role in the local tech industry.",
+    url: "/jobs",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -207,7 +209,7 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
             <div className="w-12 h-12 relative overflow-hidden bg-white border border-harbour-200">
               <img
                 src={`/images/${company.logo}`}
-                alt=""
+                alt={`${company.name} logo`}
                 className="absolute inset-0 w-full h-full object-contain"
               />
             </div>

@@ -5,9 +5,19 @@ import { prepareRefsForClient, getDetailedBacklinks } from "~/lib/references.ser
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
+import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
 export function meta({ data }: Route.MetaArgs) {
-  return [{ title: `${data?.person?.name ?? "Person"} - siliconharbour.dev` }];
+  const person = data?.person;
+  const name = person?.name ?? "Person";
+  const description = person?.bio
+    ? stripMarkdown(person.bio)
+    : `${name} — a tech professional in St. John's, NL.`;
+  return buildSeoMeta({
+    title: `${name} — St. John's Tech`,
+    description,
+    url: `/directory/people/${person?.slug ?? ""}`,
+  });
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
@@ -78,7 +88,7 @@ export default function PersonDetail() {
             <div className="w-24 h-24 relative overflow-hidden bg-harbour-100 flex-shrink-0">
               <img
                 src={`/images/${person.avatar}`}
-                alt=""
+                alt={`${person.name} photo`}
                 className="absolute inset-0 w-full h-full object-cover"
               />
             </div>

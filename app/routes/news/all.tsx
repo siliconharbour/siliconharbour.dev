@@ -2,9 +2,14 @@ import type { Route } from "./+types/all";
 import { useLoaderData } from "react-router";
 import { NewsListing } from "~/components/news/NewsListing";
 import { loadNewsListingData } from "~/lib/news-listing.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "News - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "NL Tech News & Updates",
+    description: "News, announcements, and updates from the tech scene in Newfoundland & Labrador.",
+    url: "/news",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

@@ -6,9 +6,14 @@ import { parseProjectLinks } from "~/lib/project-links";
 import type { ProjectType, ProjectStatus } from "~/db/schema";
 import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
 import { parsePublicListParams } from "~/lib/public-query.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Projects - Directory - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "Tech Projects from St. John's, NL",
+    description: "Open source and community tech projects from developers in St. John's, Newfoundland & Labrador.",
+    url: "/directory/projects",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

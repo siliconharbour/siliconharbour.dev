@@ -10,23 +10,26 @@ import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
+import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
 export function meta({ data, params }: Route.MetaArgs) {
-  const title = data?.article?.title ?? "News";
-  const siteUrl = "https://siliconharbour.dev";
-  const ogImageUrl = `${siteUrl}/news/${params.slug}.png`;
+  const article = data?.article;
+  const title = article?.title ?? "News";
+  const description = article?.excerpt
+    ? stripMarkdown(article.excerpt)
+    : article?.content
+      ? stripMarkdown(article.content)
+      : `${title} — NL tech news from siliconharbour.dev.`;
+  const slug = params.slug ?? "";
+  const ogImageUrl = `https://siliconharbour.dev/news/${slug}.png`;
 
-  return [
-    { title: `${title} - siliconharbour.dev` },
-    { property: "og:title", content: title },
-    { property: "og:type", content: "article" },
-    { property: "og:image", content: ogImageUrl },
-    { property: "og:image:width", content: "1200" },
-    { property: "og:image:height", content: "630" },
-    { name: "twitter:card", content: "summary_large_image" },
-    { name: "twitter:title", content: title },
-    { name: "twitter:image", content: ogImageUrl },
-  ];
+  return buildSeoMeta({
+    title,
+    description,
+    url: `/news/${slug}`,
+    ogImage: ogImageUrl,
+    ogType: "article",
+  });
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {

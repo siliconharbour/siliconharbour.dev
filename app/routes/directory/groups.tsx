@@ -4,9 +4,14 @@ import { getPaginatedGroups } from "~/lib/groups.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
 import { parsePublicListParams } from "~/lib/public-query.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Groups - Directory - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "Tech Groups & Meetups in St. John's, NL",
+    description: "Community tech groups, meetups, and organizations in St. John's, Newfoundland. Find local developer groups, clubs, and tech communities.",
+    url: "/directory/groups",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

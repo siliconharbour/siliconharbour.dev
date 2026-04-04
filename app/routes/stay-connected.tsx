@@ -1,15 +1,14 @@
 import type { Route } from "./+types/stay-connected";
 import { useState } from "react";
 import { useLoaderData } from "react-router";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Stay Connected - siliconharbour.dev" },
-    {
-      name: "description",
-      content: "Subscribe to the St. John's tech community calendar, RSS feeds, and more.",
-    },
-  ];
+  return buildSeoMeta({
+    title: "Stay Connected with St. John's Tech",
+    description: "Subscribe to the St. John's tech community calendar, RSS feeds, newsletter, and MCP server. Never miss a local tech event or update.",
+    url: "/stay-connected",
+  });
 }
 
 export async function loader({}: Route.LoaderArgs) {

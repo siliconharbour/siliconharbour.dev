@@ -4,9 +4,14 @@ import { getPaginatedEducation } from "~/lib/education.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
 import { parsePublicListParams } from "~/lib/public-query.server";
+import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Education - Directory - siliconharbour.dev" }];
+  return buildSeoMeta({
+    title: "Tech Education in Newfoundland & Labrador",
+    description: "Universities, colleges, bootcamps, and tech education programs in Newfoundland & Labrador.",
+    url: "/directory/education",
+  });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
