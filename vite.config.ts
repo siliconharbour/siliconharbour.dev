@@ -6,6 +6,7 @@ import mdx from "@mdx-js/rollup";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
+import rehypePrettyCode from "rehype-pretty-code";
 
 export default defineConfig({
   plugins: [
@@ -18,6 +19,15 @@ export default defineConfig({
           remarkGfm,
           remarkFrontmatter,
           [remarkMdxFrontmatter, { name: "frontmatter" }],
+        ],
+        rehypePlugins: [
+          [
+            rehypePrettyCode,
+            {
+              theme: "github-light",
+              keepBackground: false,
+            },
+          ],
         ],
       }),
     },

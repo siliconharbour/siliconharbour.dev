@@ -128,6 +128,36 @@ a:focus {
   @apply font-semibold text-harbour-700;
 }
 
+/* Code blocks — rehype-pretty-code output */
+.prose pre {
+  @apply bg-harbour-50 border border-harbour-200 overflow-x-auto my-6;
+  padding: 1rem 1.25rem;
+}
+
+.prose pre code {
+  @apply text-sm font-mono bg-transparent p-0 border-0;
+  counter-reset: none;
+}
+
+/* Inline code */
+.prose :not(pre) > code {
+  @apply bg-harbour-100 text-harbour-700 text-sm font-mono px-1.5 py-0.5;
+}
+
+/* rehype-pretty-code wraps blocks in a figure */
+.prose figure[data-rehype-pretty-code-figure] {
+  @apply my-6;
+}
+
+.prose figure[data-rehype-pretty-code-figure] pre {
+  @apply my-0;
+}
+
+/* Language label above the code block */
+.prose figcaption[data-rehype-pretty-code-title] {
+  @apply text-xs text-harbour-400 bg-harbour-100 border border-b-0 border-harbour-200 px-3 py-1.5 font-mono;
+}
+
 .prose table {
   @apply w-full text-sm my-6 border-collapse;
 }
