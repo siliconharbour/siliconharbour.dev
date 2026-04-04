@@ -128,6 +128,22 @@ a:focus {
   @apply font-semibold text-harbour-700;
 }
 
+.prose table {
+  @apply w-full text-sm my-6 border-collapse;
+}
+
+.prose th {
+  @apply text-left px-3 py-2 bg-harbour-50 font-medium text-harbour-600 border border-harbour-200;
+}
+
+.prose td {
+  @apply px-3 py-2 border border-harbour-200 text-harbour-700 align-top;
+}
+
+.prose tr:nth-child(even) td {
+  @apply bg-harbour-50/50;
+}
+
 .prose a {
   @apply text-harbour-600 underline decoration-harbour-200 underline-offset-2 transition-colors;
 }
