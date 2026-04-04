@@ -1,0 +1,11 @@
+/* TEAM */
+Creator: Jack Harrhy
+Site: https://jackharrhy.dev/
+Location: St. John's, Newfoundland & Labrador, Canada
+
+/* SITE */
+Name: siliconharbour.dev
+Description: A community directory for the tech scene in St. John's, NL.
+Language: English
+Source: https://github.com/siliconharbour/siliconharbour.dev
+Contact: admin [at] siliconharbour [dot] dev
