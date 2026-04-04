@@ -16,6 +16,10 @@ export default [
   route("news.rss", "routes/news-rss.tsx"),
   route("jobs.rss", "routes/jobs-rss.tsx"),
 
+  // Sitemap
+  route("sitemap.xml", "routes/sitemap-xml.tsx"),
+  route("sitemap", "routes/sitemap.tsx"),
+
   // LLM-friendly markdown endpoints
   route("llms.txt", "routes/llms-txt.tsx"),
   route("index.md", "routes/home.md.tsx"),
