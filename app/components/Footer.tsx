@@ -16,6 +16,9 @@ export function Footer() {
           <Link to="/api" className="link-inline hover:text-harbour-600">
             API
           </Link>
+          <Link to="/sitemap" className="link-inline hover:text-harbour-600">
+            Sitemap
+          </Link>
           <Link to="/manage/login" className="link-inline hover:text-harbour-600">
             Admin
           </Link>
