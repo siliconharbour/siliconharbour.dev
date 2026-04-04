@@ -4,7 +4,7 @@ import { searchSpec } from "./search.js";
 import { runInSandbox } from "./sandbox.js";
 import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
 
-export async function createMcpServer(): Promise<McpServer> {
+export async function createMcpServer(authenticated = false): Promise<McpServer> {
   const server = new McpServer({
     name: "siliconharbour",
     version: "1.0.0",
@@ -67,8 +67,8 @@ export async function createMcpServer(): Promise<McpServer> {
     },
   );
 
-  // ── Tool 3: execute ─────────────────────────────────────────────────
-  server.registerTool(
+  // ── Tool 3: execute (authenticated sessions only) ───────────────────
+  if (authenticated) server.registerTool(
     "execute",
     {
       title: "Execute authenticated SiliconHarbour actions",

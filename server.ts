@@ -46,7 +46,9 @@ app.post("/mcp", async (req, res) => {
       return;
     }
 
-    const server = await createMcpServer();
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, "");
+    const authenticated = !!(process.env.MCP_API_TOKEN && token === process.env.MCP_API_TOKEN);
+    const server = await createMcpServer(authenticated);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
     });
