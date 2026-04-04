@@ -335,9 +335,9 @@ export default function Home() {
                     {jobs.map((job) => (
                       <a
                         key={job.id}
-                        href={job.slug ? `/jobs/${job.slug}` : job.url || "#"}
-                        target={job.slug ? undefined : "_blank"}
-                        rel={job.slug ? undefined : "noopener noreferrer"}
+                        href={job.url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         <div className="flex items-center gap-5">

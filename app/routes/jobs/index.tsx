@@ -272,9 +272,9 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
         {jobs.map((job) => (
           <a
             key={job.id}
-            href={job.slug ? `/jobs/${job.slug}` : job.url || "#"}
-            target={job.slug ? undefined : "_blank"}
-            rel={job.slug ? undefined : "noopener noreferrer"}
+            href={job.url || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
             className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 hover:bg-harbour-50 transition-colors"
           >
             <div className="flex flex-col gap-1">
