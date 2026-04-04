@@ -77,21 +77,6 @@ Public access — no token needed:
 }
 ```
 
-The `execute` tool (for triggering import syncs and reviewing pending items) requires a Bearer token provided by the site owner. Authenticated access:
-
-```json
-{
-  "mcpServers": {
-    "siliconharbour": {
-      "url": "https://siliconharbour.dev/mcp",
-      "headers": {
-        "Authorization": "Bearer <your-token>"
-      }
-    }
-  }
-}
-```
-
 ### Example queries
 
 ```js
@@ -114,7 +99,11 @@ const [upcoming, cos, grps] = await Promise.all([
   companies({ limit: 5 }),
   groups({ limit: 5 }),
 ])
-export default { upcoming: upcoming.length, companies: cos.map(c => c.name), groups: grps.map(g => g.name) }
+export default {
+  upcoming: upcoming.length,
+  companies: cos.map(c => c.name),
+  groups: grps.map(g => g.name)
+}
 ```
 
 ## Feeds

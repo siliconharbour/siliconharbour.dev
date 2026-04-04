@@ -138,9 +138,7 @@ export default function SubscribePage() {
           <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener noreferrer">
             MCP
           </a>
-          , you can connect it directly to siliconharbour.dev. It can answer questions about
-          upcoming events, local companies, job postings, community groups, and more — all from
-          live data.
+          , you can connect it directly to siliconharbour.dev.
         </p>
 
         <p>
@@ -150,8 +148,7 @@ export default function SubscribePage() {
         <CopyUrlCard url="https://siliconharbour.dev/mcp" label="MCP endpoint" />
 
         <p>
-          See the <a href="/api">API docs</a> for full details including example queries and
-          authenticated access for import sync actions.
+          See the <a href="/api">API docs</a> for full details including example queries.
         </p>
       </article>
     </div>
