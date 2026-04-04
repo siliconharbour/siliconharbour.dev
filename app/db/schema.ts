@@ -283,7 +283,7 @@ export const jobs = sqliteTable(
     sourceType: text("source_type", { enum: jobSourceTypes }).default("imported"),
     externalId: text("external_id"), // ID from the ATS (null for manual)
     // Core job fields
-    slug: text("slug"), // for URL generation
+    slug: text("slug").notNull().unique(), // for URL generation
     title: text("title").notNull(),
     location: text("location"),
     department: text("department"),
