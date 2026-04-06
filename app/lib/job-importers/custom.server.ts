@@ -30,6 +30,7 @@ import { scrapeAkerSolutions } from "./custom/aker-solutions";
 import { scrapeDataFarms } from "./custom/data-farms";
 import { scrapeDigitalSix } from "./custom/digital-six";
 import { scrapeCanadianBloodServices } from "./custom/canadian-blood-services";
+import { scrapeVerlo } from "./custom/verlo";
 
 /**
  * Registry of custom scrapers by company identifier
@@ -50,6 +51,7 @@ const scrapers: Record<string, CustomScraper> = {
   "data-farms": (careersUrl: string) => scrapeDataFarms(careersUrl),
   "digital-six-consulting": () => scrapeDigitalSix(),
   "canadian-blood-services": (careersUrl: string) => scrapeCanadianBloodServices(careersUrl),
+  verlo: (careersUrl: string) => scrapeVerlo(careersUrl),
 };
 
 export const customImporter: JobImporter = {
