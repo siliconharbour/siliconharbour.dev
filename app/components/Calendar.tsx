@@ -2,7 +2,6 @@ import { useDatePicker } from "@rehookify/datepicker";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { isSameDay, addMonths, subMonths, format } from "date-fns";
 import { useNavigate } from "react-router";
-import type { Event, EventDate } from "~/db/schema";
 import { formatInTimezone } from "~/lib/timezone";
 
 /**
@@ -16,7 +15,6 @@ interface CalendarEventData {
 }
 
 type CalendarProps = {
-  events: (Event & { dates: EventDate[] })[];
   /** If true, clicking a date navigates to event(s). Default: true */
   navigateOnClick?: boolean;
   /** If true, always filter by date even for single events. Default: false */
@@ -26,7 +24,6 @@ type CalendarProps = {
 };
 
 export function Calendar({
-  events,
   navigateOnClick = true,
   alwaysFilterByDate = false,
   onDateClick,
@@ -37,21 +34,10 @@ export function Calendar({
   const [loading, setLoading] = useState(false);
 
   // Cache: month key "YYYY-MM" -> CalendarEventData[]
-  const [monthCache, setMonthCache] = useState<Record<string, CalendarEventData[]>>(() => {
-    // Seed cache with initial server data for the current month
-    const now = new Date();
-    const currentMonthKey = format(now, "yyyy-MM");
-    const initialData: CalendarEventData[] = events.map((event) => ({
-      id: event.id,
-      slug: event.slug,
-      title: event.title,
-      dates: event.dates.map((d) => {
-        const startDate = d.startDate instanceof Date ? d.startDate : new Date(d.startDate);
-        return formatInTimezone(startDate, "yyyy-MM-dd");
-      }),
-    }));
-    return { [currentMonthKey]: initialData };
-  });
+  // Not pre-seeded — the useEffect below fetches the full month data from
+  // /api/calendar-events on mount, which includes past events in the current
+  // month (unlike getUpcomingEvents() which only returns future dates).
+  const [monthCache, setMonthCache] = useState<Record<string, CalendarEventData[]>>({});
 
   const currentMonthKey = format(offsetDate, "yyyy-MM");
 

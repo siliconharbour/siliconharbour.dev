@@ -388,7 +388,7 @@ export default function Home() {
             <aside className="lg:col-span-1">
               <div className="sticky top-8 flex flex-col gap-6">
                 {/* Calendar */}
-                {visibility.events && <Calendar events={allEvents} />}
+                {visibility.events && <Calendar />}
               </div>
             </aside>
           </div>

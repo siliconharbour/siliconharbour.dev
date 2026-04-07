@@ -1,6 +1,6 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
-import { getPaginatedEvents, getUpcomingEvents } from "~/lib/events.server";
+import { getPaginatedEvents } from "~/lib/events.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { Pagination } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
@@ -25,10 +25,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
 
-  const [paginatedResult, allEvents] = await Promise.all([
-    getPaginatedEvents(limit, offset, searchQuery, filter, dateFilter),
-    getUpcomingEvents(), // For calendar display
-  ]);
+  const paginatedResult = await getPaginatedEvents(limit, offset, searchQuery, filter, dateFilter);
 
   return {
     events: paginatedResult.items,
@@ -38,13 +35,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     searchQuery,
     filter,
     dateFilter,
-    allEvents,
     isAdmin,
   };
 }
 
 export default function EventsIndex() {
-  const { events, total, limit, offset, searchQuery, filter, dateFilter, allEvents, isAdmin } =
+  const { events, total, limit, offset, searchQuery, filter, dateFilter, isAdmin } =
     useLoaderData<typeof loader>();
 
   // Format the date filter for display
@@ -173,7 +169,7 @@ export default function EventsIndex() {
         <aside className="lg:col-span-1">
           <div className="sticky top-8">
             <div className="ring-1 ring-harbour-200/50">
-              <Calendar events={allEvents} alwaysFilterByDate />
+              <Calendar alwaysFilterByDate />
             </div>
           </div>
         </aside>
