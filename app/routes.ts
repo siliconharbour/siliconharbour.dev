@@ -225,5 +225,9 @@ export default [
       route("events/:sourceId", "routes/manage/import/events.$sourceId.tsx"),
     ]),
     route("export", "routes/manage/export.tsx"),
+    ...prefix("discord", [
+      route("events", "routes/manage/discord/events.tsx"),
+      route("jobs", "routes/manage/discord/jobs.tsx"),
+    ]),
   ]),
 ] satisfies RouteConfig;

@@ -37,7 +37,7 @@ export function buildEventsMessage(
     const subtitle = parts.join(" \u2022 ");
 
     // Truncate description to ~150 chars for the preview
-    const desc = (event.description || "").replace(/[#*_~`>\[\]]/g, "").trim();
+    const desc = (event.description || "").replace(/[#*_~`>[\]]/g, "").trim();
     const shortDesc = desc.length > 150 ? desc.slice(0, 147) + "..." : desc;
     const textContent = `**${event.title}**\n${subtitle}${shortDesc ? `\n${shortDesc}` : ""}`;
 
