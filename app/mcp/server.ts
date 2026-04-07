@@ -85,16 +85,9 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
           .describe(
             "JavaScript module with 'export default'. Can import any siliconharbour function.",
           ),
-        apiToken: z.string().describe("Bearer token matching MCP_API_TOKEN env var"),
       },
     },
-    async ({ code, apiToken }) => {
-      if (!process.env.MCP_API_TOKEN || apiToken !== process.env.MCP_API_TOKEN) {
-        return {
-          content: [{ type: "text", text: "Error: Invalid or missing apiToken" }],
-          isError: true,
-        };
-      }
+    async ({ code }) => {
       try {
         const result = await runInSandbox(code, buildExecuteFunctions(), 60_000);
         if (result.ok) {
