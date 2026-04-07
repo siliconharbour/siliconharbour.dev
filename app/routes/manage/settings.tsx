@@ -1,11 +1,13 @@
 import type { Route } from "./+types/settings";
-import { Form, Link, useLoaderData } from "react-router";
+import { Form, Link, useLoaderData, useFetcher } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import {
   getSectionVisibility,
   updateSectionVisibility,
   getCommentVisibility,
   updateCommentVisibility,
+  getDiscordConfig,
+  updateDiscordConfig,
   type SectionVisibility,
   type CommentVisibility,
 } from "~/lib/config.server";
@@ -17,32 +19,55 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const [visibility, commentVisibility] = await Promise.all([
+  const [visibility, commentVisibility, discordConfig] = await Promise.all([
     getSectionVisibility(),
     getCommentVisibility(),
+    getDiscordConfig(),
   ]);
-  return { visibility, commentVisibility };
+  return { visibility, commentVisibility, discordConfig };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
   const formData = await request.formData();
 
+  const intent = formData.get("intent");
+  if (intent === "test-discord") {
+    const token = formData.get("discord_bot_token");
+    if (!token || typeof token !== "string") {
+      return { success: false, discordTest: { valid: false, error: "No token provided" } };
+    }
+    const { verifyBotToken } = await import("~/lib/discord.server");
+    const result = await verifyBotToken(token);
+    return { success: false, discordTest: result };
+  }
+
   const sectionUpdates: Partial<SectionVisibility> = {};
   for (const section of sectionKeys) {
-    // Checkbox is only present in form data if checked
     sectionUpdates[section] = formData.has(section);
   }
 
   const commentUpdates: Partial<CommentVisibility> = {};
   for (const contentType of commentableKeys) {
-    // Checkbox is only present in form data if checked
     commentUpdates[contentType] = formData.has(`comments_${contentType}`);
   }
+
+  const discordUpdates: Partial<{
+    botToken: string;
+    eventsChannelId: string;
+    jobsChannelId: string;
+  }> = {};
+  const botToken = formData.get("discord_bot_token");
+  const eventsChannelId = formData.get("discord_events_channel_id");
+  const jobsChannelId = formData.get("discord_jobs_channel_id");
+  if (typeof botToken === "string") discordUpdates.botToken = botToken;
+  if (typeof eventsChannelId === "string") discordUpdates.eventsChannelId = eventsChannelId;
+  if (typeof jobsChannelId === "string") discordUpdates.jobsChannelId = jobsChannelId;
 
   await Promise.all([
     updateSectionVisibility(sectionUpdates),
     updateCommentVisibility(commentUpdates),
+    updateDiscordConfig(discordUpdates),
   ]);
   return { success: true };
 }
@@ -90,7 +115,9 @@ const commentableDescriptions: Record<CommentableKey, string> = {
 };
 
 export default function Settings() {
-  const { visibility, commentVisibility } = useLoaderData<typeof loader>();
+  const { visibility, commentVisibility, discordConfig } = useLoaderData<typeof loader>();
+  const testFetcher = useFetcher();
+  const discordTestResult = (testFetcher.data as any)?.discordTest;
 
   return (
     <div className="min-h-screen p-6">
@@ -163,6 +190,92 @@ export default function Settings() {
                   </div>
                 </label>
               ))}
+            </div>
+          </div>
+
+          <div className="bg-white border border-harbour-200 p-6">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Discord</h2>
+            <p className="text-sm text-harbour-400 mb-6">
+              Configure the Discord bot for posting event and job roundups to your server.
+            </p>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="discord_bot_token"
+                  className="font-medium text-harbour-700 text-sm"
+                >
+                  Bot Token
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    id="discord_bot_token"
+                    name="discord_bot_token"
+                    defaultValue={discordConfig.botToken}
+                    placeholder="Enter Discord bot token"
+                    className="flex-1 px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tokenInput = document.getElementById(
+                        "discord_bot_token"
+                      ) as HTMLInputElement;
+                      const formData = new FormData();
+                      formData.set("intent", "test-discord");
+                      formData.set("discord_bot_token", tokenInput?.value ?? "");
+                      testFetcher.submit(formData, { method: "post" });
+                    }}
+                    className="px-3 py-2 text-sm border border-harbour-200 text-harbour-600 hover:bg-harbour-50 transition-colors whitespace-nowrap"
+                  >
+                    {testFetcher.state === "submitting" ? "Testing..." : "Test Connection"}
+                  </button>
+                </div>
+                {discordTestResult && (
+                  <p
+                    className={`text-sm ${discordTestResult.valid ? "text-green-700" : "text-red-700"}`}
+                  >
+                    {discordTestResult.valid
+                      ? `Connected as ${discordTestResult.username}`
+                      : `Connection failed: ${discordTestResult.error || "Invalid token"}`}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="discord_events_channel_id"
+                  className="font-medium text-harbour-700 text-sm"
+                >
+                  Events Channel ID
+                </label>
+                <input
+                  type="text"
+                  id="discord_events_channel_id"
+                  name="discord_events_channel_id"
+                  defaultValue={discordConfig.eventsChannelId}
+                  placeholder="e.g., 1234567890123456789"
+                  className="px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label
+                  htmlFor="discord_jobs_channel_id"
+                  className="font-medium text-harbour-700 text-sm"
+                >
+                  Jobs Channel ID
+                </label>
+                <input
+                  type="text"
+                  id="discord_jobs_channel_id"
+                  name="discord_jobs_channel_id"
+                  defaultValue={discordConfig.jobsChannelId}
+                  placeholder="e.g., 1234567890123456789"
+                  className="px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
+                />
+              </div>
             </div>
           </div>
 

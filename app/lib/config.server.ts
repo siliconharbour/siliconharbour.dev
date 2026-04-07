@@ -143,3 +143,55 @@ export async function updateCommentVisibility(updates: Partial<CommentVisibility
     }
   }
 }
+
+// =============================================================================
+// Discord configuration
+// =============================================================================
+
+const DISCORD_PREFIX = "discord_";
+
+export interface DiscordConfig {
+  botToken: string;
+  eventsChannelId: string;
+  jobsChannelId: string;
+}
+
+/**
+ * Get Discord configuration
+ */
+export async function getDiscordConfig(): Promise<DiscordConfig> {
+  const results = await db.select().from(siteConfig).all();
+  const configMap = new Map(results.map((r) => [r.key, r.value]));
+
+  return {
+    botToken: configMap.get(`${DISCORD_PREFIX}bot_token`) ?? "",
+    eventsChannelId: configMap.get(`${DISCORD_PREFIX}events_channel_id`) ?? "",
+    jobsChannelId: configMap.get(`${DISCORD_PREFIX}jobs_channel_id`) ?? "",
+  };
+}
+
+/**
+ * Update Discord configuration
+ */
+export async function updateDiscordConfig(
+  config: Partial<DiscordConfig>
+): Promise<void> {
+  const keyMap: Record<string, string> = {
+    botToken: "bot_token",
+    eventsChannelId: "events_channel_id",
+    jobsChannelId: "jobs_channel_id",
+  };
+
+  for (const [prop, value] of Object.entries(config)) {
+    const dbKey = keyMap[prop];
+    if (!dbKey) continue;
+    const key = `${DISCORD_PREFIX}${dbKey}`;
+    await db
+      .insert(siteConfig)
+      .values({ key, value: value as string })
+      .onConflictDoUpdate({
+        target: siteConfig.key,
+        set: { value: value as string, updatedAt: new Date() },
+      });
+  }
+}
