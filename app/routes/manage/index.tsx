@@ -236,6 +236,30 @@ export default function ManageIndex() {
         </div>
 
         <div className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-harbour-700">Discord</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Link
+              to="/manage/discord/events"
+              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
+            >
+              <h3 className="font-medium text-harbour-700">Post Events</h3>
+              <p className="text-harbour-400 text-sm">
+                Compose and post event roundups to Discord
+              </p>
+            </Link>
+            <Link
+              to="/manage/discord/jobs"
+              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
+            >
+              <h3 className="font-medium text-harbour-700">Post Jobs</h3>
+              <p className="text-harbour-400 text-sm">
+                Compose and post job roundups to Discord
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Maintenance Tools</h2>
           <div className="p-4 bg-white border border-harbour-200 flex flex-col gap-3">
             <div className="flex flex-col gap-1">
