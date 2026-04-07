@@ -741,6 +741,56 @@ export const jobTechnologyMentions = sqliteTable(
 );
 
 // =============================================================================
+// Discord integration
+// =============================================================================
+
+export const discordChannelTypes = ["events", "jobs"] as const;
+export type DiscordChannelType = (typeof discordChannelTypes)[number];
+
+export const discordPostItemTypes = ["event", "job"] as const;
+export type DiscordPostItemType = (typeof discordPostItemTypes)[number];
+
+export const discordPosts = sqliteTable("discord_posts", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  channelType: text("channel_type", { enum: discordChannelTypes }).notNull(),
+  discordMessageId: text("discord_message_id"),
+  discordChannelId: text("discord_channel_id").notNull(),
+  introText: text("intro_text"),
+  postedAt: integer("posted_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const discordPostItems = sqliteTable(
+  "discord_post_items",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    discordPostId: integer("discord_post_id")
+      .notNull()
+      .references(() => discordPosts.id, { onDelete: "cascade" }),
+    itemType: text("item_type", { enum: discordPostItemTypes }).notNull(),
+    eventId: integer("event_id").references(() => events.id, {
+      onDelete: "set null",
+    }),
+    jobId: integer("job_id").references(() => jobs.id, { onDelete: "set null" }),
+    skipped: integer("skipped", { mode: "boolean" }).notNull().default(false),
+  },
+  (table) => ({
+    eventIdIdx: index("discord_post_items_event_id_idx").on(table.eventId),
+    jobIdIdx: index("discord_post_items_job_id_idx").on(table.jobId),
+    discordPostIdIdx: index("discord_post_items_discord_post_id_idx").on(
+      table.discordPostId
+    ),
+  })
+);
+
+export type DiscordPost = typeof discordPosts.$inferSelect;
+export type NewDiscordPost = typeof discordPosts.$inferInsert;
+export type DiscordPostItem = typeof discordPostItems.$inferSelect;
+export type NewDiscordPostItem = typeof discordPostItems.$inferInsert;
+
+// =============================================================================
 // Type exports
 // =============================================================================
 
