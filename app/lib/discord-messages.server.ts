@@ -12,6 +12,7 @@ export interface JobForDiscord {
   workplaceType: string | null;
   companyName: string | null;
   isTechnical: boolean;
+  url: string | null;
 }
 
 /**
@@ -129,18 +130,18 @@ export function buildJobsMessage(
     const subtitle = parts.join(" \u2022 ");
     const textContent = `**${job.title}**${subtitle ? `\n${subtitle}` : ""}`;
 
-    const jobUrl = `${SITE_URL}/jobs/${job.slug}`;
+    const jobUrl = job.url || `${SITE_URL}/jobs/${job.slug}`;
 
     innerComponents.push({ type: 10, content: textContent });
 
-    // Link button
+    // Link button -- points to external application page
     innerComponents.push({
       type: 1,
       components: [
         {
           type: 2,
           style: 5,
-          label: "View Job",
+          label: "Apply",
           url: jobUrl,
         },
       ],

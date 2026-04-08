@@ -111,6 +111,7 @@ export async function action({ request }: Route.ActionArgs) {
       workplaceType: j.workplaceType,
       companyName: j.companyName,
       isTechnical: j.isTechnical,
+      url: j.url,
     }));
 
     const components = buildJobsMessage(jobsForMessage, introText || undefined);
