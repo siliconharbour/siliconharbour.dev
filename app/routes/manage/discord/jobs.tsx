@@ -50,6 +50,27 @@ export async function action({ request }: Route.ActionArgs) {
     };
   }
 
+  if (intent === "skip-old") {
+    const allUnposted = await getUnpostedJobs();
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const oldJobs = allUnposted.filter((j) => {
+      const jobDate = j.postedAt || j.firstSeenAt || j.createdAt;
+      return jobDate < oneWeekAgo;
+    });
+
+    if (oldJobs.length === 0) {
+      return { error: "No jobs older than a week to skip" };
+    }
+
+    await skipItems({
+      channelType: "jobs",
+      discordChannelId: config.jobsChannelId,
+      itemIds: oldJobs.map((j) => j.id),
+      itemType: "job",
+    });
+    return { success: true, skippedOld: oldJobs.length };
+  }
+
   if (intent === "skip") {
     const jobId = Number(formData.get("jobId"));
     if (!jobId) return { error: "Invalid job ID" };
@@ -124,6 +145,15 @@ export default function DiscordJobs() {
   const isPosting =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "post";
+  const isSkippingOld =
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") === "skip-old";
+
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const oldJobCount = jobs.filter((j) => {
+    const jobDate = j.postedAt || j.createdAt;
+    return new Date(jobDate) < oneWeekAgo;
+  }).length;
 
   return (
     <div className="min-h-screen p-6">
@@ -185,6 +215,12 @@ export default function DiscordJobs() {
           </div>
         )}
 
+        {actionData && "skippedOld" in actionData && actionData.skippedOld && (
+          <div className="p-4 bg-harbour-50 border border-harbour-200 text-harbour-600 text-sm">
+            Skipped {actionData.skippedOld} job{actionData.skippedOld !== 1 ? "s" : ""} older than a week.
+          </div>
+        )}
+
         {configured && jobs.length === 0 && (
           <div className="p-6 bg-white border border-harbour-200 text-harbour-400 text-sm text-center">
             No unposted active jobs. All caught up!
@@ -197,9 +233,25 @@ export default function DiscordJobs() {
 
             <div className="flex flex-col gap-4">
               <div className="bg-white border border-harbour-200 p-6">
-                <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-                  Unposted Jobs ({jobs.length})
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-harbour-700">
+                    Unposted Jobs ({jobs.length})
+                  </h2>
+                  {oldJobCount > 0 && (
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="skip-old" />
+                      <button
+                        type="submit"
+                        disabled={isSkippingOld}
+                        className="text-xs px-3 py-1.5 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors disabled:opacity-60"
+                      >
+                        {isSkippingOld
+                          ? "Skipping..."
+                          : `Skip ${oldJobCount} older than a week`}
+                      </button>
+                    </Form>
+                  )}
+                </div>
 
                 <div className="flex flex-col gap-2">
                   {jobs.map((job) => (
@@ -222,6 +274,9 @@ export default function DiscordJobs() {
                           {[job.companyName, job.location, job.workplaceType]
                             .filter(Boolean)
                             .join(" \u2022 ")}
+                          {job.postedAt && (
+                            <> \u2022 {format(new Date(job.postedAt), "MMM d")}</>
+                          )}
                         </span>
                       </div>
                       <Form method="post" className="flex-shrink-0">
