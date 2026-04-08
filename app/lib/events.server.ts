@@ -16,7 +16,9 @@ import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences, syncOrganizerReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
 import { parseRecurrenceRule, generateOccurrences } from "./recurrence.server";
-import { parseAsTimezone, getDateInTimezone } from "./timezone";
+import { parseAsTimezone, getDateInTimezone, SITE_TIMEZONE } from "./timezone";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
+import { startOfDay } from "date-fns";
 
 export type EventWithDates = Event & { dates: EventDate[] };
 
@@ -423,31 +425,80 @@ export async function getEventsForMonth(
 
 export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   const now = new Date();
-  const weekFromNow = new Date();
-  weekFromNow.setDate(weekFromNow.getDate() + 7);
 
+  // Use start-of-today in Newfoundland time so events earlier today still appear
+  const zonedNow = toZonedTime(now, SITE_TIMEZONE);
+  const zonedStartOfDay = startOfDay(zonedNow);
+  const todayStart = fromZonedTime(zonedStartOfDay, SITE_TIMEZONE);
+
+  const weekFromNow = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  // 1) One-off events with dates in the window
   const eventIdsThisWeek = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(and(gte(eventDates.startDate, now), lte(eventDates.startDate, weekFromNow)));
+    .where(and(gte(eventDates.startDate, todayStart), lte(eventDates.startDate, weekFromNow)));
 
-  if (eventIdsThisWeek.length === 0) return [];
+  // 2) Recurring events that generate occurrences in the window
+  const recurringRows = await db
+    .select()
+    .from(events)
+    .where(
+      and(
+        isPubliclyVisible,
+        or(
+          // Has a recurrence rule that's non-empty
+          and(
+            gte(events.recurrenceRule, ""),
+            or(isNull(events.recurrenceEnd), gte(events.recurrenceEnd, todayStart)),
+          ),
+        ),
+      ),
+    );
+  const recurringThisWeek = recurringRows
+    .filter((e) => e.recurrenceRule)
+    .filter((e) => {
+      const occurrences = getGeneratedOccurrences(e, todayStart, weekFromNow);
+      return occurrences.length > 0;
+    });
+
+  const allIds = new Set([
+    ...eventIdsThisWeek.map((r) => r.eventId),
+    ...recurringThisWeek.map((e) => e.id),
+  ]);
+
+  if (allIds.size === 0) return [];
 
   const eventsWithDates = await Promise.all(
-    eventIdsThisWeek.map(async ({ eventId }) => {
+    [...allIds].map(async (eventId) => {
       return getEventById(eventId);
     }),
   );
 
-  return eventsWithDates
+  // For recurring events, generate synthetic dates so they sort correctly
+  const result = eventsWithDates
     .filter((e): e is EventWithDates => e !== null)
     .filter((e) => e.importStatus === null || e.importStatus === "published")
-    .sort((a, b) => {
-      const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
-      const bNext = b.dates.find((d) => d.startDate >= now)?.startDate;
-      if (!aNext || !bNext) return 0;
-      return aNext.getTime() - bNext.getTime();
+    .map((event) => {
+      if (event.recurrenceRule && event.dates.length === 0) {
+        const occurrences = getGeneratedOccurrences(event, todayStart, weekFromNow);
+        const syntheticDates: EventDate[] = occurrences.slice(0, 3).map((date, i) => ({
+          id: -(i + 1),
+          eventId: event.id,
+          startDate: date,
+          endDate: null,
+        }));
+        return { ...event, dates: syntheticDates };
+      }
+      return event;
     });
+
+  return result.sort((a, b) => {
+    const aNext = a.dates.find((d) => d.startDate >= todayStart)?.startDate;
+    const bNext = b.dates.find((d) => d.startDate >= todayStart)?.startDate;
+    if (!aNext || !bNext) return 0;
+    return aNext.getTime() - bNext.getTime();
+  });
 }
 
 export async function getEventsByMonth(year: number, month: number): Promise<EventWithDates[]> {
