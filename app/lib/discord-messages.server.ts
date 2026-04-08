@@ -5,12 +5,13 @@ import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.se
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";
 const ACCENT_COLOR = 0x2b51d1; // harbour-600
 
-interface JobForDiscord {
+export interface JobForDiscord {
   slug: string;
   title: string;
   location: string | null;
   workplaceType: string | null;
   companyName: string | null;
+  isTechnical: boolean;
 }
 
 /**
@@ -95,11 +96,18 @@ export function buildEventsMessage(
 
 /**
  * Build Components v2 payload for a jobs roundup message.
+ *
+ * Technical jobs get full treatment (title, subtitle, link button each).
+ * Non-technical jobs are grouped into a compact "Also hiring" section
+ * at the bottom with just title + company as a bullet list.
  */
 export function buildJobsMessage(
   jobs: JobForDiscord[],
   introText?: string
 ): object[] {
+  const technicalJobs = jobs.filter((j) => j.isTechnical);
+  const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
+
   const innerComponents: object[] = [];
 
   // Intro text
@@ -108,7 +116,8 @@ export function buildJobsMessage(
     innerComponents.push({ type: 14, spacing: 1 });
   }
 
-  jobs.forEach((job, index) => {
+  // Technical jobs: full treatment
+  technicalJobs.forEach((job, index) => {
     const parts: string[] = [];
     if (job.companyName) parts.push(job.companyName);
     if (job.location) parts.push(job.location);
@@ -137,11 +146,38 @@ export function buildJobsMessage(
       ],
     });
 
-    // Separator between jobs (not after the last one)
-    if (index < jobs.length - 1) {
+    // Separator between technical jobs (not after the last one if no non-technical follow)
+    if (index < technicalJobs.length - 1) {
       innerComponents.push({ type: 14, spacing: 1 });
     }
   });
+
+  // Non-technical jobs: compact grouped section
+  if (nonTechnicalJobs.length > 0) {
+    if (technicalJobs.length > 0) {
+      innerComponents.push({ type: 14, spacing: 2 });
+    }
+
+    const lines = nonTechnicalJobs.map((job) => {
+      const company = job.companyName ? ` - ${job.companyName}` : "";
+      return `${job.title}${company}`;
+    });
+    const listContent = `**Also hiring**\n${lines.join("\n")}`;
+    innerComponents.push({ type: 10, content: listContent });
+
+    // Single link to the jobs page
+    innerComponents.push({
+      type: 1,
+      components: [
+        {
+          type: 2,
+          style: 5,
+          label: "View All Jobs",
+          url: `${SITE_URL}/jobs`,
+        },
+      ],
+    });
+  }
 
   // Wrap in a Container with accent color
   return [

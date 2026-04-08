@@ -110,6 +110,7 @@ export async function action({ request }: Route.ActionArgs) {
       location: j.location,
       workplaceType: j.workplaceType,
       companyName: j.companyName,
+      isTechnical: j.isTechnical,
     }));
 
     const components = buildJobsMessage(jobsForMessage, introText || undefined);
@@ -138,6 +139,48 @@ export async function action({ request }: Route.ActionArgs) {
   return { error: "Unknown action" };
 }
 
+function JobRow({ job }: { job: { id: number; title: string; companyName: string | null; location: string | null; workplaceType: string | null; isTechnical: boolean; postedAt: Date | null } }) {
+  return (
+    <div className="flex items-start gap-4 p-4 border border-harbour-100">
+      <input
+        type="checkbox"
+        name="selectedJobs"
+        value={job.id}
+        defaultChecked
+        className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
+      />
+      <div className="flex-1 flex flex-col gap-1">
+        <span className="font-medium text-harbour-700">
+          {job.title}
+          {!job.isTechnical && (
+            <span className="ml-2 text-xs px-1.5 py-0.5 bg-harbour-50 text-harbour-400">
+              non-technical
+            </span>
+          )}
+        </span>
+        <span className="text-sm text-harbour-400">
+          {[job.companyName, job.location, job.workplaceType]
+            .filter(Boolean)
+            .join(" \u2022 ")}
+          {job.postedAt && (
+            <> \u2022 {format(new Date(job.postedAt), "MMM d")}</>
+          )}
+        </span>
+      </div>
+      <Form method="post" className="flex-shrink-0">
+        <input type="hidden" name="intent" value="skip" />
+        <input type="hidden" name="jobId" value={job.id} />
+        <button
+          type="submit"
+          className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors"
+        >
+          Skip
+        </button>
+      </Form>
+    </div>
+  );
+}
+
 export default function DiscordJobs() {
   const { configured, jobs, history } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
@@ -154,6 +197,9 @@ export default function DiscordJobs() {
     const jobDate = j.postedAt || j.createdAt;
     return new Date(jobDate) < oneWeekAgo;
   }).length;
+
+  const technicalJobs = jobs.filter((j) => j.isTechnical);
+  const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
 
   return (
     <div className="min-h-screen p-6">
@@ -254,43 +300,24 @@ export default function DiscordJobs() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  {jobs.map((job) => (
-                    <div
-                      key={job.id}
-                      className="flex items-start gap-4 p-4 border border-harbour-100"
-                    >
-                      <input
-                        type="checkbox"
-                        name="selectedJobs"
-                        value={job.id}
-                        defaultChecked
-                        className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
-                      />
-                      <div className="flex-1 flex flex-col gap-1">
-                        <span className="font-medium text-harbour-700">
-                          {job.title}
-                        </span>
-                        <span className="text-sm text-harbour-400">
-                          {[job.companyName, job.location, job.workplaceType]
-                            .filter(Boolean)
-                            .join(" \u2022 ")}
-                          {job.postedAt && (
-                            <> \u2022 {format(new Date(job.postedAt), "MMM d")}</>
-                          )}
-                        </span>
-                      </div>
-                      <Form method="post" className="flex-shrink-0">
-                        <input type="hidden" name="intent" value="skip" />
-                        <input type="hidden" name="jobId" value={job.id} />
-                        <button
-                          type="submit"
-                          className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors"
-                        >
-                          Skip
-                        </button>
-                      </Form>
-                    </div>
+                  {technicalJobs.length > 0 && technicalJobs.map((job) => (
+                    <JobRow key={job.id} job={job} />
                   ))}
+
+                  {nonTechnicalJobs.length > 0 && (
+                    <>
+                      {technicalJobs.length > 0 && (
+                        <div className="border-t border-harbour-200 pt-3 mt-1">
+                          <span className="text-xs font-medium text-harbour-400 uppercase tracking-wide">
+                            Non-Technical ({nonTechnicalJobs.length})
+                          </span>
+                        </div>
+                      )}
+                      {nonTechnicalJobs.map((job) => (
+                        <JobRow key={job.id} job={job} />
+                      ))}
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -305,6 +332,12 @@ export default function DiscordJobs() {
                   className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
                 />
               </div>
+
+              {technicalJobs.length === 0 && nonTechnicalJobs.length > 0 && (
+                <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+                  All selected jobs are non-technical. Consider skipping this post or waiting for technical job listings.
+                </div>
+              )}
 
               <div className="flex justify-end">
                 <button
