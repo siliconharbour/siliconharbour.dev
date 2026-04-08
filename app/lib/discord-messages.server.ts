@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import type { EventWithDates } from "~/lib/events.server";
+import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
 
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";
 const ACCENT_COLOR = 0x2b51d1; // harbour-600
@@ -29,9 +30,13 @@ export function buildEventsMessage(
 
   events.forEach((event, index) => {
     const nextDate = event.dates[0];
-    const dateLine = nextDate
+    let dateLine = nextDate
       ? format(nextDate.startDate, "EEE, MMM d 'at' h:mm a")
       : "Date TBD";
+    if (event.recurrenceRule) {
+      const parsed = parseRecurrenceRule(event.recurrenceRule);
+      if (parsed) dateLine += ` (${describeRecurrenceRule(parsed)})`;
+    }
     const parts = [dateLine];
     if (event.location) parts.push(event.location);
     const subtitle = parts.join(" \u2022 ");

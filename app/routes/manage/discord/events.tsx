@@ -12,6 +12,10 @@ import { buildEventsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
 import { format } from "date-fns";
 import { getGeneratedOccurrences } from "~/lib/events.server";
+import {
+  parseRecurrenceRule,
+  describeRecurrenceRule,
+} from "~/lib/recurrence.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Discord Events - siliconharbour.dev" }];
@@ -26,7 +30,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   ]);
 
   // For recurring events without explicit dates, generate synthetic dates
+  // Also compute a human-readable recurrence label for display
   const eventsWithDates = unpostedEvents.map((event) => {
+    let recurrenceLabel: string | null = null;
+    if (event.recurrenceRule) {
+      const parsed = parseRecurrenceRule(event.recurrenceRule);
+      if (parsed) recurrenceLabel = describeRecurrenceRule(parsed);
+    }
+
     if (event.dates.length === 0 && event.recurrenceRule) {
       const occurrences = getGeneratedOccurrences(event);
       const syntheticDates = occurrences.slice(0, 1).map((date, i) => ({
@@ -35,9 +46,9 @@ export async function loader({ request }: Route.LoaderArgs) {
         startDate: date,
         endDate: null,
       }));
-      return { ...event, dates: syntheticDates };
+      return { ...event, dates: syntheticDates, recurrenceLabel };
     }
-    return event;
+    return { ...event, recurrenceLabel };
   });
 
   return {
@@ -249,6 +260,9 @@ export default function DiscordEvents() {
                           </span>
                           <span className="text-sm text-harbour-400">
                             {dateLine}
+                            {event.recurrenceLabel
+                              ? ` (${event.recurrenceLabel})`
+                              : ""}
                             {event.location
                               ? ` \u2022 ${event.location}`
                               : ""}
