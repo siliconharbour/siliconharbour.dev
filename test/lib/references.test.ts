@@ -275,23 +275,17 @@ describe("syncOrganizerReferences", () => {
   });
 
   it("resolves multiple comma-separated organizers (group + company)", async () => {
-    const [group] = await db
-      .insert(groups)
-      .values({
-        slug: "devnl",
-        name: "DevNL",
-        description: "",
-      })
-      .returning();
+    await db.insert(groups).values({
+      slug: "devnl",
+      name: "DevNL",
+      description: "",
+    });
 
-    const [company] = await db
-      .insert(companies)
-      .values({
-        slug: "colab",
-        name: "CoLab Software",
-        description: "",
-      })
-      .returning();
+    await db.insert(companies).values({
+      slug: "colab",
+      name: "CoLab Software",
+      description: "",
+    });
 
     const [event] = await db
       .insert(events)
