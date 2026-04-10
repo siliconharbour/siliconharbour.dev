@@ -13,7 +13,7 @@ import {
   type ContentType,
   type Reference,
 } from "~/db/schema";
-import { eq, and, asc, gte } from "drizzle-orm";
+import { eq, and, asc, gte, or, isNull } from "drizzle-orm";
 import { parseReferences } from "~/lib/references/parser";
 import { getContentUrl } from "~/lib/references/url";
 
@@ -103,11 +103,16 @@ export type ResolveResult =
 export async function resolveReference(text: string): Promise<ResolveResult> {
   const candidates: { type: ContentType; id: number; name: string; slug: string }[] = [];
 
-  // Search events by title
+  // Search events by title (exclude non-published imported events)
   const eventMatches = await db
     .select({ id: events.id, title: events.title, slug: events.slug })
     .from(events)
-    .where(eq(events.title, text));
+    .where(
+      and(
+        eq(events.title, text),
+        or(isNull(events.importStatus), eq(events.importStatus, "published")),
+      ),
+    );
   for (const e of eventMatches) {
     candidates.push({ type: "event", id: e.id, name: e.title, slug: e.slug });
   }
@@ -183,13 +188,43 @@ export async function resolveReference(text: string): Promise<ResolveResult> {
     };
   }
 
-  // Multiple matches - ambiguous
+  // Multiple matches — deduplicate to one per type (keep lowest id, i.e. the original)
+  const byType = new Map<ContentType, (typeof candidates)[number]>();
+  for (const c of candidates) {
+    const existing = byType.get(c.type);
+    if (!existing || c.id < existing.id) {
+      byType.set(c.type, c);
+    }
+  }
+
+  const deduped = [...byType.values()];
+
+  if (deduped.length === 1) {
+    const c = deduped[0];
+    return {
+      resolved: true,
+      reference: { text, type: c.type, id: c.id, slug: c.slug, name: c.name },
+    };
+  }
+
+  // Multiple different types match — prefer non-event entities since events are
+  // often named after their organizer (group/company/person)
+  const nonEvent = deduped.filter((c) => c.type !== "event");
+  if (nonEvent.length === 1) {
+    const c = nonEvent[0];
+    return {
+      resolved: true,
+      reference: { text, type: c.type, id: c.id, slug: c.slug, name: c.name },
+    };
+  }
+
+  // Genuinely ambiguous across multiple non-event types
   return {
     resolved: false,
     reference: {
       text,
       reason: "ambiguous",
-      candidates: candidates.map((c) => ({ type: c.type, id: c.id, name: c.name })),
+      candidates: deduped.map((c) => ({ type: c.type, id: c.id, name: c.name })),
     },
   };
 }
