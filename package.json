@@ -81,7 +81,7 @@
     "oxlint": "^1.59.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
-    "vite": "^8.0.8",
+    "vite": "^8.0.5",
     "vitest": "^4.1.4"
   }
 }
