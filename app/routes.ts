@@ -6,6 +6,7 @@ export default [
   route("calendar.ics", "routes/calendar-ics.tsx"),
 
   // OG images for social sharing
+  route("og.png", "routes/site-og.tsx"),
   route("events/:slug.png", "routes/events-og.tsx"),
   route("news/:slug.png", "routes/news-og.tsx"),
 

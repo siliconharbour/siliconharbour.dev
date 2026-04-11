@@ -1,6 +1,6 @@
 const SITE_URL = "https://siliconharbour.dev";
 const SITE_NAME = "siliconharbour.dev";
-const DEFAULT_OG_IMAGE = `${SITE_URL}/siliconharbour.svg`;
+const DEFAULT_OG_IMAGE = `${SITE_URL}/og.png`;
 
 /**
  * Strip markdown syntax, wikilinks, and excess whitespace for use in meta descriptions.
