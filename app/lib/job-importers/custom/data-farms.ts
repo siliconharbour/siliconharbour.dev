@@ -36,7 +36,10 @@ function parseLocation(meta: string): string | undefined {
   return undefined;
 }
 
-function extractDescriptionFromDetailPage(html: string): { descriptionHtml?: string; descriptionText?: string } {
+function extractDescriptionFromDetailPage(html: string): {
+  descriptionHtml?: string;
+  descriptionText?: string;
+} {
   const { document } = parseHTML(html);
   const main = document.querySelector("main#content");
   if (!main) return {};

@@ -8,7 +8,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Technologies Used in St. John's Tech Companies",
-    description: "Programming languages, frameworks, and technologies used by tech companies in St. John's, Newfoundland & Labrador.",
+    description:
+      "Programming languages, frameworks, and technologies used by tech companies in St. John's, Newfoundland & Labrador.",
     url: "/directory/technologies",
   });
 }
@@ -103,7 +104,9 @@ export default function DirectoryTechnologies() {
                                   />
                                 ) : (
                                   <div className="w-6 h-6 bg-harbour-100 flex items-center justify-center">
-                                    <span className="text-xs text-harbour-400">{tech.name.charAt(0)}</span>
+                                    <span className="text-xs text-harbour-400">
+                                      {tech.name.charAt(0)}
+                                    </span>
                                   </div>
                                 )}
                                 <span className="font-medium text-harbour-700 group-hover:text-harbour-600">
@@ -147,7 +150,9 @@ export default function DirectoryTechnologies() {
                                 />
                               ) : (
                                 <div className="w-3.5 h-3.5 bg-harbour-100 flex items-center justify-center">
-                                  <span className="text-[8px] text-harbour-400">{tech.name.charAt(0)}</span>
+                                  <span className="text-[8px] text-harbour-400">
+                                    {tech.name.charAt(0)}
+                                  </span>
                                 </div>
                               )}
                               <span className="text-harbour-600 group-hover:text-harbour-700">

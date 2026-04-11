@@ -6,7 +6,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Stay Connected with St. John's Tech",
-    description: "Subscribe to the St. John's tech community calendar, RSS feeds, newsletter, and MCP server. Never miss a local tech event or update.",
+    description:
+      "Subscribe to the St. John's tech community calendar, RSS feeds, newsletter, and MCP server. Never miss a local tech event or update.",
     url: "/stay-connected",
   });
 }
@@ -140,9 +141,7 @@ export default function SubscribePage() {
           , you can connect it directly to siliconharbour.dev.
         </p>
 
-        <p>
-          Add this to your MCP client config (Claude Desktop, OpenCode, Cursor, etc.):
-        </p>
+        <p>Add this to your MCP client config (Claude Desktop, OpenCode, Cursor, etc.):</p>
 
         <CopyUrlCard url="https://siliconharbour.dev/mcp" label="MCP endpoint" />
 

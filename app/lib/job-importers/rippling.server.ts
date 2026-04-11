@@ -86,7 +86,7 @@ interface RipplingPageData {
  */
 function extractNextData(html: string): RipplingPageData | null {
   const { document } = parseHTML(html);
-  const script = document.querySelector('script#__NEXT_DATA__');
+  const script = document.querySelector("script#__NEXT_DATA__");
   const payload = script?.textContent?.trim();
   if (!payload) return null;
 
@@ -100,9 +100,7 @@ function extractNextData(html: string): RipplingPageData | null {
 /**
  * Convert Rippling workplace type to our WorkplaceType
  */
-function convertWorkplaceType(
-  ripplingType: string | undefined
-): WorkplaceType | undefined {
+function convertWorkplaceType(ripplingType: string | undefined): WorkplaceType | undefined {
   if (!ripplingType) return undefined;
   switch (ripplingType) {
     case "ON_SITE":
@@ -134,9 +132,7 @@ function formatLocation(locations: RipplingLocation[]): string | undefined {
 /**
  * Get the primary workplace type from locations
  */
-function getWorkplaceType(
-  locations: RipplingLocation[]
-): WorkplaceType | undefined {
+function getWorkplaceType(locations: RipplingLocation[]): WorkplaceType | undefined {
   if (!locations || locations.length === 0) return undefined;
   // Use the first location's workplace type
   return convertWorkplaceType(locations[0].workplaceType);
@@ -145,9 +141,7 @@ function getWorkplaceType(
 /**
  * Build the full description HTML from Rippling job detail sections
  */
-function buildDescriptionHtml(
-  description: RipplingJobDetail["description"]
-): string {
+function buildDescriptionHtml(description: RipplingJobDetail["description"]): string {
   const parts: string[] = [];
 
   const clean = (raw: string) => {
@@ -182,9 +176,7 @@ async function fetchRipplingPage(path: string): Promise<RipplingPageData> {
     if (response.status === 404) {
       throw new Error(`Rippling career site not found at ${url}`);
     }
-    throw new Error(
-      `Rippling fetch error: ${response.status} ${response.statusText}`
-    );
+    throw new Error(`Rippling fetch error: ${response.status} ${response.statusText}`);
   }
 
   const html = await response.text();
@@ -205,8 +197,7 @@ export const ripplingImporter: JobImporter = {
 
     // Fetch the listing page - job listings are in dehydratedState
     const pageData = await fetchRipplingPage(`/${company}/jobs`);
-    const queries =
-      pageData.props?.pageProps?.dehydratedState?.queries || [];
+    const queries = pageData.props?.pageProps?.dehydratedState?.queries || [];
 
     // Find the query that contains job items
     let listings: RipplingJobListing[] = [];
@@ -223,9 +214,7 @@ export const ripplingImporter: JobImporter = {
     // Fetch detail page for each job to get full description
     for (const listing of listings) {
       try {
-        const detailData = await fetchRipplingPage(
-          `/${company}/jobs/${listing.id}`
-        );
+        const detailData = await fetchRipplingPage(`/${company}/jobs/${listing.id}`);
         const jobPost = detailData.props?.pageProps?.apiData?.jobPost;
 
         if (jobPost) {
@@ -233,21 +222,13 @@ export const ripplingImporter: JobImporter = {
           jobs.push({
             externalId: listing.id,
             title: jobPost.name || listing.name,
-            location:
-              formatLocation(jobPost.locations) ||
-              formatLocation(listing.locations),
-            department:
-              jobPost.department?.name ||
-              listing.department?.name ||
-              undefined,
+            location: formatLocation(jobPost.locations) || formatLocation(listing.locations),
+            department: jobPost.department?.name || listing.department?.name || undefined,
             descriptionHtml: descriptionHtml || undefined,
-            descriptionText: descriptionHtml
-              ? htmlToText(descriptionHtml)
-              : undefined,
+            descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
             url: listing.url,
             workplaceType:
-              getWorkplaceType(jobPost.locations) ||
-              getWorkplaceType(listing.locations),
+              getWorkplaceType(jobPost.locations) || getWorkplaceType(listing.locations),
           });
         } else {
           // Fallback to listing data only
@@ -262,10 +243,7 @@ export const ripplingImporter: JobImporter = {
         }
       } catch (e) {
         // If detail fetch fails, use listing data
-        console.warn(
-          `Failed to fetch details for Rippling job ${listing.id}:`,
-          e
-        );
+        console.warn(`Failed to fetch details for Rippling job ${listing.id}:`, e);
         jobs.push({
           externalId: listing.id,
           title: listing.name,
@@ -280,16 +258,11 @@ export const ripplingImporter: JobImporter = {
     return jobs;
   },
 
-  async fetchJobDetails(
-    jobId: string,
-    config: ImportSourceConfig
-  ): Promise<FetchedJob | null> {
+  async fetchJobDetails(jobId: string, config: ImportSourceConfig): Promise<FetchedJob | null> {
     const company = config.sourceIdentifier;
 
     try {
-      const detailData = await fetchRipplingPage(
-        `/${company}/jobs/${jobId}`
-      );
+      const detailData = await fetchRipplingPage(`/${company}/jobs/${jobId}`);
       const jobPost = detailData.props?.pageProps?.apiData?.jobPost;
       if (!jobPost) return null;
 
@@ -301,9 +274,7 @@ export const ripplingImporter: JobImporter = {
         location: formatLocation(jobPost.locations),
         department: jobPost.department?.name || undefined,
         descriptionHtml: descriptionHtml || undefined,
-        descriptionText: descriptionHtml
-          ? htmlToText(descriptionHtml)
-          : undefined,
+        descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
         url: `${BASE_URL}/${company}/jobs/${jobPost.uuid}`,
         workplaceType: getWorkplaceType(jobPost.locations),
       };
@@ -312,9 +283,7 @@ export const ripplingImporter: JobImporter = {
     }
   },
 
-  async validateConfig(
-    config: Omit<ImportSourceConfig, "id">
-  ): Promise<ValidationResult> {
+  async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,
@@ -324,11 +293,8 @@ export const ripplingImporter: JobImporter = {
     }
 
     try {
-      const pageData = await fetchRipplingPage(
-        `/${config.sourceIdentifier}/jobs`
-      );
-      const queries =
-        pageData.props?.pageProps?.dehydratedState?.queries || [];
+      const pageData = await fetchRipplingPage(`/${config.sourceIdentifier}/jobs`);
+      const queries = pageData.props?.pageProps?.dehydratedState?.queries || [];
 
       let count = 0;
       for (const query of queries) {

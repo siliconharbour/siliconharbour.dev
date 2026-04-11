@@ -9,10 +9,10 @@ priority: 2
 assignee: Jack Arthur Harrhy
 tags: [refactor, ui, admin]
 ---
+
 # Audit CRUD/admin patterns for DRY opportunities
 
 Analyze TypeScript codebase for repeated CRUD patterns and shared UI/util opportunities, then propose prioritized cleanup list for sign-off before implementation.
-
 
 ## Notes
 

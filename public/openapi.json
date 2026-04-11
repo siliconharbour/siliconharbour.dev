@@ -551,7 +551,11 @@
           },
           "salaryRange": { "type": "string", "nullable": true },
           "url": { "type": "string", "description": "External application or job listing URL" },
-          "detailUrl": { "type": "string", "nullable": true, "description": "Canonical URL on siliconharbour.dev, if the job has a slug" },
+          "detailUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Canonical URL on siliconharbour.dev, if the job has a slug"
+          },
           "postedAt": { "type": "string", "format": "date-time", "nullable": true },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }

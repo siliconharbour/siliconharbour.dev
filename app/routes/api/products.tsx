@@ -44,7 +44,9 @@ export const loader = createPaginatedApiLoader({
       .limit(limit)
       .offset(offset);
 
-    const companyIds = [...new Set(productsPage.filter((p) => p.companyId).map((p) => p.companyId!))];
+    const companyIds = [
+      ...new Set(productsPage.filter((p) => p.companyId).map((p) => p.companyId!)),
+    ];
     const companyMap = new Map<number, { id: number; slug: string; name: string }>();
     if (companyIds.length > 0) {
       const companyRows = await db

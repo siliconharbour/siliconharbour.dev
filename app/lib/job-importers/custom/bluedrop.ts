@@ -15,7 +15,10 @@ import { fetchPage, htmlToText, slugify, parseHtmlDocument, getNodeText } from "
 const CAREERS_URL = "https://bluedropism.com/careers/";
 
 function isNonJobHeading(value: string): boolean {
-  const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 
   return (
     normalized === "our current opportunities" ||

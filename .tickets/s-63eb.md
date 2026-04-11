@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 tags: [jobs, scraper, netbenefit]
 ---
+
 # Extract NetBenefit technology text from PDF job postings
 
 Enhance NetBenefit custom importer to extract text from linked PDF job descriptions (via pdftotext) and use it for descriptionText so technology detection can find stack mentions.
-

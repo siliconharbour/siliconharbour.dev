@@ -145,7 +145,11 @@ export default function NewEventImportSource() {
 
           {FIXED_SOURCES[selectedType] && (
             <>
-              <input type="hidden" name="sourceIdentifier" value={FIXED_SOURCES[selectedType]!.identifier} />
+              <input
+                type="hidden"
+                name="sourceIdentifier"
+                value={FIXED_SOURCES[selectedType]!.identifier}
+              />
               <input type="hidden" name="sourceUrl" value={FIXED_SOURCES[selectedType]!.url} />
             </>
           )}

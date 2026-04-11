@@ -13,6 +13,7 @@
 ### Task 1: Add `getEventsForMonth` server function
 
 **Files:**
+
 - Modify: `app/lib/events.server.ts`
 
 **Step 1: Add the function**
@@ -39,16 +40,10 @@ export async function getEventsForMonth(
   month: number, // 1-indexed (1 = January)
 ): Promise<CalendarEventData[]> {
   // Build month boundaries in Newfoundland timezone
-  const monthStart = parseAsTimezone(
-    `${year}-${String(month).padStart(2, "0")}-01`,
-    "00:00",
-  );
+  const monthStart = parseAsTimezone(`${year}-${String(month).padStart(2, "0")}-01`, "00:00");
   const nextMonth = month === 12 ? 1 : month + 1;
   const nextYear = month === 12 ? year + 1 : year;
-  const monthEnd = parseAsTimezone(
-    `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`,
-    "00:00",
-  );
+  const monthEnd = parseAsTimezone(`${nextYear}-${String(nextMonth).padStart(2, "0")}-01`, "00:00");
 
   const result: CalendarEventData[] = [];
   const seenEventIds = new Set<number>();
@@ -100,9 +95,7 @@ export async function getEventsForMonth(
     // Get overrides to check for cancellations
     const overrides = await getEventOccurrenceOverrides(event.id);
     const cancelledDates = new Set(
-      overrides
-        .filter((o) => o.cancelled)
-        .map((o) => getDateInTimezone(o.occurrenceDate)),
+      overrides.filter((o) => o.cancelled).map((o) => getDateInTimezone(o.occurrenceDate)),
     );
 
     const dateStrs = generatedDates
@@ -141,6 +134,7 @@ git commit -m "Add getEventsForMonth for calendar month queries"
 ### Task 2: Create the API endpoint
 
 **Files:**
+
 - Create: `app/routes/api/calendar-events.tsx`
 - Modify: `app/routes.ts`
 
@@ -157,10 +151,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const monthParam = url.searchParams.get("month"); // Expected: "YYYY-MM"
 
   if (!monthParam || !/^\d{4}-\d{2}$/.test(monthParam)) {
-    return Response.json(
-      { error: "month parameter required in YYYY-MM format" },
-      { status: 400 },
-    );
+    return Response.json({ error: "month parameter required in YYYY-MM format" }, { status: 400 });
   }
 
   const [yearStr, monthStr] = monthParam.split("-");
@@ -205,11 +196,13 @@ git commit -m "Add /api/calendar-events endpoint for month-based queries"
 ### Task 3: Update Calendar component to fetch on month navigation
 
 **Files:**
+
 - Modify: `app/components/Calendar.tsx`
 
 **Step 1: Rewrite the Calendar component**
 
 The Calendar needs to:
+
 1. Accept initial event data from server (for current month - no flash)
 2. On month navigation, fetch from `/api/calendar-events?month=YYYY-MM`
 3. Cache fetched months in state
@@ -447,6 +440,7 @@ export function Calendar({
 ```
 
 Key changes from original:
+
 - `CalendarEventData` type for the lean API payload
 - `monthCache` state seeded with initial server data
 - `fetchMonth` fetches from API and updates cache

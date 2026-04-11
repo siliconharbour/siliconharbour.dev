@@ -25,10 +25,7 @@ export async function getUnpostedEvents() {
     .select({ eventId: discordPostItems.eventId })
     .from(discordPostItems)
     .where(
-      and(
-        eq(discordPostItems.itemType, "event"),
-        sql`${discordPostItems.eventId} IS NOT NULL`
-      )
+      and(eq(discordPostItems.itemType, "event"), sql`${discordPostItems.eventId} IS NOT NULL`),
     )
     .as("dealt_with");
 
@@ -45,8 +42,8 @@ export async function getUnpostedEvents() {
     .where(
       and(
         sql`${events.recurrenceRule} IS NOT NULL AND ${events.recurrenceRule} != ''`,
-        or(isNull(events.recurrenceEnd), gte(events.recurrenceEnd, now))
-      )
+        or(isNull(events.recurrenceEnd), gte(events.recurrenceEnd, now)),
+      ),
     );
 
   const upcomingIds = [
@@ -67,11 +64,11 @@ export async function getUnpostedEvents() {
       and(
         sql`${events.id} IN (${sql.join(
           upcomingIds.map((id) => sql`${id}`),
-          sql`, `
+          sql`, `,
         )})`,
         isNull(dealtWith.eventId),
-        or(isNull(events.importStatus), eq(events.importStatus, "published"))
-      )
+        or(isNull(events.importStatus), eq(events.importStatus, "published")),
+      ),
     )
     .orderBy(events.title);
 
@@ -84,7 +81,7 @@ export async function getUnpostedEvents() {
         .where(eq(eventDates.eventId, row.events.id))
         .orderBy(eventDates.startDate);
       return { ...row.events, dates };
-    })
+    }),
   );
 
   return eventsWithDates;
@@ -97,12 +94,7 @@ export async function getUnpostedJobs() {
   const dealtWith = db
     .select({ jobId: discordPostItems.jobId })
     .from(discordPostItems)
-    .where(
-      and(
-        eq(discordPostItems.itemType, "job"),
-        sql`${discordPostItems.jobId} IS NOT NULL`
-      )
-    )
+    .where(and(eq(discordPostItems.itemType, "job"), sql`${discordPostItems.jobId} IS NOT NULL`))
     .as("dealt_with");
 
   const results = await db
@@ -215,7 +207,7 @@ export interface DiscordPostWithItems {
  */
 export async function getPostHistory(
   channelType: DiscordChannelType,
-  limit = 10
+  limit = 10,
 ): Promise<DiscordPostWithItems[]> {
   const posts = await db
     .select()

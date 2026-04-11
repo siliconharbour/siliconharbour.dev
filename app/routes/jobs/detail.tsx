@@ -13,8 +13,9 @@ export function meta({ data }: Route.MetaArgs) {
   const title = job?.title ?? "Job";
   const company = (job as { company?: { name?: string } } | undefined)?.company?.name;
   const companyStr = company ? ` at ${company}` : "";
-  const rawDesc = (job as { descriptionText?: string } | undefined)?.descriptionText
-    ?? (job as { description?: string } | undefined)?.description;
+  const rawDesc =
+    (job as { descriptionText?: string } | undefined)?.descriptionText ??
+    (job as { description?: string } | undefined)?.description;
   const description = rawDesc
     ? stripMarkdown(rawDesc)
     : `${title}${companyStr} — tech job in St. John's, NL.`;
@@ -34,7 +35,9 @@ export function meta({ data }: Route.MetaArgs) {
       "@type": "JobPosting",
       title,
       description,
-      datePosted: postedAt ? new Date(postedAt).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+      datePosted: postedAt
+        ? new Date(postedAt).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0],
       jobLocation: {
         "@type": "Place",
         address: {
@@ -139,10 +142,7 @@ export default function JobDetail() {
         </div>
 
         {isHtml ? (
-          <div
-            className="prose"
-            dangerouslySetInnerHTML={{ __html: job.descriptionHtml! }}
-          />
+          <div className="prose" dangerouslySetInnerHTML={{ __html: job.descriptionHtml! }} />
         ) : description ? (
           <div className="prose">
             <RichMarkdown content={description} resolvedRefs={resolvedRefs} />

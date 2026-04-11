@@ -9,6 +9,7 @@ priority: 3
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Jobs API and markdown routes
 
 Add API and markdown routes for imported jobs: /api/jobs, /api/jobs/:id, /directory/companies/:slug/jobs.md for LLM consumption.
@@ -19,4 +20,3 @@ Add API and markdown routes for imported jobs: /api/jobs, /api/jobs/:id, /direct
 - GET /api/jobs/:id returns job details
 - Markdown route for company jobs
 - Update llms-txt.tsx to document jobs endpoints
-

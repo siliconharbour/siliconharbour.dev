@@ -39,9 +39,7 @@ export async function loader({}: Route.LoaderArgs) {
         pubDate: event.createdAt,
         guid: `event-${event.id}`,
         category: "Events",
-        author: event.organizer
-          ? `admin@siliconharbour.dev (${event.organizer})`
-          : undefined,
+        author: event.organizer ? `admin@siliconharbour.dev (${event.organizer})` : undefined,
       };
     }),
     ...recentNews.map((article) => ({
@@ -55,18 +53,18 @@ export async function loader({}: Route.LoaderArgs) {
       category: "News",
     })),
     ...jobs.map((job) => {
-        const description = job.description || job.descriptionText || "";
-        return {
-          title: `Job - ${job.title}${job.companyName ? ` at ${job.companyName}` : ""}`,
-          link: job.slug
-            ? `https://siliconharbour.dev/jobs/${job.slug}`
-            : job.url || "https://siliconharbour.dev/jobs",
-          description: description.slice(0, 500) + (description.length > 500 ? "..." : ""),
-          pubDate: job.postedAt || job.createdAt,
-          guid: `job-${job.id}`,
-          category: "Jobs",
-        };
-      }),
+      const description = job.description || job.descriptionText || "";
+      return {
+        title: `Job - ${job.title}${job.companyName ? ` at ${job.companyName}` : ""}`,
+        link: job.slug
+          ? `https://siliconharbour.dev/jobs/${job.slug}`
+          : job.url || "https://siliconharbour.dev/jobs",
+        description: description.slice(0, 500) + (description.length > 500 ? "..." : ""),
+        pubDate: job.postedAt || job.createdAt,
+        guid: `job-${job.id}`,
+        category: "Jobs",
+      };
+    }),
   ];
 
   // Sort by date, most recent first

@@ -18,10 +18,7 @@ export interface JobForDiscord {
 /**
  * Build Components v2 payload for an events roundup message.
  */
-export function buildEventsMessage(
-  events: EventWithDates[],
-  introText?: string
-): object[] {
+export function buildEventsMessage(events: EventWithDates[], introText?: string): object[] {
   const innerComponents: object[] = [];
 
   // Intro text
@@ -32,9 +29,7 @@ export function buildEventsMessage(
 
   events.forEach((event, index) => {
     const nextDate = event.dates[0];
-    let dateLine = nextDate
-      ? format(nextDate.startDate, "EEE, MMM d 'at' h:mm a")
-      : "Date TBD";
+    let dateLine = nextDate ? format(nextDate.startDate, "EEE, MMM d 'at' h:mm a") : "Date TBD";
     if (event.recurrenceRule) {
       const parsed = parseRecurrenceRule(event.recurrenceRule);
       if (parsed) dateLine += ` (${describeRecurrenceRule(parsed)})`;
@@ -102,10 +97,7 @@ export function buildEventsMessage(
  * Non-technical jobs are grouped into a compact "Also hiring" section
  * at the bottom with just title + company as a bullet list.
  */
-export function buildJobsMessage(
-  jobs: JobForDiscord[],
-  introText?: string
-): object[] {
+export function buildJobsMessage(jobs: JobForDiscord[], introText?: string): object[] {
   const technicalJobs = jobs.filter((j) => j.isTechnical);
   const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
 
@@ -123,9 +115,7 @@ export function buildJobsMessage(
     if (job.companyName) parts.push(job.companyName);
     if (job.location) parts.push(job.location);
     if (job.workplaceType) {
-      parts.push(
-        job.workplaceType.charAt(0).toUpperCase() + job.workplaceType.slice(1)
-      );
+      parts.push(job.workplaceType.charAt(0).toUpperCase() + job.workplaceType.slice(1));
     }
     const subtitle = parts.join(" \u2022 ");
     const textContent = `**${job.title}**${subtitle ? `\n${subtitle}` : ""}`;

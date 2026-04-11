@@ -35,9 +35,7 @@ function formatMonthYear(value: string): string {
   });
 }
 
-function getProvenanceSourceDisplayLabel(
-  sourceType: "job_posting" | "survey" | "manual",
-): string {
+function getProvenanceSourceDisplayLabel(sourceType: "job_posting" | "survey" | "manual"): string {
   const trimmed = normalizeTechnologyEvidenceSourceLabel(sourceType);
   if (trimmed) return trimmed;
 
@@ -196,62 +194,59 @@ export default function CompanyDetail() {
   const [showEvidence, setShowEvidence] = useState(false);
   const technicalJobs = activeJobs.filter((job) => job.isTechnical);
   const nonTechnicalJobs = activeJobs.filter((job) => !job.isTechnical);
-  const evidenceJobs = useMemo(
-    () => {
-      const descriptionByKey = new Map<string, string>();
-      for (const job of activeJobs) {
-        if (!job.url || !job.descriptionText) continue;
-        const key = `${job.title}::${job.url}`.toLowerCase();
-        descriptionByKey.set(key, job.descriptionText);
-      }
+  const evidenceJobs = useMemo(() => {
+    const descriptionByKey = new Map<string, string>();
+    for (const job of activeJobs) {
+      if (!job.url || !job.descriptionText) continue;
+      const key = `${job.title}::${job.url}`.toLowerCase();
+      descriptionByKey.set(key, job.descriptionText);
+    }
 
-      return Array.from(
-        provenanceEntries
-          .flatMap((entry) => entry.evidence)
-          .filter((evidence) => evidence.jobTitle && evidence.jobUrl)
-          .reduce(
-            (acc, evidence) => {
-              const key = `${evidence.jobTitle}::${evidence.jobUrl}`.toLowerCase();
-              const existing = acc.get(key);
-              if (existing) {
-                if (
-                  evidence.excerptText &&
-                  evidence.excerptText.trim().length > 0 &&
-                  !existing.excerpts.includes(evidence.excerptText)
-                ) {
-                  existing.excerpts.push(evidence.excerptText);
-                }
-                return acc;
+    return Array.from(
+      provenanceEntries
+        .flatMap((entry) => entry.evidence)
+        .filter((evidence) => evidence.jobTitle && evidence.jobUrl)
+        .reduce(
+          (acc, evidence) => {
+            const key = `${evidence.jobTitle}::${evidence.jobUrl}`.toLowerCase();
+            const existing = acc.get(key);
+            if (existing) {
+              if (
+                evidence.excerptText &&
+                evidence.excerptText.trim().length > 0 &&
+                !existing.excerpts.includes(evidence.excerptText)
+              ) {
+                existing.excerpts.push(evidence.excerptText);
               }
-
-              acc.set(key, {
-                title: evidence.jobTitle as string,
-                url: evidence.jobUrl as string,
-                status: evidence.jobStatus,
-                fullText: descriptionByKey.get(key) ?? null,
-                excerpts:
-                  evidence.excerptText && evidence.excerptText.trim().length > 0
-                    ? [evidence.excerptText]
-                    : [],
-              });
               return acc;
-            },
-            new Map<
-              string,
-              {
-                title: string;
-                url: string;
-                status: string | null;
-                fullText: string | null;
-                excerpts: string[];
-              }
-            >(),
-          )
-          .values(),
-      );
-    },
-    [provenanceEntries, activeJobs],
-  );
+            }
+
+            acc.set(key, {
+              title: evidence.jobTitle as string,
+              url: evidence.jobUrl as string,
+              status: evidence.jobStatus,
+              fullText: descriptionByKey.get(key) ?? null,
+              excerpts:
+                evidence.excerptText && evidence.excerptText.trim().length > 0
+                  ? [evidence.excerptText]
+                  : [],
+            });
+            return acc;
+          },
+          new Map<
+            string,
+            {
+              title: string;
+              url: string;
+              status: string | null;
+              fullText: string | null;
+              excerpts: string[];
+            }
+          >(),
+        )
+        .values(),
+    );
+  }, [provenanceEntries, activeJobs]);
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
@@ -511,11 +506,7 @@ export default function CompanyDetail() {
                   const isLast = index === provenanceEntries.length - 1;
                   const isSecondLast = index === provenanceEntries.length - 2;
                   const separator =
-                    provenanceEntries.length <= 1 || isLast
-                      ? ""
-                      : isSecondLast
-                        ? ", &"
-                        : ",";
+                    provenanceEntries.length <= 1 || isLast ? "" : isSecondLast ? ", &" : ",";
                   const displaySource = getProvenanceSourceDisplayLabel(entry.sourceType);
                   const label = `${displaySource}${entry.lastVerified ? ` (${formatMonthYear(entry.lastVerified)})` : ""}`;
                   const isGetBuilding = displaySource.includes("Get Building");
@@ -554,7 +545,11 @@ export default function CompanyDetail() {
           </div>
         )}
 
-        <CompanyEvidenceDialog open={showEvidence} onOpenChange={setShowEvidence} jobs={evidenceJobs} />
+        <CompanyEvidenceDialog
+          open={showEvidence}
+          onOpenChange={setShowEvidence}
+          jobs={evidenceJobs}
+        />
 
         {activeJobs.length > 0 && (
           <div className="border-t border-harbour-200 pt-6 flex flex-col gap-5">
@@ -592,16 +587,30 @@ export default function CompanyDetail() {
                       </div>
                       <div className="flex items-center gap-2">
                         {job.workplaceType && (
-                          <span className={`px-2 py-0.5 text-xs font-medium ${
-                            job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
-                            job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
-                            "bg-blue-100 text-blue-700"
-                          }`}>
+                          <span
+                            className={`px-2 py-0.5 text-xs font-medium ${
+                              job.workplaceType === "remote"
+                                ? "bg-purple-100 text-purple-700"
+                                : job.workplaceType === "hybrid"
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
                             {job.workplaceType}
                           </span>
                         )}
-                        <svg className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        <svg
+                          className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
                         </svg>
                       </div>
                     </a>
@@ -640,16 +649,30 @@ export default function CompanyDetail() {
                       </div>
                       <div className="flex items-center gap-2">
                         {job.workplaceType && (
-                          <span className={`px-2 py-0.5 text-xs font-medium ${
-                            job.workplaceType === "remote" ? "bg-purple-100 text-purple-700" :
-                            job.workplaceType === "hybrid" ? "bg-orange-100 text-orange-700" :
-                            "bg-blue-100 text-blue-700"
-                          }`}>
+                          <span
+                            className={`px-2 py-0.5 text-xs font-medium ${
+                              job.workplaceType === "remote"
+                                ? "bg-purple-100 text-purple-700"
+                                : job.workplaceType === "hybrid"
+                                  ? "bg-orange-100 text-orange-700"
+                                  : "bg-blue-100 text-blue-700"
+                            }`}
+                          >
                             {job.workplaceType}
                           </span>
                         )}
-                        <svg className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        <svg
+                          className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
                         </svg>
                       </div>
                     </a>

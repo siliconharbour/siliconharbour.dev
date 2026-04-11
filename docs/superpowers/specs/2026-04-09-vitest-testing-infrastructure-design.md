@@ -7,6 +7,7 @@ Server-side business logic (entity reference resolution, organizer syncing, slug
 ## Scope
 
 **In scope:**
+
 - Vitest setup with path alias resolution (`~/`)
 - In-memory SQLite database per test file with full schema applied
 - Module mock for `~/db` so all server code uses the test database
@@ -14,6 +15,7 @@ Server-side business logic (entity reference resolution, organizer syncing, slug
 - `pnpm test` script
 
 **Out of scope:**
+
 - Component rendering tests (createRoutesStub / testing-library)
 - Loader/action request-level tests
 - E2E tests (Playwright/Cypress)
@@ -148,8 +150,12 @@ let currentDb: ReturnType<typeof createTestDb>;
 // Mock the ~/db module — vitest hoists this above all imports
 vi.mock("~/db", () => {
   return {
-    get db() { return currentDb.db; },
-    get rawDb() { return currentDb.rawDb; },
+    get db() {
+      return currentDb.db;
+    },
+    get rawDb() {
+      return currentDb.rawDb;
+    },
   };
 });
 

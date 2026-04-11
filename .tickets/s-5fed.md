@@ -9,5 +9,5 @@ priority: 2
 assignee: Jack Arthur Harrhy
 tags: [technologies, database]
 ---
-# Merge technology categories: Cloud + DevOps
 
+# Merge technology categories: Cloud + DevOps

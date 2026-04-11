@@ -24,7 +24,10 @@ function isNonJobHeading(title: string): boolean {
 }
 
 function cleanJobTitle(title: string): string {
-  return title.replace(/\s+/g, " ").replace(/\u00a0/g, " ").trim();
+  return title
+    .replace(/\s+/g, " ")
+    .replace(/\u00a0/g, " ")
+    .trim();
 }
 
 export async function scrapeVish(careersUrl: string = DEFAULT_CAREERS_URL): Promise<FetchedJob[]> {
@@ -34,7 +37,9 @@ export async function scrapeVish(careersUrl: string = DEFAULT_CAREERS_URL): Prom
   const seenIds = new Set<string>();
 
   for (const toggle of Array.from(document.querySelectorAll("div.toggle.accent-color"))) {
-    const title = cleanJobTitle(getNodeText(toggle.querySelector("h3.toggle-title a.toggle-heading")));
+    const title = cleanJobTitle(
+      getNodeText(toggle.querySelector("h3.toggle-title a.toggle-heading")),
+    );
     if (!title || isNonJobHeading(title)) {
       continue;
     }

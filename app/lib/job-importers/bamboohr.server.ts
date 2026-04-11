@@ -76,7 +76,7 @@ interface BambooHRJobDetail {
  */
 function convertLocationType(
   locationType: string,
-  isRemote: boolean | null
+  isRemote: boolean | null,
 ): WorkplaceType | undefined {
   // locationType: "0" = onsite, "1" = remote, "2" = hybrid
   if (locationType === "1" || isRemote === true) return "remote";
@@ -110,7 +110,9 @@ async function fetchBambooHRJobs(company: string): Promise<BambooHRJobsResponse>
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error(`Career site "${company}" not found. Check the company subdomain is correct.`);
+      throw new Error(
+        `Career site "${company}" not found. Check the company subdomain is correct.`,
+      );
     }
     throw new Error(`BambooHR API error: ${response.status} ${response.statusText}`);
   }
@@ -121,10 +123,7 @@ async function fetchBambooHRJobs(company: string): Promise<BambooHRJobsResponse>
 /**
  * Fetch details for a single job
  */
-async function fetchBambooHRJobDetail(
-  company: string,
-  jobId: string
-): Promise<BambooHRJobDetail> {
+async function fetchBambooHRJobDetail(company: string, jobId: string): Promise<BambooHRJobDetail> {
   const baseUrl = buildBaseUrl(company);
   const url = `${baseUrl}/careers/${jobId}/detail`;
 
@@ -207,10 +206,7 @@ export const bamboohrImporter: JobImporter = {
     return jobs;
   },
 
-  async fetchJobDetails(
-    jobId: string,
-    config: ImportSourceConfig
-  ): Promise<FetchedJob | null> {
+  async fetchJobDetails(jobId: string, config: ImportSourceConfig): Promise<FetchedJob | null> {
     const company = config.sourceIdentifier;
 
     try {
@@ -221,9 +217,7 @@ export const bamboohrImporter: JobImporter = {
     }
   },
 
-  async validateConfig(
-    config: Omit<ImportSourceConfig, "id">
-  ): Promise<ValidationResult> {
+  async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,

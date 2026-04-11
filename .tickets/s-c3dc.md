@@ -10,10 +10,10 @@ assignee: Jack Arthur Harrhy
 parent: s-1ee6
 tags: [refactor, directory, ui]
 ---
+
 # Refactor directory listing shell/components
 
 Create shared directory list page shell and row/action primitives; migrate directory listing routes.
-
 
 ## Notes
 

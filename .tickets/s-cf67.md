@@ -8,7 +8,7 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # Investigate C-CORE careers/ATS
 
 Check if C-CORE has an ATS we can integrate with or careers page to fetch
-

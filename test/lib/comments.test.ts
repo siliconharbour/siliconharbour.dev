@@ -37,9 +37,9 @@ describe("validateContentType (via getPublicComments)", () => {
   }
 
   it("rejects invalid content type", async () => {
-    await expect(
-      getPublicComments("invalid_type" as any, 1),
-    ).rejects.toThrow("Invalid content type");
+    await expect(getPublicComments("invalid_type" as any, 1)).rejects.toThrow(
+      "Invalid content type",
+    );
   });
 });
 
@@ -50,27 +50,19 @@ describe("validateContentId (via getPublicComments)", () => {
   });
 
   it("rejects zero content ID", async () => {
-    await expect(getPublicComments("event", 0)).rejects.toThrow(
-      "Invalid content ID",
-    );
+    await expect(getPublicComments("event", 0)).rejects.toThrow("Invalid content ID");
   });
 
   it("rejects negative content ID", async () => {
-    await expect(getPublicComments("event", -5)).rejects.toThrow(
-      "Invalid content ID",
-    );
+    await expect(getPublicComments("event", -5)).rejects.toThrow("Invalid content ID");
   });
 
   it("rejects NaN content ID", async () => {
-    await expect(getPublicComments("event", NaN)).rejects.toThrow(
-      "Invalid content ID",
-    );
+    await expect(getPublicComments("event", NaN)).rejects.toThrow("Invalid content ID");
   });
 
   it("rejects non-integer content ID", async () => {
-    await expect(getPublicComments("event", 1.5)).rejects.toThrow(
-      "Invalid content ID",
-    );
+    await expect(getPublicComments("event", 1.5)).rejects.toThrow("Invalid content ID");
   });
 });
 
@@ -224,10 +216,7 @@ describe("deleteComment", () => {
     const result = await deleteComment(inserted.id);
     expect(result).toBe(true);
 
-    const remaining = await db
-      .select()
-      .from(comments)
-      .where(eq(comments.id, inserted.id));
+    const remaining = await db.select().from(comments).where(eq(comments.id, inserted.id));
     expect(remaining).toHaveLength(0);
   });
 });

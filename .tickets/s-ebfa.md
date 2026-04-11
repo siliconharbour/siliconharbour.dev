@@ -8,7 +8,7 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # Investigate Bluedrop ISM careers/ATS
 
 Check if Bluedrop ISM has an ATS we can integrate with or careers page to fetch
-

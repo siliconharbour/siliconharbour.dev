@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  parsePagination,
-  buildLinkHeader,
-  imageUrl,
-  contentUrl,
-} from "~/lib/api.server";
+import { parsePagination, buildLinkHeader, imageUrl, contentUrl } from "~/lib/api.server";
 
 // =============================================================================
 // parsePagination
@@ -72,11 +67,7 @@ describe("parsePagination", () => {
 
 describe("buildLinkHeader", () => {
   it("returns next and last links on first page with multiple pages", () => {
-    const result = buildLinkHeader(
-      "https://example.com/api/items",
-      { limit: 20, offset: 0 },
-      100,
-    );
+    const result = buildLinkHeader("https://example.com/api/items", { limit: 20, offset: 0 }, 100);
 
     expect(result).not.toBeNull();
     expect(result).toContain('rel="next"');
@@ -87,11 +78,7 @@ describe("buildLinkHeader", () => {
   });
 
   it("returns first and prev links on last page", () => {
-    const result = buildLinkHeader(
-      "https://example.com/api/items",
-      { limit: 20, offset: 80 },
-      100,
-    );
+    const result = buildLinkHeader("https://example.com/api/items", { limit: 20, offset: 80 }, 100);
 
     expect(result).not.toBeNull();
     expect(result).toContain('rel="first"');
@@ -101,11 +88,7 @@ describe("buildLinkHeader", () => {
   });
 
   it("returns all four links on a middle page", () => {
-    const result = buildLinkHeader(
-      "https://example.com/api/items",
-      { limit: 20, offset: 40 },
-      100,
-    );
+    const result = buildLinkHeader("https://example.com/api/items", { limit: 20, offset: 40 }, 100);
 
     expect(result).not.toBeNull();
     expect(result).toContain('rel="first"');
@@ -115,32 +98,20 @@ describe("buildLinkHeader", () => {
   });
 
   it("returns null when all items fit on one page", () => {
-    const result = buildLinkHeader(
-      "https://example.com/api/items",
-      { limit: 20, offset: 0 },
-      10,
-    );
+    const result = buildLinkHeader("https://example.com/api/items", { limit: 20, offset: 0 }, 10);
 
     expect(result).toBeNull();
   });
 
   it("calculates correct prev offset", () => {
-    const result = buildLinkHeader(
-      "https://example.com/api/items",
-      { limit: 20, offset: 40 },
-      100,
-    );
+    const result = buildLinkHeader("https://example.com/api/items", { limit: 20, offset: 40 }, 100);
 
     // prev should be offset=20
     expect(result).toContain("offset=20");
   });
 
   it("prev offset does not go below 0", () => {
-    const result = buildLinkHeader(
-      "https://example.com/api/items",
-      { limit: 20, offset: 5 },
-      100,
-    );
+    const result = buildLinkHeader("https://example.com/api/items", { limit: 20, offset: 5 }, 100);
 
     // prev should be offset=0 (Math.max(0, 5-20) = 0)
     expect(result).toContain("offset=0");
@@ -180,9 +151,7 @@ describe("contentUrl", () => {
   });
 
   it("generates directory URL for groups", () => {
-    expect(contentUrl("groups", "devnl")).toBe(
-      "https://siliconharbour.dev/directory/groups/devnl",
-    );
+    expect(contentUrl("groups", "devnl")).toBe("https://siliconharbour.dev/directory/groups/devnl");
   });
 
   it("generates directory URL for education", () => {
@@ -216,14 +185,10 @@ describe("contentUrl", () => {
   });
 
   it("generates root URL for news", () => {
-    expect(contentUrl("news", "announcement")).toBe(
-      "https://siliconharbour.dev/news/announcement",
-    );
+    expect(contentUrl("news", "announcement")).toBe("https://siliconharbour.dev/news/announcement");
   });
 
   it("generates root URL for jobs", () => {
-    expect(contentUrl("jobs", "senior-dev")).toBe(
-      "https://siliconharbour.dev/jobs/senior-dev",
-    );
+    expect(contentUrl("jobs", "senior-dev")).toBe("https://siliconharbour.dev/jobs/senior-dev");
   });
 });

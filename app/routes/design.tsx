@@ -19,7 +19,8 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Color Palette</h2>
           <p className="text-sm text-harbour-500">
-            The harbour-* palette ranges from light blue to dark navy. Use 600 for primary actions, 700 for headings.
+            The harbour-* palette ranges from light blue to dark navy. Use 600 for primary actions,
+            700 for headings.
           </p>
           <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
             {[50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((shade) => (
@@ -44,9 +45,15 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Typography</h2>
           <div className="flex flex-col gap-3 p-4 border border-harbour-200 bg-white">
-            <p className="text-2xl font-semibold text-harbour-700">Page Title (text-2xl font-semibold text-harbour-700)</p>
-            <p className="text-lg font-semibold text-harbour-700">Section Heading (text-lg font-semibold text-harbour-700)</p>
-            <p className="font-medium text-harbour-700">Card Title (font-medium text-harbour-700)</p>
+            <p className="text-2xl font-semibold text-harbour-700">
+              Page Title (text-2xl font-semibold text-harbour-700)
+            </p>
+            <p className="text-lg font-semibold text-harbour-700">
+              Section Heading (text-lg font-semibold text-harbour-700)
+            </p>
+            <p className="font-medium text-harbour-700">
+              Card Title (font-medium text-harbour-700)
+            </p>
             <p className="text-harbour-600">Body text (text-harbour-600)</p>
             <p className="text-harbour-500">Secondary text (text-harbour-500)</p>
             <p className="text-harbour-400">Muted text (text-harbour-400)</p>
@@ -130,12 +137,10 @@ export default function DesignSystem() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="checkbox-demo"
-                className="w-4 h-4 accent-harbour-600"
-              />
-              <label htmlFor="checkbox-demo" className="text-sm text-harbour-600">Checkbox option</label>
+              <input type="checkbox" id="checkbox-demo" className="w-4 h-4 accent-harbour-600" />
+              <label htmlFor="checkbox-demo" className="text-sm text-harbour-600">
+                Checkbox option
+              </label>
             </div>
           </div>
         </section>
@@ -272,10 +277,18 @@ export default function DesignSystem() {
             <table className="w-full">
               <thead className="bg-harbour-50 border-b border-harbour-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Column 1</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Column 2</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Column 3</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">Actions</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                    Column 1
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                    Column 2
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                    Column 3
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
@@ -331,13 +344,28 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-4 p-4 border border-harbour-200 bg-harbour-50">
           <h2 className="text-lg font-semibold text-harbour-700">Key Principles</h2>
           <ul className="flex flex-col gap-2 text-sm text-harbour-600">
-            <li><strong>No rounded corners</strong> - Everything uses sharp, square edges</li>
-            <li><strong>Borders over shadows</strong> - Use border or ring-1 instead of shadow-*</li>
-            <li><strong>Subtle interactions</strong> - Hover states change border/color, not transform</li>
-            <li><strong>Consistent spacing</strong> - Use Tailwind's scale: gap-2, gap-3, gap-4, gap-6</li>
-            <li><strong>harbour-* palette</strong> - Blue-focused, 600 for primary, 700 for headings</li>
-            <li><strong>White backgrounds</strong> - Cards use bg-white, muted areas use bg-harbour-50</li>
-            <li><strong>Semantic colors</strong> - Amber for warnings, Red for errors, Green for success</li>
+            <li>
+              <strong>No rounded corners</strong> - Everything uses sharp, square edges
+            </li>
+            <li>
+              <strong>Borders over shadows</strong> - Use border or ring-1 instead of shadow-*
+            </li>
+            <li>
+              <strong>Subtle interactions</strong> - Hover states change border/color, not transform
+            </li>
+            <li>
+              <strong>Consistent spacing</strong> - Use Tailwind's scale: gap-2, gap-3, gap-4, gap-6
+            </li>
+            <li>
+              <strong>harbour-* palette</strong> - Blue-focused, 600 for primary, 700 for headings
+            </li>
+            <li>
+              <strong>White backgrounds</strong> - Cards use bg-white, muted areas use bg-harbour-50
+            </li>
+            <li>
+              <strong>Semantic colors</strong> - Amber for warnings, Red for errors, Green for
+              success
+            </li>
           </ul>
         </section>
       </div>

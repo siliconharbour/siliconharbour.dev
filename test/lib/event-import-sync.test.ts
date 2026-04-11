@@ -29,11 +29,7 @@ async function seedSource(overrides?: Partial<Parameters<typeof createEventImpor
 }
 
 /** Insert a minimal imported event linked to a source */
-async function seedEvent(
-  sourceId: number,
-  importStatus: string,
-  externalId?: string,
-) {
+async function seedEvent(sourceId: number, importStatus: string, externalId?: string) {
   const now = new Date();
   const slug = `test-event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const [event] = await db
@@ -74,10 +70,7 @@ describe("approveImportedEvent", () => {
 
     await approveImportedEvent(event.id);
 
-    const [updated] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, event.id));
+    const [updated] = await db.select().from(events).where(eq(events.id, event.id));
     expect(updated.importStatus).toBe("approved");
   });
 });
@@ -89,10 +82,7 @@ describe("publishImportedEvent", () => {
 
     await publishImportedEvent(event.id);
 
-    const [updated] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, event.id));
+    const [updated] = await db.select().from(events).where(eq(events.id, event.id));
     expect(updated.importStatus).toBe("published");
   });
 });
@@ -104,10 +94,7 @@ describe("hideImportedEvent", () => {
 
     await hideImportedEvent(event.id);
 
-    const [updated] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, event.id));
+    const [updated] = await db.select().from(events).where(eq(events.id, event.id));
     expect(updated.importStatus).toBe("hidden");
   });
 });
@@ -119,10 +106,7 @@ describe("unhideImportedEvent", () => {
 
     await unhideImportedEvent(event.id);
 
-    const [updated] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, event.id));
+    const [updated] = await db.select().from(events).where(eq(events.id, event.id));
     expect(updated.importStatus).toBe("pending_review");
   });
 });
@@ -150,10 +134,7 @@ describe("deleteEventImportSource", () => {
 
     await deleteEventImportSource(source.id);
 
-    const rows = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, pending.id));
+    const rows = await db.select().from(events).where(eq(events.id, pending.id));
     expect(rows).toHaveLength(0);
   });
 
@@ -163,10 +144,7 @@ describe("deleteEventImportSource", () => {
 
     await deleteEventImportSource(source.id);
 
-    const rows = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, hidden.id));
+    const rows = await db.select().from(events).where(eq(events.id, hidden.id));
     expect(rows).toHaveLength(0);
   });
 
@@ -176,10 +154,7 @@ describe("deleteEventImportSource", () => {
 
     await deleteEventImportSource(source.id);
 
-    const rows = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, removed.id));
+    const rows = await db.select().from(events).where(eq(events.id, removed.id));
     expect(rows).toHaveLength(0);
   });
 
@@ -196,10 +171,7 @@ describe("deleteEventImportSource", () => {
 
     await deleteEventImportSource(source.id);
 
-    const datesAfter = await db
-      .select()
-      .from(eventDates)
-      .where(eq(eventDates.eventId, pending.id));
+    const datesAfter = await db.select().from(eventDates).where(eq(eventDates.eventId, pending.id));
     expect(datesAfter).toHaveLength(0);
   });
 
@@ -209,10 +181,7 @@ describe("deleteEventImportSource", () => {
 
     await deleteEventImportSource(source.id);
 
-    const [updated] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, approved.id));
+    const [updated] = await db.select().from(events).where(eq(events.id, approved.id));
     expect(updated).toBeDefined();
     expect(updated.importSourceId).toBeNull();
   });
@@ -223,10 +192,7 @@ describe("deleteEventImportSource", () => {
 
     await deleteEventImportSource(source.id);
 
-    const [updated] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, published.id));
+    const [updated] = await db.select().from(events).where(eq(events.id, published.id));
     expect(updated).toBeDefined();
     expect(updated.importSourceId).toBeNull();
   });

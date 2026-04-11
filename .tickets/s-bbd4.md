@@ -9,6 +9,7 @@ priority: 2
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Add job import sources for initial companies
 
 Configure import sources for companies we know: CoLab (greenhouse/colabsoftware), Spellbook (ashby/spellbook.legal). Run initial import.
@@ -19,4 +20,3 @@ Configure import sources for companies we know: CoLab (greenhouse/colabsoftware)
 - Spellbook source configured and jobs imported
 - Jobs appear on company pages
 - No errors in import process
-

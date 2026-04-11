@@ -8,7 +8,7 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # Investigate Compusult careers/ATS
 
 Check if Compusult has an ATS we can integrate with or careers page to fetch
-

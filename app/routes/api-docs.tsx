@@ -5,7 +5,9 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: frontmatter?.title ?? "API",
-    description: frontmatter?.description ?? "Public JSON API for accessing St. John's tech community data — events, jobs, companies, groups, and more.",
+    description:
+      frontmatter?.description ??
+      "Public JSON API for accessing St. John's tech community data — events, jobs, companies, groups, and more.",
     url: "/api",
   });
 }

@@ -9,7 +9,7 @@ priority: 2
 assignee: Jack Arthur Harrhy
 tags: [technologies, jobs, provenance]
 ---
+
 # Add Vish technologies from technical job postings
 
 Review Vish technical job posting text, identify technologies not yet in catalog, and add company technology assignments with Job Postings provenance where appropriate.
-

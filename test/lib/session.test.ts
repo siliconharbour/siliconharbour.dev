@@ -3,12 +3,7 @@ import { db } from "~/db";
 import { users, sessions } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword, createSession } from "~/lib/auth.server";
-import {
-  sessionStorage,
-  requireAuth,
-  getOptionalUser,
-  logout,
-} from "~/lib/session.server";
+import { sessionStorage, requireAuth, getOptionalUser, logout } from "~/lib/session.server";
 
 // =============================================================================
 // Helpers
@@ -20,10 +15,7 @@ async function seedUser(
   role: "admin" | "regular" = "admin",
 ) {
   const passwordHash = await hashPassword(password);
-  const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash, role })
-    .returning();
+  const [user] = await db.insert(users).values({ email, passwordHash, role }).returning();
   return user;
 }
 
@@ -129,10 +121,7 @@ describe("getOptionalUser", () => {
 
     // Expire the session
     const pastDate = new Date(Date.now() - 1000);
-    await db
-      .update(sessions)
-      .set({ expiresAt: pastDate })
-      .where(eq(sessions.id, sessionId));
+    await db.update(sessions).set({ expiresAt: pastDate }).where(eq(sessions.id, sessionId));
 
     const req = await buildRequest(sessionId);
     const result = await getOptionalUser(req);
@@ -180,11 +169,7 @@ describe("logout", () => {
     expect(response.headers.get("Set-Cookie")).toBeTruthy();
 
     // Session should be deleted from DB
-    const row = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+    const row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     expect(row).toBeUndefined();
   });
 

@@ -2,10 +2,7 @@ import { describe, it, expect } from "vitest";
 import { db } from "~/db";
 import { rateLimits } from "~/db/schema";
 import { eq } from "drizzle-orm";
-import {
-  checkRateLimit,
-  getRateLimitStatus,
-} from "~/lib/ratelimit.server";
+import { checkRateLimit, getRateLimitStatus } from "~/lib/ratelimit.server";
 
 // =============================================================================
 // checkRateLimit

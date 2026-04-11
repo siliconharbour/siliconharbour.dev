@@ -378,10 +378,7 @@ export default function EditProject() {
             />
           </div>
 
-          <TechnologySelect
-            technologies={allTechnologies}
-            selectedIds={selectedTechnologyIds}
-          />
+          <TechnologySelect technologies={allTechnologies} selectedIds={selectedTechnologyIds} />
 
           <button
             type="submit"

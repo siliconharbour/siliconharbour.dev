@@ -152,7 +152,11 @@ export default function EditEvent() {
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
           <Link
-            to={event.importSourceId ? `/manage/import/events/${event.importSourceId}` : "/manage/events"}
+            to={
+              event.importSourceId
+                ? `/manage/import/events/${event.importSourceId}`
+                : "/manage/events"
+            }
             className="text-sm text-harbour-400 hover:text-harbour-600"
           >
             &larr; Back
@@ -173,7 +177,8 @@ export default function EditEvent() {
 
         {isApprovedImport && (
           <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            This event was imported and is not yet public. Use <strong>Save &amp; Publish</strong> when ready to make it live.
+            This event was imported and is not yet public. Use <strong>Save &amp; Publish</strong>{" "}
+            when ready to make it live.
           </div>
         )}
 

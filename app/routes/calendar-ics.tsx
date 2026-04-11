@@ -36,8 +36,7 @@ export async function loader({}: Route.LoaderArgs) {
       }
 
       const startDate = firstDate.startDate;
-      const endDate =
-        firstDate.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
+      const endDate = firstDate.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
       // Build RRULE string with UNTIL if recurrenceEnd is set
       let rrule = event.recurrenceRule;

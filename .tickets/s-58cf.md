@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 tags: [ui, provenance, jobs]
 ---
+
 # Fix company sources dialog dedupe for same-URL jobs
 
 Technology Sources dialog currently dedupes evidence jobs by URL, collapsing distinct jobs that share a careers page URL. Deduplicate by job identity (title+url) so all supporting jobs are shown.
-

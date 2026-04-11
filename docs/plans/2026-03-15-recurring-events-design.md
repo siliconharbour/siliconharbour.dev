@@ -13,6 +13,7 @@
 ### Task 1: Add `recurrenceStart` to schema and migrate
 
 **Files:**
+
 - Modify: `app/db/schema.ts:57-61`
 - Create: `drizzle/0038_add_recurrence_start.sql`
 - Modify: `drizzle/meta/_journal.json`
@@ -26,6 +27,7 @@ recurrenceStart: integer("recurrence_start", { mode: "timestamp" }), // When the
 ```
 
 So the recurrence fields block becomes:
+
 ```typescript
   // Recurrence fields
   recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
@@ -38,6 +40,7 @@ So the recurrence fields block becomes:
 **Step 2: Create migration SQL**
 
 Create `drizzle/0038_add_recurrence_start.sql`:
+
 ```sql
 ALTER TABLE `events` ADD `recurrence_start` integer;
 ```
@@ -45,6 +48,7 @@ ALTER TABLE `events` ADD `recurrence_start` integer;
 **Step 3: Register migration in journal**
 
 Add to `drizzle/meta/_journal.json` entries array (after idx 37):
+
 ```json
 {
   "idx": 38,
@@ -72,6 +76,7 @@ git commit -m "Add recurrenceStart column to events table"
 ### Task 2: Add recurrenceStart to admin schema and form
 
 **Files:**
+
 - Modify: `app/lib/admin/manage-schemas.ts:33-38`
 - Modify: `app/components/EventForm.tsx`
 - Modify: `app/routes/manage/events/new.tsx:43-67`
@@ -105,10 +110,14 @@ const [showRecurrenceStartPicker, setShowRecurrenceStartPicker] = useState(false
 Then in the recurring settings section (after the "Recurrence Settings" h3, before the Frequency select), add a "Series Start Date" field:
 
 ```tsx
-{/* Series Start Date */}
+{
+  /* Series Start Date */
+}
 <div>
   <label className="block text-xs text-harbour-500 mb-1">Series Start Date (optional)</label>
-  <p className="text-xs text-harbour-400 mb-2">When this series began. Leave empty to use creation date.</p>
+  <p className="text-xs text-harbour-400 mb-2">
+    When this series began. Leave empty to use creation date.
+  </p>
   <div className="relative">
     <button
       type="button"
@@ -141,18 +150,21 @@ Then in the recurring settings section (after the "Recurrence Settings" h3, befo
       </div>
     )}
   </div>
-</div>
+</div>;
 ```
 
 Add the hidden input in the recurring hidden inputs section (near line 758-767):
+
 ```tsx
-{recurrenceStartDate && (
-  <input
-    type="hidden"
-    name="recurrenceStart"
-    value={recurrenceStartDate.toISOString().split("T")[0]}
-  />
-)}
+{
+  recurrenceStartDate && (
+    <input
+      type="hidden"
+      name="recurrenceStart"
+      value={recurrenceStartDate.toISOString().split("T")[0]}
+    />
+  );
+}
 ```
 
 **Step 3: Handle recurrenceStart in create action**
@@ -215,9 +227,11 @@ await updateEvent(
 ```
 
 Also in the one-time branch (lines 100-118), clear recurrenceStart when switching:
+
 ```typescript
 recurrenceStart: null,
 ```
+
 alongside the existing `recurrenceRule: null, recurrenceEnd: null, ...` lines.
 
 **Step 5: Commit**
@@ -232,6 +246,7 @@ git commit -m "Add recurrenceStart field to admin event forms"
 ### Task 3: Use recurrenceStart in occurrence generation
 
 **Files:**
+
 - Modify: `app/lib/events.server.ts:584-598`
 
 **Step 1: Update getGeneratedOccurrences to use recurrenceStart**
@@ -275,6 +290,7 @@ git commit -m "Anchor occurrence generation to recurrenceStart"
 ### Task 4: Rewrite iCal feed with proper RRULE
 
 **Files:**
+
 - Modify: `app/routes/calendar-ics.tsx` (full rewrite)
 
 **Step 1: Rewrite the iCal feed**
@@ -322,8 +338,7 @@ export async function loader({}: Route.LoaderArgs) {
       }
 
       const startDate = firstDate.startDate;
-      const endDate =
-        firstDate.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
+      const endDate = firstDate.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
       // Build RRULE string with UNTIL if recurrenceEnd is set
       let rrule = event.recurrenceRule;
@@ -498,6 +513,7 @@ git commit -m "Emit proper RRULE in iCal feed for recurring events
 ### Task 5: Stacked card UI for recurring events
 
 **Files:**
+
 - Modify: `app/components/EventCard.tsx`
 
 **Step 1: Import describeRecurrenceRule**
@@ -533,8 +549,13 @@ function describeRecurrence(rule: string | null): string | null {
   }
 
   const dayNames: Record<string, string> = {
-    SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday",
-    TH: "Thursday", FR: "Friday", SA: "Saturday",
+    SU: "Sunday",
+    MO: "Monday",
+    TU: "Tuesday",
+    WE: "Wednesday",
+    TH: "Thursday",
+    FR: "Friday",
+    SA: "Saturday",
   };
   const day = dayNames[dayCode] || dayCode;
 
@@ -542,7 +563,13 @@ function describeRecurrence(rule: string | null): string | null {
     return interval === 2 ? `Every other ${day}` : `Every ${day}`;
   }
   if (freq === "MONTHLY") {
-    const positions: Record<number, string> = { 1: "First", 2: "Second", 3: "Third", 4: "Fourth", [-1]: "Last" };
+    const positions: Record<number, string> = {
+      1: "First",
+      2: "Second",
+      3: "Third",
+      4: "Fourth",
+      [-1]: "Last",
+    };
     return `${positions[position] || ""} ${day} of every month`.trim();
   }
   return "Recurring";
@@ -597,31 +624,36 @@ Then in the date/info section of the default card (around lines 148-161), replac
 For the **featured card** (starting around line 18), add the same stacking and recurrence description treatment:
 
 Outer Link gets the margin adjustment:
+
 ```tsx
 className={`group relative block ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""} ${event.recurrenceRule ? "mt-2 ml-2" : ""}`}
 ```
 
 Add stacking pseudo-elements after the Link opening:
+
 ```tsx
-{event.recurrenceRule && (
-  <>
-    <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50/50 -z-20" />
-    <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50/80 -z-10" />
-  </>
-)}
+{
+  event.recurrenceRule && (
+    <>
+      <div className="absolute -top-2 -left-2 right-2 bottom-2 ring-1 ring-harbour-200/40 bg-harbour-50/50 -z-20" />
+      <div className="absolute -top-1 -left-1 right-1 bottom-1 ring-1 ring-harbour-200/60 bg-harbour-50/80 -z-10" />
+    </>
+  );
+}
 ```
 
 And replace the "+N more dates" span (around line 80-84) with:
+
 ```tsx
-{event.recurrenceRule ? (
-  <span className="text-xs text-harbour-400">
-    {describeRecurrence(event.recurrenceRule)}
-  </span>
-) : hasMultipleDates ? (
-  <span className="text-xs text-harbour-400">
-    +{event.dates.length - 1} more date{event.dates.length > 2 ? "s" : ""}
-  </span>
-) : null}
+{
+  event.recurrenceRule ? (
+    <span className="text-xs text-harbour-400">{describeRecurrence(event.recurrenceRule)}</span>
+  ) : hasMultipleDates ? (
+    <span className="text-xs text-harbour-400">
+      +{event.dates.length - 1} more date{event.dates.length > 2 ? "s" : ""}
+    </span>
+  ) : null;
+}
 ```
 
 **Step 4: Commit**
@@ -640,6 +672,7 @@ git commit -m "Add stacked card treatment for recurring events
 ### Task 6: Limit recurring event dates in listing queries
 
 **Files:**
+
 - Modify: `app/lib/events.server.ts`
 
 **Step 1: Limit synthetic dates for listings**

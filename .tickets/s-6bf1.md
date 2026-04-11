@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 tags: [jobs, importers, text]
 ---
+
 # Fix encoded HTML tags leaking into job description_text
 
 Shared job HTML-to-text conversion currently strips tags before decoding entities, which allows encoded tags like &lt;p&gt; to survive into description_text. Decode and normalize in the correct order so both raw and encoded tags are removed.
-

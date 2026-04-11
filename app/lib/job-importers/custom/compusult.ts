@@ -57,9 +57,7 @@ export async function scrapeCompusult(): Promise<FetchedJob[]> {
           title: currentTitle,
           location: currentLocation,
           descriptionHtml,
-          descriptionText: descriptionHtml
-            ? htmlToText(descriptionHtml)
-            : undefined,
+          descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
           url: CAREERS_URL,
         });
       }
@@ -69,17 +67,11 @@ export async function scrapeCompusult(): Promise<FetchedJob[]> {
       descriptionParts = [];
 
       // Check for location in the same block (after the h3)
-      const locationMatch = block.match(
-        /Location:\s*([^<]+)/i,
-      );
-      currentLocation = locationMatch
-        ? htmlToText(locationMatch[1]).trim()
-        : undefined;
+      const locationMatch = block.match(/Location:\s*([^<]+)/i);
+      currentLocation = locationMatch ? htmlToText(locationMatch[1]).trim() : undefined;
 
       // If there's content after the h3 and location, include it as description
-      const afterH3 = block.substring(
-        block.indexOf("</h3>") + 5,
-      );
+      const afterH3 = block.substring(block.indexOf("</h3>") + 5);
       // Strip out just the location paragraph to avoid duplication
       const descContent = afterH3
         .replace(/<p>\s*<strong>\s*Location:[^<]*<\/strong>\s*<\/p>/i, "")
@@ -101,9 +93,7 @@ export async function scrapeCompusult(): Promise<FetchedJob[]> {
       title: currentTitle,
       location: currentLocation,
       descriptionHtml,
-      descriptionText: descriptionHtml
-        ? htmlToText(descriptionHtml)
-        : undefined,
+      descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
       url: CAREERS_URL,
     });
   }

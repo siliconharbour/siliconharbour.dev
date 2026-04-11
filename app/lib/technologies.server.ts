@@ -46,9 +46,7 @@ export async function generateTechnologySlug(name: string, excludeId?: number): 
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
-export async function createTechnology(
-  tech: Omit<NewTechnology, "slug">,
-): Promise<Technology> {
+export async function createTechnology(tech: Omit<NewTechnology, "slug">): Promise<Technology> {
   const slug = await generateTechnologySlug(tech.name);
   const [newTech] = await db
     .insert(technologies)
@@ -332,11 +330,18 @@ export async function setTechnologyEvidenceForCompany(
     return;
   }
 
-  const assignmentsByTechnologyId = new Map(assignments.map((assignment) => [assignment.technologyId, assignment]));
+  const assignmentsByTechnologyId = new Map(
+    assignments.map((assignment) => [assignment.technologyId, assignment]),
+  );
   const existingEvidence = await db
     .select()
     .from(technologyEvidence)
-    .where(inArray(technologyEvidence.technologyAssignmentId, assignments.map((assignment) => assignment.id)));
+    .where(
+      inArray(
+        technologyEvidence.technologyAssignmentId,
+        assignments.map((assignment) => assignment.id),
+      ),
+    );
   const existingExcerptByKey = new Map<string, string | null>();
   for (const evidence of existingEvidence) {
     const key = `${evidence.technologyAssignmentId}:${evidence.jobId ?? "none"}:${evidence.sourceType}`;
@@ -345,9 +350,12 @@ export async function setTechnologyEvidenceForCompany(
     }
   }
 
-  await db
-    .delete(technologyEvidence)
-    .where(inArray(technologyEvidence.technologyAssignmentId, assignments.map((assignment) => assignment.id)));
+  await db.delete(technologyEvidence).where(
+    inArray(
+      technologyEvidence.technologyAssignmentId,
+      assignments.map((assignment) => assignment.id),
+    ),
+  );
 
   const allJobIds = Array.from(new Set(groups.flatMap((group) => group.jobIds)));
   const allTechnologyIds = Array.from(new Set(groups.flatMap((group) => group.technologyIds)));
@@ -368,7 +376,10 @@ export async function setTechnologyEvidenceForCompany(
             ),
           )
       : [];
-  const mentionContextByKey = new Map<string, { confidence: number | null; context: string | null }>();
+  const mentionContextByKey = new Map<
+    string,
+    { confidence: number | null; context: string | null }
+  >();
   for (const mention of mentionRows) {
     const key = `${mention.jobId}:${mention.technologyId}`;
     const existing = mentionContextByKey.get(key);
@@ -393,12 +404,12 @@ export async function setTechnologyEvidenceForCompany(
           const existingExcerpt = existingExcerptByKey.get(existingKey) ?? null;
           const mention = mentionContextByKey.get(`${jobId}:${technologyId}`);
           const excerptForJobPosting =
-            group.excerptText
-            ?? existingExcerpt
-            ?? mention?.context
-            ?? null;
+            group.excerptText ?? existingExcerpt ?? mention?.context ?? null;
           const excerptForManual = group.excerptText ?? existingExcerpt ?? null;
-          if (group.sourceType === "job_posting" && (!excerptForJobPosting || excerptForJobPosting.trim().length === 0)) {
+          if (
+            group.sourceType === "job_posting" &&
+            (!excerptForJobPosting || excerptForJobPosting.trim().length === 0)
+          ) {
             continue;
           }
           await db.insert(technologyEvidence).values({
@@ -406,7 +417,8 @@ export async function setTechnologyEvidenceForCompany(
             jobId,
             sourceType: group.sourceType,
             sourceUrl: group.sourceUrl,
-            excerptText: group.sourceType === "job_posting" ? excerptForJobPosting : excerptForManual,
+            excerptText:
+              group.sourceType === "job_posting" ? excerptForJobPosting : excerptForManual,
             lastVerified: group.lastVerified,
           });
         }
@@ -428,7 +440,12 @@ export async function setTechnologyEvidenceForCompany(
 
 export async function applyTechnologyEvidenceFromJobMentions(
   input: ApplyJobMentionTechInput,
-): Promise<{ assignedCount: number; evidenceCreated: number; evidenceUpdated: number; skipped: number }> {
+): Promise<{
+  assignedCount: number;
+  evidenceCreated: number;
+  evidenceUpdated: number;
+  skipped: number;
+}> {
   if (input.selectedTechnologyIds.length === 0) {
     return { assignedCount: 0, evidenceCreated: 0, evidenceUpdated: 0, skipped: 0 };
   }
@@ -445,7 +462,9 @@ export async function applyTechnologyEvidenceFromJobMentions(
       ),
     );
 
-  const assignmentsByTechId = new Map(assignments.map((assignment) => [assignment.technologyId, assignment]));
+  const assignmentsByTechId = new Map(
+    assignments.map((assignment) => [assignment.technologyId, assignment]),
+  );
   let assignedCount = 0;
   for (const technologyId of uniqueTechnologyIds) {
     const existing = assignmentsByTechId.get(technologyId);
@@ -564,7 +583,9 @@ export interface TechnologyEvidenceWithJob {
 export async function getTechnologiesForContent(
   contentType: TechnologizedType,
   contentId: number,
-): Promise<(TechnologyAssignment & { technology: Technology; evidence: TechnologyEvidenceWithJob[] })[]> {
+): Promise<
+  (TechnologyAssignment & { technology: Technology; evidence: TechnologyEvidenceWithJob[] })[]
+> {
   const assignments = await db
     .select()
     .from(technologyAssignments)
@@ -585,7 +606,11 @@ export async function getTechnologiesForContent(
       : [];
 
   const evidenceJobIds = Array.from(
-    new Set(evidenceRows.map((evidence) => evidence.jobId).filter((jobId): jobId is number => jobId !== null)),
+    new Set(
+      evidenceRows
+        .map((evidence) => evidence.jobId)
+        .filter((jobId): jobId is number => jobId !== null),
+    ),
   );
   const evidenceJobs =
     evidenceJobIds.length > 0
@@ -611,7 +636,10 @@ export async function getTechnologiesForContent(
     evidenceByAssignmentId.set(evidence.technologyAssignmentId, list);
   }
 
-  const result: (TechnologyAssignment & { technology: Technology; evidence: TechnologyEvidenceWithJob[] })[] = [];
+  const result: (TechnologyAssignment & {
+    technology: Technology;
+    evidence: TechnologyEvidenceWithJob[];
+  })[] = [];
 
   for (const assignment of assignments) {
     const tech = await getTechnologyById(assignment.technologyId);

@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Prevent full job descriptions from being stored as job posting evidence snippets
 
+# Prevent full job descriptions from being stored as job posting evidence snippets

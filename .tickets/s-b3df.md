@@ -9,6 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Admin UI: Trigger import action
 
 Create app/routes/manage/import/jobs.run.tsx - action route that triggers syncJobs for a source. Returns results (added/updated/removed counts).
@@ -19,4 +20,3 @@ Create app/routes/manage/import/jobs.run.tsx - action route that triggers syncJo
 - Calls syncJobs and returns results
 - Updates UI with sync results
 - Handles errors gracefully
-

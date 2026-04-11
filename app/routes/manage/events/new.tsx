@@ -35,7 +35,11 @@ export async function action({ request }: Route.ActionArgs) {
     "coverImageData",
     processAndSaveCoverImage,
   );
-  const iconImage = await createImageFromFormData(formData, "iconImageData", processAndSaveIconImage);
+  const iconImage = await createImageFromFormData(
+    formData,
+    "iconImageData",
+    processAndSaveIconImage,
+  );
 
   // Check if this is a recurring event
   const isRecurring = parsedBase.data.eventType === "recurring";

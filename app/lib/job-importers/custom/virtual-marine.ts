@@ -44,18 +44,14 @@ export async function scrapeVirtualMarine(): Promise<FetchedJob[]> {
     // Skip non-job headings
     if (
       title.toLowerCase().includes("careers at") ||
-      title.toLowerCase().includes("virtual marine") && !title.toLowerCase().includes("at virtual marine") === false ||
+      (title.toLowerCase().includes("virtual marine") &&
+        !title.toLowerCase().includes("at virtual marine") === false) ||
       title.length < 3
     )
       continue;
 
     // Skip section headings that aren't job titles
-    if (
-      title === "Careers" ||
-      title.startsWith("WHO ") ||
-      title.startsWith("WHAT ")
-    )
-      continue;
+    if (title === "Careers" || title.startsWith("WHO ") || title.startsWith("WHAT ")) continue;
 
     // Strip "(new)" suffix
     title = title.replace(/\s*\(new\)\s*$/i, "").trim();

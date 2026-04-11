@@ -110,9 +110,7 @@ export function EntityPicker({
 
   return (
     <div className="flex flex-col gap-2" ref={containerRef}>
-      {label && (
-        <label className="block text-sm font-medium text-harbour-700">{label}</label>
-      )}
+      {label && <label className="block text-sm font-medium text-harbour-700">{label}</label>}
 
       {/* Single hidden input — comma-separated string matching existing organizer wire */}
       <input type="hidden" name={name} value={hiddenValue} />

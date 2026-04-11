@@ -853,16 +853,16 @@ export async function getDetailedBacklinks(
           .where(eq(jobs.id, ref.sourceId));
 
         if (job && job.slug) {
-          backlinks.push({ 
-            type: "job", 
-            relation: ref.relation ?? undefined, 
+          backlinks.push({
+            type: "job",
+            relation: ref.relation ?? undefined,
             data: {
               id: job.id,
               slug: job.slug,
               title: job.title,
               location: job.location,
               workplaceType: job.workplaceType,
-            }
+            },
           });
         }
         break;

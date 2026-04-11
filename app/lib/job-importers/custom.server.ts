@@ -8,12 +8,7 @@
  * sourceIdentifier is the company slug (e.g., "strobeltek", "c-core")
  */
 
-import type {
-  JobImporter,
-  ImportSourceConfig,
-  FetchedJob,
-  ValidationResult,
-} from "./types";
+import type { JobImporter, ImportSourceConfig, FetchedJob, ValidationResult } from "./types";
 import type { CustomScraper } from "./custom/utils";
 import { scrapeStrobeltek } from "./custom/strobeltek";
 import { scrapeCCore } from "./custom/c-core";
@@ -62,16 +57,14 @@ export const customImporter: JobImporter = {
     if (!scraper) {
       throw new Error(
         `No custom scraper found for "${config.sourceIdentifier}". ` +
-          `Available: ${Object.keys(scrapers).join(", ")}`
+          `Available: ${Object.keys(scrapers).join(", ")}`,
       );
     }
 
     return scraper(config.sourceUrl || "");
   },
 
-  async validateConfig(
-    config: Omit<ImportSourceConfig, "id">
-  ): Promise<ValidationResult> {
+  async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,

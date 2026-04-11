@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import type { EventWithDates } from "~/lib/events.server";
 import {
   buildEventsMessage,
@@ -100,9 +100,7 @@ describe("buildEventsMessage", () => {
     const container = result[0] as { type: number; components: any[] };
     // Find the main text display (either plain type 10 or inside a section type 9)
     const allContent = container.components
-      .flatMap((c: any) =>
-        c.type === 9 ? c.components : [c]
-      )
+      .flatMap((c: any) => (c.type === 9 ? c.components : [c]))
       .filter((c: any) => c.type === 10)
       .map((c: any) => c.content)
       .join("\n");
@@ -118,9 +116,7 @@ describe("buildEventsMessage", () => {
     ];
     const result = buildEventsMessage(events);
     const container = result[0] as { type: number; components: any[] };
-    const separators = container.components.filter(
-      (c: any) => c.type === 14
-    );
+    const separators = container.components.filter((c: any) => c.type === 14);
     // There should be at least one separator between the two events
     expect(separators.length).toBeGreaterThanOrEqual(1);
   });
@@ -152,14 +148,10 @@ describe("buildEventsMessage", () => {
     });
     const result = buildEventsMessage([event]);
     const container = result[0] as { type: number; components: any[] };
-    const sections = container.components.filter(
-      (c: any) => c.type === 9
-    );
+    const sections = container.components.filter((c: any) => c.type === 9);
     expect(sections).toHaveLength(1);
     expect(sections[0].accessory.type).toBe(11);
-    expect(sections[0].accessory.media.url).toBe(
-      "https://example.com/cover.jpg"
-    );
+    expect(sections[0].accessory.media.url).toBe("https://example.com/cover.jpg");
   });
 
   it("event with coverImage (local) constructs full image URL", () => {
@@ -169,13 +161,9 @@ describe("buildEventsMessage", () => {
     });
     const result = buildEventsMessage([event]);
     const container = result[0] as { type: number; components: any[] };
-    const sections = container.components.filter(
-      (c: any) => c.type === 9
-    );
+    const sections = container.components.filter((c: any) => c.type === 9);
     expect(sections).toHaveLength(1);
-    expect(sections[0].accessory.media.url).toBe(
-      `${SITE_URL}/images/my-cover.webp`
-    );
+    expect(sections[0].accessory.media.url).toBe(`${SITE_URL}/images/my-cover.webp`);
   });
 
   it("event without cover image uses plain text display (type 10)", () => {
@@ -186,14 +174,10 @@ describe("buildEventsMessage", () => {
     const result = buildEventsMessage([event]);
     const container = result[0] as { type: number; components: any[] };
     // No section (type 9) should exist
-    const sections = container.components.filter(
-      (c: any) => c.type === 9
-    );
+    const sections = container.components.filter((c: any) => c.type === 9);
     expect(sections).toHaveLength(0);
     // There should be a plain text display
-    const texts = container.components.filter(
-      (c: any) => c.type === 10
-    );
+    const texts = container.components.filter((c: any) => c.type === 10);
     expect(texts.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -202,9 +186,7 @@ describe("buildEventsMessage", () => {
     const result = buildEventsMessage([event]);
     const container = result[0] as { type: number; components: any[] };
     const allContent = container.components
-      .flatMap((c: any) =>
-        c.type === 9 ? c.components : [c]
-      )
+      .flatMap((c: any) => (c.type === 9 ? c.components : [c]))
       .filter((c: any) => c.type === 10)
       .map((c: any) => c.content)
       .join("\n");
@@ -219,9 +201,7 @@ describe("buildEventsMessage", () => {
     const result = buildEventsMessage([event]);
     const container = result[0] as { type: number; components: any[] };
     const allContent = container.components
-      .flatMap((c: any) =>
-        c.type === 9 ? c.components : [c]
-      )
+      .flatMap((c: any) => (c.type === 9 ? c.components : [c]))
       .filter((c: any) => c.type === 10)
       .map((c: any) => c.content)
       .join("\n");
@@ -230,10 +210,7 @@ describe("buildEventsMessage", () => {
   });
 
   it("custom introText is prepended as text display", () => {
-    const result = buildEventsMessage(
-      [makeEvent()],
-      "Here are this week's events!"
-    );
+    const result = buildEventsMessage([makeEvent()], "Here are this week's events!");
     const container = result[0] as { type: number; components: any[] };
     const firstComponent = container.components[0];
     expect(firstComponent.type).toBe(10);
@@ -241,10 +218,7 @@ describe("buildEventsMessage", () => {
   });
 
   it("introText followed by a separator", () => {
-    const result = buildEventsMessage(
-      [makeEvent()],
-      "Intro text"
-    );
+    const result = buildEventsMessage([makeEvent()], "Intro text");
     const container = result[0] as { type: number; components: any[] };
     expect(container.components[0].type).toBe(10); // intro text
     expect(container.components[1].type).toBe(14); // separator
@@ -268,9 +242,7 @@ describe("buildEventsMessage", () => {
     const result = buildEventsMessage([event]);
     const container = result[0] as { type: number; components: any[] };
     const allContent = container.components
-      .flatMap((c: any) =>
-        c.type === 9 ? c.components : [c]
-      )
+      .flatMap((c: any) => (c.type === 9 ? c.components : [c]))
       .filter((c: any) => c.type === 10)
       .map((c: any) => c.content)
       .join("\n");
@@ -306,9 +278,7 @@ describe("buildJobsMessage", () => {
     expect(texts[0].content).toContain("Acme Corp");
     expect(texts[0].content).toContain("Hybrid"); // capitalized
 
-    const actionRows = container.components.filter(
-      (c: any) => c.type === 1
-    );
+    const actionRows = container.components.filter((c: any) => c.type === 1);
     expect(actionRows).toHaveLength(1);
     expect(actionRows[0].components[0].label).toBe("Apply");
   });
@@ -317,9 +287,7 @@ describe("buildJobsMessage", () => {
     const job = makeJob({ url: "https://example.com/apply" });
     const result = buildJobsMessage([job]);
     const container = result[0] as { type: number; components: any[] };
-    const actionRow = container.components.find(
-      (c: any) => c.type === 1
-    );
+    const actionRow = container.components.find((c: any) => c.type === 1);
     expect(actionRow.components[0].url).toBe("https://example.com/apply");
   });
 
@@ -327,12 +295,8 @@ describe("buildJobsMessage", () => {
     const job = makeJob({ url: null });
     const result = buildJobsMessage([job]);
     const container = result[0] as { type: number; components: any[] };
-    const actionRow = container.components.find(
-      (c: any) => c.type === 1
-    );
-    expect(actionRow.components[0].url).toBe(
-      `${SITE_URL}/jobs/test-job`
-    );
+    const actionRow = container.components.find((c: any) => c.type === 1);
+    expect(actionRow.components[0].url).toBe(`${SITE_URL}/jobs/test-job`);
   });
 
   it("mixed technical and non-technical jobs", () => {
@@ -367,11 +331,9 @@ describe("buildJobsMessage", () => {
     expect(allContent).toContain("HR Manager - HRCo");
 
     // "View All Jobs" button for non-technical section
-    const actionRows = container.components.filter(
-      (c: any) => c.type === 1
-    );
+    const actionRows = container.components.filter((c: any) => c.type === 1);
     const viewAllButton = actionRows.find((ar: any) =>
-      ar.components.some((b: any) => b.label === "View All Jobs")
+      ar.components.some((b: any) => b.label === "View All Jobs"),
     );
     expect(viewAllButton).toBeTruthy();
   });
@@ -393,9 +355,7 @@ describe("buildJobsMessage", () => {
     // No "View All Jobs" button
     const viewAllButton = container.components
       .filter((c: any) => c.type === 1)
-      .find((ar: any) =>
-        ar.components.some((b: any) => b.label === "View All Jobs")
-      );
+      .find((ar: any) => ar.components.some((b: any) => b.label === "View All Jobs"));
     expect(viewAllButton).toBeUndefined();
   });
 
@@ -420,9 +380,7 @@ describe("buildJobsMessage", () => {
     expect(allContent).toContain("Sales Rep - SalesCo");
 
     // Only "View All Jobs" button, no "Apply" buttons
-    const actionRows = container.components.filter(
-      (c: any) => c.type === 1
-    );
+    const actionRows = container.components.filter((c: any) => c.type === 1);
     expect(actionRows).toHaveLength(1);
     expect(actionRows[0].components[0].label).toBe("View All Jobs");
   });
@@ -488,7 +446,7 @@ describe("buildJobsMessage", () => {
     const container = result[0] as { type: number; components: any[] };
     // Find separators with spacing 2 (larger separator between sections)
     const largeSeparators = container.components.filter(
-      (c: any) => c.type === 14 && c.spacing === 2
+      (c: any) => c.type === 14 && c.spacing === 2,
     );
     expect(largeSeparators.length).toBeGreaterThanOrEqual(1);
   });

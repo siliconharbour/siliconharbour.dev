@@ -31,17 +31,15 @@ export async function scrapeStrobeltek(): Promise<FetchedJob[]> {
     if (!title) continue;
 
     // Extract location
-    const locationMatch = section.match(
-      /Location:\s*<\/b>\s*(?:<b>)?\s*([^<]+)/i
-    );
+    const locationMatch = section.match(/Location:\s*<\/b>\s*(?:<b>)?\s*([^<]+)/i);
     const location = locationMatch
-      ? htmlToText(locationMatch[1]).replace(/\([^)]*\)/g, "").trim()
+      ? htmlToText(locationMatch[1])
+          .replace(/\([^)]*\)/g, "")
+          .trim()
       : undefined;
 
     // Extract duration
-    const durationMatch = section.match(
-      /Duration:\s*<\/b>\s*(?:<b>)?\s*([^<]+)/i
-    );
+    const durationMatch = section.match(/Duration:\s*<\/b>\s*(?:<b>)?\s*([^<]+)/i);
 
     // Build description - take everything up to the next "Position Title" or end
     // Limit to a reasonable chunk

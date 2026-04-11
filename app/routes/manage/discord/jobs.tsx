@@ -1,11 +1,5 @@
 import type { Route } from "./+types/jobs";
-import {
-  Form,
-  Link,
-  useActionData,
-  useLoaderData,
-  useNavigation,
-} from "react-router";
+import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getDiscordConfig } from "~/lib/config.server";
 import {
@@ -45,8 +39,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (!config.botToken || !config.jobsChannelId) {
     return {
-      error:
-        "Discord is not configured. Please set bot token and jobs channel ID in Settings.",
+      error: "Discord is not configured. Please set bot token and jobs channel ID in Settings.",
     };
   }
 
@@ -85,10 +78,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "post") {
-    const selectedIds = formData
-      .getAll("selectedJobs")
-      .map(Number)
-      .filter(Boolean);
+    const selectedIds = formData.getAll("selectedJobs").map(Number).filter(Boolean);
     if (selectedIds.length === 0) {
       return { error: "No jobs selected" };
     }
@@ -96,9 +86,7 @@ export async function action({ request }: Route.ActionArgs) {
     const introText = (formData.get("introText") as string) || null;
 
     const allUnposted = await getUnpostedJobs();
-    const selectedJobs = allUnposted.filter((j) =>
-      selectedIds.includes(j.id)
-    );
+    const selectedJobs = allUnposted.filter((j) => selectedIds.includes(j.id));
 
     if (selectedJobs.length === 0) {
       return { error: "Selected jobs are no longer available" };
@@ -115,11 +103,7 @@ export async function action({ request }: Route.ActionArgs) {
     }));
 
     const components = buildJobsMessage(jobsForMessage, introText || undefined);
-    const result = await postMessage(
-      config.jobsChannelId,
-      components,
-      config.botToken
-    );
+    const result = await postMessage(config.jobsChannelId, components, config.botToken);
 
     if (!result.success) {
       return { error: `Failed to post to Discord: ${result.error}` };
@@ -140,7 +124,19 @@ export async function action({ request }: Route.ActionArgs) {
   return { error: "Unknown action" };
 }
 
-function JobRow({ job }: { job: { id: number; title: string; companyName: string | null; location: string | null; workplaceType: string | null; isTechnical: boolean; postedAt: Date | null } }) {
+function JobRow({
+  job,
+}: {
+  job: {
+    id: number;
+    title: string;
+    companyName: string | null;
+    location: string | null;
+    workplaceType: string | null;
+    isTechnical: boolean;
+    postedAt: Date | null;
+  };
+}) {
   return (
     <div className="flex items-start gap-4 p-4 border border-harbour-100">
       <input
@@ -160,12 +156,8 @@ function JobRow({ job }: { job: { id: number; title: string; companyName: string
           )}
         </span>
         <span className="text-sm text-harbour-400">
-          {[job.companyName, job.location, job.workplaceType]
-            .filter(Boolean)
-            .join(" \u2022 ")}
-          {job.postedAt && (
-            <> \u2022 {format(new Date(job.postedAt), "MMM d")}</>
-          )}
+          {[job.companyName, job.location, job.workplaceType].filter(Boolean).join(" \u2022 ")}
+          {job.postedAt && <> \u2022 {format(new Date(job.postedAt), "MMM d")}</>}
         </span>
       </div>
       <Form method="post" className="flex-shrink-0">
@@ -187,11 +179,9 @@ export default function DiscordJobs() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isPosting =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") === "post";
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
   const isSkippingOld =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") === "skip-old";
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "skip-old";
 
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const oldJobCount = jobs.filter((j) => {
@@ -207,12 +197,8 @@ export default function DiscordJobs() {
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold text-harbour-700">
-              Discord Jobs
-            </h1>
-            <p className="text-harbour-400 text-sm">
-              Compose and post job roundups to Discord
-            </p>
+            <h1 className="text-2xl font-semibold text-harbour-700">Discord Jobs</h1>
+            <p className="text-harbour-400 text-sm">Compose and post job roundups to Discord</p>
           </div>
           <div className="flex items-center gap-4">
             <Link
@@ -221,10 +207,7 @@ export default function DiscordJobs() {
             >
               Events
             </Link>
-            <Link
-              to="/manage"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
-            >
+            <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
               Dashboard
             </Link>
           </div>
@@ -233,10 +216,7 @@ export default function DiscordJobs() {
         {!configured && (
           <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
             Discord is not configured.{" "}
-            <Link
-              to="/manage/settings"
-              className="underline hover:text-amber-900"
-            >
+            <Link to="/manage/settings" className="underline hover:text-amber-900">
               Go to Settings
             </Link>{" "}
             to set your bot token and jobs channel ID.
@@ -264,7 +244,8 @@ export default function DiscordJobs() {
 
         {actionData && "skippedOld" in actionData && actionData.skippedOld && (
           <div className="p-4 bg-harbour-50 border border-harbour-200 text-harbour-600 text-sm">
-            Skipped {actionData.skippedOld} job{actionData.skippedOld !== 1 ? "s" : ""} older than a week.
+            Skipped {actionData.skippedOld} job{actionData.skippedOld !== 1 ? "s" : ""} older than a
+            week.
           </div>
         )}
 
@@ -292,18 +273,15 @@ export default function DiscordJobs() {
                         disabled={isSkippingOld}
                         className="text-xs px-3 py-1.5 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors disabled:opacity-60"
                       >
-                        {isSkippingOld
-                          ? "Skipping..."
-                          : `Skip ${oldJobCount} older than a week`}
+                        {isSkippingOld ? "Skipping..." : `Skip ${oldJobCount} older than a week`}
                       </button>
                     </Form>
                   )}
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  {technicalJobs.length > 0 && technicalJobs.map((job) => (
-                    <JobRow key={job.id} job={job} />
-                  ))}
+                  {technicalJobs.length > 0 &&
+                    technicalJobs.map((job) => <JobRow key={job.id} job={job} />)}
 
                   {nonTechnicalJobs.length > 0 && (
                     <>
@@ -336,7 +314,8 @@ export default function DiscordJobs() {
 
               {technicalJobs.length === 0 && nonTechnicalJobs.length > 0 && (
                 <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
-                  All selected jobs are non-technical. Consider skipping this post or waiting for technical job listings.
+                  All selected jobs are non-technical. Consider skipping this post or waiting for
+                  technical job listings.
                 </div>
               )}
 
@@ -355,15 +334,10 @@ export default function DiscordJobs() {
 
         {history.length > 0 && (
           <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-              Recent Posts
-            </h2>
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Recent Posts</h2>
             <div className="flex flex-col divide-y divide-harbour-100">
               {history.map((post) => (
-                <div
-                  key={post.id}
-                  className="py-3 flex items-center justify-between text-sm"
-                >
+                <div key={post.id} className="py-3 flex items-center justify-between text-sm">
                   <div className="flex flex-col gap-1">
                     <span className="text-harbour-700">
                       {post.discordMessageId
@@ -377,10 +351,7 @@ export default function DiscordJobs() {
                     )}
                   </div>
                   <span className="text-harbour-400 text-xs">
-                    {format(
-                      new Date(post.postedAt),
-                      "MMM d, yyyy 'at' h:mm a"
-                    )}
+                    {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
                   </span>
                 </div>
               ))}

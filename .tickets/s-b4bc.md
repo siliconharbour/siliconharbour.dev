@@ -10,7 +10,7 @@ assignee: Jack Arthur Harrhy
 parent: s-1ada
 tags: [refactor, dry, architecture]
 ---
+
 # Split references.server.ts by domain modules
 
 Decompose references orchestration into domain-focused modules with a composable resolver API to reduce file size and coupling.
-

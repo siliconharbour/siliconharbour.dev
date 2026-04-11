@@ -8,5 +8,5 @@ type: task
 priority: 3
 assignee: Jack Arthur Harrhy
 ---
-# Center align homepage job logo/text row
 
+# Center align homepage job logo/text row

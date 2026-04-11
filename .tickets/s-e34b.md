@@ -8,7 +8,7 @@ type: epic
 priority: 1
 assignee: Jack Arthur Harrhy
 ---
+
 # Unify jobs tables - drop old jobs, rename imported_jobs
 
 Drop the empty jobs table, rename imported_jobs to jobs, update schema to support both manual and imported jobs while maintaining source connections
-

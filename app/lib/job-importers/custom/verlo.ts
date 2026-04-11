@@ -16,9 +16,7 @@ import { fetchPage, htmlToText, parseHtmlDocument, getNodeText } from "./utils";
 const BASE_URL = "https://verlo.finance";
 const DEFAULT_CAREERS_URL = `${BASE_URL}/careers.html`;
 
-export async function scrapeVerlo(
-  careersUrl: string = DEFAULT_CAREERS_URL,
-): Promise<FetchedJob[]> {
+export async function scrapeVerlo(careersUrl: string = DEFAULT_CAREERS_URL): Promise<FetchedJob[]> {
   const html = await fetchPage(careersUrl);
   const document = parseHtmlDocument(html);
   const jobs: FetchedJob[] = [];
@@ -34,9 +32,7 @@ export async function scrapeVerlo(
     if (!title) continue;
 
     // Extract metadata spans: department · location · type
-    const metaSpans = link.querySelectorAll(
-      ".text-sm.text-stone-500 > span:not(.text-stone-300)",
-    );
+    const metaSpans = link.querySelectorAll(".text-sm.text-stone-500 > span:not(.text-stone-300)");
     const metaParts = Array.from(metaSpans).map((s) => getNodeText(s as Element));
 
     const department = metaParts[0] || undefined;
@@ -46,10 +42,11 @@ export async function scrapeVerlo(
     const jobUrl = new URL(href, careersUrl).toString();
 
     // Derive externalId from the filename slug (e.g. "customer-success-manager")
-    const externalId = href
-      .replace(/\.html$/, "")
-      .split("/")
-      .pop() || title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const externalId =
+      href
+        .replace(/\.html$/, "")
+        .split("/")
+        .pop() || title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
     // Fetch the detail page for full description
     let descriptionHtml: string | undefined;

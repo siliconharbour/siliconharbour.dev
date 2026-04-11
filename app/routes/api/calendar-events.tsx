@@ -6,10 +6,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const monthParam = url.searchParams.get("month"); // Expected: "YYYY-MM"
 
   if (!monthParam || !/^\d{4}-\d{2}$/.test(monthParam)) {
-    return Response.json(
-      { error: "month parameter required in YYYY-MM format" },
-      { status: 400 },
-    );
+    return Response.json({ error: "month parameter required in YYYY-MM format" }, { status: 400 });
   }
 
   const [yearStr, monthStr] = monthParam.split("-");

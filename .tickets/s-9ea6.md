@@ -10,10 +10,10 @@ assignee: Jack Arthur Harrhy
 parent: s-c03b
 tags: [refactor, admin]
 ---
+
 # Normalize action error response contract
 
 Standardize action return shape for validation and operational errors with typed helper functions.
-
 
 ## Notes
 

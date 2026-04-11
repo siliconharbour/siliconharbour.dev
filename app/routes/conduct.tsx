@@ -7,7 +7,9 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({ data }: Route.MetaArgs) {
   return buildSeoMeta({
     title: data?.frontmatter?.title ?? "Community Guidelines",
-    description: data?.frontmatter?.description ?? "Community standards and guidelines for siliconharbour.dev.",
+    description:
+      data?.frontmatter?.description ??
+      "Community standards and guidelines for siliconharbour.dev.",
     url: "/conduct",
   });
 }

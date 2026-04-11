@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 parent: s-e34b
 ---
+
 # Update job importers to use new jobs table
 
 Update sync.server.ts and related importer code to write to renamed jobs table
-

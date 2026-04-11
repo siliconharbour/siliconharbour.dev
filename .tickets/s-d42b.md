@@ -10,10 +10,10 @@ assignee: Jack Arthur Harrhy
 parent: s-c427
 tags: [custom-importer]
 ---
+
 # Custom importer: PolyUnity
 
 Build custom career page scraper for PolyUnity (Webflow). URL: https://www.polyunity.com/work-with-us. DB company ID: 167. General 'join us' page without structured job listings - may not have parseable data.
-
 
 ## Notes
 

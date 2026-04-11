@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Fix missing jobTechnologyMentions import causing runtime ReferenceError
 
+# Fix missing jobTechnologyMentions import causing runtime ReferenceError

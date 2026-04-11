@@ -17,7 +17,10 @@ app.use("/mcp", express.json());
 app.use("/mcp", (req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Mcp-Session-Id, Authorization");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Accept, Mcp-Session-Id, Authorization",
+  );
   res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
   if (req.method === "OPTIONS") {
     res.sendStatus(204);
@@ -109,9 +112,7 @@ app.delete("/mcp", async (req, res) => {
 const viteDevServer =
   process.env.NODE_ENV === "production"
     ? undefined
-    : await import("vite").then((vite) =>
-        vite.createServer({ server: { middlewareMode: true } })
-      );
+    : await import("vite").then((vite) => vite.createServer({ server: { middlewareMode: true } }));
 
 if (viteDevServer) {
   app.use(viteDevServer.middlewares);
@@ -126,7 +127,7 @@ app.all(
       ? () => viteDevServer.ssrLoadModule("virtual:react-router/server-build")
       : // @ts-expect-error — build output
         await import("./build/server/index.js"),
-  })
+  }),
 );
 
 const PORT = process.env.PORT || 3000;

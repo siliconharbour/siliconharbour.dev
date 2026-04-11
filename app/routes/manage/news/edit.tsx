@@ -139,8 +139,8 @@ export default function EditNews() {
                 <option key={t} value={t}>
                   {typeLabels[t]}
                 </option>
-                ))}
-              </select>
+              ))}
+            </select>
           </ManageField>
 
           <ManageField label="Excerpt (for RSS/previews)" htmlFor="excerpt">

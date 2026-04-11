@@ -4,10 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { getProductById, updateProduct } from "~/lib/products.server";
 import { getAllCompanies } from "~/lib/companies.server";
-import {
-  processAndSaveCoverImage,
-  processAndSaveIconImageWithPadding,
-} from "~/lib/images.server";
+import { processAndSaveCoverImage, processAndSaveIconImageWithPadding } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { productTypes } from "~/db/schema";
 import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";

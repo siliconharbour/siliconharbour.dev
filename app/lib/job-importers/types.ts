@@ -6,7 +6,17 @@
 /**
  * Supported ATS (Applicant Tracking System) source types
  */
-export const jobSourceTypes = ["greenhouse", "ashby", "workday", "bamboohr", "lever", "collage", "rippling", "adp", "custom"] as const;
+export const jobSourceTypes = [
+  "greenhouse",
+  "ashby",
+  "workday",
+  "bamboohr",
+  "lever",
+  "collage",
+  "rippling",
+  "adp",
+  "custom",
+] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
 
 /**
@@ -107,9 +117,7 @@ export interface JobImporter {
    * @param config - The import source configuration (partial, without id)
    * @returns Validation result
    */
-  validateConfig(
-    config: Omit<ImportSourceConfig, "id">,
-  ): Promise<ValidationResult>;
+  validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult>;
 }
 
 /**

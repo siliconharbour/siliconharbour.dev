@@ -161,7 +161,11 @@ export function generateOccurrences(
     while (current <= effectiveEnd && occurrences.length < maxOccurrences) {
       const occurrence = getNthWeekdayOfMonth(current, targetDay, position);
 
-      if (occurrence && occurrence >= toNoonUTCForSiteDay(startDate) && occurrence <= effectiveEnd) {
+      if (
+        occurrence &&
+        occurrence >= toNoonUTCForSiteDay(startDate) &&
+        occurrence <= effectiveEnd
+      ) {
         occurrences.push(occurrence);
       }
 

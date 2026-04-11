@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { db } from "~/db";
-import { technologies, technologyAssignments } from "~/db/schema";
+import { technologyAssignments } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import {
   createTechnology,
@@ -140,11 +140,7 @@ describe("unassignTechnology", () => {
 
 describe("setTechnologiesForContent", () => {
   it("adds new, removes old, keeps existing", async () => {
-    const [a, b, c] = await Promise.all([
-      makeTech("Alpha"),
-      makeTech("Beta"),
-      makeTech("Gamma"),
-    ]);
+    const [a, b, c] = await Promise.all([makeTech("Alpha"), makeTech("Beta"), makeTech("Gamma")]);
 
     // Start with A and B
     await setTechnologiesForContent("company", 1, [a.id, b.id]);
@@ -177,10 +173,7 @@ describe("setTechnologiesForContent", () => {
   });
 
   it("is idempotent — running twice with same set causes no change", async () => {
-    const [a, b] = await Promise.all([
-      makeTech("Delta"),
-      makeTech("Epsilon"),
-    ]);
+    const [a, b] = await Promise.all([makeTech("Delta"), makeTech("Epsilon")]);
 
     await setTechnologiesForContent("project", 5, [a.id, b.id]);
     const firstRun = await db
@@ -215,10 +208,7 @@ describe("setTechnologiesForContent", () => {
 
 describe("getTechnologiesForContent", () => {
   it("returns assigned technologies with technology data", async () => {
-    const [a, b] = await Promise.all([
-      makeTech("Zeta", "frontend"),
-      makeTech("Eta", "backend"),
-    ]);
+    const [a, b] = await Promise.all([makeTech("Zeta", "frontend"), makeTech("Eta", "backend")]);
 
     await assignTechnology(a.id, "company", 10);
     await assignTechnology(b.id, "company", 10);

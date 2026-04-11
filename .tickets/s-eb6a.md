@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 tags: [technologies, jobs, provenance]
 ---
+
 # Assign existing matched technologies to Spellbook from job postings
 
 Add existing catalog technologies detected in Spellbook jobs (AWS, Azure, Docker, JavaScript, MongoDB, Node.js, React, SQL, Salesforce, TypeScript) to Spellbook company assignments with Job Postings provenance for current month.
-

@@ -9,6 +9,7 @@ priority: 2
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Importer registry and factory
 
 Create app/lib/job-importers/index.ts with registry pattern to get importer by source type. Export getImporter(sourceType) function.
@@ -19,4 +20,3 @@ Create app/lib/job-importers/index.ts with registry pattern to get importer by s
 - getImporter('ashby') returns Ashby importer
 - Throws for unknown types
 - Easy to add new importers
-

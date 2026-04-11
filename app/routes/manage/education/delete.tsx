@@ -39,8 +39,8 @@ export default function DeleteEducation() {
       title="Delete Institution"
       message={
         <>
-          Are you sure you want to delete <strong>{institution.name}</strong>? This action cannot
-          be undone.
+          Are you sure you want to delete <strong>{institution.name}</strong>? This action cannot be
+          undone.
         </>
       }
     >

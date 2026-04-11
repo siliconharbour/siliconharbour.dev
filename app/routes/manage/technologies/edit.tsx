@@ -33,7 +33,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     getProjectsUsingTechnology(id),
   ]);
 
-  return { technology, categories: technologyCategories, categoryLabels, companiesUsing, projectsUsing };
+  return {
+    technology,
+    categories: technologyCategories,
+    categoryLabels,
+    companiesUsing,
+    projectsUsing,
+  };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -215,7 +221,9 @@ export default function EditTechnology() {
 
             {companiesUsing.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-sm text-harbour-500 mb-2">Companies ({companiesUsing.length})</h3>
+                <h3 className="text-sm text-harbour-500 mb-2">
+                  Companies ({companiesUsing.length})
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {companiesUsing.map((company) => (
                     <Link

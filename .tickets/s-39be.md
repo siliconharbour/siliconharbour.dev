@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Remove source_label from technology evidence and derive labels from source_type
 
+# Remove source_label from technology evidence and derive labels from source_type

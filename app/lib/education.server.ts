@@ -114,7 +114,10 @@ export async function getPaginatedEducation(
     searchQuery,
     getSearchIds: (query) => searchContentIds("education", query),
     getAllWhenNoSearch: async () => {
-      const [{ total }] = await db.select({ total: count() }).from(education).where(visibilityFilter);
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(education)
+        .where(visibilityFilter);
       const items = await db
         .select()
         .from(education)

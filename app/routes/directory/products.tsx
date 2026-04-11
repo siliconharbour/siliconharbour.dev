@@ -10,7 +10,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Products Built in St. John's, NL",
-    description: "Software products, apps, and tools built by tech companies in St. John's, Newfoundland & Labrador.",
+    description:
+      "Software products, apps, and tools built by tech companies in St. John's, Newfoundland & Labrador.",
     url: "/directory/products",
   });
 }

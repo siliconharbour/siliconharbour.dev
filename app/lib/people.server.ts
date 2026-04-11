@@ -16,7 +16,11 @@ export async function generatePersonSlug(name: string, excludeId?: number): Prom
     excludeId,
     getExistingSlugs,
     getSlugForId: async (id) => {
-      const current = await db.select({ slug: people.slug }).from(people).where(eq(people.id, id)).get();
+      const current = await db
+        .select({ slug: people.slug })
+        .from(people)
+        .where(eq(people.id, id))
+        .get();
       return current?.slug ?? null;
     },
   });

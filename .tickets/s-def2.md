@@ -9,6 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Admin UI: Add import source form
 
 Create app/routes/manage/import/jobs.new.tsx - form to add new import source: select company, choose source type (greenhouse/ashby), enter identifier, optional source URL.
@@ -21,4 +22,3 @@ Create app/routes/manage/import/jobs.new.tsx - form to add new import source: se
 - Source URL input
 - Validation before save
 - Redirects to sources list on success
-

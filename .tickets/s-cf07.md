@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 tags: [ui, review, people]
 ---
+
 # Normalize website field on people review edit load
 
 People review edit form should prefill website with protocol so type=url validation does not fail on open for legacy values like website.com.
-

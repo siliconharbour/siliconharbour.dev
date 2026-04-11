@@ -37,11 +37,7 @@ export default function TechnologyDetail() {
       {/* Header */}
       <div className="flex items-start gap-4">
         {technology.icon ? (
-          <img
-            src={`/images/${technology.icon}`}
-            alt=""
-            className="w-16 h-16 object-contain"
-          />
+          <img src={`/images/${technology.icon}`} alt="" className="w-16 h-16 object-contain" />
         ) : (
           <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center">
             <span className="text-2xl text-harbour-400">{technology.name.charAt(0)}</span>
@@ -74,9 +70,7 @@ export default function TechnologyDetail() {
       </div>
 
       {/* Description */}
-      {technology.description && (
-        <p className="text-harbour-600">{technology.description}</p>
-      )}
+      {technology.description && <p className="text-harbour-600">{technology.description}</p>}
 
       {/* Companies using this technology */}
       {companies.length > 0 && (

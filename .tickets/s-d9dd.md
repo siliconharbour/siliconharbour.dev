@@ -9,5 +9,5 @@ priority: 2
 assignee: Jack Arthur Harrhy
 tags: [calendar, events]
 ---
-# Fix calendar not showing past events in current month
 
+# Fix calendar not showing past events in current month

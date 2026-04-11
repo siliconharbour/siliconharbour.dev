@@ -50,12 +50,12 @@ export function parseEventRecurringForm(formData: FormData) {
   return parseFormData(formData, eventRecurringSchema);
 }
 
-export function parseOneTimeEventDates(
-  formData: FormData,
-): { success: true; data: { startDate: Date; endDate: Date | null }[] } | {
-  success: false;
-  error: string;
-} {
+export function parseOneTimeEventDates(formData: FormData):
+  | { success: true; data: { startDate: Date; endDate: Date | null }[] }
+  | {
+      success: false;
+      error: string;
+    } {
   const dates: { startDate: Date; endDate: Date | null }[] = [];
   let dateIndex = 0;
 

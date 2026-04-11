@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Update settings page with Discord UI
 
+# Update settings page with Discord UI

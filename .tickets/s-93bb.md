@@ -9,6 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Job import sync logic
 
 Implement sync algorithm in app/lib/job-importers/sync.server.ts. Handles new jobs, updates, soft deletes (removed), and reactivations. Updates source fetch status.
@@ -20,4 +21,3 @@ Implement sync algorithm in app/lib/job-importers/sync.server.ts. Handles new jo
 - Missing jobs get removed_at and status=removed
 - Reactivated jobs clear removed_at
 - Source metadata updated after sync
-

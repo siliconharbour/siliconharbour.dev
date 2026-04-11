@@ -8,5 +8,5 @@ type: chore
 priority: 0
 assignee: Jack Arthur Harrhy
 ---
-# Update sync-prod.ts remote paths from ~/cookie-ops/core to ~/infra/hosts/mug
 
+# Update sync-prod.ts remote paths from ~/cookie-ops/core to ~/infra/hosts/mug

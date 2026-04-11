@@ -164,10 +164,7 @@ describe("deleteImportSource", () => {
 
     await deleteImportSource(sourceId);
 
-    const rows = await db
-      .select()
-      .from(jobImportSources)
-      .where(eq(jobImportSources.id, sourceId));
+    const rows = await db.select().from(jobImportSources).where(eq(jobImportSources.id, sourceId));
     expect(rows).toHaveLength(0);
   });
 
@@ -198,10 +195,7 @@ describe("syncJobsFromFetched", () => {
     expect(result.success).toBe(true);
     expect(result.added).toBe(2);
 
-    const allJobs = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.sourceId, sourceId));
+    const allJobs = await db.select().from(jobs).where(eq(jobs.sourceId, sourceId));
     expect(allJobs).toHaveLength(2);
     expect(allJobs.every((j) => j.status === "pending_review")).toBe(true);
   });
@@ -219,10 +213,7 @@ describe("syncJobsFromFetched", () => {
     expect(result.success).toBe(true);
     expect(result.updated).toBe(1);
 
-    const allJobs = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.sourceId, sourceId));
+    const allJobs = await db.select().from(jobs).where(eq(jobs.sourceId, sourceId));
     expect(allJobs[0].title).toBe("New Title");
     expect(allJobs[0].status).toBe("active");
   });
@@ -269,18 +260,13 @@ describe("syncJobsFromFetched", () => {
       title: "Old Pending Title",
     });
 
-    const fetched = [
-      makeFetchedJob("ext-1", { title: "Updated Pending Title" }),
-    ];
+    const fetched = [makeFetchedJob("ext-1", { title: "Updated Pending Title" })];
     const result = await syncJobsFromFetched(sourceId, fetched);
 
     expect(result.success).toBe(true);
     expect(result.updated).toBe(1);
 
-    const allJobs = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.sourceId, sourceId));
+    const allJobs = await db.select().from(jobs).where(eq(jobs.sourceId, sourceId));
     expect(allJobs[0].title).toBe("Updated Pending Title");
     expect(allJobs[0].status).toBe("pending_review");
   });
@@ -292,18 +278,13 @@ describe("syncJobsFromFetched", () => {
       title: "Old Hidden Title",
     });
 
-    const fetched = [
-      makeFetchedJob("ext-1", { title: "Updated Hidden Title" }),
-    ];
+    const fetched = [makeFetchedJob("ext-1", { title: "Updated Hidden Title" })];
     const result = await syncJobsFromFetched(sourceId, fetched);
 
     expect(result.success).toBe(true);
     expect(result.updated).toBe(1);
 
-    const allJobs = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.sourceId, sourceId));
+    const allJobs = await db.select().from(jobs).where(eq(jobs.sourceId, sourceId));
     expect(allJobs[0].title).toBe("Updated Hidden Title");
     expect(allJobs[0].status).toBe("hidden");
   });

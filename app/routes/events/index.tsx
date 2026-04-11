@@ -13,7 +13,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Tech Events in St. John's, NL",
-    description: "Upcoming tech meetups, talks, hackathons, and events in St. John's, Newfoundland. Discover what's on in the local tech scene.",
+    description:
+      "Upcoming tech meetups, talks, hackathons, and events in St. John's, Newfoundland. Discover what's on in the local tech scene.",
     url: "/events",
   });
 }

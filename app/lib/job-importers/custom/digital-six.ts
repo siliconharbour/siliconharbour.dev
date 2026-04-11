@@ -32,7 +32,10 @@ function extractLocation(text: string): string | undefined {
   return normalize(match[1]);
 }
 
-function detectWorkplaceType(locationText?: string, contentText?: string): WorkplaceType | undefined {
+function detectWorkplaceType(
+  locationText?: string,
+  contentText?: string,
+): WorkplaceType | undefined {
   const haystack = `${locationText ?? ""} ${contentText ?? ""}`.toLowerCase();
   if (haystack.includes("hybrid")) return "hybrid";
   if (haystack.includes("remote")) return "remote";

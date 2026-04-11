@@ -6,7 +6,6 @@ import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 
 const mapTechnology = async (technology: typeof technologies.$inferSelect) => {
-
   // Get companies using this technology
   const companyAssignments = await db
     .select({ contentId: technologyAssignments.contentId })

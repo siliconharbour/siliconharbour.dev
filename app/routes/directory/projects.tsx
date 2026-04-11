@@ -11,7 +11,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Tech Projects from St. John's, NL",
-    description: "Open source and community tech projects from developers in St. John's, Newfoundland & Labrador.",
+    description:
+      "Open source and community tech projects from developers in St. John's, Newfoundland & Labrador.",
     url: "/directory/projects",
   });
 }

@@ -9,19 +9,16 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader(_args: Route.LoaderArgs) {
   const siteUrl = process.env.SITE_URL || "https://siliconharbour.dev";
   const entries = await getSitemapEntries(siteUrl);
 
   // Group by section
-  const sections = entries.reduce<Record<string, typeof entries>>(
-    (acc, entry) => {
-      if (!acc[entry.section]) acc[entry.section] = [];
-      acc[entry.section].push(entry);
-      return acc;
-    },
-    {},
-  );
+  const sections = entries.reduce<Record<string, typeof entries>>((acc, entry) => {
+    if (!acc[entry.section]) acc[entry.section] = [];
+    acc[entry.section].push(entry);
+    return acc;
+  }, {});
 
   return { sections, total: entries.length };
 }

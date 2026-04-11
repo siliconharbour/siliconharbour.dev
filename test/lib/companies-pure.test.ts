@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  parseGitHubCompanyField,
-  extractCompanyFromBio,
-} from "~/lib/companies.server";
+import { parseGitHubCompanyField, extractCompanyFromBio } from "~/lib/companies.server";
 
 // =============================================================================
 // NOTE: normalizeCompanyName and similarityScore are private (not exported).
@@ -49,9 +46,7 @@ describe("parseGitHubCompanyField", () => {
   });
 
   it("extracts only the org from a GitHub URL with extra path segments", () => {
-    const result = parseGitHubCompanyField(
-      "https://github.com/orgname/repo/tree/main",
-    );
+    const result = parseGitHubCompanyField("https://github.com/orgname/repo/tree/main");
     expect(result).toEqual({
       name: "orgname",
       githubOrg: "https://github.com/orgname",
@@ -129,9 +124,7 @@ describe("extractCompanyFromBio", () => {
   });
 
   it("returns null when no company pattern is found", () => {
-    const result = extractCompanyFromBio(
-      "I love open source and building things",
-    );
+    const result = extractCompanyFromBio("I love open source and building things");
     expect(result).toBeNull();
   });
 
@@ -146,17 +139,13 @@ describe("extractCompanyFromBio", () => {
   });
 
   it('handles "at Company" at the start of a sentence', () => {
-    const result = extractCompanyFromBio(
-      "Currently at Google working on cool stuff",
-    );
+    const result = extractCompanyFromBio("Currently at Google working on cool stuff");
     expect(result).not.toBeNull();
     expect(result).toContain("Google");
   });
 
   it("extracts company when bio has parenthetical after company name", () => {
-    const result = extractCompanyFromBio(
-      "Engineer at Verafin (now Nasdaq)",
-    );
+    const result = extractCompanyFromBio("Engineer at Verafin (now Nasdaq)");
     expect(result).toBe("Verafin");
   });
 });

@@ -9,7 +9,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Tech Companies in St. John's, NL",
-    description: "Directory of technology companies in St. John's, Newfoundland & Labrador. Find local software companies, startups, and tech employers.",
+    description:
+      "Directory of technology companies in St. John's, Newfoundland & Labrador. Find local software companies, startups, and tech employers.",
     url: "/directory/companies",
   });
 }

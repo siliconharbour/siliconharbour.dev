@@ -12,21 +12,21 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  
+
   const [companies, existingSources] = await Promise.all([
     getAllCompanies(true),
     getAllImportSources(),
   ]);
-  
+
   // Get companies that don't already have an import source
-  const companiesWithSource = new Set(existingSources.map(s => s.companyId));
+  const companiesWithSource = new Set(existingSources.map((s) => s.companyId));
   const availableCompanies = companies
-    .filter(c => !companiesWithSource.has(c.id))
+    .filter((c) => !companiesWithSource.has(c.id))
     .sort((a, b) => a.name.localeCompare(b.name));
-  
+
   const sourceTypes = getAvailableSourceTypes();
-  
-  return { 
+
+  return {
     companies: availableCompanies,
     allCompanies: companies.sort((a, b) => a.name.localeCompare(b.name)),
     sourceTypes,
@@ -36,13 +36,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
-  
+
   const formData = await request.formData();
   const companyId = Number(formData.get("companyId"));
   const sourceType = formData.get("sourceType") as JobSourceType;
   const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
   const sourceUrl = (formData.get("sourceUrl") as string)?.trim() || null;
-  
+
   // Validate required fields
   if (!companyId) {
     return { error: "Please select a company" };
@@ -53,7 +53,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (!sourceIdentifier) {
     return { error: "Please enter a source identifier" };
   }
-  
+
   // Validate with the importer
   try {
     const importer = getImporter(sourceType);
@@ -63,11 +63,11 @@ export async function action({ request }: Route.ActionArgs) {
       sourceIdentifier,
       sourceUrl,
     });
-    
+
     if (!validation.valid) {
       return { error: validation.error || "Invalid configuration" };
     }
-    
+
     // Create the source
     const sourceId = await createImportSource({
       companyId,
@@ -75,7 +75,7 @@ export async function action({ request }: Route.ActionArgs) {
       sourceIdentifier,
       sourceUrl,
     });
-    
+
     return redirect(`/manage/import/jobs/${sourceId}`);
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e) };
@@ -86,26 +86,21 @@ export default function NewJobImportSource() {
   const { companies, allCompanies, sourceTypes, sourceTypeLabels } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  
+
   const isSubmitting = navigation.state === "submitting";
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div className="flex items-center gap-4">
-          <Link
-            to="/manage/import/jobs"
-            className="text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/import/jobs" className="text-harbour-400 hover:text-harbour-600">
             &larr; Back
           </Link>
           <h1 className="text-2xl font-semibold text-harbour-700">Add Job Import Source</h1>
         </div>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700">
-            {actionData.error}
-          </div>
+          <div className="p-4 bg-red-50 border border-red-200 text-red-700">{actionData.error}</div>
         )}
 
         <Form method="post" className="bg-white border border-harbour-200 p-6 flex flex-col gap-4">
@@ -169,7 +164,10 @@ export default function NewJobImportSource() {
           </div>
 
           <div>
-            <label htmlFor="sourceIdentifier" className="block text-sm font-medium text-harbour-700 mb-1">
+            <label
+              htmlFor="sourceIdentifier"
+              className="block text-sm font-medium text-harbour-700 mb-1"
+            >
               Source Identifier *
             </label>
             <input
@@ -181,9 +179,11 @@ export default function NewJobImportSource() {
               required
             />
             <p className="mt-1 text-xs text-harbour-400">
-              For Greenhouse: the board token (e.g., "colabsoftware" from job-boards.greenhouse.io/colabsoftware)
+              For Greenhouse: the board token (e.g., "colabsoftware" from
+              job-boards.greenhouse.io/colabsoftware)
               <br />
-              For Ashby: the org slug (e.g., "spellbook.legal" from jobs.ashbyhq.com/spellbook.legal)
+              For Ashby: the org slug (e.g., "spellbook.legal" from
+              jobs.ashbyhq.com/spellbook.legal)
             </p>
           </div>
 
@@ -220,7 +220,8 @@ export default function NewJobImportSource() {
           </div>
 
           <p className="text-xs text-harbour-400">
-            The source will be validated before saving. If valid, jobs will be fetched automatically.
+            The source will be validated before saving. If valid, jobs will be fetched
+            automatically.
           </p>
         </Form>
       </div>

@@ -11,9 +11,9 @@ import { eventbriteImporter } from "./eventbrite.server";
 
 const importers: Record<string, EventImporter> = {
   "luma-user": lumaUserImporter,
-  "technl": technlImporter,
-  "netbenefit": netbenefitImporter,
-  "eventbrite": eventbriteImporter,
+  technl: technlImporter,
+  netbenefit: netbenefitImporter,
+  eventbrite: eventbriteImporter,
 };
 
 /**

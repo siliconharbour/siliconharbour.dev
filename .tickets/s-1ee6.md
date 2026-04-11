@@ -9,10 +9,10 @@ priority: 1
 assignee: Jack Arthur Harrhy
 tags: [refactor, public, directory, api]
 ---
+
 # Public routes DRY refactor wave (directory, news, API, markdown)
 
 Implement shared loader/query/UI patterns across non-manage routes: directory detail/list pages, public query parsing, news listing consolidation, markdown route helpers, and API response normalization.
-
 
 ## Notes
 

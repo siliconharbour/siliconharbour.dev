@@ -10,10 +10,10 @@ assignee: Jack Arthur Harrhy
 parent: s-c03b
 tags: [refactor, admin, images]
 ---
+
 # Extract shared image field processing utility
 
 Centralize base64 image upload/update/delete handling used by manage edit/new routes.
-
 
 ## Notes
 

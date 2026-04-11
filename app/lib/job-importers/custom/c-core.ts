@@ -25,9 +25,7 @@ interface WPPage {
 }
 
 export async function scrapeCCore(): Promise<FetchedJob[]> {
-  const pages = await fetchJson<WPPage[]>(
-    `${API_URL}?parent=${CAREERS_PARENT_ID}&per_page=100`
-  );
+  const pages = await fetchJson<WPPage[]>(`${API_URL}?parent=${CAREERS_PARENT_ID}&per_page=100`);
 
   return pages.map((page) => {
     const descriptionHtml = stripShortcodes(page.content.rendered);

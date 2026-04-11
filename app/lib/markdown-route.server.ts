@@ -12,7 +12,16 @@ interface MarkdownListResponseOptions {
   request: Request;
   title: string;
   description: string;
-  entityType: "company" | "education" | "group" | "person" | "product" | "project" | "event" | "news" | "job";
+  entityType:
+    | "company"
+    | "education"
+    | "group"
+    | "person"
+    | "product"
+    | "project"
+    | "event"
+    | "news"
+    | "job";
   basePath: string;
   items: MarkdownListItem[];
   total: number;

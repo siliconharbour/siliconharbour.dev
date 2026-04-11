@@ -197,9 +197,7 @@ export async function stageOrphanedImagesBatch(input: StageOrphanedImagesOptions
   mkdirSync(options.stageDir, { recursive: true });
   mkdirSync(reportsDir, { recursive: true });
 
-  const cursor = options.resetCursor
-    ? null
-    : readJsonFile<CursorState | null>(cursorPath, null);
+  const cursor = options.resetCursor ? null : readJsonFile<CursorState | null>(cursorPath, null);
   const db = new Database(options.dbPath, { readonly: true });
 
   try {

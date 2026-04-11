@@ -48,9 +48,7 @@ export function meta({ data, params }: Route.MetaArgs) {
         ? { "@type": "Place", name: event.location }
         : { "@type": "VirtualLocation" },
       url: `https://siliconharbour.dev/events/${slug}`,
-      organizer: event?.organizer
-        ? { "@type": "Organization", name: event.organizer }
-        : undefined,
+      organizer: event?.organizer ? { "@type": "Organization", name: event.organizer } : undefined,
       image: event?.coverImage
         ? `https://siliconharbour.dev/images/${event.coverImage}`
         : ogImageUrl,
@@ -258,9 +256,7 @@ export default function EventDetail() {
                           )}
                         </div>
                       ))}
-                      {occurrences.length > 3 && (
-                        <span className="text-harbour-400">&hellip;</span>
-                      )}
+                      {occurrences.length > 3 && <span className="text-harbour-400">&hellip;</span>}
                     </>
                   ) : (
                     <p className="text-harbour-400">No upcoming dates scheduled</p>

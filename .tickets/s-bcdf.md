@@ -9,5 +9,5 @@ priority: 2
 assignee: Jack Arthur Harrhy
 tags: [manage, images, maintenance]
 ---
-# Add /manage button for orphaned image staging
 
+# Add /manage button for orphaned image staging

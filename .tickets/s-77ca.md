@@ -10,7 +10,7 @@ assignee: Jack Arthur Harrhy
 parent: s-c427
 tags: [custom-importer]
 ---
+
 # Custom importer: Triware Technologies
 
 Build custom career page scraper for Triware Technologies (WordPress). URL: https://triware.ca/careers/. DB company ID: 217.
-

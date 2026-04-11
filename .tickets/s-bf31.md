@@ -10,10 +10,10 @@ assignee: Jack Arthur Harrhy
 parent: s-1ee6
 tags: [refactor, directory, loader]
 ---
+
 # Refactor directory detail loader pattern
 
 Extract shared directory detail loader helper for admin/comments/turnstile/references/backlinks pattern.
-
 
 ## Notes
 

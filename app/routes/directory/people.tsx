@@ -9,7 +9,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "People in St. John's Tech Scene",
-    description: "Developers, founders, designers, and other tech people in St. John's, Newfoundland & Labrador.",
+    description:
+      "Developers, founders, designers, and other tech people in St. John's, Newfoundland & Labrador.",
     url: "/directory/people",
   });
 }

@@ -8,7 +8,7 @@ type: task
 priority: 1
 assignee: Jack Arthur Harrhy
 ---
+
 # Write resolveReference + syncOrganizerReferences test suites
 
 Create test/lib/references.test.ts covering resolveReference (9 tests) and syncOrganizerReferences (5 tests). Verify hidden imported events excluded, type dedup, non-event preference, organizer sync.
-

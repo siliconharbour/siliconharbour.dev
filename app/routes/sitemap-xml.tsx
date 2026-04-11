@@ -1,7 +1,7 @@
 import type { Route } from "./+types/sitemap-xml";
 import { getSitemapEntries } from "~/lib/sitemap.server";
 
-export async function loader({ request }: Route.LoaderArgs) {
+export async function loader(_args: Route.LoaderArgs) {
   const siteUrl = process.env.SITE_URL || "https://siliconharbour.dev";
   const entries = await getSitemapEntries(siteUrl);
 

@@ -14,7 +14,14 @@ const technicalSchema = z.enum(["false"]).optional();
 const workplaceSchema = z
   .string()
   .optional()
-  .transform((value) => (value ? value.split("|").map((part) => part.trim()).filter(Boolean) : []));
+  .transform((value) =>
+    value
+      ? value
+          .split("|")
+          .map((part) => part.trim())
+          .filter(Boolean)
+      : [],
+  );
 
 export interface PublicListParams extends PaginationParams {
   searchQuery: string;
@@ -28,9 +35,13 @@ export function parsePublicListParams(url: URL): PublicListParams {
   return { limit, offset, searchQuery: parsed.q };
 }
 
-export function parseEventsQuery(url: URL): PublicListParams & { filter: EventFilter; dateFilter?: string } {
+export function parseEventsQuery(
+  url: URL,
+): PublicListParams & { filter: EventFilter; dateFilter?: string } {
   const base = parsePublicListParams(url);
-  const filter = eventFilterSchema.parse((url.searchParams.get("filter") as EventFilter | null) ?? "upcoming");
+  const filter = eventFilterSchema.parse(
+    (url.searchParams.get("filter") as EventFilter | null) ?? "upcoming",
+  );
   const dateFilter = url.searchParams.get("date") || undefined;
   return { ...base, filter, dateFilter };
 }
@@ -52,8 +63,9 @@ export function parseJobsQuery(url: URL): {
       workplace: url.searchParams.get("workplace") ?? undefined,
     });
 
-  const selectedWorkplaceTypes = parsed.workplace.filter((value): value is JobsWorkplaceFilterType =>
-    jobsWorkplaceFilterOptions.includes(value as JobsWorkplaceFilterType),
+  const selectedWorkplaceTypes = parsed.workplace.filter(
+    (value): value is JobsWorkplaceFilterType =>
+      jobsWorkplaceFilterOptions.includes(value as JobsWorkplaceFilterType),
   );
 
   return {

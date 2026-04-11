@@ -8,5 +8,5 @@ type: feature
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Migrate app dialogs to Base UI dialog primitives
 
+# Migrate app dialogs to Base UI dialog primitives

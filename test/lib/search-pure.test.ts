@@ -11,18 +11,12 @@ import { resolve } from "path";
 
 // Extract the three pure functions from the source file for testing.
 // This approach tests the actual source code without requiring exports.
-const sourceCode = readFileSync(
-  resolve(__dirname, "../../app/lib/search.server.ts"),
-  "utf-8",
-);
+const sourceCode = readFileSync(resolve(__dirname, "../../app/lib/search.server.ts"), "utf-8");
 
 // Build a self-contained module with the three functions
 function extractFunction(name: string, src: string): string {
   // Match "function name(...): returnType {" and capture the full body
-  const regex = new RegExp(
-    `function ${name}\\([^)]*\\)[^{]*\\{`,
-    "g",
-  );
+  const regex = new RegExp(`function ${name}\\([^)]*\\)[^{]*\\{`, "g");
   const match = regex.exec(src);
   if (!match) throw new Error(`Could not find function ${name} in source`);
 
@@ -44,10 +38,7 @@ const needsLikeBody = extractFunction("needsLikeFallback", sourceCode);
 const buildFtsBody = extractFunction("buildFtsQuery", sourceCode);
 
 // Create functions from source — strip TS type annotations for eval
-const cleanTs = (s: string) =>
-  s
-    .replace(/:\s*string/g, "")
-    .replace(/:\s*boolean/g, "");
+const cleanTs = (s: string) => s.replace(/:\s*string/g, "").replace(/:\s*boolean/g, "");
 
 const moduleCode = `
 ${cleanTs(escapeFtsBody)}

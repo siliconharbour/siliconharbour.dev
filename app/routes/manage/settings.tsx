@@ -201,10 +201,7 @@ export default function Settings() {
 
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="discord_bot_token"
-                  className="font-medium text-harbour-700 text-sm"
-                >
+                <label htmlFor="discord_bot_token" className="font-medium text-harbour-700 text-sm">
                   Bot Token
                 </label>
                 <div className="flex gap-2">
@@ -220,7 +217,7 @@ export default function Settings() {
                     type="button"
                     onClick={() => {
                       const tokenInput = document.getElementById(
-                        "discord_bot_token"
+                        "discord_bot_token",
                       ) as HTMLInputElement;
                       const formData = new FormData();
                       formData.set("intent", "test-discord");

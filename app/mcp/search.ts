@@ -28,7 +28,9 @@ function schemaToText(name: string, schema: SchemaObject): string {
 function endpointToText(path: string, methods: PathMethods): string {
   return Object.entries(methods)
     .filter(([method]) => ["get", "post", "put", "delete", "patch"].includes(method))
-    .map(([method, op]) => `  ${method.toUpperCase()} ${path}${op.summary ? ` — ${op.summary}` : ""}`)
+    .map(
+      ([method, op]) => `  ${method.toUpperCase()} ${path}${op.summary ? ` — ${op.summary}` : ""}`,
+    )
     .join("\n");
 }
 
@@ -76,7 +78,8 @@ export function searchSpec(query: string): string {
   const hint = Object.entries(MODULE_HINTS).find(([k]) => q.includes(k))?.[1];
 
   const parts = [results.slice(0, 6).join("\n\n")];
-  if (hint) parts.push(`\nUsage in query/execute tool:\nimport { ... } from 'siliconharbour'\n${hint}`);
+  if (hint)
+    parts.push(`\nUsage in query/execute tool:\nimport { ... } from 'siliconharbour'\n${hint}`);
 
   return parts.join("").trim();
 }

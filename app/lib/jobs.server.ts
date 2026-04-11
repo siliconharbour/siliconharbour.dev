@@ -6,10 +6,7 @@ import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
 
 async function getExistingSlugs(): Promise<string[]> {
-  const rows = await db
-    .select({ slug: jobs.slug })
-    .from(jobs)
-    .where(isNotNull(jobs.slug));
+  const rows = await db.select({ slug: jobs.slug }).from(jobs).where(isNotNull(jobs.slug));
   return rows.map((r) => r.slug).filter((s): s is string => s !== null);
 }
 
@@ -46,7 +43,7 @@ export async function createJob(job: {
 }): Promise<Job> {
   const slug = await generateJobSlug(job.title);
   const now = new Date();
-  
+
   const [newJob] = await db
     .insert(jobs)
     .values({
@@ -130,10 +127,7 @@ export async function getJobBySlug(slug: string): Promise<Job | null> {
  * Get all active jobs (for admin listing)
  */
 export async function getAllJobs(): Promise<Job[]> {
-  return db
-    .select()
-    .from(jobs)
-    .orderBy(desc(jobs.postedAt));
+  return db.select().from(jobs).orderBy(desc(jobs.postedAt));
 }
 
 /**
@@ -143,13 +137,13 @@ export async function getAllJobs(): Promise<Job[]> {
  */
 export async function getActiveJobs(options?: { includeNonTechnical?: boolean }) {
   const includeNonTechnical = options?.includeNonTechnical ?? false;
-  
+
   // Build where conditions
   const conditions = [eq(jobs.status, "active")];
   if (!includeNonTechnical) {
     conditions.push(eq(jobs.isTechnical, true));
   }
-  
+
   const data = await db
     .select({
       job: jobs,
@@ -232,7 +226,7 @@ export async function getPaginatedJobs(
   options?: { includeNonTechnical?: boolean },
 ): Promise<PaginatedJobs> {
   const includeNonTechnical = options?.includeNonTechnical ?? false;
-  
+
   // Build base conditions
   const baseConditions = [eq(jobs.status, "active")];
   if (!includeNonTechnical) {
@@ -301,15 +295,17 @@ export interface CompanyWithJobs {
  * Get active jobs grouped by company
  * Returns companies sorted by most recent job posting, with jobs within each company
  */
-export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: boolean }): Promise<CompanyWithJobs[]> {
+export async function getJobsGroupedByCompany(options?: {
+  includeNonTechnical?: boolean;
+}): Promise<CompanyWithJobs[]> {
   const includeNonTechnical = options?.includeNonTechnical ?? false;
-  
+
   // Build where conditions
   const conditions = [eq(jobs.status, "active")];
   if (!includeNonTechnical) {
     conditions.push(eq(jobs.isTechnical, true));
   }
-  
+
   // Get all active jobs with company info
   const data = await db
     .select({
@@ -330,8 +326,11 @@ export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: 
     .orderBy(desc(jobs.postedAt));
 
   // Group jobs by company
-  const companyMap = new Map<number | null, { company: CompanyWithJobs["company"] | null; jobs: Job[] }>();
-  
+  const companyMap = new Map<
+    number | null,
+    { company: CompanyWithJobs["company"] | null; jobs: Job[] }
+  >();
+
   for (const { job, company } of data) {
     const key = job.companyId;
     if (!companyMap.has(key)) {
@@ -342,7 +341,7 @@ export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: 
     }
     companyMap.get(key)!.jobs.push(job);
   }
-  
+
   // Convert to array and filter out jobs without companies
   const result: CompanyWithJobs[] = [];
   for (const [, value] of companyMap) {
@@ -353,7 +352,7 @@ export async function getJobsGroupedByCompany(options?: { includeNonTechnical?: 
       });
     }
   }
-  
+
   // Daily seeded shuffle for company ordering so no company is permanently favoured
   const dateSeed = parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ""), 10);
   result.sort((a, b) => {

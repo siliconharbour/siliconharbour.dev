@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  parsePublicListParams,
-  parseEventsQuery,
-  parseJobsQuery,
-} from "~/lib/public-query.server";
+import { parsePublicListParams, parseEventsQuery, parseJobsQuery } from "~/lib/public-query.server";
 
 function url(path: string): URL {
   return new URL(path, "https://example.com");

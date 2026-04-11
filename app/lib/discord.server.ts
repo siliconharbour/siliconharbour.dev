@@ -50,23 +50,20 @@ export interface PostMessageResult {
 export async function postMessage(
   channelId: string,
   components: object[],
-  token: string
+  token: string,
 ): Promise<PostMessageResult> {
   try {
-    const response = await fetch(
-      `${DISCORD_API_BASE}/channels/${channelId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bot ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          flags: 1 << 15,
-          components,
-        }),
-      }
-    );
+    const response = await fetch(`${DISCORD_API_BASE}/channels/${channelId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bot ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        flags: 1 << 15,
+        components,
+      }),
+    });
 
     if (!response.ok) {
       const errorBody = await response.text();

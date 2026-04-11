@@ -12,26 +12,27 @@
 
 ## File Map
 
-| File | Action | Responsibility |
-|------|--------|----------------|
-| `drizzle/0043_add_discord_posts.sql` | Create | Migration SQL for `discord_posts` and `discord_post_items` tables |
-| `drizzle/meta/_journal.json` | Modify | Register migration entry |
-| `app/db/schema.ts` | Modify | Drizzle table definitions for `discord_posts` and `discord_post_items` |
-| `app/lib/config.server.ts` | Modify | Add `getDiscordConfig()` and `updateDiscordConfig()` |
-| `app/lib/discord.server.ts` | Create | Discord REST API client: verify token, post message |
-| `app/lib/discord-messages.server.ts` | Create | Build Components v2 payloads for events and jobs |
-| `app/lib/discord-posts.server.ts` | Create | DB operations: create post, skip items, get unposted events/jobs, get history |
-| `app/routes/manage/settings.tsx` | Modify | Add Discord config section (bot token, channel IDs, test connection) |
-| `app/routes/manage/discord/events.tsx` | Create | Compose & post events to Discord |
-| `app/routes/manage/discord/jobs.tsx` | Create | Compose & post jobs to Discord |
-| `app/routes/manage/index.tsx` | Modify | Add Discord links to dashboard |
-| `app/routes.ts` | Modify | Register discord routes |
+| File                                   | Action | Responsibility                                                                |
+| -------------------------------------- | ------ | ----------------------------------------------------------------------------- |
+| `drizzle/0043_add_discord_posts.sql`   | Create | Migration SQL for `discord_posts` and `discord_post_items` tables             |
+| `drizzle/meta/_journal.json`           | Modify | Register migration entry                                                      |
+| `app/db/schema.ts`                     | Modify | Drizzle table definitions for `discord_posts` and `discord_post_items`        |
+| `app/lib/config.server.ts`             | Modify | Add `getDiscordConfig()` and `updateDiscordConfig()`                          |
+| `app/lib/discord.server.ts`            | Create | Discord REST API client: verify token, post message                           |
+| `app/lib/discord-messages.server.ts`   | Create | Build Components v2 payloads for events and jobs                              |
+| `app/lib/discord-posts.server.ts`      | Create | DB operations: create post, skip items, get unposted events/jobs, get history |
+| `app/routes/manage/settings.tsx`       | Modify | Add Discord config section (bot token, channel IDs, test connection)          |
+| `app/routes/manage/discord/events.tsx` | Create | Compose & post events to Discord                                              |
+| `app/routes/manage/discord/jobs.tsx`   | Create | Compose & post jobs to Discord                                                |
+| `app/routes/manage/index.tsx`          | Modify | Add Discord links to dashboard                                                |
+| `app/routes.ts`                        | Modify | Register discord routes                                                       |
 
 ---
 
 ### Task 1: Database Migration and Schema
 
 **Files:**
+
 - Create: `drizzle/0043_add_discord_posts.sql`
 - Modify: `drizzle/meta/_journal.json`
 - Modify: `app/db/schema.ts`
@@ -120,10 +121,8 @@ export const discordPostItems = sqliteTable(
   (table) => ({
     eventIdIdx: index("discord_post_items_event_id_idx").on(table.eventId),
     jobIdIdx: index("discord_post_items_job_id_idx").on(table.jobId),
-    discordPostIdIdx: index("discord_post_items_discord_post_id_idx").on(
-      table.discordPostId
-    ),
-  })
+    discordPostIdIdx: index("discord_post_items_discord_post_id_idx").on(table.discordPostId),
+  }),
 );
 
 export type DiscordPost = typeof discordPosts.$inferSelect;
@@ -150,6 +149,7 @@ git commit -m "Add discord_posts and discord_post_items tables"
 ### Task 2: Discord Config in Settings
 
 **Files:**
+
 - Modify: `app/lib/config.server.ts`
 - Modify: `app/routes/manage/settings.tsx`
 
@@ -189,9 +189,7 @@ export async function getDiscordConfig(): Promise<DiscordConfig> {
 /**
  * Update Discord configuration
  */
-export async function updateDiscordConfig(
-  config: Partial<DiscordConfig>
-): Promise<void> {
+export async function updateDiscordConfig(config: Partial<DiscordConfig>): Promise<void> {
   const keyMap: Record<string, string> = {
     botToken: "bot_token",
     eventsChannelId: "events_channel_id",
@@ -249,7 +247,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 Add Discord config handling to the action. After the existing `commentUpdates` logic, add:
 
 ```typescript
-const discordUpdates: Partial<{ botToken: string; eventsChannelId: string; jobsChannelId: string }> = {};
+const discordUpdates: Partial<{
+  botToken: string;
+  eventsChannelId: string;
+  jobsChannelId: string;
+}> = {};
 const botToken = formData.get("discord_bot_token");
 const eventsChannelId = formData.get("discord_events_channel_id");
 const jobsChannelId = formData.get("discord_jobs_channel_id");
@@ -291,8 +293,7 @@ After the Comments card section and before the Save button, add a Discord sectio
 <div className="bg-white border border-harbour-200 p-6">
   <h2 className="text-lg font-semibold text-harbour-700 mb-4">Discord</h2>
   <p className="text-sm text-harbour-400 mb-6">
-    Configure the Discord bot for posting event and job roundups to your
-    server.
+    Configure the Discord bot for posting event and job roundups to your server.
   </p>
 
   <div className="flex flex-col gap-4">
@@ -371,13 +372,15 @@ Inside the bot token field area, after the input:
 Below the bot token row, show the test result:
 
 ```tsx
-{discordTestResult && (
-  <p className={`text-sm ${discordTestResult.valid ? "text-green-700" : "text-red-700"}`}>
-    {discordTestResult.valid
-      ? `Connected as ${discordTestResult.username}`
-      : `Connection failed: ${discordTestResult.error || "Invalid token"}`}
-  </p>
-)}
+{
+  discordTestResult && (
+    <p className={`text-sm ${discordTestResult.valid ? "text-green-700" : "text-red-700"}`}>
+      {discordTestResult.valid
+        ? `Connected as ${discordTestResult.username}`
+        : `Connection failed: ${discordTestResult.error || "Invalid token"}`}
+    </p>
+  );
+}
 ```
 
 Add `useFetcher` to the react-router imports.
@@ -398,6 +401,7 @@ git commit -m "Add Discord configuration to site settings
 ### Task 3: Discord API Client
 
 **Files:**
+
 - Create: `app/lib/discord.server.ts`
 
 - [ ] **Step 1: Create the Discord API client**
@@ -457,23 +461,20 @@ export interface PostMessageResult {
 export async function postMessage(
   channelId: string,
   components: object[],
-  token: string
+  token: string,
 ): Promise<PostMessageResult> {
   try {
-    const response = await fetch(
-      `${DISCORD_API_BASE}/channels/${channelId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bot ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          flags: 1 << 15,
-          components,
-        }),
-      }
-    );
+    const response = await fetch(`${DISCORD_API_BASE}/channels/${channelId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bot ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        flags: 1 << 15,
+        components,
+      }),
+    });
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -509,6 +510,7 @@ git commit -m "Add Discord REST API client
 ### Task 4: Discord Message Builders
 
 **Files:**
+
 - Create: `app/lib/discord-messages.server.ts`
 
 - [ ] **Step 1: Create the message builder module**
@@ -533,10 +535,7 @@ interface JobForDiscord {
 /**
  * Build Components v2 payload for an events roundup message.
  */
-export function buildEventsMessage(
-  events: EventWithDates[],
-  introText?: string
-): object[] {
+export function buildEventsMessage(events: EventWithDates[], introText?: string): object[] {
   const innerComponents: object[] = [];
 
   // Intro text
@@ -547,9 +546,7 @@ export function buildEventsMessage(
 
   events.forEach((event, index) => {
     const nextDate = event.dates[0];
-    const dateLine = nextDate
-      ? format(nextDate.startDate, "EEE, MMM d 'at' h:mm a")
-      : "Date TBD";
+    const dateLine = nextDate ? format(nextDate.startDate, "EEE, MMM d 'at' h:mm a") : "Date TBD";
     const parts = [dateLine];
     if (event.location) parts.push(event.location);
     const subtitle = parts.join(" \u2022 ");
@@ -609,10 +606,7 @@ export function buildEventsMessage(
 /**
  * Build Components v2 payload for a jobs roundup message.
  */
-export function buildJobsMessage(
-  jobs: JobForDiscord[],
-  introText?: string
-): object[] {
+export function buildJobsMessage(jobs: JobForDiscord[], introText?: string): object[] {
   const innerComponents: object[] = [];
 
   // Intro text
@@ -626,9 +620,7 @@ export function buildJobsMessage(
     if (job.companyName) parts.push(job.companyName);
     if (job.location) parts.push(job.location);
     if (job.workplaceType) {
-      parts.push(
-        job.workplaceType.charAt(0).toUpperCase() + job.workplaceType.slice(1)
-      );
+      parts.push(job.workplaceType.charAt(0).toUpperCase() + job.workplaceType.slice(1));
     }
     const subtitle = parts.join(" \u2022 ");
     const textContent = `**${job.title}**${subtitle ? `\n${subtitle}` : ""}`;
@@ -683,6 +675,7 @@ git commit -m "Add Discord Components v2 message builders
 ### Task 5: Discord Posts Database Operations
 
 **Files:**
+
 - Create: `app/lib/discord-posts.server.ts`
 
 - [ ] **Step 1: Create the discord posts DB module**
@@ -719,7 +712,9 @@ export async function getUnpostedEvents() {
   const dealtWith = db
     .select({ eventId: discordPostItems.eventId })
     .from(discordPostItems)
-    .where(and(eq(discordPostItems.itemType, "event"), sql`${discordPostItems.eventId} IS NOT NULL`))
+    .where(
+      and(eq(discordPostItems.itemType, "event"), sql`${discordPostItems.eventId} IS NOT NULL`),
+    )
     .as("dealt_with");
 
   // Events with upcoming dates
@@ -735,8 +730,8 @@ export async function getUnpostedEvents() {
     .where(
       and(
         sql`${events.recurrenceRule} IS NOT NULL AND ${events.recurrenceRule} != ''`,
-        or(isNull(events.recurrenceEnd), gte(events.recurrenceEnd, now))
-      )
+        or(isNull(events.recurrenceEnd), gte(events.recurrenceEnd, now)),
+      ),
     );
 
   const upcomingIds = [
@@ -752,16 +747,16 @@ export async function getUnpostedEvents() {
   const results = await db
     .select()
     .from(events)
-    .leftJoin(
-      dealtWith,
-      eq(events.id, dealtWith.eventId)
-    )
+    .leftJoin(dealtWith, eq(events.id, dealtWith.eventId))
     .where(
       and(
-        sql`${events.id} IN (${sql.join(upcomingIds.map((id) => sql`${id}`), sql`, `)})`,
+        sql`${events.id} IN (${sql.join(
+          upcomingIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
         isNull(dealtWith.eventId),
-        or(isNull(events.importStatus), eq(events.importStatus, "published"))
-      )
+        or(isNull(events.importStatus), eq(events.importStatus, "published")),
+      ),
     )
     .orderBy(events.title);
 
@@ -774,7 +769,7 @@ export async function getUnpostedEvents() {
         .where(eq(eventDates.eventId, row.events.id))
         .orderBy(eventDates.startDate);
       return { ...row.events, dates };
-    })
+    }),
   );
 
   return eventsWithDates;
@@ -900,7 +895,7 @@ export interface DiscordPostWithItems {
  */
 export async function getPostHistory(
   channelType: DiscordChannelType,
-  limit = 10
+  limit = 10,
 ): Promise<DiscordPostWithItems[]> {
   const posts = await db
     .select()
@@ -952,6 +947,7 @@ git commit -m "Add Discord posts database operations
 ### Task 6: Discord Events Compose Page
 
 **Files:**
+
 - Create: `app/routes/manage/discord/events.tsx`
 - Modify: `app/routes.ts`
 
@@ -975,7 +971,12 @@ import type { Route } from "./+types/events";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getDiscordConfig } from "~/lib/config.server";
-import { getUnpostedEvents, createDiscordPost, skipItems, getPostHistory } from "~/lib/discord-posts.server";
+import {
+  getUnpostedEvents,
+  createDiscordPost,
+  skipItems,
+  getPostHistory,
+} from "~/lib/discord-posts.server";
 import { buildEventsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
 import { format } from "date-fns";
@@ -1022,7 +1023,9 @@ export async function action({ request }: Route.ActionArgs) {
   const config = await getDiscordConfig();
 
   if (!config.botToken || !config.eventsChannelId) {
-    return { error: "Discord is not configured. Please set bot token and events channel ID in Settings." };
+    return {
+      error: "Discord is not configured. Please set bot token and events channel ID in Settings.",
+    };
   }
 
   if (intent === "skip") {
@@ -1095,7 +1098,8 @@ export default function DiscordEvents() {
   const { configured, events, history } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const isPosting = navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
+  const isPosting =
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
 
   return (
     <div className="min-h-screen p-6">
@@ -1106,7 +1110,10 @@ export default function DiscordEvents() {
             <p className="text-harbour-400 text-sm">Compose and post event roundups to Discord</p>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/manage/discord/jobs" className="text-sm text-harbour-400 hover:text-harbour-600">
+            <Link
+              to="/manage/discord/jobs"
+              className="text-sm text-harbour-400 hover:text-harbour-600"
+            >
               Jobs
             </Link>
             <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
@@ -1178,9 +1185,7 @@ export default function DiscordEvents() {
                           className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
                         />
                         <div className="flex-1 flex flex-col gap-1">
-                          <span className="font-medium text-harbour-700">
-                            {event.title}
-                          </span>
+                          <span className="font-medium text-harbour-700">{event.title}</span>
                           <span className="text-sm text-harbour-400">
                             {dateLine}
                             {event.location ? ` \u2022 ${event.location}` : ""}
@@ -1229,9 +1234,7 @@ export default function DiscordEvents() {
 
         {history.length > 0 && (
           <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-              Recent Posts
-            </h2>
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Recent Posts</h2>
             <div className="flex flex-col divide-y divide-harbour-100">
               {history.map((post) => (
                 <div key={post.id} className="py-3 flex items-center justify-between text-sm">
@@ -1278,6 +1281,7 @@ git commit -m "Add Discord events compose page
 ### Task 7: Discord Jobs Compose Page
 
 **Files:**
+
 - Create: `app/routes/manage/discord/jobs.tsx`
 
 - [ ] **Step 1: Create the jobs compose page**
@@ -1289,7 +1293,12 @@ import type { Route } from "./+types/jobs";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getDiscordConfig } from "~/lib/config.server";
-import { getUnpostedJobs, createDiscordPost, skipItems, getPostHistory } from "~/lib/discord-posts.server";
+import {
+  getUnpostedJobs,
+  createDiscordPost,
+  skipItems,
+  getPostHistory,
+} from "~/lib/discord-posts.server";
 import { buildJobsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
 import { format } from "date-fns";
@@ -1320,7 +1329,9 @@ export async function action({ request }: Route.ActionArgs) {
   const config = await getDiscordConfig();
 
   if (!config.botToken || !config.jobsChannelId) {
-    return { error: "Discord is not configured. Please set bot token and jobs channel ID in Settings." };
+    return {
+      error: "Discord is not configured. Please set bot token and jobs channel ID in Settings.",
+    };
   }
 
   if (intent === "skip") {
@@ -1385,7 +1396,8 @@ export default function DiscordJobs() {
   const { configured, jobs, history } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const isPosting = navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
+  const isPosting =
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
 
   return (
     <div className="min-h-screen p-6">
@@ -1396,7 +1408,10 @@ export default function DiscordJobs() {
             <p className="text-harbour-400 text-sm">Compose and post job roundups to Discord</p>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/manage/discord/events" className="text-sm text-harbour-400 hover:text-harbour-600">
+            <Link
+              to="/manage/discord/events"
+              className="text-sm text-harbour-400 hover:text-harbour-600"
+            >
               Events
             </Link>
             <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
@@ -1463,9 +1478,7 @@ export default function DiscordJobs() {
                         className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
                       />
                       <div className="flex-1 flex flex-col gap-1">
-                        <span className="font-medium text-harbour-700">
-                          {job.title}
-                        </span>
+                        <span className="font-medium text-harbour-700">{job.title}</span>
                         <span className="text-sm text-harbour-400">
                           {[job.companyName, job.location, job.workplaceType]
                             .filter(Boolean)
@@ -1514,9 +1527,7 @@ export default function DiscordJobs() {
 
         {history.length > 0 && (
           <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-              Recent Posts
-            </h2>
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Recent Posts</h2>
             <div className="flex flex-col divide-y divide-harbour-100">
               {history.map((post) => (
                 <div key={post.id} className="py-3 flex items-center justify-between text-sm">
@@ -1563,6 +1574,7 @@ git commit -m "Add Discord jobs compose page
 ### Task 8: Dashboard Links
 
 **Files:**
+
 - Modify: `app/routes/manage/index.tsx`
 
 - [ ] **Step 1: Add Discord section to the manage dashboard**
@@ -1578,18 +1590,14 @@ In `app/routes/manage/index.tsx`, after the Export Tools section (after the clos
       className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
     >
       <h3 className="font-medium text-harbour-700">Post Events</h3>
-      <p className="text-harbour-400 text-sm">
-        Compose and post event roundups to Discord
-      </p>
+      <p className="text-harbour-400 text-sm">Compose and post event roundups to Discord</p>
     </Link>
     <Link
       to="/manage/discord/jobs"
       className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
     >
       <h3 className="font-medium text-harbour-700">Post Jobs</h3>
-      <p className="text-harbour-400 text-sm">
-        Compose and post job roundups to Discord
-      </p>
+      <p className="text-harbour-400 text-sm">Compose and post job roundups to Discord</p>
     </Link>
   </div>
 </div>

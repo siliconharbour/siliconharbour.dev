@@ -35,8 +35,10 @@ export function getTechnologyProvenanceSourceByKey(
   if (key === "coding_reference") {
     return sourceByKey.get("get_coding_reference")!;
   }
-  return sourceByKey.get((key ?? "") as TechnologyProvenanceSourceKey)
-    ?? sourceByKey.get("get_coding_reference")!;
+  return (
+    sourceByKey.get((key ?? "") as TechnologyProvenanceSourceKey) ??
+    sourceByKey.get("get_coding_reference")!
+  );
 }
 
 export function inferTechnologyProvenanceSourceKey(

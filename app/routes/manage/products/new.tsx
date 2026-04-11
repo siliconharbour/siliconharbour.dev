@@ -38,8 +38,16 @@ export async function action({ request }: Route.ActionArgs) {
     return actionError(parsed.error);
   }
 
-  const logo = await createImageFromFormData(formData, "logoData", processAndSaveIconImageWithPadding);
-  const coverImage = await createImageFromFormData(formData, "coverImageData", processAndSaveCoverImage);
+  const logo = await createImageFromFormData(
+    formData,
+    "logoData",
+    processAndSaveIconImageWithPadding,
+  );
+  const coverImage = await createImageFromFormData(
+    formData,
+    "coverImageData",
+    processAndSaveCoverImage,
+  );
 
   await createProduct({
     name: parsed.data.name,

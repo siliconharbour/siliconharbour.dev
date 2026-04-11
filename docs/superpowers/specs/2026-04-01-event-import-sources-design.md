@@ -62,14 +62,14 @@ Unique constraint: `(import_source_id, external_id)` — deduplication key on re
 
 **`import_status` values:**
 
-| Value | Meaning |
-|---|---|
-| `null` | Manually created event — no import lifecycle, always public |
-| `pending_review` | Freshly imported, not yet reviewed, invisible to public |
-| `approved` | Accepted by admin, in editing stage, still invisible to public |
-| `published` | Fully live — visible on site, in RSS and iCal feeds |
-| `hidden` | Actively excluded by admin decision |
-| `removed` | No longer present in source feed (informational, not shown publicly) |
+| Value            | Meaning                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `null`           | Manually created event — no import lifecycle, always public          |
+| `pending_review` | Freshly imported, not yet reviewed, invisible to public              |
+| `approved`       | Accepted by admin, in editing stage, still invisible to public       |
+| `published`      | Fully live — visible on site, in RSS and iCal feeds                  |
+| `hidden`         | Actively excluded by admin decision                                  |
+| `removed`        | No longer present in source feed (informational, not shown publicly) |
 
 ### Impact on existing queries
 
@@ -91,39 +91,39 @@ Location: `app/lib/event-importers/`
 
 ```ts
 export interface FetchedEvent {
-  externalId: string        // stable unique ID from source
-  title: string
-  description: string       // plain text or markdown, best-effort
-  location: string
-  link: string              // registration/info URL
-  organizer: string         // pre-populated from source group name
-  startDate: string         // "YYYY-MM-DD"
-  endDate: string           // "YYYY-MM-DD"
-  startTime: string | null  // "HH:mm"
-  endTime: string | null    // "HH:mm"
-  coverImageUrl: string | null  // remote URL — downloaded only on approve
-  timezone: string | null
+  externalId: string; // stable unique ID from source
+  title: string;
+  description: string; // plain text or markdown, best-effort
+  location: string;
+  link: string; // registration/info URL
+  organizer: string; // pre-populated from source group name
+  startDate: string; // "YYYY-MM-DD"
+  endDate: string; // "YYYY-MM-DD"
+  startTime: string | null; // "HH:mm"
+  endTime: string | null; // "HH:mm"
+  coverImageUrl: string | null; // remote URL — downloaded only on approve
+  timezone: string | null;
 }
 
 export interface EventImporter {
-  fetchEvents(config: ImportSourceConfig): Promise<FetchedEvent[]>
-  validateConfig?(config: ImportSourceConfig): Promise<{ valid: boolean; error?: string }>
+  fetchEvents(config: ImportSourceConfig): Promise<FetchedEvent[]>;
+  validateConfig?(config: ImportSourceConfig): Promise<{ valid: boolean; error?: string }>;
 }
 
 export interface ImportSourceConfig {
-  id: string
-  groupId: string | null
-  sourceType: string
-  sourceIdentifier: string
-  sourceUrl: string
+  id: string;
+  groupId: string | null;
+  sourceType: string;
+  sourceIdentifier: string;
+  sourceUrl: string;
 }
 
 export interface EventSyncResult {
-  success: boolean
-  added: number     // new pending_review events created
-  skipped: number   // approved/published — untouched (lock rule)
-  removed: number   // marked removed (no longer in source feed)
-  error?: string
+  success: boolean;
+  added: number; // new pending_review events created
+  skipped: number; // approved/published — untouched (lock rule)
+  removed: number; // marked removed (no longer in source feed)
+  error?: string;
 }
 ```
 
@@ -132,10 +132,10 @@ export interface EventSyncResult {
 ```ts
 const importers: Record<string, EventImporter> = {
   "luma-user": lumaUserImporter,
-  "technl": technlImporter,
-}
+  technl: technlImporter,
+};
 
-export function getEventImporter(sourceType: string): EventImporter
+export function getEventImporter(sourceType: string): EventImporter;
 ```
 
 ### `luma-user.server.ts`
@@ -187,12 +187,12 @@ Cover images are **not** downloaded at sync time. They are downloaded (and store
 
 ### Routes
 
-| Route | Purpose |
-|---|---|
-| `GET /manage/import/events` | Source list |
-| `GET /manage/import/events/new` | Add source form |
-| `POST /manage/import/events/new` | Save new source |
-| `GET /manage/import/events/:sourceId` | Source detail + review workflow |
+| Route                                  | Purpose                                |
+| -------------------------------------- | -------------------------------------- |
+| `GET /manage/import/events`            | Source list                            |
+| `GET /manage/import/events/new`        | Add source form                        |
+| `POST /manage/import/events/new`       | Save new source                        |
+| `GET /manage/import/events/:sourceId`  | Source detail + review workflow        |
 | `POST /manage/import/events/:sourceId` | Sync / approve / hide / unhide actions |
 
 These are added to `app/routes.ts` under the existing `manage/import` prefix.
@@ -204,6 +204,7 @@ Table with columns: Name, Source Type, Group, Pending count, Active (published) 
 ### `/manage/import/events/new` — Add source
 
 Form fields:
+
 - **Name** — free text
 - **Source Type** — select: `luma-user` | `technl`
 - **Group** — select from existing groups (optional)
@@ -219,25 +220,30 @@ On submit: runs `validateConfig()` on the importer before saving (e.g. verifies 
 Four sections:
 
 **Pending Review**
+
 - Table: title, date, location, source link (opens Luma/techNL in new tab)
 - Per-row actions:
   - **Approve** → sets `importStatus = "approved"`, downloads cover image, redirects to `/manage/events/:id/edit`
   - **Hide** → sets `importStatus = "hidden"`
 
 **Approved (Editing)**
+
 - Events in the `approved` state — accepted but not yet published
 - Table: title, date, edit link
 - Per-row actions: Edit (→ event edit page), Hide
 
 **Active (Published)**
+
 - Table: title, date, edit link
 - Per-row actions: Edit, Hide
 
 **Hidden**
+
 - Table: title, date
 - Per-row actions: Unhide (→ back to `pending_review`)
 
 **Removed** (collapsed by default)
+
 - Read-only list of events no longer in the source feed
 
 ---
@@ -255,14 +261,14 @@ Once published, the "Save & Publish" button is replaced by the normal "Save" but
 
 ## Event Visibility Rules
 
-| `importStatus` | Public site | RSS/iCal | Manage pages |
-|---|---|---|---|
-| `null` (manual) | Visible | Included | Visible |
-| `pending_review` | Hidden | Excluded | Import manage only |
-| `approved` | Hidden | Excluded | Import manage + edit |
-| `published` | Visible | Included | Everywhere |
-| `hidden` | Hidden | Excluded | Import manage only |
-| `removed` | Hidden | Excluded | Import manage (collapsed) |
+| `importStatus`   | Public site | RSS/iCal | Manage pages              |
+| ---------------- | ----------- | -------- | ------------------------- |
+| `null` (manual)  | Visible     | Included | Visible                   |
+| `pending_review` | Hidden      | Excluded | Import manage only        |
+| `approved`       | Hidden      | Excluded | Import manage + edit      |
+| `published`      | Visible     | Included | Everywhere                |
+| `hidden`         | Hidden      | Excluded | Import manage only        |
+| `removed`        | Hidden      | Excluded | Import manage (collapsed) |
 
 ---
 

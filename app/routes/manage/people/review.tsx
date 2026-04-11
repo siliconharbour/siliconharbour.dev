@@ -590,7 +590,9 @@ export default function ReviewPeople() {
                       type="url"
                       id="website"
                       name="website"
-                      defaultValue={currentPerson.website ? ensureProtocol(currentPerson.website) : ""}
+                      defaultValue={
+                        currentPerson.website ? ensureProtocol(currentPerson.website) : ""
+                      }
                       className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                     />
                   </div>

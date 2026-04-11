@@ -298,7 +298,7 @@ ${article.excerpt ? `> ${article.excerpt}\n\n` : ""}${article.content}
 export function jobToMarkdown(job: Job & { companyName?: string | null }): string {
   const description = job.description || job.descriptionText || "";
   const isRemote = job.workplaceType === "remote";
-  
+
   const frontmatter = formatFrontmatter({
     type: "job",
     id: job.id,
@@ -413,8 +413,18 @@ interface ListPageOptions {
 }
 
 export function listPageToMarkdown(opts: ListPageOptions): string {
-  const { title, description, items, entityType, basePath, total, limit, offset, searchQuery, apiPath } =
-    opts;
+  const {
+    title,
+    description,
+    items,
+    entityType,
+    basePath,
+    total,
+    limit,
+    offset,
+    searchQuery,
+    apiPath,
+  } = opts;
 
   const frontmatter = formatFrontmatter({
     type: `${entityType}_list`,
@@ -443,13 +453,13 @@ ${searchQuery ? `**Search:** "${searchQuery}"\n` : ""}
     content += `No ${entityType}s found.\n`;
   } else {
     for (const item of items) {
-      const link = item.slug
-        ? `${SITE_URL}${basePath}/${item.slug}.md`
-        : item.url || null;
+      const link = item.slug ? `${SITE_URL}${basePath}/${item.slug}.md` : item.url || null;
       const description = item.description
         ? `: ${item.description.slice(0, 100)}${item.description.length > 100 ? "..." : ""}`
         : "";
-      content += link ? `- [${item.name}](${link})${description}\n` : `- ${item.name}${description}\n`;
+      content += link
+        ? `- [${item.name}](${link})${description}\n`
+        : `- ${item.name}${description}\n`;
     }
   }
 

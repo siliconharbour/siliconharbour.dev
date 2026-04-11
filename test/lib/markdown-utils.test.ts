@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   companyToMarkdown,
   eventToMarkdown,
-  jobToMarkdown,
   projectToMarkdown,
   markdownResponse,
 } from "~/lib/markdown.server";
@@ -287,9 +286,7 @@ describe("markdownResponse", () => {
   it("returns a Response with text/markdown content type", () => {
     const res = markdownResponse("# Hello");
     expect(res).toBeInstanceOf(Response);
-    expect(res.headers.get("Content-Type")).toBe(
-      "text/markdown; charset=utf-8"
-    );
+    expect(res.headers.get("Content-Type")).toBe("text/markdown; charset=utf-8");
   });
 
   it("sets X-Content-Type-Options: nosniff", () => {

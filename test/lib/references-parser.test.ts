@@ -67,9 +67,7 @@ describe("parseReferences", () => {
   });
 
   it("handles mixed simple and relation references", () => {
-    const refs = parseReferences(
-      "[[Verafin]] is where [[{CEO} at {CoLab Software}]] works",
-    );
+    const refs = parseReferences("[[Verafin]] is where [[{CEO} at {CoLab Software}]] works");
     expect(refs).toHaveLength(2);
     expect(refs[0].text).toBe("Verafin");
     expect(refs[0].relation).toBeUndefined();

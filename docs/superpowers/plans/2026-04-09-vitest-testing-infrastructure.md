@@ -13,6 +13,7 @@
 ### Task 1: Install vitest and add test script
 
 **Files:**
+
 - Modify: `package.json` (devDependencies + scripts)
 
 - [ ] **Step 1: Install vitest**
@@ -42,6 +43,7 @@ git commit -m "chore: add vitest dependency and test scripts"
 ### Task 2: Create vitest config
 
 **Files:**
+
 - Create: `vitest.config.ts`
 
 - [ ] **Step 1: Create `vitest.config.ts`**
@@ -73,6 +75,7 @@ git commit -m "chore: add vitest config with tsconfig path resolution"
 ### Task 3: Create the test database helper
 
 **Files:**
+
 - Create: `test/helpers/test-db.ts`
 
 This is the core of the testing infrastructure. It creates a fresh in-memory SQLite database and applies all migration SQL files to produce the full schema.
@@ -162,6 +165,7 @@ git commit -m "feat: add test database helper with migration replay"
 ### Task 4: Create the test setup file
 
 **Files:**
+
 - Create: `test/setup.ts`
 
 This file is loaded by vitest before each test file. It mocks `~/db` to use an in-memory database and resets it before each test.
@@ -204,6 +208,7 @@ git commit -m "feat: add vitest setup with ~/db module mock"
 ### Task 5: Write the `resolveReference` test suite
 
 **Files:**
+
 - Create: `test/lib/references.test.ts`
 
 This is the first real test file. It tests the exact bug scenario (hidden imported events causing ambiguous resolution) plus baseline behavior.
@@ -214,10 +219,7 @@ This is the first real test file. It tests the exact bug scenario (hidden import
 import { describe, it, expect } from "vitest";
 import { db } from "~/db";
 import { events, groups, companies } from "~/db/schema";
-import {
-  resolveReference,
-  syncOrganizerReferences,
-} from "~/lib/references.server";
+import { resolveReference, syncOrganizerReferences } from "~/lib/references.server";
 
 describe("resolveReference", () => {
   it("resolves a group by exact name match", async () => {
@@ -468,6 +470,7 @@ git commit -m "test: add resolveReference tests covering ambiguity bug with hidd
 ### Task 6: Add syncOrganizerReferences tests
 
 **Files:**
+
 - Modify: `test/lib/references.test.ts`
 
 These tests verify the full organizer sync pipeline — splitting comma-separated names, resolving each, and creating reference rows in the database.
@@ -482,20 +485,26 @@ import { eq, and } from "drizzle-orm";
 
 describe("syncOrganizerReferences", () => {
   it("creates a reference from event to group when organizer matches", async () => {
-    const [group] = await db.insert(groups).values({
-      name: "10am @ MUN",
-      slug: "10am-mun",
-      description: "",
-      visible: true,
-    }).returning();
+    const [group] = await db
+      .insert(groups)
+      .values({
+        name: "10am @ MUN",
+        slug: "10am-mun",
+        description: "",
+        visible: true,
+      })
+      .returning();
 
-    const [event] = await db.insert(events).values({
-      title: "Demo Night",
-      slug: "demo-night",
-      description: "",
-      link: "https://example.com",
-      organizer: "10am @ MUN",
-    }).returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        title: "Demo Night",
+        slug: "demo-night",
+        description: "",
+        link: "https://example.com",
+        organizer: "10am @ MUN",
+      })
+      .returning();
 
     const result = await syncOrganizerReferences(event.id, "10am @ MUN");
 
@@ -508,12 +517,7 @@ describe("syncOrganizerReferences", () => {
     const refs = await db
       .select()
       .from(references)
-      .where(
-        and(
-          eq(references.sourceType, "event"),
-          eq(references.sourceId, event.id),
-        ),
-      );
+      .where(and(eq(references.sourceType, "event"), eq(references.sourceId, event.id)));
 
     expect(refs).toHaveLength(1);
     expect(refs[0].targetType).toBe("group");
@@ -523,27 +527,36 @@ describe("syncOrganizerReferences", () => {
   });
 
   it("resolves multiple comma-separated organizers", async () => {
-    const [group] = await db.insert(groups).values({
-      name: "10am @ MUN",
-      slug: "10am-mun",
-      description: "",
-      visible: true,
-    }).returning();
+    const [group] = await db
+      .insert(groups)
+      .values({
+        name: "10am @ MUN",
+        slug: "10am-mun",
+        description: "",
+        visible: true,
+      })
+      .returning();
 
-    const [company] = await db.insert(companies).values({
-      name: "Get Building",
-      slug: "get-building",
-      description: "",
-      visible: true,
-    }).returning();
+    const [company] = await db
+      .insert(companies)
+      .values({
+        name: "Get Building",
+        slug: "get-building",
+        description: "",
+        visible: true,
+      })
+      .returning();
 
-    const [event] = await db.insert(events).values({
-      title: "10am x Get Building Demo Night",
-      slug: "10am-x-get-building-demo-night",
-      description: "",
-      link: "https://example.com",
-      organizer: "10am @ MUN, Get Building",
-    }).returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        title: "10am x Get Building Demo Night",
+        slug: "10am-x-get-building-demo-night",
+        description: "",
+        link: "https://example.com",
+        organizer: "10am @ MUN, Get Building",
+      })
+      .returning();
 
     const result = await syncOrganizerReferences(event.id, "10am @ MUN, Get Building");
 
@@ -553,12 +566,7 @@ describe("syncOrganizerReferences", () => {
     const refs = await db
       .select()
       .from(references)
-      .where(
-        and(
-          eq(references.sourceType, "event"),
-          eq(references.sourceId, event.id),
-        ),
-      );
+      .where(and(eq(references.sourceType, "event"), eq(references.sourceId, event.id)));
 
     expect(refs).toHaveLength(2);
 
@@ -574,13 +582,16 @@ describe("syncOrganizerReferences", () => {
       visible: true,
     });
 
-    const [event] = await db.insert(events).values({
-      title: "Collab Event",
-      slug: "collab-event",
-      description: "",
-      link: "https://example.com",
-      organizer: "10am @ MUN, Some Unknown Org",
-    }).returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        title: "Collab Event",
+        slug: "collab-event",
+        description: "",
+        link: "https://example.com",
+        organizer: "10am @ MUN, Some Unknown Org",
+      })
+      .returning();
 
     const result = await syncOrganizerReferences(event.id, "10am @ MUN, Some Unknown Org");
 
@@ -589,27 +600,36 @@ describe("syncOrganizerReferences", () => {
   });
 
   it("deletes old organizer references before creating new ones", async () => {
-    const [group] = await db.insert(groups).values({
-      name: "Old Group",
-      slug: "old-group",
-      description: "",
-      visible: true,
-    }).returning();
+    const [group] = await db
+      .insert(groups)
+      .values({
+        name: "Old Group",
+        slug: "old-group",
+        description: "",
+        visible: true,
+      })
+      .returning();
 
-    const [newGroup] = await db.insert(groups).values({
-      name: "New Group",
-      slug: "new-group",
-      description: "",
-      visible: true,
-    }).returning();
+    const [newGroup] = await db
+      .insert(groups)
+      .values({
+        name: "New Group",
+        slug: "new-group",
+        description: "",
+        visible: true,
+      })
+      .returning();
 
-    const [event] = await db.insert(events).values({
-      title: "Test Event",
-      slug: "test-event",
-      description: "",
-      link: "https://example.com",
-      organizer: "Old Group",
-    }).returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        title: "Test Event",
+        slug: "test-event",
+        description: "",
+        link: "https://example.com",
+        organizer: "Old Group",
+      })
+      .returning();
 
     // First sync — creates reference to Old Group
     await syncOrganizerReferences(event.id, "Old Group");
@@ -617,12 +637,7 @@ describe("syncOrganizerReferences", () => {
     let refs = await db
       .select()
       .from(references)
-      .where(
-        and(
-          eq(references.sourceType, "event"),
-          eq(references.sourceId, event.id),
-        ),
-      );
+      .where(and(eq(references.sourceType, "event"), eq(references.sourceId, event.id)));
     expect(refs).toHaveLength(1);
     expect(refs[0].targetId).toBe(group.id);
 
@@ -632,23 +647,21 @@ describe("syncOrganizerReferences", () => {
     refs = await db
       .select()
       .from(references)
-      .where(
-        and(
-          eq(references.sourceType, "event"),
-          eq(references.sourceId, event.id),
-        ),
-      );
+      .where(and(eq(references.sourceType, "event"), eq(references.sourceId, event.id)));
     expect(refs).toHaveLength(1);
     expect(refs[0].targetId).toBe(newGroup.id);
   });
 
   it("handles null organizer gracefully", async () => {
-    const [event] = await db.insert(events).values({
-      title: "No Organizer Event",
-      slug: "no-organizer",
-      description: "",
-      link: "https://example.com",
-    }).returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        title: "No Organizer Event",
+        slug: "no-organizer",
+        description: "",
+        link: "https://example.com",
+      })
+      .returning();
 
     const result = await syncOrganizerReferences(event.id, null);
 

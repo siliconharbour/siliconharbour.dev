@@ -56,9 +56,7 @@ export interface EventImporter {
    * @param config - The import source configuration (partial, without id)
    * @returns Validation result
    */
-  validateConfig(
-    config: Omit<ImportSourceConfig, "id">,
-  ): Promise<ValidationResult>;
+  validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult>;
 }
 
 /**

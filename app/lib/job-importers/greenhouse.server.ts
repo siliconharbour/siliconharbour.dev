@@ -1,7 +1,7 @@
 /**
  * Greenhouse Job Importer
  * Fetches jobs from Greenhouse's public API
- * 
+ *
  * API endpoint: https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs
  * No authentication required for public job boards
  */
@@ -51,7 +51,7 @@ interface GreenhouseResponse {
  */
 function detectWorkplaceType(job: GreenhouseJob): "remote" | "onsite" | "hybrid" | undefined {
   const location = job.location?.name?.toLowerCase() || "";
-  
+
   // Check for remote keywords
   if (location.includes("remote")) {
     if (location.includes("hybrid")) {
@@ -59,7 +59,7 @@ function detectWorkplaceType(job: GreenhouseJob): "remote" | "onsite" | "hybrid"
     }
     return "remote";
   }
-  
+
   // Check metadata for remote work info
   if (job.metadata) {
     for (const meta of job.metadata) {
@@ -70,12 +70,12 @@ function detectWorkplaceType(job: GreenhouseJob): "remote" | "onsite" | "hybrid"
       }
     }
   }
-  
+
   // Default to onsite if we have a physical location
   if (location && !location.includes("anywhere")) {
     return "onsite";
   }
-  
+
   return undefined;
 }
 
@@ -87,7 +87,7 @@ function convertJob(job: GreenhouseJob, _boardToken: string): FetchedJob {
     externalId: String(job.id),
     title: job.title,
     location: job.location?.name || undefined,
-    department: job.departments?.map(d => d.name).join(", ") || undefined,
+    department: job.departments?.map((d) => d.name).join(", ") || undefined,
     descriptionHtml: job.content || undefined,
     descriptionText: job.content ? htmlToText(job.content) : undefined,
     url: job.absolute_url,
@@ -99,49 +99,52 @@ function convertJob(job: GreenhouseJob, _boardToken: string): FetchedJob {
 /**
  * Fetch all jobs from a Greenhouse board
  */
-async function fetchGreenhouseJobs(boardToken: string, includeContent: boolean = true): Promise<GreenhouseResponse> {
+async function fetchGreenhouseJobs(
+  boardToken: string,
+  includeContent: boolean = true,
+): Promise<GreenhouseResponse> {
   const url = `${API_BASE}/${boardToken}/jobs${includeContent ? "?content=true" : ""}`;
-  
+
   const response = await fetch(url, {
     headers: {
-      "Accept": "application/json",
+      Accept: "application/json",
       "User-Agent": "siliconharbour.dev job importer",
     },
   });
-  
+
   if (!response.ok) {
     if (response.status === 404) {
       throw new Error(`Board "${boardToken}" not found. Check the board token is correct.`);
     }
     throw new Error(`Greenhouse API error: ${response.status} ${response.statusText}`);
   }
-  
+
   return response.json();
 }
 
 export const greenhouseImporter: JobImporter = {
   sourceType: "greenhouse",
-  
+
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const data = await fetchGreenhouseJobs(config.sourceIdentifier);
-    return data.jobs.map(job => convertJob(job, config.sourceIdentifier));
+    return data.jobs.map((job) => convertJob(job, config.sourceIdentifier));
   },
-  
+
   async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return { valid: false, error: "Board token is required" };
     }
-    
+
     try {
       // Fetch without content for faster validation
       const data = await fetchGreenhouseJobs(config.sourceIdentifier, false);
-      return { 
-        valid: true, 
+      return {
+        valid: true,
         jobCount: data.meta.total,
       };
     } catch (e) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: e instanceof Error ? e.message : String(e),
       };
     }

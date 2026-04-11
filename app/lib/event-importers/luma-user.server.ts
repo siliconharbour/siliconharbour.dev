@@ -120,8 +120,9 @@ async function fetchEventDescription(eventSlug: string): Promise<string> {
     });
     if (!res.ok) return "";
     const html = await res.text();
-    const match = html.match(/<meta[^>]+name="description"[^>]+content="([^"]{0,2000})"/i)
-      ?? html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]{0,2000})"/i);
+    const match =
+      html.match(/<meta[^>]+name="description"[^>]+content="([^"]{0,2000})"/i) ??
+      html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]{0,2000})"/i);
     return match ? match[1].trim() : "";
   } catch {
     return "";
@@ -199,10 +200,7 @@ async function fetchUserEvents(identifier: string): Promise<FetchedEvent[]> {
       geo?.city ??
       (ev.location_type === "online" ? "Online" : "");
 
-    const organizer =
-      entry.hosts?.[0]?.name ??
-      entry.calendar?.name ??
-      "Unknown";
+    const organizer = entry.hosts?.[0]?.name ?? entry.calendar?.name ?? "Unknown";
 
     const link = `${LUMA_BASE}/${eventSlug}`;
     const coverImageUrl = ev.cover_url ?? null;

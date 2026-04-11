@@ -19,7 +19,7 @@ export async function getSourceById(sourceId: number) {
     .from(jobImportSources)
     .where(eq(jobImportSources.id, sourceId))
     .limit(1);
-  
+
   return source;
 }
 
@@ -27,10 +27,7 @@ export async function getSourceById(sourceId: number) {
  * Get all jobs for a source
  */
 async function getJobsBySourceId(sourceId: number) {
-  return db
-    .select()
-    .from(jobs)
-    .where(eq(jobs.sourceId, sourceId));
+  return db.select().from(jobs).where(eq(jobs.sourceId, sourceId));
 }
 
 /**
@@ -134,11 +131,11 @@ async function applyFetchedJobsToSource(
   },
   fetchedJobs: FetchedJob[],
 ): Promise<SyncResult> {
-  const fetchedIds = new Set(fetchedJobs.map(j => j.externalId));
+  const fetchedIds = new Set(fetchedJobs.map((j) => j.externalId));
 
   // 2. Get our existing jobs for this source
   const existingJobs = await getJobsBySourceId(source.id);
-  const existingByExternalId = new Map(existingJobs.map(j => [j.externalId, j]));
+  const existingByExternalId = new Map(existingJobs.map((j) => [j.externalId, j]));
 
   const now = new Date();
   const results = { added: 0, updated: 0, removed: 0, reactivated: 0 };
@@ -218,7 +215,11 @@ async function applyFetchedJobsToSource(
 
   // 4. Mark jobs no longer in feed as removed
   for (const existing of existingJobs) {
-    if (existing.status === "active" && existing.externalId && !fetchedIds.has(existing.externalId)) {
+    if (
+      existing.status === "active" &&
+      existing.externalId &&
+      !fetchedIds.has(existing.externalId)
+    ) {
       await updateJob(existing.id, { removedAt: now, status: "removed" });
       results.removed++;
     }
@@ -228,7 +229,10 @@ async function applyFetchedJobsToSource(
   await updateSource(source.id, { lastFetchedAt: now, fetchStatus: "success", fetchError: null });
 
   // Count total active jobs
-  const totalActive = results.added + results.reactivated + (existingJobs.filter(j => j.status === "active").length - results.removed);
+  const totalActive =
+    results.added +
+    results.reactivated +
+    (existingJobs.filter((j) => j.status === "active").length - results.removed);
 
   return {
     success: true,
@@ -239,7 +243,7 @@ async function applyFetchedJobsToSource(
 
 /**
  * Sync jobs from an external source
- * 
+ *
  * Algorithm:
  * 1. Fetch current jobs from ATS
  * 2. Get our existing jobs for this source
@@ -269,7 +273,7 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
 
   try {
     const importer = getImporter(source.sourceType as JobSourceType);
-    
+
     const config: ImportSourceConfig = {
       id: source.id,
       companyId: source.companyId,
@@ -284,7 +288,7 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     await updateSource(sourceId, { fetchStatus: "error", fetchError: error });
-    
+
     return {
       success: false,
       error,
@@ -301,7 +305,10 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
  * Sync jobs using a manually supplied fetched job list.
  * Useful as a fallback for sources blocked by anti-bot protection.
  */
-export async function syncJobsFromFetched(sourceId: number, fetchedJobs: FetchedJob[]): Promise<SyncResult> {
+export async function syncJobsFromFetched(
+  sourceId: number,
+  fetchedJobs: FetchedJob[],
+): Promise<SyncResult> {
   const source = await getSourceById(sourceId);
   if (!source) {
     return {
@@ -342,10 +349,7 @@ export async function getActiveJobsForCompany(companyId: number) {
   return db
     .select()
     .from(jobs)
-    .where(and(
-      eq(jobs.companyId, companyId),
-      eq(jobs.status, "active"),
-    ))
+    .where(and(eq(jobs.companyId, companyId), eq(jobs.status, "active")))
     .orderBy(jobs.firstSeenAt);
 }
 
@@ -353,11 +357,8 @@ export async function getActiveJobsForCompany(companyId: number) {
  * Get all import sources with stats
  */
 export async function getAllImportSources() {
-  const sources = await db
-    .select()
-    .from(jobImportSources)
-    .orderBy(jobImportSources.updatedAt);
-  
+  const sources = await db.select().from(jobImportSources).orderBy(jobImportSources.updatedAt);
+
   // Get job counts per source for active and pending_review statuses
   const jobRows = await db
     .select({
@@ -366,7 +367,7 @@ export async function getAllImportSources() {
     })
     .from(jobs)
     .where(inArray(jobs.status, ["active", "pending_review"]));
-  
+
   const activeBySource = new Map<number, number>();
   const pendingBySource = new Map<number, number>();
   for (const row of jobRows) {
@@ -378,8 +379,8 @@ export async function getAllImportSources() {
       }
     }
   }
-  
-  return sources.map(source => ({
+
+  return sources.map((source) => ({
     ...source,
     activeJobCount: activeBySource.get(source.id) || 0,
     pendingReviewCount: pendingBySource.get(source.id) || 0,
@@ -395,19 +396,16 @@ export async function getImportSourceWithStats(sourceId: number) {
     .from(jobImportSources)
     .where(eq(jobImportSources.id, sourceId))
     .limit(1);
-  
+
   if (!source) return null;
-  
-  const sourceJobs = await db
-    .select()
-    .from(jobs)
-    .where(eq(jobs.sourceId, sourceId));
-  
-  const activeCount = sourceJobs.filter(j => j.status === "active").length;
-  const pendingReviewCount = sourceJobs.filter(j => j.status === "pending_review").length;
-  const hiddenCount = sourceJobs.filter(j => j.status === "hidden").length;
-  const removedCount = sourceJobs.filter(j => j.status === "removed").length;
-  
+
+  const sourceJobs = await db.select().from(jobs).where(eq(jobs.sourceId, sourceId));
+
+  const activeCount = sourceJobs.filter((j) => j.status === "active").length;
+  const pendingReviewCount = sourceJobs.filter((j) => j.status === "pending_review").length;
+  const hiddenCount = sourceJobs.filter((j) => j.status === "hidden").length;
+  const removedCount = sourceJobs.filter((j) => j.status === "removed").length;
+
   return {
     ...source,
     activeJobCount: activeCount,
@@ -440,7 +438,7 @@ export async function createImportSource(data: {
       updatedAt: now,
     })
     .returning({ id: jobImportSources.id });
-  
+
   return result.id;
 }
 
@@ -455,31 +453,21 @@ export async function deleteImportSource(sourceId: number) {
  * Hide an imported job (won't show on company pages, won't be reactivated)
  */
 export async function hideImportedJob(jobId: number) {
-  await db
-    .update(jobs)
-    .set({ status: "hidden", updatedAt: new Date() })
-    .where(eq(jobs.id, jobId));
+  await db.update(jobs).set({ status: "hidden", updatedAt: new Date() }).where(eq(jobs.id, jobId));
 }
 
 /**
  * Unhide an imported job (restore to active)
  */
 export async function unhideImportedJob(jobId: number) {
-  await db
-    .update(jobs)
-    .set({ status: "active", updatedAt: new Date() })
-    .where(eq(jobs.id, jobId));
+  await db.update(jobs).set({ status: "active", updatedAt: new Date() }).where(eq(jobs.id, jobId));
 }
 
 /**
  * Get an imported job by ID
  */
 export async function getImportedJobById(jobId: number) {
-  const [job] = await db
-    .select()
-    .from(jobs)
-    .where(eq(jobs.id, jobId))
-    .limit(1);
+  const [job] = await db.select().from(jobs).where(eq(jobs.id, jobId)).limit(1);
   return job || null;
 }
 
@@ -487,10 +475,7 @@ export async function getImportedJobById(jobId: number) {
  * Approve a pending_review job (moves to active)
  */
 export async function approveJob(jobId: number) {
-  await db
-    .update(jobs)
-    .set({ status: "active", updatedAt: new Date() })
-    .where(eq(jobs.id, jobId));
+  await db.update(jobs).set({ status: "active", updatedAt: new Date() }).where(eq(jobs.id, jobId));
 }
 
 /**
@@ -517,8 +502,5 @@ export async function markJobNonTechnical(jobId: number) {
  * Mark a job as technical (normal priority in UI)
  */
 export async function markJobTechnical(jobId: number) {
-  await db
-    .update(jobs)
-    .set({ isTechnical: true, updatedAt: new Date() })
-    .where(eq(jobs.id, jobId));
+  await db.update(jobs).set({ isTechnical: true, updatedAt: new Date() }).where(eq(jobs.id, jobId));
 }

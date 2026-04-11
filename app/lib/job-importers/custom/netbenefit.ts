@@ -11,7 +11,14 @@
  */
 
 import type { FetchedJob } from "../types";
-import { fetchPage, htmlToText, slugify, extractPdfText, parseHtmlDocument, getNodeText } from "./utils";
+import {
+  fetchPage,
+  htmlToText,
+  slugify,
+  extractPdfText,
+  parseHtmlDocument,
+  getNodeText,
+} from "./utils";
 
 const CAREERS_URL = "https://www.netbenefitsoftware.com/careers";
 
@@ -32,9 +39,7 @@ export async function scrapeNetbenefit(): Promise<FetchedJob[]> {
       ?.getAttribute("href");
     const mailtoSubject = mailtoHref ? new URL(mailtoHref).searchParams.get("subject") : null;
 
-    const externalId = slugify(
-      mailtoSubject ? decodeURIComponent(mailtoSubject) : title,
-    );
+    const externalId = slugify(mailtoSubject ? decodeURIComponent(mailtoSubject) : title);
 
     const snippetText = description ? htmlToText(description) : "";
     const pdfText = pdfUrl ? await extractPdfText(pdfUrl) : null;

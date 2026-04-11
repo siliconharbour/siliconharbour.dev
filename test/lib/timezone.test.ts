@@ -30,17 +30,13 @@ describe("formatInTimezone", () => {
   it("formats a full date string correctly in winter", () => {
     // 2026-02-10 20:00 UTC → NST (UTC-3:30) → 16:30 Feb 10
     const date = new Date(Date.UTC(2026, 1, 10, 20, 0, 0));
-    expect(formatInTimezone(date, "yyyy-MM-dd HH:mm")).toBe(
-      "2026-02-10 16:30",
-    );
+    expect(formatInTimezone(date, "yyyy-MM-dd HH:mm")).toBe("2026-02-10 16:30");
   });
 
   it("handles date rollover due to timezone offset", () => {
     // 2026-06-15 01:00 UTC → NDT (UTC-2:30) → Jun 14, 22:30
     const date = new Date(Date.UTC(2026, 5, 15, 1, 0, 0));
-    expect(formatInTimezone(date, "yyyy-MM-dd HH:mm")).toBe(
-      "2026-06-14 22:30",
-    );
+    expect(formatInTimezone(date, "yyyy-MM-dd HH:mm")).toBe("2026-06-14 22:30");
   });
 });
 

@@ -8,5 +8,5 @@ type: bug
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Fix per-row sync loading state in job import page
 
+# Fix per-row sync loading state in job import page

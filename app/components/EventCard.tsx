@@ -31,8 +31,13 @@ function describeRecurrence(rule: string | null): string | null {
   }
 
   const dayNames: Record<string, string> = {
-    SU: "Sunday", MO: "Monday", TU: "Tuesday", WE: "Wednesday",
-    TH: "Thursday", FR: "Friday", SA: "Saturday",
+    SU: "Sunday",
+    MO: "Monday",
+    TU: "Tuesday",
+    WE: "Wednesday",
+    TH: "Thursday",
+    FR: "Friday",
+    SA: "Saturday",
   };
   const day = dayNames[dayCode] || dayCode;
 
@@ -40,7 +45,13 @@ function describeRecurrence(rule: string | null): string | null {
     return interval === 2 ? `Every other ${day}` : `Every ${day}`;
   }
   if (freq === "MONTHLY") {
-    const positions: Record<number, string> = { 1: "First", 2: "Second", 3: "Third", 4: "Fourth", [-1]: "Last" };
+    const positions: Record<number, string> = {
+      1: "First",
+      2: "Second",
+      3: "Third",
+      4: "Fourth",
+      [-1]: "Last",
+    };
     return `${positions[position] || ""} ${day} of every month`.trim();
   }
   return "Recurring";
@@ -50,7 +61,13 @@ function describeRecurrence(rule: string | null): string | null {
  * Wrapper that adds a stacked-papers effect behind recurring event cards.
  * Two offset divs peek out bottom-right behind the card content.
  */
-function StackedWrapper({ isRecurring, children }: { isRecurring: boolean; children: React.ReactNode }) {
+function StackedWrapper({
+  isRecurring,
+  children,
+}: {
+  isRecurring: boolean;
+  children: React.ReactNode;
+}) {
   if (!isRecurring) return <>{children}</>;
 
   return (
@@ -60,9 +77,7 @@ function StackedWrapper({ isRecurring, children }: { isRecurring: boolean; child
       {/* Middle card */}
       <div className="absolute top-[3px] left-[3px] right-[3px] bottom-[3px] ring-1 ring-harbour-200/70 bg-harbour-50" />
       {/* Front card (the actual content) */}
-      <div className="relative">
-        {children}
-      </div>
+      <div className="relative">{children}</div>
     </div>
   );
 }
@@ -268,11 +283,15 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                   {describeRecurrence(event.recurrenceRule)}
                 </span>
               ) : hasMultipleDates ? (
-                <span className="text-xs text-harbour-400 ml-2">+{event.dates.length - 1} more</span>
+                <span className="text-xs text-harbour-400 ml-2">
+                  +{event.dates.length - 1} more
+                </span>
               ) : null}
             </div>
 
-            {event.location && <p className="text-sm text-harbour-400 truncate">{event.location}</p>}
+            {event.location && (
+              <p className="text-sm text-harbour-400 truncate">{event.location}</p>
+            )}
           </div>
         </div>
       </Link>

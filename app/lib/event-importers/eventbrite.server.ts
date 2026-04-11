@@ -80,11 +80,9 @@ function extractEventId(url: string): string | null {
 
 function formatAddress(address: SchemaOrgAddress | undefined): string {
   if (!address) return "";
-  const parts = [
-    address.streetAddress,
-    address.addressLocality,
-    address.addressRegion,
-  ].filter(Boolean);
+  const parts = [address.streetAddress, address.addressLocality, address.addressRegion].filter(
+    Boolean,
+  );
   return parts.join(", ");
 }
 

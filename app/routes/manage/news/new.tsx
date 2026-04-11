@@ -43,7 +43,11 @@ export async function action({ request }: Route.ActionArgs) {
     return actionError(parsed.error);
   }
 
-  const coverImage = await createImageFromFormData(formData, "coverImageData", processAndSaveCoverImage);
+  const coverImage = await createImageFromFormData(
+    formData,
+    "coverImageData",
+    processAndSaveCoverImage,
+  );
 
   await createNews({
     title: parsed.data.title,
@@ -103,8 +107,8 @@ export default function NewNews() {
                 <option key={t} value={t}>
                   {typeLabels[t]}
                 </option>
-                ))}
-              </select>
+              ))}
+            </select>
           </ManageField>
 
           <ManageField label="Excerpt (for RSS/previews)" htmlFor="excerpt">

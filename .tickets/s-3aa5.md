@@ -8,7 +8,7 @@ type: feature
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # BambooHR job importer
 
 Create a BambooHR job importer to fetch jobs from BambooHR career pages (e.g., Trophi)
-

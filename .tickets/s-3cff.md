@@ -8,5 +8,5 @@ type: task
 priority: 3
 assignee: Jack Arthur Harrhy
 ---
-# Make jobs page company sync button icon-only
 
+# Make jobs page company sync button icon-only

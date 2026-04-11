@@ -9,7 +9,7 @@ priority: 2
 assignee: Jack Arthur Harrhy
 tags: [jobs, technologies, analysis]
 ---
+
 # Analyze Spellbook job postings for technology mentions
 
 Inspect Spellbook job postings, compare mentioned technologies against existing technologies/categories, and present existing vs missing candidates before adding anything.
-

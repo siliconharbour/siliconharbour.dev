@@ -13,7 +13,6 @@ import {
 } from "~/db/schema";
 import { eq, isNull, or, ne, isNotNull } from "drizzle-orm";
 
-
 export interface SitemapEntry {
   url: string;
   lastmod?: string;
@@ -63,19 +62,51 @@ export async function getSitemapEntries(siteUrl: string): Promise<SitemapEntry[]
     publishedEvents,
     activeJobs,
   ] = await Promise.all([
-    db.select({ slug: companies.slug, updatedAt: companies.updatedAt }).from(companies).where(eq(companies.visible, true)),
-    db.select({ slug: groups.slug, updatedAt: groups.updatedAt }).from(groups).where(eq(groups.visible, true)),
-    db.select({ slug: people.slug, updatedAt: people.updatedAt }).from(people).where(eq(people.visible, true)),
-    db.select({ slug: education.slug, updatedAt: education.updatedAt }).from(education).where(eq(education.visible, true)),
-    db.select({ slug: technologies.slug, updatedAt: technologies.updatedAt }).from(technologies).where(eq(technologies.visible, true)),
+    db
+      .select({ slug: companies.slug, updatedAt: companies.updatedAt })
+      .from(companies)
+      .where(eq(companies.visible, true)),
+    db
+      .select({ slug: groups.slug, updatedAt: groups.updatedAt })
+      .from(groups)
+      .where(eq(groups.visible, true)),
+    db
+      .select({ slug: people.slug, updatedAt: people.updatedAt })
+      .from(people)
+      .where(eq(people.visible, true)),
+    db
+      .select({ slug: education.slug, updatedAt: education.updatedAt })
+      .from(education)
+      .where(eq(education.visible, true)),
+    db
+      .select({ slug: technologies.slug, updatedAt: technologies.updatedAt })
+      .from(technologies)
+      .where(eq(technologies.visible, true)),
     db.select({ slug: products.slug, updatedAt: products.updatedAt }).from(products),
-    db.select({ slug: projects.slug, updatedAt: projects.updatedAt }).from(projects).where(ne(projects.status, "archived")),
-    db.select({ slug: news.slug, updatedAt: news.updatedAt }).from(news).where(isNotNull(news.publishedAt)),
-    db.select({ slug: events.slug, updatedAt: events.updatedAt }).from(events).where(or(isNull(events.importStatus), eq(events.importStatus, "published"))),
-    db.select({ slug: jobs.slug, updatedAt: jobs.updatedAt }).from(jobs).where(eq(jobs.status, "active")),
+    db
+      .select({ slug: projects.slug, updatedAt: projects.updatedAt })
+      .from(projects)
+      .where(ne(projects.status, "archived")),
+    db
+      .select({ slug: news.slug, updatedAt: news.updatedAt })
+      .from(news)
+      .where(isNotNull(news.publishedAt)),
+    db
+      .select({ slug: events.slug, updatedAt: events.updatedAt })
+      .from(events)
+      .where(or(isNull(events.importStatus), eq(events.importStatus, "published"))),
+    db
+      .select({ slug: jobs.slug, updatedAt: jobs.updatedAt })
+      .from(jobs)
+      .where(eq(jobs.status, "active")),
   ]);
 
-  const push = (rows: { slug: string; updatedAt: Date | null }[], path: string, section: string, labelFn: (s: string) => string) => {
+  const push = (
+    rows: { slug: string; updatedAt: Date | null }[],
+    path: string,
+    section: string,
+    labelFn: (s: string) => string,
+  ) => {
     for (const row of rows) {
       if (!row.slug) continue;
       entries.push({

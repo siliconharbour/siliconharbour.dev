@@ -9,7 +9,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Tech Groups & Meetups in St. John's, NL",
-    description: "Community tech groups, meetups, and organizations in St. John's, Newfoundland. Find local developer groups, clubs, and tech communities.",
+    description:
+      "Community tech groups, meetups, and organizations in St. John's, Newfoundland. Find local developer groups, clubs, and tech communities.",
     url: "/directory/groups",
   });
 }

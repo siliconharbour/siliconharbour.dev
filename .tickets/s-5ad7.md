@@ -9,5 +9,5 @@ priority: 2
 assignee: Jack Arthur Harrhy
 tags: [jobs, ui]
 ---
-# Add onsite chip and inline chips in jobs workplace multiselect
 
+# Add onsite chip and inline chips in jobs workplace multiselect

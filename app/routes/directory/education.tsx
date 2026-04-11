@@ -9,7 +9,8 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Tech Education in Newfoundland & Labrador",
-    description: "Universities, colleges, bootcamps, and tech education programs in Newfoundland & Labrador.",
+    description:
+      "Universities, colleges, bootcamps, and tech education programs in Newfoundland & Labrador.",
     url: "/directory/education",
   });
 }

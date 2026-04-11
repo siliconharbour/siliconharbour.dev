@@ -17,16 +17,13 @@ export const zRequiredString = (fieldLabel: string) =>
 
 export const zNullableString = z.string().trim().nullable();
 
-export const zOptionalNullableString = z.preprocess(
-  (value) => {
-    if (value === undefined) return null;
-    if (value === null) return null;
-    if (typeof value !== "string") return null;
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : null;
-  },
-  z.string().nullable(),
-);
+export const zOptionalNullableString = z.preprocess((value) => {
+  if (value === undefined) return null;
+  if (value === null) return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}, z.string().nullable());
 
 export const zCheckboxBoolean = z.preprocess((value) => value === "on", z.boolean());
 export const zTrueBoolean = z.preprocess((value) => value === "true", z.boolean());

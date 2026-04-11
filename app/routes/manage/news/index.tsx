@@ -5,7 +5,12 @@ import { getPaginatedNews } from "~/lib/news.server";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 import { ManagePage } from "~/components/manage/ManagePage";
-import { ManageList, ManageListActions, ManageListEmpty, ManageListItem } from "~/components/manage/ManageList";
+import {
+  ManageList,
+  ManageListActions,
+  ManageListEmpty,
+  ManageListItem,
+} from "~/components/manage/ManageList";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage News - siliconharbour.dev" }];
@@ -37,7 +42,9 @@ export default function ManageNewsIndex() {
       <SearchInput placeholder="Search articles..." />
 
       {articles.length === 0 ? (
-        <ManageListEmpty>No news articles yet. Create your first article to get started.</ManageListEmpty>
+        <ManageListEmpty>
+          No news articles yet. Create your first article to get started.
+        </ManageListEmpty>
       ) : (
         <ManageList>
           {articles.map((article) => (
@@ -46,11 +53,15 @@ export default function ManageNewsIndex() {
                 <div className="flex items-center gap-2">
                   <h2 className="font-medium truncate text-harbour-700">{article.title}</h2>
                   {!article.publishedAt && (
-                    <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">Draft</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+                      Draft
+                    </span>
                   )}
                 </div>
                 {article.publishedAt && (
-                  <p className="text-sm text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
+                  <p className="text-sm text-harbour-400">
+                    {format(article.publishedAt, "MMM d, yyyy")}
+                  </p>
                 )}
               </div>
 

@@ -75,7 +75,11 @@ function parseDateString(raw: string): string {
 /**
  * Mirror of sync.server.ts localDateTimeToUTC
  */
-function localDateTimeToUTC(dateStr: string, timeStr: string | null, timezone: string | null): Date {
+function localDateTimeToUTC(
+  dateStr: string,
+  timeStr: string | null,
+  timezone: string | null,
+): Date {
   const tz = timezone ?? "America/St_Johns";
   const time = timeStr ?? "12:00";
 
@@ -83,8 +87,12 @@ function localDateTimeToUTC(dateStr: string, timeStr: string | null, timezone: s
 
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
   const parts = formatter.formatToParts(fakeUTC);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
@@ -172,15 +180,13 @@ describe("parseISOToLocal (eventbrite pattern)", () => {
 
 describe("extractEventId (eventbrite pattern)", () => {
   it("extracts numeric ID from full Eventbrite URL", () => {
-    const result = extractEventId(
-      "https://www.eventbrite.ca/e/tech-meetup-tickets-1985937179564"
-    );
+    const result = extractEventId("https://www.eventbrite.ca/e/tech-meetup-tickets-1985937179564");
     expect(result).toBe("1985937179564");
   });
 
   it("extracts ID from URL with query params", () => {
     const result = extractEventId(
-      "https://www.eventbrite.ca/e/event-name-tickets-123456?aff=ebdssbdestsearch"
+      "https://www.eventbrite.ca/e/event-name-tickets-123456?aff=ebdssbdestsearch",
     );
     expect(result).toBe("123456");
   });
@@ -235,9 +241,7 @@ describe("decodeHtmlEntities (netbenefit pattern)", () => {
   });
 
   it("handles multiple entities in one string", () => {
-    expect(decodeHtmlEntities("A &amp; B &lt; C &gt; D")).toBe(
-      "A & B < C > D"
-    );
+    expect(decodeHtmlEntities("A &amp; B &lt; C &gt; D")).toBe("A & B < C > D");
   });
 
   it("passes through already decoded text unchanged", () => {
@@ -345,29 +349,20 @@ describe("localDateTimeToUTC (sync pattern)", () => {
 describe("parseToLocalDateAndTime (luma-user pattern)", () => {
   it("converts UTC ISO to local date+time in given timezone", () => {
     // 2026-04-01T15:30:00Z in America/St_Johns (NDT, UTC-2:30) = 13:00 local
-    const result = parseToLocalDateAndTime(
-      "2026-04-01T15:30:00.000Z",
-      "America/St_Johns"
-    );
+    const result = parseToLocalDateAndTime("2026-04-01T15:30:00.000Z", "America/St_Johns");
     expect(result.date).toBe("2026-04-01");
     expect(result.time).toBe("13:00");
   });
 
   it("converts UTC ISO to local in UTC timezone (no offset)", () => {
-    const result = parseToLocalDateAndTime(
-      "2026-06-15T10:00:00.000Z",
-      "UTC"
-    );
+    const result = parseToLocalDateAndTime("2026-06-15T10:00:00.000Z", "UTC");
     expect(result.date).toBe("2026-06-15");
     expect(result.time).toBe("10:00");
   });
 
   it("handles timezone that shifts the date (UTC midnight → previous day)", () => {
     // 2026-04-01T01:00:00Z in America/New_York (EDT, UTC-4) = March 31 21:00
-    const result = parseToLocalDateAndTime(
-      "2026-04-01T01:00:00.000Z",
-      "America/New_York"
-    );
+    const result = parseToLocalDateAndTime("2026-04-01T01:00:00.000Z", "America/New_York");
     expect(result.date).toBe("2026-03-31");
     expect(result.time).toBe("21:00");
   });
@@ -380,10 +375,7 @@ describe("parseToLocalDateAndTime (luma-user pattern)", () => {
 
   it("defaults to America/St_Johns when timezone is undefined", () => {
     // 2026-01-15T21:30:00Z in America/St_Johns (NST, UTC-3:30) = 18:00 local
-    const result = parseToLocalDateAndTime(
-      "2026-01-15T21:30:00.000Z",
-      undefined
-    );
+    const result = parseToLocalDateAndTime("2026-01-15T21:30:00.000Z", undefined);
     expect(result.date).toBe("2026-01-15");
     expect(result.time).toBe("18:00");
   });

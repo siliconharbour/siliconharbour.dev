@@ -55,7 +55,9 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
           {article.title}
         </h2>
         {article.publishedAt && (
-          <p className="text-sm text-harbour-400">{format(article.publishedAt, "EEEE, MMMM d, yyyy")}</p>
+          <p className="text-sm text-harbour-400">
+            {format(article.publishedAt, "EEEE, MMMM d, yyyy")}
+          </p>
         )}
         {article.excerpt && <p className="text-harbour-600 line-clamp-3">{article.excerpt}</p>}
       </div>
@@ -111,7 +113,9 @@ function ArticleCard({ article, showTypeBadge }: { article: News; showTypeBadge:
         {article.publishedAt && (
           <p className="text-xs text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
         )}
-        {article.excerpt && <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>}
+        {article.excerpt && (
+          <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>
+        )}
       </div>
     </a>
   );
@@ -126,7 +130,8 @@ export function NewsListing({
   showTypeBadge,
 }: NewsListingProps) {
   const { articles, total, limit, offset, searchQuery, hasRecentHeadline } = data;
-  const showHeadline = headlineMode && offset === 0 && hasRecentHeadline && !searchQuery && articles.length > 0;
+  const showHeadline =
+    headlineMode && offset === 0 && hasRecentHeadline && !searchQuery && articles.length > 0;
   const headline = showHeadline ? articles[0] : null;
   const secondaryArticles = showHeadline ? articles.slice(1, 3) : [];
   const remainingArticles = showHeadline ? articles.slice(3) : articles;
@@ -154,7 +159,11 @@ export function NewsListing({
               {secondaryArticles.length > 0 && (
                 <div className="flex flex-col gap-4">
                   {secondaryArticles.map((article) => (
-                    <SecondaryArticle key={article.id} article={article} showTypeBadge={showTypeBadge} />
+                    <SecondaryArticle
+                      key={article.id}
+                      article={article}
+                      showTypeBadge={showTypeBadge}
+                    />
                   ))}
                 </div>
               )}
@@ -162,7 +171,9 @@ export function NewsListing({
           )}
 
           {remainingArticles.length > 0 && (
-            <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-6" : ""}`}>
+            <div
+              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-6" : ""}`}
+            >
               {remainingArticles.map((article) => (
                 <ArticleCard key={article.id} article={article} showTypeBadge={showTypeBadge} />
               ))}

@@ -8,7 +8,7 @@ type: feature
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # Add Digital Six Consulting job import source
 
 Use WP REST awsm_job_openings endpoint for Digital Six careers imports.
-

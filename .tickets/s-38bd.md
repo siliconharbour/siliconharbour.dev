@@ -10,10 +10,10 @@ assignee: Jack Arthur Harrhy
 parent: s-c427
 tags: [custom-importer]
 ---
+
 # Custom importer: SiftMed
 
-Build custom career page scraper for SiftMed (Wix). URL: https://www.siftmed.ca/jobs. DB company ID: 191. Wix uses internal APIs (/_api/ or /_serverless/) that serve JSON data. Needs network request investigation.
-
+Build custom career page scraper for SiftMed (Wix). URL: https://www.siftmed.ca/jobs. DB company ID: 191. Wix uses internal APIs (/\_api/ or /\_serverless/) that serve JSON data. Needs network request investigation.
 
 ## Notes
 

@@ -8,7 +8,7 @@ type: chore
 priority: 1
 assignee: Jack Arthur Harrhy
 ---
+
 # Run full reference/backlink resync sweep
 
 Rebuild references table from canonical content fields across all content types to clear stale backlinks globally.
-

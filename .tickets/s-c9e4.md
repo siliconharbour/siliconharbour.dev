@@ -8,7 +8,7 @@ type: bug
 priority: 1
 assignee: Jack Arthur Harrhy
 ---
+
 # Hard-delete malformed duplicate Aker jobs
 
 Remove malformed duplicate Aker pending_review jobs created by old parser (garbage title rows).
-

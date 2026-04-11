@@ -116,7 +116,7 @@ export function createMcpServer() {
     },
     async ({ name }) => ({
       content: [{ type: "text", text: `Hello, ${name}! 👋` }],
-    })
+    }),
   );
 
   // Example: a tool that interacts with your app's database
@@ -313,9 +313,7 @@ app.delete("/mcp", async (req, res) => {
 const viteDevServer =
   process.env.NODE_ENV === "production"
     ? undefined
-    : await import("vite").then((vite) =>
-        vite.createServer({ server: { middlewareMode: true } })
-      );
+    : await import("vite").then((vite) => vite.createServer({ server: { middlewareMode: true } }));
 
 if (viteDevServer) {
   app.use(viteDevServer.middlewares);
@@ -333,7 +331,7 @@ app.all(
       ? () => viteDevServer.ssrLoadModule("virtual:react-router/server-build")
       : // @ts-expect-error — build output
         await import("./build/server/index.js"),
-  })
+  }),
 );
 
 const PORT = process.env.PORT || 3000;

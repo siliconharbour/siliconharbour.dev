@@ -8,5 +8,5 @@ type: task
 priority: 3
 assignee: Jack Arthur Harrhy
 ---
-# Make company job workplace badge white
 
+# Make company job workplace badge white

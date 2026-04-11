@@ -16,7 +16,11 @@ export async function generateGroupSlug(name: string, excludeId?: number): Promi
     excludeId,
     getExistingSlugs,
     getSlugForId: async (id) => {
-      const current = await db.select({ slug: groups.slug }).from(groups).where(eq(groups.id, id)).get();
+      const current = await db
+        .select({ slug: groups.slug })
+        .from(groups)
+        .where(eq(groups.id, id))
+        .get();
       return current?.slug ?? null;
     },
   });

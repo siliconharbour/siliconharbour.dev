@@ -39,7 +39,7 @@ function parseSourceIdentifier(identifier: string): {
   const parts = identifier.split(":");
   if (parts.length < 2) {
     throw new Error(
-      'Invalid source identifier format. Expected "company:site" or "company:site:searchText"'
+      'Invalid source identifier format. Expected "company:site" or "company:site:searchText"',
     );
   }
   return {
@@ -151,7 +151,7 @@ function detectWorkplaceType(location: string, _timeType: string): WorkplaceType
 async function fetchWorkdayJobs(
   company: string,
   site: string,
-  searchText: string
+  searchText: string,
 ): Promise<WorkdayJobsResponse> {
   const baseUrl = buildBaseUrl(company);
   const url = `${baseUrl}/wday/cxs/${company}/${site}/jobs`;
@@ -174,7 +174,9 @@ async function fetchWorkdayJobs(
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error(`Career site "${company}/${site}" not found. Check the company and site identifiers.`);
+      throw new Error(
+        `Career site "${company}/${site}" not found. Check the company and site identifiers.`,
+      );
     }
     throw new Error(`Workday API error: ${response.status} ${response.statusText}`);
   }
@@ -224,7 +226,7 @@ async function fetchWorkdayJobs(
 async function fetchWorkdayJobDetail(
   company: string,
   site: string,
-  externalPath: string
+  externalPath: string,
 ): Promise<WorkdayJobDetail> {
   const baseUrl = buildBaseUrl(company);
   // externalPath already includes the leading slash and full path
@@ -247,11 +249,7 @@ async function fetchWorkdayJobDetail(
 /**
  * Convert Workday job listing to our FetchedJob format (without full description)
  */
-function convertListingJob(
-  job: WorkdayJobListing,
-  company: string,
-  site: string
-): FetchedJob {
+function convertListingJob(job: WorkdayJobListing, company: string, site: string): FetchedJob {
   const baseUrl = buildBaseUrl(company);
   // Extract job ID from externalPath (e.g., /job/Canada---St-Johns/Title_R0025228 -> R0025228)
   const jobIdMatch = job.externalPath.match(/_([A-Z0-9-]+(?:-\d+)?)$/);
@@ -270,11 +268,7 @@ function convertListingJob(
 /**
  * Convert full job detail to FetchedJob format
  */
-function convertDetailJob(
-  detail: WorkdayJobDetail,
-  company: string,
-  site: string
-): FetchedJob {
+function convertDetailJob(detail: WorkdayJobDetail, company: string, site: string): FetchedJob {
   const info = detail.jobPostingInfo;
   const baseUrl = buildBaseUrl(company);
 
@@ -329,10 +323,7 @@ export const workdayImporter: JobImporter = {
     return jobs;
   },
 
-  async fetchJobDetails(
-    jobId: string,
-    config: ImportSourceConfig
-  ): Promise<FetchedJob | null> {
+  async fetchJobDetails(jobId: string, config: ImportSourceConfig): Promise<FetchedJob | null> {
     const { company, site } = parseSourceIdentifier(config.sourceIdentifier);
 
     try {
@@ -344,13 +335,12 @@ export const workdayImporter: JobImporter = {
     }
   },
 
-  async validateConfig(
-    config: Omit<ImportSourceConfig, "id">
-  ): Promise<ValidationResult> {
+  async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,
-        error: 'Source identifier is required (format: "company:site" or "company:site:searchText")',
+        error:
+          'Source identifier is required (format: "company:site" or "company:site:searchText")',
       };
     }
 

@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Audit jobs API/markdown/RSS accessibility for LLM consumption
 
+# Audit jobs API/markdown/RSS accessibility for LLM consumption

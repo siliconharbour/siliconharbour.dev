@@ -6,11 +6,7 @@ interface DeleteConfirmationCardProps {
   children: ReactNode;
 }
 
-export function DeleteConfirmationCard({
-  title,
-  message,
-  children,
-}: DeleteConfirmationCardProps) {
+export function DeleteConfirmationCard({ title, message, children }: DeleteConfirmationCardProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white border border-harbour-200 p-6 flex flex-col gap-6">

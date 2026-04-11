@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Remove job posting evidence rows that have no snippet
 
+# Remove job posting evidence rows that have no snippet

@@ -173,9 +173,7 @@ export async function getDiscordConfig(): Promise<DiscordConfig> {
 /**
  * Update Discord configuration
  */
-export async function updateDiscordConfig(
-  config: Partial<DiscordConfig>
-): Promise<void> {
+export async function updateDiscordConfig(config: Partial<DiscordConfig>): Promise<void> {
   const keyMap: Record<string, string> = {
     botToken: "bot_token",
     eventsChannelId: "events_channel_id",

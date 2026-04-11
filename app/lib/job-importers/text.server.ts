@@ -69,7 +69,10 @@ export function htmlToText(html: string): string {
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<meta[^>]*>/gi, "")
     .replace(/<\s*br\s*\/?\s*>/gi, "\n")
-    .replace(/<\s*\/\s*(p|div|section|article|header|footer|aside|main|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote|pre|table|tr)\s*>/gi, "\n")
+    .replace(
+      /<\s*\/\s*(p|div|section|article|header|footer|aside|main|h1|h2|h3|h4|h5|h6|ul|ol|li|blockquote|pre|table|tr)\s*>/gi,
+      "\n",
+    )
     .replace(/<\s*li[^>]*>/gi, "- ")
     .replace(/<[^>]+>/g, "");
 

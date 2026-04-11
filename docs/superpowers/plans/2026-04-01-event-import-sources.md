@@ -6,13 +6,14 @@
 
 **Architecture:** Mirror the existing `app/lib/job-importers/` pattern exactly — a typed `EventImporter` interface, a registry in `index.ts`, per-source scraper files, a `sync.server.ts` with the three-way merge algorithm, and three manage routes under `/manage/import/events`. New `event_import_sources` table tracks sources; five new columns on `events` track import lifecycle. Public event queries filter to `importStatus IS NULL OR importStatus = 'published'`.
 
-**Tech Stack:** Drizzle ORM (SQLite), React Router v7 loaders/actions, linkedom for HTML parsing, `fetchPage` utility from job-importer custom utils, `fetchImage`/`processAndSaveCoverImage` from existing image pipeline, Tailwind CSS with harbour-* design system (no rounded corners, no shadows).
+**Tech Stack:** Drizzle ORM (SQLite), React Router v7 loaders/actions, linkedom for HTML parsing, `fetchPage` utility from job-importer custom utils, `fetchImage`/`processAndSaveCoverImage` from existing image pipeline, Tailwind CSS with harbour-\* design system (no rounded corners, no shadows).
 
 ---
 
 ## File Map
 
 **New files:**
+
 - `drizzle/0039_add_event_import_sources.sql` — migration
 - `app/lib/event-importers/types.ts` — interfaces
 - `app/lib/event-importers/index.ts` — registry
@@ -24,6 +25,7 @@
 - `app/routes/manage/import/events.$sourceId.tsx` — source detail + review workflow
 
 **Modified files:**
+
 - `app/db/schema.ts` — new `eventImportSources` table + 5 new columns on `events`
 - `app/routes.ts` — register 3 new manage/import/events routes
 - `app/lib/events.server.ts` — add `importStatus` filter to all public-facing queries
@@ -34,6 +36,7 @@
 ## Task 1: Database Migration
 
 **Files:**
+
 - Create: `drizzle/0039_add_event_import_sources.sql`
 - Modify: `drizzle/meta/_journal.json`
 
@@ -110,8 +113,12 @@ export const eventImportSources = sqliteTable("event_import_sources", {
   lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
   fetchStatus: text("fetch_status").notNull().default("pending"),
   fetchError: text("fetch_error"),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 export type EventImportSource = typeof eventImportSources.$inferSelect;
@@ -160,6 +167,7 @@ git commit -m "feat: add event_import_sources table and import columns to events
 ## Task 2: Importer Types and Registry
 
 **Files:**
+
 - Create: `app/lib/event-importers/types.ts`
 - Create: `app/lib/event-importers/index.ts`
 
@@ -174,9 +182,9 @@ export interface FetchedEvent {
   link: string;
   organizer: string;
   startDate: string; // "YYYY-MM-DD"
-  endDate: string;   // "YYYY-MM-DD"
+  endDate: string; // "YYYY-MM-DD"
   startTime: string | null; // "HH:mm"
-  endTime: string | null;   // "HH:mm"
+  endTime: string | null; // "HH:mm"
   coverImageUrl: string | null;
   timezone: string | null;
 }
@@ -211,7 +219,7 @@ export interface EventImporter {
 
 export const sourceTypeLabels: Record<string, string> = {
   "luma-user": "Luma (User)",
-  "technl": "techNL",
+  technl: "techNL",
 };
 ```
 
@@ -254,6 +262,7 @@ git commit -m "feat: add event importer types and registry stub"
 ## Task 3: Sync Server
 
 **Files:**
+
 - Create: `app/lib/event-importers/sync.server.ts`
 
 This is the core DB layer and three-way merge algorithm.
@@ -312,10 +321,7 @@ export async function getEventImportSourceWithStats(sourceId: number) {
   const source = await getEventImportSourceById(sourceId);
   if (!source) return null;
 
-  const allEvents = await db
-    .select()
-    .from(events)
-    .where(eq(events.importSourceId, sourceId));
+  const allEvents = await db.select().from(events).where(eq(events.importSourceId, sourceId));
 
   const pending = allEvents.filter((e) => e.importStatus === "pending_review");
   const approved = allEvents.filter((e) => e.importStatus === "approved");
@@ -403,7 +409,11 @@ export async function downloadAndSaveCoverImage(imageUrl: string): Promise<strin
 
 async function updateSourceMeta(
   sourceId: number,
-  data: { fetchStatus: "pending" | "success" | "error"; lastFetchedAt?: Date; fetchError?: string | null },
+  data: {
+    fetchStatus: "pending" | "success" | "error";
+    lastFetchedAt?: Date;
+    fetchError?: string | null;
+  },
 ) {
   await db
     .update(eventImportSources)
@@ -443,7 +453,9 @@ async function insertImportedEvent(
     .returning({ id: events.id });
 
   // Insert event_dates row
-  const startDate = new Date(fetched.startDate + (fetched.startTime ? `T${fetched.startTime}:00` : "T00:00:00"));
+  const startDate = new Date(
+    fetched.startDate + (fetched.startTime ? `T${fetched.startTime}:00` : "T00:00:00"),
+  );
   const endDate = fetched.endDate
     ? new Date(fetched.endDate + (fetched.endTime ? `T${fetched.endTime}:00` : "T23:59:59"))
     : null;
@@ -479,7 +491,9 @@ async function refreshPendingEvent(eventId: number, fetched: FetchedEvent) {
     .where(eq(eventDates.eventId, eventId))
     .limit(1);
 
-  const startDate = new Date(fetched.startDate + (fetched.startTime ? `T${fetched.startTime}:00` : "T00:00:00"));
+  const startDate = new Date(
+    fetched.startDate + (fetched.startTime ? `T${fetched.startTime}:00` : "T00:00:00"),
+  );
   const endDate = fetched.endDate
     ? new Date(fetched.endDate + (fetched.endTime ? `T${fetched.endTime}:00` : "T23:59:59"))
     : null;
@@ -582,6 +596,7 @@ git commit -m "feat: add event import sync server"
 ## Task 4: techNL Importer
 
 **Files:**
+
 - Create: `app/lib/event-importers/technl.server.ts`
 - Modify: `app/lib/event-importers/index.ts`
 
@@ -709,7 +724,7 @@ import { technlImporter } from "./technl.server";
 
 const importers: Record<string, EventImporter> = {
   "luma-user": lumaUserImporter,
-  "technl": technlImporter,
+  technl: technlImporter,
 };
 
 export function getEventImporter(sourceType: string): EventImporter {
@@ -737,8 +752,12 @@ Note: this import will fail until Task 5 creates `luma-user.server.ts`. Add a st
 // Temporary stub — replaced in Task 5
 export const lumaUserImporter: EventImporter = {
   sourceType: "luma-user",
-  async fetchEvents() { return []; },
-  async validateConfig() { return { valid: false, error: "Not yet implemented" }; },
+  async fetchEvents() {
+    return [];
+  },
+  async validateConfig() {
+    return { valid: false, error: "Not yet implemented" };
+  },
 };
 ```
 
@@ -764,6 +783,7 @@ git commit -m "feat: add techNL event importer"
 ## Task 5: Luma User Importer
 
 **Files:**
+
 - Create: `app/lib/event-importers/luma-user.server.ts`
 - Modify: `app/lib/event-importers/index.ts`
 
@@ -861,8 +881,7 @@ function parseISOToDateAndTime(isoString: string | undefined): {
 async function fetchLumaPage(url: string): Promise<string> {
   const response = await fetch(url, {
     headers: {
-      "User-Agent":
-        "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",
+      "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",
       Accept: "text/html",
     },
   });
@@ -875,7 +894,9 @@ async function fetchLumaPage(url: string): Promise<string> {
 async function fetchEventDetails(eventSlug: string): Promise<LumaEventDetail | null> {
   try {
     const html = await fetchLumaPage(`${LUMA_BASE}/${eventSlug}`);
-    const data = extractNextData<{ props?: { pageProps?: { initialData?: LumaEventDetail } } }>(html);
+    const data = extractNextData<{ props?: { pageProps?: { initialData?: LumaEventDetail } } }>(
+      html,
+    );
     return data?.props?.pageProps?.initialData ?? null;
   } catch {
     return null;
@@ -973,7 +994,7 @@ import { technlImporter } from "./technl.server";
 
 const importers: Record<string, EventImporter> = {
   "luma-user": lumaUserImporter,
-  "technl": technlImporter,
+  technl: technlImporter,
 };
 
 export function getEventImporter(sourceType: string): EventImporter {
@@ -1015,6 +1036,7 @@ git commit -m "feat: add Luma user account event importer"
 ## Task 6: Update Public Event Queries
 
 **Files:**
+
 - Modify: `app/lib/events.server.ts`
 
 All public-facing event queries must be updated to filter out unpublished imported events. The filter is: `importStatus IS NULL OR importStatus = 'published'`.
@@ -1047,29 +1069,26 @@ const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus
 In `getUpcomingEvents()` (line ~212), the query for `recurringEventsResult` currently is:
 
 ```typescript
-  const recurringEventsResult = await db
-    .select()
-    .from(events)
-    .where(gte(events.recurrenceRule, ""));
+const recurringEventsResult = await db.select().from(events).where(gte(events.recurrenceRule, ""));
 ```
 
 Replace with:
 
 ```typescript
-  const recurringEventsResult = await db
-    .select()
-    .from(events)
-    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
+const recurringEventsResult = await db
+  .select()
+  .from(events)
+  .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
 ```
 
 The `upcomingEventIds` query uses `eventDates` — filter imported events at the `getEventById` level by filtering the fetched events after loading. After the `eventsWithDates` parallel map, the existing `.filter((e): e is EventWithDates => e !== null)` line — add an additional filter:
 
 ```typescript
-  return eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
-    .filter((e) => e.importStatus === null || e.importStatus === "published")
-    .filter((e) => e.dates.some((d) => d.startDate >= now))
-    .sort(/* existing sort */);
+return eventsWithDates
+  .filter((e): e is EventWithDates => e !== null)
+  .filter((e) => e.importStatus === null || e.importStatus === "published")
+  .filter((e) => e.dates.some((d) => d.startDate >= now))
+  .sort(/* existing sort */);
 ```
 
 - [ ] **Step 4: Update `getEventsThisWeek()`**
@@ -1077,10 +1096,10 @@ The `upcomingEventIds` query uses `eventDates` — filter imported events at the
 After the `eventsWithDates` parallel map (line ~401), add the same filter:
 
 ```typescript
-  return eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
-    .filter((e) => e.importStatus === null || e.importStatus === "published")
-    .sort(/* existing sort */);
+return eventsWithDates
+  .filter((e): e is EventWithDates => e !== null)
+  .filter((e) => e.importStatus === null || e.importStatus === "published")
+  .sort(/* existing sort */);
 ```
 
 - [ ] **Step 5: Update `getEventsByMonth()`**
@@ -1088,9 +1107,9 @@ After the `eventsWithDates` parallel map (line ~401), add the same filter:
 After the `eventsWithDates` parallel map (line ~428), add:
 
 ```typescript
-  return eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
-    .filter((e) => e.importStatus === null || e.importStatus === "published");
+return eventsWithDates
+  .filter((e): e is EventWithDates => e !== null)
+  .filter((e) => e.importStatus === null || e.importStatus === "published");
 ```
 
 - [ ] **Step 6: Update `getEventsForMonth()`**
@@ -1108,28 +1127,25 @@ Find the return/filter step and add:
 In `getPaginatedEvents()` (line ~448), the `recurringEventsResult` query:
 
 ```typescript
-  const recurringEventsResult = await db
-    .select()
-    .from(events)
-    .where(gte(events.recurrenceRule, ""));
+const recurringEventsResult = await db.select().from(events).where(gte(events.recurrenceRule, ""));
 ```
 
 Replace with:
 
 ```typescript
-  const recurringEventsResult = await db
-    .select()
-    .from(events)
-    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
+const recurringEventsResult = await db
+  .select()
+  .from(events)
+  .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
 ```
 
 After fetching individual events in the parallel map, add the visibility filter before sorting:
 
 ```typescript
-  const visible = eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
-    .filter((e) => e.importStatus === null || e.importStatus === "published");
-  // ... rest of sort/pagination uses `visible` instead of `eventsWithDates`
+const visible = eventsWithDates
+  .filter((e): e is EventWithDates => e !== null)
+  .filter((e) => e.importStatus === null || e.importStatus === "published");
+// ... rest of sort/pagination uses `visible` instead of `eventsWithDates`
 ```
 
 - [ ] **Step 8: Verify build**
@@ -1152,6 +1168,7 @@ git commit -m "feat: filter unpublished imported events from all public event qu
 ## Task 7: Event Edit Form — Save & Publish
 
 **Files:**
+
 - Modify: `app/routes/manage/events/edit.tsx`
 
 Add a "Save & Publish" button that appears when `event.importStatus === 'approved'`. On submit, sets `importStatus = 'published'` and redirects back to the import source page.
@@ -1165,26 +1182,26 @@ The loader already returns the full `event` object including the new columns. No
 In `edit.tsx`, find the action function. After the existing `parseEventBaseForm` call and before the `isRecurring` branch, add intent detection:
 
 ```typescript
-  const intent = formData.get("intent");
+const intent = formData.get("intent");
 ```
 
 After the two `updateEvent` calls (both the recurring and one-time branches), replace the redirect:
 
 ```typescript
-  // If saving + publishing an imported event, set importStatus to published
-  if (intent === "save-and-publish") {
-    await db
-      .update(events)
-      .set({ importStatus: "published", updatedAt: new Date() })
-      .where(eq(events.id, id));
+// If saving + publishing an imported event, set importStatus to published
+if (intent === "save-and-publish") {
+  await db
+    .update(events)
+    .set({ importStatus: "published", updatedAt: new Date() })
+    .where(eq(events.id, id));
 
-    // Redirect back to the import source page if we know it
-    if (existingEvent.importSourceId) {
-      return redirect(`/manage/import/events/${existingEvent.importSourceId}`);
-    }
+  // Redirect back to the import source page if we know it
+  if (existingEvent.importSourceId) {
+    return redirect(`/manage/import/events/${existingEvent.importSourceId}`);
   }
+}
 
-  return redirect("/manage/events");
+return redirect("/manage/events");
 ```
 
 Add the necessary imports at the top of the file:
@@ -1283,6 +1300,7 @@ git commit -m "feat: add Save & Publish button to event edit form for approved i
 ## Task 8: Manage UI — Source List Page
 
 **Files:**
+
 - Create: `app/routes/manage/import/events.tsx`
 - Modify: `app/routes.ts`
 
@@ -1313,10 +1331,7 @@ Find the `...prefix("import", [...])` block and add the three new event routes:
 import type { Route } from "./+types/events";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import {
-  getAllEventImportSources,
-  syncEvents,
-} from "~/lib/event-importers/sync.server";
+import { getAllEventImportSources, syncEvents } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { formatDistanceToNow } from "date-fns";
 
@@ -1344,7 +1359,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "sync-all") {
     const sources = await getAllEventImportSources();
-    let totalAdded = 0, totalSkipped = 0, totalRemoved = 0;
+    let totalAdded = 0,
+      totalSkipped = 0,
+      totalRemoved = 0;
     const errors: string[] = [];
 
     for (const source of sources) {
@@ -1443,10 +1460,7 @@ export default function ImportEvents() {
                 {sources.map((source) => (
                   <tr key={source.id} className="hover:bg-harbour-50">
                     <td className="px-4 py-3 font-medium text-harbour-700">
-                      <Link
-                        to={`/manage/import/events/${source.id}`}
-                        className="hover:underline"
-                      >
+                      <Link to={`/manage/import/events/${source.id}`} className="hover:underline">
                         {source.name}
                       </Link>
                     </td>
@@ -1472,9 +1486,13 @@ export default function ImportEvents() {
                       {source.fetchStatus === "error" ? (
                         <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700">error</span>
                       ) : source.fetchStatus === "pending" ? (
-                        <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">pending</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+                          pending
+                        </span>
                       ) : (
-                        <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">ok</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">
+                          ok
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -1520,6 +1538,7 @@ git commit -m "feat: add event import sources list page"
 ## Task 9: Manage UI — Add Source Form
 
 **Files:**
+
 - Create: `app/routes/manage/import/events.new.tsx`
 
 - [ ] **Step 1: Create `app/routes/manage/import/events.new.tsx`**
@@ -1740,6 +1759,7 @@ git commit -m "feat: add event import source creation form"
 ## Task 10: Manage UI — Source Detail + Review Workflow
 
 **Files:**
+
 - Create: `app/routes/manage/import/events.$sourceId.tsx`
 
 This is the main review page with Sync Now, Pending Review, Approved (Editing), Published, Hidden, and Removed sections.
@@ -2099,8 +2119,8 @@ export default function EventImportSourceDetail() {
           </summary>
           <div className="p-4">
             <p className="text-sm text-harbour-500 mb-3">
-              Deleting this source will not delete any approved or published events. Only the
-              source record and pending/hidden events will be removed.
+              Deleting this source will not delete any approved or published events. Only the source
+              record and pending/hidden events will be removed.
             </p>
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="delete-source" />
@@ -2136,6 +2156,7 @@ pnpm run build 2>&1 | grep -E "error" | grep -v "node_modules" | head -20
 ```
 
 Fix any type errors. Common issues:
+
 - `event.importStatus` may be typed as `string | null` — add null checks
 - `source.pending` etc. are arrays of the full Drizzle event type — check that `event.title`, `event.link`, `event.location`, `event.id` exist on that type (they do per schema)
 
@@ -2151,6 +2172,7 @@ git commit -m "feat: add event import source detail and review workflow page"
 ## Task 11: Cover Image URL Column (Recommended follow-up to Task 10)
 
 **Files:**
+
 - Create: `drizzle/0040_add_events_cover_image_url.sql`
 - Modify: `drizzle/meta/_journal.json`
 - Modify: `app/db/schema.ts`

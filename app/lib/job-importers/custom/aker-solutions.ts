@@ -13,7 +13,10 @@ const DEFAULT_CAREERS_URL =
   "https://www.akersolutions.com/careers/job-search/?country=Canada&location=St.+John%27s";
 
 function normalizeText(value: string | null | undefined): string {
-  return (value ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  return (value ?? "")
+    .replace(/\u00a0/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function extractJobPostId(url: string): string | null {
@@ -60,7 +63,9 @@ function getCardText(anchor: Element): string {
   return "";
 }
 
-export async function scrapeAkerSolutions(careersUrl: string = DEFAULT_CAREERS_URL): Promise<FetchedJob[]> {
+export async function scrapeAkerSolutions(
+  careersUrl: string = DEFAULT_CAREERS_URL,
+): Promise<FetchedJob[]> {
   const html = await fetchPage(careersUrl);
   const { document } = parseHTML(html);
 

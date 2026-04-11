@@ -10,10 +10,10 @@ assignee: Jack Arthur Harrhy
 parent: s-c03b
 tags: [refactor, admin, ui]
 ---
+
 # Extract shared delete confirmation component
 
 Create shared delete confirmation card/page component and migrate all manage delete routes.
-
 
 ## Notes
 

@@ -19,8 +19,7 @@ const HTML_ENTITIES: Record<string, string> = {
 };
 
 function decodeHtmlEntities(str: string): string {
-  return str
-    .replace(/&[#\w]+;/g, (entity) => HTML_ENTITIES[entity] ?? entity);
+  return str.replace(/&[#\w]+;/g, (entity) => HTML_ENTITIES[entity] ?? entity);
 }
 
 interface SchemaOrgEvent {

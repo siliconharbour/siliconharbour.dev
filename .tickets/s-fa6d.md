@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 tags: [bug, og-images, events]
 ---
+
 # Fix events OG image display-style runtime error
 
 Investigate and fix /events/:slug.png server error from OG image rendering: explicit display style required for multi-child nodes.
-

@@ -60,7 +60,9 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
         return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
       } catch (err) {
         return {
-          content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
+          content: [
+            { type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` },
+          ],
           isError: true,
         };
       }
@@ -68,40 +70,43 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
   );
 
   // ── Tool 3: execute (authenticated sessions only) ───────────────────
-  if (authenticated) server.registerTool(
-    "execute",
-    {
-      title: "Execute authenticated SiliconHarbour actions",
-      description:
-        "Like 'query' but also exposes sync and pending-review functions. Requires apiToken. " +
-        "Additional imports from 'siliconharbour': eventImportSources(), jobImportSources(), " +
-        "pendingEvents(), pendingJobs(), syncEventSource(id), syncAllEventSources(), " +
-        "syncJobSource(id), syncAllJobSources(). " +
-        "All functions call the real database on-demand. " +
-        "Timeout: 60 seconds. If sync times out, use pendingEvents/pendingJobs instead.",
-      inputSchema: {
-        code: z
-          .string()
-          .describe(
-            "JavaScript module with 'export default'. Can import any siliconharbour function.",
-          ),
+  if (authenticated)
+    server.registerTool(
+      "execute",
+      {
+        title: "Execute authenticated SiliconHarbour actions",
+        description:
+          "Like 'query' but also exposes sync and pending-review functions. Requires apiToken. " +
+          "Additional imports from 'siliconharbour': eventImportSources(), jobImportSources(), " +
+          "pendingEvents(), pendingJobs(), syncEventSource(id), syncAllEventSources(), " +
+          "syncJobSource(id), syncAllJobSources(). " +
+          "All functions call the real database on-demand. " +
+          "Timeout: 60 seconds. If sync times out, use pendingEvents/pendingJobs instead.",
+        inputSchema: {
+          code: z
+            .string()
+            .describe(
+              "JavaScript module with 'export default'. Can import any siliconharbour function.",
+            ),
+        },
       },
-    },
-    async ({ code }) => {
-      try {
-        const result = await runInSandbox(code, buildExecuteFunctions(), 60_000);
-        if (result.ok) {
-          return { content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }] };
+      async ({ code }) => {
+        try {
+          const result = await runInSandbox(code, buildExecuteFunctions(), 60_000);
+          if (result.ok) {
+            return { content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }] };
+          }
+          return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
+        } catch (err) {
+          return {
+            content: [
+              { type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` },
+            ],
+            isError: true,
+          };
         }
-        return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
-      } catch (err) {
-        return {
-          content: [{ type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` }],
-          isError: true,
-        };
-      }
-    },
-  );
+      },
+    );
 
   return server;
 }

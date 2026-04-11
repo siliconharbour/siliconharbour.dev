@@ -106,7 +106,11 @@ export function jsonResponse<T>(
   });
 }
 
-export function paginatedJsonResponse<T>(url: URL, data: T[], pagination: ApiPaginationMeta): Response {
+export function paginatedJsonResponse<T>(
+  url: URL,
+  data: T[],
+  pagination: ApiPaginationMeta,
+): Response {
   const { total, limit, offset } = pagination;
   const baseUrl = url.origin + url.pathname;
   const linkHeader = buildLinkHeader(baseUrl, { limit, offset }, total);

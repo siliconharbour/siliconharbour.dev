@@ -77,15 +77,15 @@ describe("parseRecurrenceRule", () => {
 // ─── serializeRecurrenceRule ─────────────────────────────────────────
 describe("serializeRecurrenceRule", () => {
   it("serializes a simple weekly rule", () => {
-    expect(
-      serializeRecurrenceRule({ freq: "WEEKLY", interval: 1, byDay: "TH" }),
-    ).toBe("FREQ=WEEKLY;BYDAY=TH");
+    expect(serializeRecurrenceRule({ freq: "WEEKLY", interval: 1, byDay: "TH" })).toBe(
+      "FREQ=WEEKLY;BYDAY=TH",
+    );
   });
 
   it("serializes a biweekly rule with interval", () => {
-    expect(
-      serializeRecurrenceRule({ freq: "WEEKLY", interval: 2, byDay: "TH" }),
-    ).toBe("FREQ=WEEKLY;INTERVAL=2;BYDAY=TH");
+    expect(serializeRecurrenceRule({ freq: "WEEKLY", interval: 2, byDay: "TH" })).toBe(
+      "FREQ=WEEKLY;INTERVAL=2;BYDAY=TH",
+    );
   });
 
   it("serializes a monthly rule with position", () => {
@@ -303,9 +303,7 @@ describe("describeRecurrenceRule", () => {
 
   it("describes a monthly second Thursday rule", () => {
     const rule = parseRecurrenceRule("FREQ=MONTHLY;BYDAY=2TH")!;
-    expect(describeRecurrenceRule(rule)).toBe(
-      "Second Thursday of every month",
-    );
+    expect(describeRecurrenceRule(rule)).toBe("Second Thursday of every month");
   });
 
   it("describes a monthly last Friday rule", () => {
@@ -315,9 +313,7 @@ describe("describeRecurrenceRule", () => {
 
   it("describes a monthly first day rule", () => {
     const rule = parseRecurrenceRule("FREQ=MONTHLY;BYDAY=1WE")!;
-    expect(describeRecurrenceRule(rule)).toBe(
-      "First Wednesday of every month",
-    );
+    expect(describeRecurrenceRule(rule)).toBe("First Wednesday of every month");
   });
 
   it("describes monthly with interval > 1", () => {
@@ -334,15 +330,15 @@ describe("describeRecurrenceRule", () => {
 // ─── buildRecurrenceRule ─────────────────────────────────────────────
 describe("buildRecurrenceRule", () => {
   it("builds a weekly rule", () => {
-    expect(
-      buildRecurrenceRule({ frequency: "weekly", dayOfWeek: "TH" }),
-    ).toBe("FREQ=WEEKLY;BYDAY=TH");
+    expect(buildRecurrenceRule({ frequency: "weekly", dayOfWeek: "TH" })).toBe(
+      "FREQ=WEEKLY;BYDAY=TH",
+    );
   });
 
   it("builds a biweekly rule", () => {
-    expect(
-      buildRecurrenceRule({ frequency: "biweekly", dayOfWeek: "TH" }),
-    ).toBe("FREQ=WEEKLY;INTERVAL=2;BYDAY=TH");
+    expect(buildRecurrenceRule({ frequency: "biweekly", dayOfWeek: "TH" })).toBe(
+      "FREQ=WEEKLY;INTERVAL=2;BYDAY=TH",
+    );
   });
 
   it("builds a monthly rule with position", () => {
@@ -366,9 +362,9 @@ describe("buildRecurrenceRule", () => {
   });
 
   it("defaults monthly position to 1", () => {
-    expect(
-      buildRecurrenceRule({ frequency: "monthly", dayOfWeek: "WE" }),
-    ).toBe("FREQ=MONTHLY;BYDAY=1WE");
+    expect(buildRecurrenceRule({ frequency: "monthly", dayOfWeek: "WE" })).toBe(
+      "FREQ=MONTHLY;BYDAY=1WE",
+    );
   });
 });
 
@@ -383,9 +379,7 @@ describe("extractRecurrenceOptions", () => {
   });
 
   it("extracts biweekly options", () => {
-    expect(
-      extractRecurrenceOptions("FREQ=WEEKLY;INTERVAL=2;BYDAY=TH"),
-    ).toEqual({
+    expect(extractRecurrenceOptions("FREQ=WEEKLY;INTERVAL=2;BYDAY=TH")).toEqual({
       frequency: "biweekly",
       dayOfWeek: "TH",
       monthlyPosition: 1,

@@ -8,5 +8,5 @@ type: feature
 priority: 1
 assignee: Jack Arthur Harrhy
 ---
-# Adopt Base UI multiselect for company provenance mapping
 
+# Adopt Base UI multiselect for company provenance mapping

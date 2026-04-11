@@ -178,9 +178,7 @@ describe("buildSeoMeta", () => {
     });
 
     const ogImage = tags.find((t) => t.property === "og:image");
-    expect(ogImage!.content).toBe(
-      "https://siliconharbour.dev/siliconharbour.svg",
-    );
+    expect(ogImage!.content).toBe("https://siliconharbour.dev/siliconharbour.svg");
   });
 
   it("does not double-append site name if title already includes it", () => {
@@ -209,9 +207,7 @@ describe("buildSeoMeta", () => {
       url: "/test",
     });
 
-    const canonical = tags.find(
-      (t) => t.tagName === "link" && t.rel === "canonical",
-    );
+    const canonical = tags.find((t) => t.tagName === "link" && t.rel === "canonical");
     expect(canonical).toBeDefined();
     expect(canonical!.href).toBe("https://siliconharbour.dev/test");
   });

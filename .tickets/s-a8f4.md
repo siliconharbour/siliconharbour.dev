@@ -8,7 +8,7 @@ type: feature
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # Add non-technical job marking system
 
 Add ability to mark jobs as non-technical. These jobs will be deprioritized in UI (homepage, jobs page). Add checkbox 'Show non-technical roles' (default false). Add 'Non-technical' button on job import screen similar to existing Hide button.
-

@@ -456,434 +456,432 @@ export default function ImportGitHub() {
       backLabel="Back to Dashboard"
       maxWidthClassName="max-w-6xl"
     >
-        <p className="text-harbour-500">
-          Search for GitHub users in Newfoundland & Labrador and import them as people. Use "Import
-          All" for automatic bulk import with rate limit handling.
-        </p>
+      <p className="text-harbour-500">
+        Search for GitHub users in Newfoundland & Labrador and import them as people. Use "Import
+        All" for automatic bulk import with rate limit handling.
+      </p>
 
-        {/* Bulk Import Section */}
-        <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
-          <h2 className="font-semibold text-harbour-700">Bulk Import (Recommended)</h2>
+      {/* Bulk Import Section */}
+      <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
+        <h2 className="font-semibold text-harbour-700">Bulk Import (Recommended)</h2>
 
-          <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={downloadAvatars}
-                onChange={(e) => setDownloadAvatars(e.target.checked)}
-                className="border border-harbour-300"
-              />
-              Download avatars
-            </label>
+        <div className="flex items-center gap-4 flex-wrap">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={downloadAvatars}
+              onChange={(e) => setDownloadAvatars(e.target.checked)}
+              className="border border-harbour-300"
+            />
+            Download avatars
+          </label>
 
-            {bulkProgress.status === "idle" && (
-              <button
-                type="button"
-                onClick={handleBulkStart}
-                disabled={isBulkRunning}
-                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
-              >
-                {isBulkRunning ? "Starting..." : "Import All Users"}
-              </button>
-            )}
+          {bulkProgress.status === "idle" && (
+            <button
+              type="button"
+              onClick={handleBulkStart}
+              disabled={isBulkRunning}
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+            >
+              {isBulkRunning ? "Starting..." : "Import All Users"}
+            </button>
+          )}
 
-            {(bulkProgress.status === "running" || bulkProgress.status === "paused") && (
-              <>
-                {bulkProgress.status === "running" || autoRun ? (
-                  <button
-                    type="button"
-                    onClick={handleBulkPause}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
-                  >
-                    Pause
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleBulkStart}
-                    disabled={isBulkRunning}
-                    className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
-                  >
-                    {isBulkRunning ? "Resuming..." : "Resume"}
-                  </button>
-                )}
-
+          {(bulkProgress.status === "running" || bulkProgress.status === "paused") && (
+            <>
+              {bulkProgress.status === "running" || autoRun ? (
                 <button
                   type="button"
-                  onClick={handleBulkReset}
-                  className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                  onClick={handleBulkPause}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
                 >
-                  Reset
+                  Pause
                 </button>
-              </>
-            )}
-
-            {bulkProgress.status === "completed" && (
-              <button
-                type="button"
-                onClick={handleBulkReset}
-                className="px-4 py-2 border border-harbour-300 text-harbour-600 hover:bg-harbour-100 font-medium transition-colors"
-              >
-                Start New Import
-              </button>
-            )}
-
-            {bulkProgress.status === "error" && (
-              <>
+              ) : (
                 <button
                   type="button"
                   onClick={handleBulkStart}
                   disabled={isBulkRunning}
                   className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
                 >
-                  Retry
+                  {isBulkRunning ? "Resuming..." : "Resume"}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleBulkReset}
-                  className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
-                >
-                  Reset
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Progress display */}
-          {bulkProgress.status !== "idle" && (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-4 text-sm">
-                <span
-                  className={`px-2 py-0.5 font-medium ${
-                    bulkProgress.status === "running"
-                      ? "bg-green-100 text-green-700"
-                      : bulkProgress.status === "paused"
-                        ? "bg-amber-100 text-amber-700"
-                        : bulkProgress.status === "completed"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {bulkProgress.status.toUpperCase()}
-                  {autoRun && bulkProgress.status === "running" && " (auto)"}
-                </span>
-
-                <span className="text-harbour-600">
-                  {bulkProgress.processedItems} / {bulkProgress.totalItems} users ({progressPercent}
-                  %)
-                </span>
-
-                {bulkProgress.rateLimitRemaining !== null && (
-                  <span className="text-harbour-400">
-                    API: {bulkProgress.rateLimitRemaining} remaining
-                  </span>
-                )}
-              </div>
-
-              {/* Progress bar */}
-              <div className="h-2 bg-harbour-200  overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    bulkProgress.status === "completed"
-                      ? "bg-blue-500"
-                      : bulkProgress.status === "error"
-                        ? "bg-red-500"
-                        : "bg-green-500"
-                  }`}
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-
-              {/* Stats */}
-              <div className="flex gap-4 text-xs text-harbour-500">
-                <span>Imported: {bulkProgress.importedCount}</span>
-                <span>Skipped: {bulkProgress.skippedCount}</span>
-                <span>Errors: {bulkProgress.errorCount}</span>
-                <span>
-                  Page: {bulkProgress.currentPage} / {bulkProgress.totalPages}
-                </span>
-              </div>
-
-              {/* Rate limit warning */}
-              {bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset && (
-                <div className="text-sm text-amber-600 bg-amber-50 p-2">
-                  Rate limited. {autoRun ? "Will auto-resume" : "Can resume"} at{" "}
-                  {bulkProgress.rateLimitReset.toLocaleTimeString()}
-                </div>
               )}
 
-              {/* Error display */}
-              {bulkProgress.lastError && bulkProgress.status === "error" && (
-                <div className="text-sm text-red-600 bg-red-50 p-2">{bulkProgress.lastError}</div>
-              )}
+              <button
+                type="button"
+                onClick={handleBulkReset}
+                className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+              >
+                Reset
+              </button>
+            </>
+          )}
 
-              {/* Recent activity log */}
-              {recentActivity.length > 0 && (
-                <details className="text-xs" open={bulkProgress.status === "running"}>
-                  <summary className="cursor-pointer text-harbour-500 hover:text-harbour-700">
-                    Recent activity ({recentActivity.length})
-                  </summary>
-                  <div className="mt-1 max-h-32 overflow-y-auto bg-white border border-harbour-100 p-2 font-mono">
-                    {recentActivity.map((item, i) => (
-                      <div
-                        key={i}
-                        className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}
-                      >
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              )}
-            </div>
+          {bulkProgress.status === "completed" && (
+            <button
+              type="button"
+              onClick={handleBulkReset}
+              className="px-4 py-2 border border-harbour-300 text-harbour-600 hover:bg-harbour-100 font-medium transition-colors"
+            >
+              Start New Import
+            </button>
+          )}
+
+          {bulkProgress.status === "error" && (
+            <>
+              <button
+                type="button"
+                onClick={handleBulkStart}
+                disabled={isBulkRunning}
+                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={handleBulkReset}
+                className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+              >
+                Reset
+              </button>
+            </>
           )}
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-harbour-200 pt-4">
-          <h2 className="font-semibold text-harbour-700 mb-2">Manual Import</h2>
-          <p className="text-sm text-harbour-400 mb-4">
-            Or search and select individual users to import.
-          </p>
-        </div>
-
-        {/* Rate limit info */}
-        {rateLimit && (
-          <div className="text-sm text-harbour-400">
-            API Rate Limit: {rateLimit.remaining}/{rateLimit.limit} remaining
-            {rateLimit.remaining < 10 && (
-              <span className="text-amber-600 ml-2">
-                (Resets at {new Date(rateLimit.reset).toLocaleTimeString()})
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Search button */}
-        {fetchedUsers.length === 0 && (
-          <button
-            type="button"
-            onClick={() => handleSearch(1)}
-            disabled={isSearching}
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors self-start"
-          >
-            {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland & Labrador"}
-          </button>
-        )}
-
-        {/* Error display */}
-        {fetcherData?.intent === "search" && fetcherData.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {fetcherData.error}
-          </div>
-        )}
-
-        {/* Import results */}
-        {fetcherData?.intent === "import" && (
+        {/* Progress display */}
+        {bulkProgress.status !== "idle" && (
           <div className="flex flex-col gap-2">
-            {fetcherData.imported && fetcherData.imported.length > 0 && (
-              <div className="p-4 bg-green-50 border border-green-200 text-green-700">
-                Successfully processed {fetcherData.imported.length} users
-                <ul className="list-disc list-inside mt-2 text-sm">
-                  {fetcherData.imported.slice(0, 10).map((name, i) => (
-                    <li key={i}>{name}</li>
-                  ))}
-                  {fetcherData.imported.length > 10 && (
-                    <li>...and {fetcherData.imported.length - 10} more</li>
-                  )}
-                </ul>
-              </div>
-            )}
-            {fetcherData.errors && fetcherData.errors.length > 0 && (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-                <p className="font-medium">Errors:</p>
-                <ul className="list-disc list-inside mt-2">
-                  {fetcherData.errors.map((e, i) => (
-                    <li key={i}>{e}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Users list */}
-        {fetchedUsers.length > 0 && (
-          <>
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-harbour-500">
-                Found {totalUsers} users (showing page {currentPage} of {totalPages})
+            <div className="flex items-center gap-4 text-sm">
+              <span
+                className={`px-2 py-0.5 font-medium ${
+                  bulkProgress.status === "running"
+                    ? "bg-green-100 text-green-700"
+                    : bulkProgress.status === "paused"
+                      ? "bg-amber-100 text-amber-700"
+                      : bulkProgress.status === "completed"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-red-100 text-red-700"
+                }`}
+              >
+                {bulkProgress.status.toUpperCase()}
+                {autoRun && bulkProgress.status === "running" && " (auto)"}
               </span>
-              <button
-                type="button"
-                onClick={selectAll}
-                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
-              >
-                Select all new
-              </button>
-              <button
-                type="button"
-                onClick={selectNone}
-                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
-              >
-                Select none
-              </button>
+
+              <span className="text-harbour-600">
+                {bulkProgress.processedItems} / {bulkProgress.totalItems} users ({progressPercent}
+                %)
+              </span>
+
+              {bulkProgress.rateLimitRemaining !== null && (
+                <span className="text-harbour-400">
+                  API: {bulkProgress.rateLimitRemaining} remaining
+                </span>
+              )}
             </div>
 
-            <div className="flex flex-col gap-2">
-              {fetchedUsers.map((user) => {
-                const existingStatus = isExisting(user);
-                const blocked = isUserBlocked(user);
-                const displayName = user.name || user.login;
-                return (
-                  <div
-                    key={user.login}
-                    className={`flex items-center gap-4 p-3 border ${
-                      blocked
-                        ? "bg-red-50 border-red-200 opacity-50"
-                        : existingStatus === "github"
-                          ? "bg-harbour-50 border-harbour-200 opacity-60"
-                          : selected.has(user.login)
-                            ? "bg-blue-50 border-blue-300"
-                            : existingStatus === "name"
-                              ? "bg-amber-50 border-amber-200"
-                              : "bg-white border-harbour-200"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.has(user.login)}
-                      onChange={() => toggleSelect(user.login)}
-                      disabled={existingStatus === "github" || blocked}
-                      className="w-5 h-5"
-                    />
+            {/* Progress bar */}
+            <div className="h-2 bg-harbour-200  overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  bulkProgress.status === "completed"
+                    ? "bg-blue-500"
+                    : bulkProgress.status === "error"
+                      ? "bg-red-500"
+                      : "bg-green-500"
+                }`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
 
-                    {user.avatar_url ? (
-                      <img
-                        src={user.avatar_url}
-                        alt=""
-                        className={`w-10 h-10 object-cover  bg-harbour-100 ${blocked ? "grayscale" : ""}`}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-harbour-100 " />
-                    )}
+            {/* Stats */}
+            <div className="flex gap-4 text-xs text-harbour-500">
+              <span>Imported: {bulkProgress.importedCount}</span>
+              <span>Skipped: {bulkProgress.skippedCount}</span>
+              <span>Errors: {bulkProgress.errorCount}</span>
+              <span>
+                Page: {bulkProgress.currentPage} / {bulkProgress.totalPages}
+              </span>
+            </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`font-medium ${blocked ? "line-through text-harbour-400" : ""}`}
-                        >
-                          {displayName}
-                        </span>
-                        <span className="text-sm text-harbour-400">@{user.login}</span>
-                        {blocked && (
-                          <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
-                            Import blocked
-                          </span>
-                        )}
-                        {!blocked && existingStatus === "github" && (
-                          <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
-                            Already imported
-                          </span>
-                        )}
-                        {!blocked && existingStatus === "name" && (
-                          <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
-                            Will merge
-                          </span>
-                        )}
-                      </div>
-                      {user.bio && <p className="text-sm text-harbour-500 truncate">{user.bio}</p>}
-                      <div className="flex items-center gap-3 text-sm text-harbour-400 flex-wrap">
-                        {user.company && <span className="text-harbour-600">{user.company}</span>}
-                        {user.location && <span>{user.location}</span>}
-                        {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
-                        {user.blog && (
-                          <a
-                            href={user.blog.startsWith("http") ? user.blog : `https://${user.blog}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:text-harbour-600 truncate"
-                          >
-                            {user.blog}
-                          </a>
-                        )}
-                      </div>
+            {/* Rate limit warning */}
+            {bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-2">
+                Rate limited. {autoRun ? "Will auto-resume" : "Can resume"} at{" "}
+                {bulkProgress.rateLimitReset.toLocaleTimeString()}
+              </div>
+            )}
+
+            {/* Error display */}
+            {bulkProgress.lastError && bulkProgress.status === "error" && (
+              <div className="text-sm text-red-600 bg-red-50 p-2">{bulkProgress.lastError}</div>
+            )}
+
+            {/* Recent activity log */}
+            {recentActivity.length > 0 && (
+              <details className="text-xs" open={bulkProgress.status === "running"}>
+                <summary className="cursor-pointer text-harbour-500 hover:text-harbour-700">
+                  Recent activity ({recentActivity.length})
+                </summary>
+                <div className="mt-1 max-h-32 overflow-y-auto bg-white border border-harbour-100 p-2 font-mono">
+                  {recentActivity.map((item, i) => (
+                    <div
+                      key={i}
+                      className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}
+                    >
+                      {item}
                     </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+      </div>
 
-                    <div className="flex items-center gap-2">
-                      <a
-                        href={user.html_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-harbour-400 hover:text-harbour-600"
+      {/* Divider */}
+      <div className="border-t border-harbour-200 pt-4">
+        <h2 className="font-semibold text-harbour-700 mb-2">Manual Import</h2>
+        <p className="text-sm text-harbour-400 mb-4">
+          Or search and select individual users to import.
+        </p>
+      </div>
+
+      {/* Rate limit info */}
+      {rateLimit && (
+        <div className="text-sm text-harbour-400">
+          API Rate Limit: {rateLimit.remaining}/{rateLimit.limit} remaining
+          {rateLimit.remaining < 10 && (
+            <span className="text-amber-600 ml-2">
+              (Resets at {new Date(rateLimit.reset).toLocaleTimeString()})
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Search button */}
+      {fetchedUsers.length === 0 && (
+        <button
+          type="button"
+          onClick={() => handleSearch(1)}
+          disabled={isSearching}
+          className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors self-start"
+        >
+          {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland & Labrador"}
+        </button>
+      )}
+
+      {/* Error display */}
+      {fetcherData?.intent === "search" && fetcherData.error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-600">{fetcherData.error}</div>
+      )}
+
+      {/* Import results */}
+      {fetcherData?.intent === "import" && (
+        <div className="flex flex-col gap-2">
+          {fetcherData.imported && fetcherData.imported.length > 0 && (
+            <div className="p-4 bg-green-50 border border-green-200 text-green-700">
+              Successfully processed {fetcherData.imported.length} users
+              <ul className="list-disc list-inside mt-2 text-sm">
+                {fetcherData.imported.slice(0, 10).map((name, i) => (
+                  <li key={i}>{name}</li>
+                ))}
+                {fetcherData.imported.length > 10 && (
+                  <li>...and {fetcherData.imported.length - 10} more</li>
+                )}
+              </ul>
+            </div>
+          )}
+          {fetcherData.errors && fetcherData.errors.length > 0 && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+              <p className="font-medium">Errors:</p>
+              <ul className="list-disc list-inside mt-2">
+                {fetcherData.errors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Users list */}
+      {fetchedUsers.length > 0 && (
+        <>
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-harbour-500">
+              Found {totalUsers} users (showing page {currentPage} of {totalPages})
+            </span>
+            <button
+              type="button"
+              onClick={selectAll}
+              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+            >
+              Select all new
+            </button>
+            <button
+              type="button"
+              onClick={selectNone}
+              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+            >
+              Select none
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {fetchedUsers.map((user) => {
+              const existingStatus = isExisting(user);
+              const blocked = isUserBlocked(user);
+              const displayName = user.name || user.login;
+              return (
+                <div
+                  key={user.login}
+                  className={`flex items-center gap-4 p-3 border ${
+                    blocked
+                      ? "bg-red-50 border-red-200 opacity-50"
+                      : existingStatus === "github"
+                        ? "bg-harbour-50 border-harbour-200 opacity-60"
+                        : selected.has(user.login)
+                          ? "bg-blue-50 border-blue-300"
+                          : existingStatus === "name"
+                            ? "bg-amber-50 border-amber-200"
+                            : "bg-white border-harbour-200"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(user.login)}
+                    onChange={() => toggleSelect(user.login)}
+                    disabled={existingStatus === "github" || blocked}
+                    className="w-5 h-5"
+                  />
+
+                  {user.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt=""
+                      className={`w-10 h-10 object-cover  bg-harbour-100 ${blocked ? "grayscale" : ""}`}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 bg-harbour-100 " />
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`font-medium ${blocked ? "line-through text-harbour-400" : ""}`}
                       >
-                        View
-                      </a>
-                      {blocked ? (
-                        <button
-                          type="button"
-                          onClick={() => handleUnblock(user)}
-                          className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                        {displayName}
+                      </span>
+                      <span className="text-sm text-harbour-400">@{user.login}</span>
+                      {blocked && (
+                        <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
+                          Import blocked
+                        </span>
+                      )}
+                      {!blocked && existingStatus === "github" && (
+                        <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
+                          Already imported
+                        </span>
+                      )}
+                      {!blocked && existingStatus === "name" && (
+                        <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
+                          Will merge
+                        </span>
+                      )}
+                    </div>
+                    {user.bio && <p className="text-sm text-harbour-500 truncate">{user.bio}</p>}
+                    <div className="flex items-center gap-3 text-sm text-harbour-400 flex-wrap">
+                      {user.company && <span className="text-harbour-600">{user.company}</span>}
+                      {user.location && <span>{user.location}</span>}
+                      {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
+                      {user.blog && (
+                        <a
+                          href={user.blog.startsWith("http") ? user.blog : `https://${user.blog}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:text-harbour-600 truncate"
                         >
-                          Remove block
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleBlock(user)}
-                          className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
-                        >
-                          Import block
-                        </button>
+                          {user.blog}
+                        </a>
                       )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleSearch(currentPage - 1)}
-                  disabled={currentPage <= 1 || isSearching}
-                  className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-harbour-500">
-                  Page {currentPage} of {totalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleSearch(currentPage + 1)}
-                  disabled={currentPage >= totalPages || isSearching}
-                  className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={user.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-harbour-400 hover:text-harbour-600"
+                    >
+                      View
+                    </a>
+                    {blocked ? (
+                      <button
+                        type="button"
+                        onClick={() => handleUnblock(user)}
+                        className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                      >
+                        Remove block
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleBlock(user)}
+                        className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
+                      >
+                        Import block
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-            <div className="flex items-center gap-4">
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={handleImport}
-                disabled={selected.size === 0 || isImporting}
-                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+                onClick={() => handleSearch(currentPage - 1)}
+                disabled={currentPage <= 1 || isSearching}
+                className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isImporting ? "Importing..." : `Import ${selected.size} Selected Users`}
+                Previous
               </button>
-
-              {selected.size > 0 && (
-                <span className="text-sm text-harbour-500">{selected.size} users selected</span>
-              )}
+              <span className="text-sm text-harbour-500">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleSearch(currentPage + 1)}
+                disabled={currentPage >= totalPages || isSearching}
+                className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
             </div>
-          </>
-        )}
+          )}
+
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={selected.size === 0 || isImporting}
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+            >
+              {isImporting ? "Importing..." : `Import ${selected.size} Selected Users`}
+            </button>
+
+            {selected.size > 0 && (
+              <span className="text-sm text-harbour-500">{selected.size} users selected</span>
+            )}
+          </div>
+        </>
+      )}
     </ManagePage>
   );
 }

@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Limit combined RSS feed news to last 30 days
 
+# Limit combined RSS feed news to last 30 days

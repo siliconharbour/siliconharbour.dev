@@ -12,10 +12,7 @@ import { buildEventsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
 import { format } from "date-fns";
 import { getGeneratedOccurrences } from "~/lib/events.server";
-import {
-  parseRecurrenceRule,
-  describeRecurrenceRule,
-} from "~/lib/recurrence.server";
+import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Discord Events - siliconharbour.dev" }];
@@ -66,8 +63,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (!config.botToken || !config.eventsChannelId) {
     return {
-      error:
-        "Discord is not configured. Please set bot token and events channel ID in Settings.",
+      error: "Discord is not configured. Please set bot token and events channel ID in Settings.",
     };
   }
 
@@ -85,10 +81,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "post") {
-    const selectedIds = formData
-      .getAll("selectedEvents")
-      .map(Number)
-      .filter(Boolean);
+    const selectedIds = formData.getAll("selectedEvents").map(Number).filter(Boolean);
     if (selectedIds.length === 0) {
       return { error: "No events selected" };
     }
@@ -97,9 +90,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Fetch the full event data for selected events
     const allUnposted = await getUnpostedEvents();
-    const selectedEvents = allUnposted.filter((e) =>
-      selectedIds.includes(e.id)
-    );
+    const selectedEvents = allUnposted.filter((e) => selectedIds.includes(e.id));
 
     if (selectedEvents.length === 0) {
       return { error: "Selected events are no longer available" };
@@ -120,15 +111,8 @@ export async function action({ request }: Route.ActionArgs) {
       return event;
     });
 
-    const components = buildEventsMessage(
-      eventsForMessage,
-      introText || undefined
-    );
-    const result = await postMessage(
-      config.eventsChannelId,
-      components,
-      config.botToken
-    );
+    const components = buildEventsMessage(eventsForMessage, introText || undefined);
+    const result = await postMessage(config.eventsChannelId, components, config.botToken);
 
     if (!result.success) {
       return { error: `Failed to post to Discord: ${result.error}` };
@@ -154,20 +138,15 @@ export default function DiscordEvents() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isPosting =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") === "post";
+    navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold text-harbour-700">
-              Discord Events
-            </h1>
-            <p className="text-harbour-400 text-sm">
-              Compose and post event roundups to Discord
-            </p>
+            <h1 className="text-2xl font-semibold text-harbour-700">Discord Events</h1>
+            <p className="text-harbour-400 text-sm">Compose and post event roundups to Discord</p>
           </div>
           <div className="flex items-center gap-4">
             <Link
@@ -176,10 +155,7 @@ export default function DiscordEvents() {
             >
               Jobs
             </Link>
-            <Link
-              to="/manage"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
-            >
+            <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
               Dashboard
             </Link>
           </div>
@@ -188,10 +164,7 @@ export default function DiscordEvents() {
         {!configured && (
           <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
             Discord is not configured.{" "}
-            <Link
-              to="/manage/settings"
-              className="underline hover:text-amber-900"
-            >
+            <Link to="/manage/settings" className="underline hover:text-amber-900">
               Go to Settings
             </Link>{" "}
             to set your bot token and events channel ID.
@@ -237,10 +210,7 @@ export default function DiscordEvents() {
                   {events.map((event) => {
                     const nextDate = event.dates[0];
                     const dateLine = nextDate
-                      ? format(
-                          new Date(nextDate.startDate),
-                          "EEE, MMM d 'at' h:mm a"
-                        )
+                      ? format(new Date(nextDate.startDate), "EEE, MMM d 'at' h:mm a")
                       : "Recurring";
                     return (
                       <div
@@ -255,26 +225,16 @@ export default function DiscordEvents() {
                           className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
                         />
                         <div className="flex-1 flex flex-col gap-1">
-                          <span className="font-medium text-harbour-700">
-                            {event.title}
-                          </span>
+                          <span className="font-medium text-harbour-700">{event.title}</span>
                           <span className="text-sm text-harbour-400">
                             {dateLine}
-                            {event.recurrenceLabel
-                              ? ` (${event.recurrenceLabel})`
-                              : ""}
-                            {event.location
-                              ? ` \u2022 ${event.location}`
-                              : ""}
+                            {event.recurrenceLabel ? ` (${event.recurrenceLabel})` : ""}
+                            {event.location ? ` \u2022 ${event.location}` : ""}
                           </span>
                         </div>
                         <Form method="post" className="flex-shrink-0">
                           <input type="hidden" name="intent" value="skip" />
-                          <input
-                            type="hidden"
-                            name="eventId"
-                            value={event.id}
-                          />
+                          <input type="hidden" name="eventId" value={event.id} />
                           <button
                             type="submit"
                             className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors"
@@ -315,15 +275,10 @@ export default function DiscordEvents() {
 
         {history.length > 0 && (
           <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">
-              Recent Posts
-            </h2>
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Recent Posts</h2>
             <div className="flex flex-col divide-y divide-harbour-100">
               {history.map((post) => (
-                <div
-                  key={post.id}
-                  className="py-3 flex items-center justify-between text-sm"
-                >
+                <div key={post.id} className="py-3 flex items-center justify-between text-sm">
                   <div className="flex flex-col gap-1">
                     <span className="text-harbour-700">
                       {post.discordMessageId
@@ -337,10 +292,7 @@ export default function DiscordEvents() {
                     )}
                   </div>
                   <span className="text-harbour-400 text-xs">
-                    {format(
-                      new Date(post.postedAt),
-                      "MMM d, yyyy 'at' h:mm a"
-                    )}
+                    {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
                   </span>
                 </div>
               ))}

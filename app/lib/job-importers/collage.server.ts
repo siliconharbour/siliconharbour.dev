@@ -38,7 +38,7 @@ const BASE_URL = "https://secure.collage.co";
  */
 function parseListingPage(
   html: string,
-  company: string
+  company: string,
 ): Array<{
   id: string;
   title: string;
@@ -195,9 +195,7 @@ export const collageImporter: JobImporter = {
           location: listing.location || undefined,
           department: listing.department || undefined,
           descriptionHtml: detail.descriptionHtml || undefined,
-          descriptionText: detail.descriptionHtml
-            ? htmlToText(detail.descriptionHtml)
-            : undefined,
+          descriptionText: detail.descriptionHtml ? htmlToText(detail.descriptionHtml) : undefined,
           url: listing.url,
           workplaceType: listing.workplaceType,
         });
@@ -218,10 +216,7 @@ export const collageImporter: JobImporter = {
     return jobs;
   },
 
-  async fetchJobDetails(
-    jobId: string,
-    config: ImportSourceConfig
-  ): Promise<FetchedJob | null> {
+  async fetchJobDetails(jobId: string, config: ImportSourceConfig): Promise<FetchedJob | null> {
     const company = config.sourceIdentifier;
 
     try {
@@ -232,9 +227,7 @@ export const collageImporter: JobImporter = {
         externalId: jobId,
         title: detail.title,
         descriptionHtml: detail.descriptionHtml || undefined,
-        descriptionText: detail.descriptionHtml
-          ? htmlToText(detail.descriptionHtml)
-          : undefined,
+        descriptionText: detail.descriptionHtml ? htmlToText(detail.descriptionHtml) : undefined,
         url: `${BASE_URL}/jobs/${company}/${jobId}`,
       };
     } catch {
@@ -242,21 +235,16 @@ export const collageImporter: JobImporter = {
     }
   },
 
-  async validateConfig(
-    config: Omit<ImportSourceConfig, "id">
-  ): Promise<ValidationResult> {
+  async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,
-        error:
-          "Company slug is required (e.g., 'heyorca' from secure.collage.co/jobs/heyorca)",
+        error: "Company slug is required (e.g., 'heyorca' from secure.collage.co/jobs/heyorca)",
       };
     }
 
     try {
-      const listingHtml = await fetchCollagePage(
-        `/jobs/${config.sourceIdentifier}`
-      );
+      const listingHtml = await fetchCollagePage(`/jobs/${config.sourceIdentifier}`);
       const listings = parseListingPage(listingHtml, config.sourceIdentifier);
       return {
         valid: true,

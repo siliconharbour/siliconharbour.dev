@@ -9,16 +9,16 @@ This page documents how each importer works at a high level so we can quickly un
 
 ## Core ATS Importers
 
-| Importer | How it works | Implementation style | Reliability |
-| --- | --- | --- | --- |
-| Greenhouse | Calls Greenhouse public JSON API (`boards-api.greenhouse.io`), maps jobs directly. | Clean API integration. | High |
-| Lever | Calls Lever public postings API (`api.lever.co`), builds description from structured sections. | Clean API integration. | High |
-| BambooHR | Calls BambooHR JSON endpoints (`/careers/list` and per-job `/detail`). | Clean API integration with detail fetch pass. | High |
-| Workday | Uses Workday JSON endpoints (`/wday/cxs/...`) with browser-like user agent and custom identifier parsing. | API-based, but has platform quirks. | Medium-High |
-| Ashby | Scrapes HTML page, extracts embedded `window.__appData`, then fetches each job detail page similarly. | Structured data extraction from HTML shell. | Medium |
-| Rippling | Scrapes HTML page, extracts embedded `__NEXT_DATA__`, then fetches each job detail page. | Structured data extraction from framework internals. | Medium |
-| Collage | Scrapes rendered HTML and parses listing/detail content using regex-based patterns. | Direct HTML parsing. | Medium-Low |
-| Custom | Dispatches to per-company custom scrapers. Some use APIs; many parse bespoke HTML. | Mixed, often site-specific. | Mixed (Medium to Low) |
+| Importer   | How it works                                                                                              | Implementation style                                 | Reliability           |
+| ---------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------- |
+| Greenhouse | Calls Greenhouse public JSON API (`boards-api.greenhouse.io`), maps jobs directly.                        | Clean API integration.                               | High                  |
+| Lever      | Calls Lever public postings API (`api.lever.co`), builds description from structured sections.            | Clean API integration.                               | High                  |
+| BambooHR   | Calls BambooHR JSON endpoints (`/careers/list` and per-job `/detail`).                                    | Clean API integration with detail fetch pass.        | High                  |
+| Workday    | Uses Workday JSON endpoints (`/wday/cxs/...`) with browser-like user agent and custom identifier parsing. | API-based, but has platform quirks.                  | Medium-High           |
+| Ashby      | Scrapes HTML page, extracts embedded `window.__appData`, then fetches each job detail page similarly.     | Structured data extraction from HTML shell.          | Medium                |
+| Rippling   | Scrapes HTML page, extracts embedded `__NEXT_DATA__`, then fetches each job detail page.                  | Structured data extraction from framework internals. | Medium                |
+| Collage    | Scrapes rendered HTML and parses listing/detail content using regex-based patterns.                       | Direct HTML parsing.                                 | Medium-Low            |
+| Custom     | Dispatches to per-company custom scrapers. Some use APIs; many parse bespoke HTML.                        | Mixed, often site-specific.                          | Mixed (Medium to Low) |
 
 ## Notes By Importer
 
@@ -74,18 +74,18 @@ This page documents how each importer works at a high level so we can quickly un
 
 ## Custom Scrapers
 
-| Scraper | Implementation | Style | Reliability |
-| --- | --- | --- | --- |
-| `c-core` | WordPress REST API (`wp-json/wp/v2/pages`) for structured job pages. | API-based | Medium-High |
-| `triware` | WordPress REST API (WP Job Manager endpoints, tries multiple slugs). | API-based | Medium-High |
-| `rutter` | WordPress REST API for careers page, then parses HTML in content blob. | API + content parsing | Medium |
-| `strobeltek` | Splits inline WordPress/Elementor HTML by text markers. | HTML parsing (regex/heuristic) | Low-Medium |
-| `virtual-marine` | Parses Squarespace careers HTML (`h3` sections and marker text). | HTML parsing (regex/heuristic) | Low-Medium |
-| `netbenefit` | Parses Webflow CMS output blocks (`w-dyn-item`). | HTML parsing with stable class conventions | Medium |
-| `enaimco` | Parses WordPress ACF section between specific headings. | HTML parsing (section-bound) | Low-Medium |
-| `focusfs` | Parses category-style hiring list under “We’re Hiring”. | HTML parsing (semi-structured) | Medium |
-| `compusult` | Parses Liferay rich-text blocks after “Opportunity Available” marker. | HTML parsing (complex heuristics) | Low |
-| `bluedrop` | Parses WordPress toggle plugin markup with fallback heading scan. | HTML parsing with fallback strategy | Low-Medium |
+| Scraper          | Implementation                                                         | Style                                      | Reliability |
+| ---------------- | ---------------------------------------------------------------------- | ------------------------------------------ | ----------- |
+| `c-core`         | WordPress REST API (`wp-json/wp/v2/pages`) for structured job pages.   | API-based                                  | Medium-High |
+| `triware`        | WordPress REST API (WP Job Manager endpoints, tries multiple slugs).   | API-based                                  | Medium-High |
+| `rutter`         | WordPress REST API for careers page, then parses HTML in content blob. | API + content parsing                      | Medium      |
+| `strobeltek`     | Splits inline WordPress/Elementor HTML by text markers.                | HTML parsing (regex/heuristic)             | Low-Medium  |
+| `virtual-marine` | Parses Squarespace careers HTML (`h3` sections and marker text).       | HTML parsing (regex/heuristic)             | Low-Medium  |
+| `netbenefit`     | Parses Webflow CMS output blocks (`w-dyn-item`).                       | HTML parsing with stable class conventions | Medium      |
+| `enaimco`        | Parses WordPress ACF section between specific headings.                | HTML parsing (section-bound)               | Low-Medium  |
+| `focusfs`        | Parses category-style hiring list under “We’re Hiring”.                | HTML parsing (semi-structured)             | Medium      |
+| `compusult`      | Parses Liferay rich-text blocks after “Opportunity Available” marker.  | HTML parsing (complex heuristics)          | Low         |
+| `bluedrop`       | Parses WordPress toggle plugin markup with fallback heading scan.      | HTML parsing with fallback strategy        | Low-Medium  |
 
 ## Practical Summary
 

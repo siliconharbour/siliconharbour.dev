@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Commit Discord settings changes
 
+# Commit Discord settings changes

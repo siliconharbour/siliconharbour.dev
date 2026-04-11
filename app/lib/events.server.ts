@@ -243,8 +243,9 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
     .from(eventDates)
     .where(
       or(
-        gte(eventDates.startDate, now),                    // starts in the future
-        and(                                               // or: started already but end is still future
+        gte(eventDates.startDate, now), // starts in the future
+        and(
+          // or: started already but end is still future
           lte(eventDates.startDate, now),
           gte(eventDates.endDate, now),
         ),
@@ -336,16 +337,10 @@ export async function getEventsForMonth(
   month: number, // 1-indexed (1 = January)
 ): Promise<CalendarEventData[]> {
   // Build month boundaries in Newfoundland timezone
-  const monthStart = parseAsTimezone(
-    `${year}-${String(month).padStart(2, "0")}-01`,
-    "00:00",
-  );
+  const monthStart = parseAsTimezone(`${year}-${String(month).padStart(2, "0")}-01`, "00:00");
   const nextMonth = month === 12 ? 1 : month + 1;
   const nextYear = month === 12 ? year + 1 : year;
-  const monthEnd = parseAsTimezone(
-    `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`,
-    "00:00",
-  );
+  const monthEnd = parseAsTimezone(`${nextYear}-${String(nextMonth).padStart(2, "0")}-01`, "00:00");
 
   const result: CalendarEventData[] = [];
   const seenEventIds = new Set<number>();
@@ -401,9 +396,7 @@ export async function getEventsForMonth(
     // Get overrides to check for cancellations
     const overrides = await getEventOccurrenceOverrides(event.id);
     const cancelledDates = new Set(
-      overrides
-        .filter((o) => o.cancelled)
-        .map((o) => getDateInTimezone(o.occurrenceDate)),
+      overrides.filter((o) => o.cancelled).map((o) => getDateInTimezone(o.occurrenceDate)),
     );
 
     const dateStrs = generatedDates

@@ -9,6 +9,7 @@ priority: 0
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Database migration for job import tables
 
 Create migration for job_import_sources, imported_jobs, and job_technology_mentions tables with all indexes. Follow existing migration patterns in drizzle/ folder.
@@ -19,4 +20,3 @@ Create migration for job_import_sources, imported_jobs, and job_technology_menti
 - Migration SQL file created in drizzle/
 - Journal entry added
 - npm run db:migrate succeeds
-

@@ -8,7 +8,7 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # Write pure function unit tests
 
 Create test files for companies, search, and text utils pure functions
-

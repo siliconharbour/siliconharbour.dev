@@ -19,7 +19,8 @@ export async function loader({ params }: Route.LoaderArgs) {
     category: categoryLabels[t.technology.category],
   }));
 
-  const firstEvidence = technologiesWithAssignments.flatMap((assignment) => assignment.evidence)[0] ?? null;
+  const firstEvidence =
+    technologiesWithAssignments.flatMap((assignment) => assignment.evidence)[0] ?? null;
   const provenance = firstEvidence
     ? {
         source: normalizeTechnologyEvidenceSourceLabel(firstEvidence.sourceType),

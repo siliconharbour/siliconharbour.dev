@@ -1,5 +1,12 @@
 import { sql } from "drizzle-orm";
-import { sqliteTable, text, integer, index, uniqueIndex, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 
 // =============================================================================
 // Auth tables
@@ -44,41 +51,46 @@ export const contentTypes = [
 export type ContentType = (typeof contentTypes)[number];
 
 // Events - tech meetups, conferences, workshops
-export const events = sqliteTable("events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  slug: text("slug").notNull().unique(),
-  title: text("title").notNull(),
-  description: text("description").notNull(), // markdown
-  location: text("location"),
-  link: text("link").notNull(), // external link
-  organizer: text("organizer"),
-  coverImage: text("cover_image"),
-  iconImage: text("icon_image"),
-  coverImageUrl: text("cover_image_url"),
-  requiresSignup: integer("requires_signup", { mode: "boolean" }).notNull().default(false),
-  // Recurrence fields
-  recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
-  recurrenceStart: integer("recurrence_start", { mode: "timestamp" }), // When the series begins (null = use createdAt)
-  recurrenceEnd: integer("recurrence_end", { mode: "timestamp" }), // When recurrence stops (null = indefinite)
-  defaultStartTime: text("default_start_time"), // HH:mm format for recurring events
-  defaultEndTime: text("default_end_time"), // HH:mm format for recurring events
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  importSourceId: integer("import_source_id").references((): AnySQLiteColumn => eventImportSources.id),
-  externalId: text("external_id"),
-  importStatus: text("import_status"),
-  firstSeenAt: integer("first_seen_at", { mode: "timestamp" }),
-  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
-},
-(table) => ({
-  importSourceExternalIdUnique: uniqueIndex("events_import_source_external_id_unique")
-    .on(table.importSourceId, table.externalId)
-    .where(sql`${table.importSourceId} IS NOT NULL AND ${table.externalId} IS NOT NULL`),
-}));
+export const events = sqliteTable(
+  "events",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    slug: text("slug").notNull().unique(),
+    title: text("title").notNull(),
+    description: text("description").notNull(), // markdown
+    location: text("location"),
+    link: text("link").notNull(), // external link
+    organizer: text("organizer"),
+    coverImage: text("cover_image"),
+    iconImage: text("icon_image"),
+    coverImageUrl: text("cover_image_url"),
+    requiresSignup: integer("requires_signup", { mode: "boolean" }).notNull().default(false),
+    // Recurrence fields
+    recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
+    recurrenceStart: integer("recurrence_start", { mode: "timestamp" }), // When the series begins (null = use createdAt)
+    recurrenceEnd: integer("recurrence_end", { mode: "timestamp" }), // When recurrence stops (null = indefinite)
+    defaultStartTime: text("default_start_time"), // HH:mm format for recurring events
+    defaultEndTime: text("default_end_time"), // HH:mm format for recurring events
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    importSourceId: integer("import_source_id").references(
+      (): AnySQLiteColumn => eventImportSources.id,
+    ),
+    externalId: text("external_id"),
+    importStatus: text("import_status"),
+    firstSeenAt: integer("first_seen_at", { mode: "timestamp" }),
+    lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
+  },
+  (table) => ({
+    importSourceExternalIdUnique: uniqueIndex("events_import_source_external_id_unique")
+      .on(table.importSourceId, table.externalId)
+      .where(sql`${table.importSourceId} IS NOT NULL AND ${table.externalId} IS NOT NULL`),
+  }),
+);
 
 export const eventDates = sqliteTable("event_dates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -173,22 +185,23 @@ export type FetchStatus = (typeof fetchStatuses)[number];
 export const eventSourceTypes = ["luma-user", "technl", "netbenefit", "eventbrite"] as const;
 export type EventSourceType = (typeof eventSourceTypes)[number];
 
-export const eventImportSources = sqliteTable(
-  "event_import_sources",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    name: text("name").notNull(),
-    organizer: text("organizer"),
-    sourceType: text("source_type", { enum: eventSourceTypes }).notNull(),
-    sourceIdentifier: text("source_identifier").notNull(),
-    sourceUrl: text("source_url").notNull(),
-    lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
-    fetchStatus: text("fetch_status", { enum: fetchStatuses }).notNull().default("pending"),
-    fetchError: text("fetch_error"),
-    createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-    updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
-  },
-);
+export const eventImportSources = sqliteTable("event_import_sources", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  organizer: text("organizer"),
+  sourceType: text("source_type", { enum: eventSourceTypes }).notNull(),
+  sourceIdentifier: text("source_identifier").notNull(),
+  sourceUrl: text("source_url").notNull(),
+  lastFetchedAt: integer("last_fetched_at", { mode: "timestamp" }),
+  fetchStatus: text("fetch_status", { enum: fetchStatuses }).notNull().default("pending"),
+  fetchError: text("fetch_error"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
 
 export type EventImportSource = typeof eventImportSources.$inferSelect;
 export type NewEventImportSource = typeof eventImportSources.$inferInsert;
@@ -266,7 +279,14 @@ export const news = sqliteTable("news", {
 export const jobSourceTypes = ["manual", "imported"] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
 
-export const jobStatuses = ["active", "pending_review", "removed", "filled", "expired", "hidden"] as const;
+export const jobStatuses = [
+  "active",
+  "pending_review",
+  "removed",
+  "filled",
+  "expired",
+  "hidden",
+] as const;
 export type JobStatus = (typeof jobStatuses)[number];
 
 export const workplaceTypes = ["remote", "onsite", "hybrid"] as const;
@@ -779,10 +799,8 @@ export const discordPostItems = sqliteTable(
   (table) => ({
     eventIdIdx: index("discord_post_items_event_id_idx").on(table.eventId),
     jobIdIdx: index("discord_post_items_job_id_idx").on(table.jobId),
-    discordPostIdIdx: index("discord_post_items_discord_post_id_idx").on(
-      table.discordPostId
-    ),
-  })
+    discordPostIdIdx: index("discord_post_items_discord_post_id_idx").on(table.discordPostId),
+  }),
 );
 
 export type DiscordPost = typeof discordPosts.$inferSelect;

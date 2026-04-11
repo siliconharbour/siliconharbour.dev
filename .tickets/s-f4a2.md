@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Update StrobelTEK technology provenance to job postings
 
+# Update StrobelTEK technology provenance to job postings

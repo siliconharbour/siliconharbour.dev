@@ -85,7 +85,6 @@ export default [
   route("api/calendar-events", "routes/api/calendar-events.tsx"),
   route("api/entities/search", "routes/api/entities.search.tsx"),
 
-
   // Design system reference
   route("design", "routes/design.tsx"),
 

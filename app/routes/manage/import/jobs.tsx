@@ -11,51 +11,57 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  
-  const [sources, companies] = await Promise.all([
-    getAllImportSources(),
-    getAllCompanies(true),
-  ]);
-  
+
+  const [sources, companies] = await Promise.all([getAllImportSources(), getAllCompanies(true)]);
+
   // Create a map of company id to company for easy lookup
-  const companyMap = new Map(companies.map(c => [c.id, c]));
-  
+  const companyMap = new Map(companies.map((c) => [c.id, c]));
+
   // Enrich sources with company info
-  const enrichedSources = sources.map(source => ({
+  const enrichedSources = sources.map((source) => ({
     ...source,
     company: companyMap.get(source.companyId),
   }));
-  
+
   return { sources: enrichedSources };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
-  
+
   const formData = await request.formData();
   const intent = formData.get("intent");
-  
+
   if (intent === "sync") {
     const sourceId = Number(formData.get("sourceId"));
     if (!sourceId) {
       return { success: false, error: "Source ID required" };
     }
-    
+
     const result = await syncJobs(sourceId);
     return { intent: "sync", ...result };
   }
 
   if (intent === "sync-all") {
     const sources = await getAllImportSources();
-    const results: Array<{ sourceId: number; success: boolean; added?: number; updated?: number; removed?: number; reactivated?: number; totalActive?: number; error?: string }> = [];
+    const results: Array<{
+      sourceId: number;
+      success: boolean;
+      added?: number;
+      updated?: number;
+      removed?: number;
+      reactivated?: number;
+      totalActive?: number;
+      error?: string;
+    }> = [];
 
     for (const source of sources) {
       const result = await syncJobs(source.id);
       results.push({ sourceId: source.id, ...result });
     }
 
-    const succeeded = results.filter(r => r.success);
-    const failed = results.filter(r => !r.success);
+    const succeeded = results.filter((r) => r.success);
+    const failed = results.filter((r) => !r.success);
     const totalAdded = succeeded.reduce((s, r) => s + (r.added || 0), 0);
     const totalUpdated = succeeded.reduce((s, r) => s + (r.updated || 0), 0);
     const totalRemoved = succeeded.reduce((s, r) => s + (r.removed || 0), 0);
@@ -71,7 +77,7 @@ export async function action({ request }: Route.ActionArgs) {
       updated: totalUpdated,
       removed: totalRemoved,
       reactivated: totalReactivated,
-      errors: failed.map(f => f.error).filter(Boolean),
+      errors: failed.map((f) => f.error).filter(Boolean),
     };
   }
 
@@ -88,15 +94,17 @@ function formatDate(date: Date | null | undefined): string {
 
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) return <span className="text-harbour-400">-</span>;
-  
+
   const colors: Record<string, string> = {
     success: "bg-green-100 text-green-700",
     error: "bg-red-100 text-red-700",
     pending: "bg-amber-100 text-amber-700",
   };
-  
+
   return (
-    <span className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}>
+    <span
+      className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}
+    >
       {status}
     </span>
   );
@@ -105,13 +113,19 @@ function StatusBadge({ status }: { status: string | null }) {
 export default function ManageImportJobs() {
   const { sources } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
-  
+
   const isLoading = fetcher.state !== "idle";
   const activeIntent = fetcher.formData?.get("intent");
   const activeSourceId = Number(fetcher.formData?.get("sourceId"));
   const isSyncAllLoading = isLoading && activeIntent === "sync-all";
-  const syncResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync" ? fetcher.data : null;
-  const syncAllResult = fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync-all" ? fetcher.data : null;
+  const syncResult =
+    fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync"
+      ? fetcher.data
+      : null;
+  const syncAllResult =
+    fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync-all"
+      ? fetcher.data
+      : null;
 
   return (
     <div className="min-h-screen p-6">
@@ -145,15 +159,19 @@ export default function ManageImportJobs() {
         </div>
 
         {syncResult && (
-          <div className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+          <div
+            className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
+          >
             {syncResult.success ? (
               <div>
                 <p className="font-medium text-green-700">Sync completed</p>
                 <p className="text-sm text-green-600">
-                  Added: {syncResult.added}, Updated: {syncResult.updated}, 
-                  Removed: {syncResult.removed}, Reactivated: {syncResult.reactivated}
+                  Added: {syncResult.added}, Updated: {syncResult.updated}, Removed:{" "}
+                  {syncResult.removed}, Reactivated: {syncResult.reactivated}
                 </p>
-                <p className="text-sm text-green-600">Total active jobs: {syncResult.totalActive}</p>
+                <p className="text-sm text-green-600">
+                  Total active jobs: {syncResult.totalActive}
+                </p>
               </div>
             ) : (
               <div>
@@ -165,17 +183,26 @@ export default function ManageImportJobs() {
         )}
 
         {syncAllResult && (
-          <div className={`p-4 ${syncAllResult.sourcesFailed === 0 ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}>
-            <p className={`font-medium ${syncAllResult.sourcesFailed === 0 ? "text-green-700" : "text-amber-700"}`}>
-              Sync All completed: {syncAllResult.sourcesSucceeded}/{syncAllResult.sourcesTotal} sources succeeded
+          <div
+            className={`p-4 ${syncAllResult.sourcesFailed === 0 ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}
+          >
+            <p
+              className={`font-medium ${syncAllResult.sourcesFailed === 0 ? "text-green-700" : "text-amber-700"}`}
+            >
+              Sync All completed: {syncAllResult.sourcesSucceeded}/{syncAllResult.sourcesTotal}{" "}
+              sources succeeded
             </p>
-            <p className={`text-sm ${syncAllResult.sourcesFailed === 0 ? "text-green-600" : "text-amber-600"}`}>
-              Added: {syncAllResult.added}, Updated: {syncAllResult.updated}, 
-              Removed: {syncAllResult.removed}, Reactivated: {syncAllResult.reactivated}
+            <p
+              className={`text-sm ${syncAllResult.sourcesFailed === 0 ? "text-green-600" : "text-amber-600"}`}
+            >
+              Added: {syncAllResult.added}, Updated: {syncAllResult.updated}, Removed:{" "}
+              {syncAllResult.removed}, Reactivated: {syncAllResult.reactivated}
             </p>
             {syncAllResult.errors && syncAllResult.errors.length > 0 && (
               <div className="mt-2">
-                <p className="text-sm font-medium text-red-700">{syncAllResult.sourcesFailed} source(s) failed:</p>
+                <p className="text-sm font-medium text-red-700">
+                  {syncAllResult.sourcesFailed} source(s) failed:
+                </p>
                 <ul className="text-sm text-red-600 list-disc list-inside">
                   {syncAllResult.errors.map((err: string, i: number) => (
                     <li key={i}>{err}</li>
@@ -201,13 +228,30 @@ export default function ManageImportJobs() {
             <table className="w-full">
               <thead className="bg-harbour-50 border-b border-harbour-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Company</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Source</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Identifier</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600" title="Active / Pending Review">Jobs</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">Last Fetch</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600">Status</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">Actions</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                    Company
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                    Source
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                    Identifier
+                  </th>
+                  <th
+                    className="px-4 py-3 text-center text-sm font-medium text-harbour-600"
+                    title="Active / Pending Review"
+                  >
+                    Jobs
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                    Last Fetch
+                  </th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
@@ -230,7 +274,8 @@ export default function ManageImportJobs() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-harbour-500">
-                        {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] || source.sourceType}
+                        {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
+                          source.sourceType}
                       </td>
                       <td className="px-4 py-3 text-sm font-mono text-harbour-400">
                         {source.sourceIdentifier}
@@ -240,7 +285,10 @@ export default function ManageImportJobs() {
                           {source.activeJobCount}
                         </span>
                         {source.pendingReviewCount > 0 && (
-                          <span className="ml-1 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 font-medium" title="Pending review">
+                          <span
+                            className="ml-1 text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700 font-medium"
+                            title="Pending review"
+                          >
                             {source.pendingReviewCount}
                           </span>
                         )}

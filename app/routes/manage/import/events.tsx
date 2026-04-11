@@ -1,10 +1,7 @@
 import type { Route } from "./+types/events";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import {
-  getAllEventImportSources,
-  syncEvents,
-} from "~/lib/event-importers/sync.server";
+import { getAllEventImportSources, syncEvents } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { formatDistanceToNow } from "date-fns";
 
@@ -32,7 +29,9 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (intent === "sync-all") {
     const sources = await getAllEventImportSources();
-    let totalAdded = 0, totalSkipped = 0, totalRemoved = 0;
+    let totalAdded = 0,
+      totalSkipped = 0,
+      totalRemoved = 0;
     const errors: string[] = [];
 
     for (const source of sources) {
@@ -131,10 +130,7 @@ export default function ImportEvents() {
                 {sources.map((source) => (
                   <tr key={source.id} className="hover:bg-harbour-50">
                     <td className="px-4 py-3 font-medium text-harbour-700">
-                      <Link
-                        to={`/manage/import/events/${source.id}`}
-                        className="hover:underline"
-                      >
+                      <Link to={`/manage/import/events/${source.id}`} className="hover:underline">
                         {source.name}
                       </Link>
                     </td>
@@ -160,9 +156,13 @@ export default function ImportEvents() {
                       {source.fetchStatus === "error" ? (
                         <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700">error</span>
                       ) : source.fetchStatus === "pending" ? (
-                        <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">pending</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+                          pending
+                        </span>
                       ) : (
-                        <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">ok</span>
+                        <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">
+                          ok
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">

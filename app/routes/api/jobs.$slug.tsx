@@ -5,7 +5,13 @@ import { eq } from "drizzle-orm";
 import { contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 
-const mapJob = ({ job, companyName }: { job: typeof jobs.$inferSelect; companyName: string | null }) => {
+const mapJob = ({
+  job,
+  companyName,
+}: {
+  job: typeof jobs.$inferSelect;
+  companyName: string | null;
+}) => {
   return {
     id: job.id,
     slug: job.slug,

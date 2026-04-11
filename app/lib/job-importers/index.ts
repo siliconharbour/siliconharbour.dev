@@ -34,7 +34,9 @@ const importers: Record<string, JobImporter> = {
 export function getImporter(sourceType: JobSourceType): JobImporter {
   const importer = importers[sourceType];
   if (!importer) {
-    throw new Error(`Unsupported job source type: ${sourceType}. Supported types: ${Object.keys(importers).join(", ")}`);
+    throw new Error(
+      `Unsupported job source type: ${sourceType}. Supported types: ${Object.keys(importers).join(", ")}`,
+    );
   }
   return importer;
 }

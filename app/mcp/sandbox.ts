@@ -43,7 +43,10 @@ export async function runInSandbox(
   // expose() bridges the host async functions into QuickJS — calls return Promises
   // that resolve via executePendingJobs polling in the async event loop.
   const moduleExports = Object.keys(hostFns)
-    .map((k) => `export async function ${k}(...args) { return await globalThis.__sh__.${k}(...args); }`)
+    .map(
+      (k) =>
+        `export async function ${k}(...args) { return await globalThis.__sh__.${k}(...args); }`,
+    )
     .join("\n");
 
   try {

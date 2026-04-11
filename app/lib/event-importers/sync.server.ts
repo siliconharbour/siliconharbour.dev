@@ -30,7 +30,11 @@ import { getEventImporter } from "./index";
  * For date-only events (no time), we anchor to noon local time so the stored
  * timestamp never drifts to the wrong calendar day due to timezone offsets.
  */
-function localDateTimeToUTC(dateStr: string, timeStr: string | null, timezone: string | null): Date {
+function localDateTimeToUTC(
+  dateStr: string,
+  timeStr: string | null,
+  timezone: string | null,
+): Date {
   const tz = timezone ?? "America/St_Johns";
   const time = timeStr ?? "12:00"; // noon anchor for date-only events
 
@@ -40,8 +44,12 @@ function localDateTimeToUTC(dateStr: string, timeStr: string | null, timezone: s
   // Find out what local date+time the fake UTC date represents in the target timezone
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
   const parts = formatter.formatToParts(fakeUTC);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
@@ -228,7 +236,11 @@ export async function downloadAndSaveCoverImage(imageUrl: string): Promise<strin
 
 async function updateSourceMeta(
   sourceId: number,
-  data: { fetchStatus: "pending" | "success" | "error"; lastFetchedAt?: Date; fetchError?: string | null },
+  data: {
+    fetchStatus: "pending" | "success" | "error";
+    lastFetchedAt?: Date;
+    fetchError?: string | null;
+  },
 ) {
   await db
     .update(eventImportSources)

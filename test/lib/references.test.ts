@@ -2,10 +2,7 @@ import { describe, it, expect } from "vitest";
 import { db } from "~/db";
 import { events, groups, companies, references } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
-import {
-  resolveReference,
-  syncOrganizerReferences,
-} from "~/lib/references.server";
+import { resolveReference, syncOrganizerReferences } from "~/lib/references.server";
 
 // =============================================================================
 // resolveReference
@@ -255,12 +252,7 @@ describe("syncOrganizerReferences", () => {
     const refs = await db
       .select()
       .from(references)
-      .where(
-        and(
-          eq(references.sourceType, "event"),
-          eq(references.sourceId, event.id),
-        ),
-      );
+      .where(and(eq(references.sourceType, "event"), eq(references.sourceId, event.id)));
 
     expect(refs).toHaveLength(1);
     expect(refs[0]).toMatchObject({
@@ -298,10 +290,7 @@ describe("syncOrganizerReferences", () => {
       })
       .returning();
 
-    const result = await syncOrganizerReferences(
-      event.id,
-      "DevNL, CoLab Software",
-    );
+    const result = await syncOrganizerReferences(event.id, "DevNL, CoLab Software");
 
     expect(result.resolved).toHaveLength(2);
     expect(result.unresolved).toHaveLength(0);
@@ -343,10 +332,7 @@ describe("syncOrganizerReferences", () => {
       })
       .returning();
 
-    const result = await syncOrganizerReferences(
-      event.id,
-      "DevNL, Unknown Org",
-    );
+    const result = await syncOrganizerReferences(event.id, "DevNL, Unknown Org");
 
     expect(result.resolved).toHaveLength(1);
     expect(result.resolved[0]).toMatchObject({

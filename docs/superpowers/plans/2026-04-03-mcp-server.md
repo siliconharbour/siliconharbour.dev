@@ -13,6 +13,7 @@
 ## File Map
 
 **New files:**
+
 - `server.ts` — custom Express server (project root)
 - `app/mcp/server.ts` — MCP server instance + 3 tool registrations
 - `app/mcp/search.ts` — `search` tool: openapi.json filter logic
@@ -21,6 +22,7 @@
 - `app/mcp/modules/siliconharbour-execute.ts` — builds the read+write module JS string
 
 **Modified files:**
+
 - `package.json` — scripts + new deps
 - `Dockerfile` — update CMD
 
@@ -29,6 +31,7 @@
 ## Task 1: Install dependencies + update scripts
 
 **Files:**
+
 - Modify: `package.json`
 - Modify: `Dockerfile`
 
@@ -55,14 +58,17 @@ The `build` script stays unchanged (`react-router build`).
 - [ ] **Step 3: Update Dockerfile CMD**
 
 Read `Dockerfile`. Find the last line:
+
 ```
 CMD ["pnpm", "run", "start"]
 ```
+
 This already runs `pnpm run start` — no change needed since `start` now runs `tsx server.ts`. However, `tsx` must be available in the production image. Check that `tsx` is in `dependencies` (not just `devDependencies`) in `package.json` — it already is (`"tsx": "^4.21.0"` in dependencies). The production image runs `pnpm install --prod` which will include it.
 
 Also ensure `server.ts` is copied into the image. The current Dockerfile copies `build/` but not the root `server.ts`. Add a COPY step in the final stage:
 
 Find the final `FROM pnpm-base` stage and add before `WORKDIR /app`:
+
 ```dockerfile
 COPY server.ts /app/server.ts
 ```
@@ -87,6 +93,7 @@ git commit -m "feat: add MCP server dependencies and update scripts"
 ## Task 2: Custom Express server (`server.ts`)
 
 **Files:**
+
 - Create: `server.ts` (project root)
 
 This replaces `react-router-serve`. It mounts the MCP SDK at `/mcp` and forwards everything else to React Router's request handler.
@@ -101,6 +108,7 @@ node -e "const s = require('./node_modules/@modelcontextprotocol/sdk/package.jso
 ```
 
 The v1 SDK (`@modelcontextprotocol/sdk`) should have these paths:
+
 - `@modelcontextprotocol/sdk/server/mcp.js` → `McpServer`
 - `@modelcontextprotocol/sdk/server/streamableHttp.js` → `StreamableHTTPServerTransport`
 - `@modelcontextprotocol/sdk/types.js` → `isInitializeRequest`
@@ -198,9 +206,7 @@ app.delete("/mcp", async (req, res) => {
 const viteDevServer =
   process.env.NODE_ENV === "production"
     ? undefined
-    : await import("vite").then((vite) =>
-        vite.createServer({ server: { middlewareMode: true } })
-      );
+    : await import("vite").then((vite) => vite.createServer({ server: { middlewareMode: true } }));
 
 if (viteDevServer) {
   app.use(viteDevServer.middlewares);
@@ -215,7 +221,7 @@ app.all(
       ? () => viteDevServer.ssrLoadModule("virtual:react-router/server-build")
       : // @ts-expect-error — build output path
         await import("./build/server/index.js"),
-  })
+  }),
 );
 
 const PORT = process.env.PORT || 3000;
@@ -262,6 +268,7 @@ git commit -m "feat: add custom Express server with MCP endpoint stub"
 ## Task 3: `search` tool
 
 **Files:**
+
 - Create: `app/mcp/search.ts`
 
 The `search` tool filters `public/openapi.json` and returns matching schema definitions. Loaded once at module init, filtered per call.
@@ -283,14 +290,21 @@ const spec = JSON.parse(readFileSync(openapiPath, "utf-8")) as {
 };
 
 function schemaToText(name: string, schema: Record<string, unknown>): string {
-  const props = (schema.properties as Record<string, { type?: string; description?: string; nullable?: boolean }>) ?? {};
+  const props =
+    (schema.properties as Record<
+      string,
+      { type?: string; description?: string; nullable?: boolean }
+    >) ?? {};
   const fields = Object.entries(props)
     .map(([k, v]) => `  ${k}: ${v.type ?? "object"}${v.nullable ? " | null" : ""}`)
     .join("\n");
   return `### ${name}\n${fields}`;
 }
 
-function endpointToText(path: string, methods: Record<string, { summary?: string; description?: string }>): string {
+function endpointToText(
+  path: string,
+  methods: Record<string, { summary?: string; description?: string }>,
+): string {
   return Object.entries(methods)
     .map(([method, op]) => `  ${method.toUpperCase()} ${path} — ${op.summary ?? ""}`)
     .join("\n");
@@ -334,10 +348,7 @@ export function searchSpec(query: string): string {
 
   const hint = Object.entries(moduleHints).find(([k]) => q.includes(k))?.[1];
 
-  return [
-    results.slice(0, 5).join("\n\n"),
-    hint ? `\n${hint}` : "",
-  ].join("").trim();
+  return [results.slice(0, 5).join("\n\n"), hint ? `\n${hint}` : ""].join("").trim();
 }
 ```
 
@@ -370,6 +381,7 @@ git commit -m "feat: add MCP search tool - openapi.json schema filter"
 ## Task 4: QuickJS sandbox
 
 **Files:**
+
 - Create: `app/mcp/sandbox.ts`
 - Create: `app/mcp/modules/siliconharbour-read.ts`
 - Create: `app/mcp/modules/siliconharbour-execute.ts`
@@ -500,9 +512,10 @@ export async function runInSandbox(
   timeoutMs = 5_000,
 ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
   // Wrap code in export default if it looks like a bare async arrow function
-  const wrappedCode = code.trim().startsWith("async") && !code.includes("export default")
-    ? `export default await (${code})()`
-    : code;
+  const wrappedCode =
+    code.trim().startsWith("async") && !code.includes("export default")
+      ? `export default await (${code})()`
+      : code;
 
   const options: SandboxOptions = {
     allowFetch: false,
@@ -556,9 +569,10 @@ export async function runInExecuteSandbox(
 ): Promise<{ ok: true; data: unknown } | { ok: false; error: string }> {
   // Override the siliconharbour module with the execute version
   // We do this by replacing the module JS in the options
-  const wrappedCode = code.trim().startsWith("async") && !code.includes("export default")
-    ? `export default await (${code})()`
-    : code;
+  const wrappedCode =
+    code.trim().startsWith("async") && !code.includes("export default")
+      ? `export default await (${code})()`
+      : code;
 
   const options: SandboxOptions = {
     allowFetch: false,
@@ -623,6 +637,7 @@ git commit -m "feat: add QuickJS sandbox wrapper and siliconharbour virtual modu
 ## Task 5: Host bridge functions
 
 **Files:**
+
 - Create: `app/mcp/bridge.ts`
 
 The bridge provides the host-side implementations of all functions exposed via `globalThis.__sh__`. These call the existing `app/lib/*.server.ts` functions and return plain JSON-serialisable objects.
@@ -638,29 +653,29 @@ import { getPaginatedGroups } from "~/lib/groups.server";
 import { getPaginatedPeople } from "~/lib/people.server";
 import { getAllTechnologies } from "~/lib/technologies.server";
 import { getPaginatedEducation } from "~/lib/education.server";
-import {
-  getAllEventImportSources,
-  syncEvents,
-} from "~/lib/event-importers/sync.server";
-import {
-  getAllImportSources,
-  syncJobs,
-} from "~/lib/job-importers/sync.server";
+import { getAllEventImportSources, syncEvents } from "~/lib/event-importers/sync.server";
+import { getAllImportSources, syncJobs } from "~/lib/job-importers/sync.server";
 import { db } from "~/db";
 import { events, jobs, eventImportSources, jobImportSources, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
 /** Serialize a value to plain JSON-compatible types — strips class instances, Dates, etc. */
 function toPlain(val: unknown): unknown {
-  return JSON.parse(JSON.stringify(val, (_key, value) => {
-    if (value instanceof Date) return value.toISOString();
-    return value;
-  }));
+  return JSON.parse(
+    JSON.stringify(val, (_key, value) => {
+      if (value instanceof Date) return value.toISOString();
+      return value;
+    }),
+  );
 }
 
 export function buildReadBridge(): Bridge {
   return {
-    async events({ limit = 20, offset = 0, upcoming = false }: { limit?: number; offset?: number; upcoming?: boolean } = {}) {
+    async events({
+      limit = 20,
+      offset = 0,
+      upcoming = false,
+    }: { limit?: number; offset?: number; upcoming?: boolean } = {}) {
       if (upcoming) {
         const all = await getUpcomingEvents();
         return toPlain(all.slice(offset, offset + limit));
@@ -669,12 +684,20 @@ export function buildReadBridge(): Bridge {
       return toPlain(result.events ?? result);
     },
 
-    async jobs({ limit = 20, offset = 0, query }: { limit?: number; offset?: number; query?: string } = {}) {
+    async jobs({
+      limit = 20,
+      offset = 0,
+      query,
+    }: { limit?: number; offset?: number; query?: string } = {}) {
       const result = await getPaginatedJobs(limit, offset, query, { includeNonTechnical: true });
       return toPlain(result.jobs ?? result);
     },
 
-    async companies({ limit = 20, offset = 0, query }: { limit?: number; offset?: number; query?: string } = {}) {
+    async companies({
+      limit = 20,
+      offset = 0,
+      query,
+    }: { limit?: number; offset?: number; query?: string } = {}) {
       const result = await getPaginatedCompanies(limit, offset, query);
       return toPlain(result.companies ?? result);
     },
@@ -684,7 +707,11 @@ export function buildReadBridge(): Bridge {
       return toPlain(result.groups ?? result);
     },
 
-    async people({ limit = 20, offset = 0, query }: { limit?: number; offset?: number; query?: string } = {}) {
+    async people({
+      limit = 20,
+      offset = 0,
+      query,
+    }: { limit?: number; offset?: number; query?: string } = {}) {
       const result = await getPaginatedPeople(limit, offset, query);
       return toPlain(result.people ?? result);
     },
@@ -707,25 +734,29 @@ export function buildExecuteBridge(): Bridge {
 
     async eventImportSources() {
       const sources = await getAllEventImportSources();
-      return toPlain(sources.map(s => ({
-        id: s.id,
-        name: s.name,
-        sourceType: s.sourceType,
-        lastFetchedAt: s.lastFetchedAt,
-        fetchStatus: s.fetchStatus,
-        pendingCount: s.pendingCount,
-      })));
+      return toPlain(
+        sources.map((s) => ({
+          id: s.id,
+          name: s.name,
+          sourceType: s.sourceType,
+          lastFetchedAt: s.lastFetchedAt,
+          fetchStatus: s.fetchStatus,
+          pendingCount: s.pendingCount,
+        })),
+      );
     },
 
     async jobImportSources() {
       const sources = await getAllImportSources();
-      return toPlain(sources.map(s => ({
-        id: s.id,
-        name: s.name ?? s.sourceIdentifier,
-        sourceType: s.sourceType,
-        lastFetchedAt: s.lastFetchedAt,
-        fetchStatus: s.fetchStatus,
-      })));
+      return toPlain(
+        sources.map((s) => ({
+          id: s.id,
+          name: s.name ?? s.sourceIdentifier,
+          sourceType: s.sourceType,
+          lastFetchedAt: s.lastFetchedAt,
+          fetchStatus: s.fetchStatus,
+        })),
+      );
     },
 
     async pendingEvents() {
@@ -735,7 +766,9 @@ export function buildExecuteBridge(): Bridge {
         const evts = await db
           .select({ id: events.id, title: events.title, firstSeenAt: events.firstSeenAt })
           .from(events)
-          .where(and(eq(events.importSourceId, source.id), eq(events.importStatus, "pending_review")))
+          .where(
+            and(eq(events.importSourceId, source.id), eq(events.importStatus, "pending_review")),
+          )
           .limit(50);
         for (const e of evts) {
           pending.push({
@@ -838,6 +871,7 @@ git commit -m "feat: add MCP host bridge functions connecting DB to sandbox"
 ## Task 6: Wire tools into MCP server
 
 **Files:**
+
 - Modify: `app/mcp/server.ts` (replace stub with full implementation)
 
 - [ ] **Step 1: Replace `app/mcp/server.ts` with full implementation**
@@ -876,7 +910,7 @@ export async function createMcpServer(): Promise<McpServer> {
     },
     async ({ query }) => ({
       content: [{ type: "text", text: searchSpec(query) }],
-    })
+    }),
   );
 
   // ── Tool 2: query ───────────────────────────────────────────────────
@@ -892,7 +926,9 @@ export async function createMcpServer(): Promise<McpServer> {
         "Timeout: 5 seconds.",
       ].join(" "),
       inputSchema: {
-        code: z.string().describe("JavaScript module with 'export default' returning the data you want"),
+        code: z
+          .string()
+          .describe("JavaScript module with 'export default' returning the data you want"),
       },
     },
     async ({ code }) => {
@@ -906,7 +942,7 @@ export async function createMcpServer(): Promise<McpServer> {
         content: [{ type: "text", text: `Error: ${result.error}` }],
         isError: true,
       };
-    }
+    },
   );
 
   // ── Tool 3: execute ─────────────────────────────────────────────────
@@ -946,7 +982,7 @@ export async function createMcpServer(): Promise<McpServer> {
         content: [{ type: "text", text: `Error: ${result.error}` }],
         isError: true,
       };
-    }
+    },
   );
 
   return server;
@@ -1002,10 +1038,12 @@ Open `http://localhost:6274` in browser.
 3. Click **Connect** — should show server name "siliconharbour" and 3 tools listed
 
 **Test `search`:**
+
 - Call `search` with `{ "query": "event" }`
 - Expected: Event schema fields + module hint
 
 **Test `query`:**
+
 - Call `query` with:
   ```json
   { "code": "import { events } from 'siliconharbour'\nexport default await events({ limit: 3 })" }
@@ -1013,10 +1051,12 @@ Open `http://localhost:6274` in browser.
 - Expected: JSON array of up to 3 events
 
 **Test `execute` without token:**
+
 - Call `execute` with `{ "code": "export default 'hello'", "apiToken": "wrong" }`
 - Expected: `isError: true`, "Invalid or missing apiToken"
 
 **Test `execute` with token:**
+
 - Set `MCP_API_TOKEN=test-token-123` in your shell env and restart dev server
 - Call `execute` with `{ "code": "import { eventImportSources } from 'siliconharbour'\nexport default await eventImportSources()", "apiToken": "test-token-123" }`
 - Expected: JSON array of event import sources
@@ -1051,6 +1091,7 @@ Expected: clean build.
 In `docs/`, create or update a note about the required env var. No need for a full doc — a comment in the Dockerfile is enough:
 
 Add to the Dockerfile (above `CMD`):
+
 ```dockerfile
 # Required env vars:
 # MCP_API_TOKEN=<random secret> — required for execute tool authentication

@@ -127,7 +127,9 @@ function buildInitialProvenanceGroups(
       group.technologyIds.push(item.technologyId);
     }
 
-    const relevantEvidence = evidenceWithKey.filter((entry) => entry.sourceKey === preferredSourceKey);
+    const relevantEvidence = evidenceWithKey.filter(
+      (entry) => entry.sourceKey === preferredSourceKey,
+    );
     for (const { evidence } of relevantEvidence) {
       if (evidence.jobId && !group.jobIds.includes(evidence.jobId)) {
         group.jobIds.push(evidence.jobId);
@@ -311,7 +313,9 @@ export async function action({ request, params }: Route.ActionArgs) {
     .filter((id) => id.length > 0);
 
   const evidenceGroups = provenanceGroupIds.map((groupId) => {
-    const sourceKey = String(formData.get(`provenanceSourceKey_${groupId}`) || "get_coding_reference");
+    const sourceKey = String(
+      formData.get(`provenanceSourceKey_${groupId}`) || "get_coding_reference",
+    );
     const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
     const technologyIdsForGroup = formData
       .getAll(`provenanceTech_${groupId}`)
@@ -326,8 +330,8 @@ export async function action({ request, params }: Route.ActionArgs) {
       technologyIds: technologyIdsForGroup,
       sourceType: sourceDefinition.sourceType,
       sourceUrl:
-        sourceDefinition.sourceUrl
-        ?? normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
+        sourceDefinition.sourceUrl ??
+        normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
       lastVerified: normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`)),
       excerptText: normalizeNullableString(formData.get(`provenanceExcerpt_${groupId}`)),
       jobIds,
@@ -591,10 +595,7 @@ export default function EditCompany() {
             </div>
           </div>
 
-          <TechnologySelect
-            technologies={allTechnologies}
-            selectedIds={selectedTechnologyIds}
-          />
+          <TechnologySelect technologies={allTechnologies} selectedIds={selectedTechnologyIds} />
 
           {companyTechnologies.length > 0 && (
             <div className="flex flex-col gap-3">
@@ -632,7 +633,11 @@ export default function EditCompany() {
                           </option>
                         ))}
                       </select>
-                      <input type="hidden" name={`provenanceSourceKey_${group.id}`} value={group.sourceKey} />
+                      <input
+                        type="hidden"
+                        name={`provenanceSourceKey_${group.id}`}
+                        value={group.sourceKey}
+                      />
                       {group.sourceKey === "job_postings" ? (
                         <input
                           type="url"
@@ -646,7 +651,9 @@ export default function EditCompany() {
                         <input
                           type="url"
                           name={`provenanceSourceUrl_${group.id}`}
-                          value={getTechnologyProvenanceSourceByKey(group.sourceKey).sourceUrl ?? ""}
+                          value={
+                            getTechnologyProvenanceSourceByKey(group.sourceKey).sourceUrl ?? ""
+                          }
                           readOnly
                           className="px-2 py-1 border border-harbour-300 bg-harbour-50 text-harbour-700 focus:outline-none"
                         />
@@ -661,7 +668,8 @@ export default function EditCompany() {
                     </div>
                     {group.sourceKey === "job_postings" ? (
                       <p className="text-xs text-harbour-500">
-                        Snippets and confidence come from extracted job mentions and are shown below.
+                        Snippets and confidence come from extracted job mentions and are shown
+                        below.
                       </p>
                     ) : (
                       <textarea
@@ -705,7 +713,9 @@ export default function EditCompany() {
                           onChange={(selected) =>
                             setGroupJobs(
                               group.id,
-                              selected.map((value) => parseInt(value, 10)).filter((id) => !isNaN(id)),
+                              selected
+                                .map((value) => parseInt(value, 10))
+                                .filter((id) => !isNaN(id)),
                             )
                           }
                           placeholder="Select job evidence..."
@@ -727,25 +737,33 @@ export default function EditCompany() {
                               <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
                                 Technology
                               </th>
-                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">Job</th>
+                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                                Job
+                              </th>
                               <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
                                 Confidence
                               </th>
-                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">Snippet</th>
+                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                                Snippet
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-harbour-100">
                             {jobPostingEvidenceRows
                               .filter(
                                 (row) =>
-                                  group.technologyIds.includes(row.technologyId)
-                                  && group.jobIds.includes(row.jobId),
+                                  group.technologyIds.includes(row.technologyId) &&
+                                  group.jobIds.includes(row.jobId),
                               )
                               .filter((row) => row.excerptText && row.excerptText.trim().length > 0)
                               .map((row) => (
                                 <tr key={`${row.technologyId}:${row.jobId}`}>
-                                  <td className="px-2 py-1 text-xs text-harbour-700">{row.technologyName}</td>
-                                  <td className="px-2 py-1 text-xs text-harbour-700">{row.jobTitle}</td>
+                                  <td className="px-2 py-1 text-xs text-harbour-700">
+                                    {row.technologyName}
+                                  </td>
+                                  <td className="px-2 py-1 text-xs text-harbour-700">
+                                    {row.jobTitle}
+                                  </td>
                                   <td className="px-2 py-1 text-xs text-harbour-600">
                                     {row.confidence ?? "-"}
                                   </td>

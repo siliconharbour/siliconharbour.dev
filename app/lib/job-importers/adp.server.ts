@@ -19,7 +19,8 @@ import type {
 import { htmlToText } from "./text.server";
 
 const BASE_URL = "https://workforcenow.adp.com";
-const PUBLIC_REQUISITIONS_PATH = "/mascsr/default/careercenter/public/events/staffing/v1/job-requisitions";
+const PUBLIC_REQUISITIONS_PATH =
+  "/mascsr/default/careercenter/public/events/staffing/v1/job-requisitions";
 const DEFAULT_LANG = "en_CA";
 const PAGE_SIZE = 20;
 
@@ -100,7 +101,7 @@ function parseSourceIdentifier(identifier: string): AdpConfig {
   const parts = trimmed.split(":").map((part) => part.trim());
   if (parts.length < 2) {
     throw new Error(
-      'Invalid ADP source identifier. Use "cid:ccId", "cid:ccId:lang", or full recruitment URL.'
+      'Invalid ADP source identifier. Use "cid:ccId", "cid:ccId:lang", or full recruitment URL.',
     );
   }
 
@@ -153,14 +154,14 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 function getStringFieldValue(job: AdpJobRequisition, codeValue: string): string | undefined {
   const field = job.customFieldGroup?.stringFields?.find(
-    (entry) => entry.nameCode?.codeValue === codeValue && entry.stringValue
+    (entry) => entry.nameCode?.codeValue === codeValue && entry.stringValue,
   );
   return field?.stringValue?.trim() || undefined;
 }
 
 function getDateFieldValue(job: AdpJobRequisition, codeValue: string): Date | undefined {
   const field = job.customFieldGroup?.dateFields?.find(
-    (entry) => entry.nameCode?.codeValue === codeValue && entry.dateValue
+    (entry) => entry.nameCode?.codeValue === codeValue && entry.dateValue,
   );
   if (!field?.dateValue) return undefined;
   const parsed = new Date(field.dateValue);
@@ -174,7 +175,9 @@ function getLocation(job: AdpJobRequisition): string | undefined {
       const name = location.nameCode?.shortName
         ? decodeAdpEntities(location.nameCode.shortName).replace(/\s+,/g, ",").trim()
         : "";
-      const city = location.address?.cityName ? decodeAdpEntities(location.address.cityName).trim() : "";
+      const city = location.address?.cityName
+        ? decodeAdpEntities(location.address.cityName).trim()
+        : "";
       const region = location.address?.countrySubdivisionLevel1?.codeValue?.trim() ?? "";
       if (name) return name;
       return [city, region].filter(Boolean).join(", ");
@@ -197,7 +200,9 @@ function detectWorkplaceType(text: string): WorkplaceType | undefined {
 function convertJob(job: AdpJobRequisition): FetchedJob {
   const externalId = getStringFieldValue(job, "ExternalJobID") || job.itemID;
   const descriptionHtml = job.requisitionDescription || undefined;
-  const descriptionText = descriptionHtml ? htmlToText(decodeAdpEntities(descriptionHtml)) : undefined;
+  const descriptionText = descriptionHtml
+    ? htmlToText(decodeAdpEntities(descriptionHtml))
+    : undefined;
   const location = getLocation(job);
   const workplaceType = detectWorkplaceType(`${location ?? ""}\n${descriptionText ?? ""}`);
 
@@ -215,7 +220,9 @@ function convertJob(job: AdpJobRequisition): FetchedJob {
 }
 
 function buildRecruitmentUrl(config: AdpConfig): string {
-  const url = new URL("https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html");
+  const url = new URL(
+    "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html",
+  );
   url.searchParams.set("cid", config.cid);
   url.searchParams.set("ccId", config.ccId);
   url.searchParams.set("lang", config.lang);
@@ -225,7 +232,9 @@ function buildRecruitmentUrl(config: AdpConfig): string {
 
 function buildRecruitmentJobUrl(config: AdpConfig, job: AdpJobRequisition): string {
   const jobId = getStringFieldValue(job, "ExternalJobID") || job.clientRequisitionID || job.itemID;
-  const url = new URL("https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html");
+  const url = new URL(
+    "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html",
+  );
   url.searchParams.set("cid", config.cid);
   url.searchParams.set("jobId", jobId);
   url.searchParams.set("selectedMenuKey", "CurrentOpenings");

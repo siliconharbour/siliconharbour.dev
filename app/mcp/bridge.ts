@@ -11,14 +11,8 @@ import { getPaginatedGroups } from "~/lib/groups.server";
 import { getPaginatedPeople } from "~/lib/people.server";
 import { getAllTechnologies } from "~/lib/technologies.server";
 import { getPaginatedEducation } from "~/lib/education.server";
-import {
-  getAllEventImportSources,
-  syncEvents,
-} from "~/lib/event-importers/sync.server";
-import {
-  getAllImportSources,
-  syncJobs,
-} from "~/lib/job-importers/sync.server";
+import { getAllEventImportSources, syncEvents } from "~/lib/event-importers/sync.server";
+import { getAllImportSources, syncJobs } from "~/lib/job-importers/sync.server";
 import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -50,7 +44,9 @@ export function buildReadFunctions(): HostFunctions {
 
     async jobs(opts: unknown) {
       const o = (opts ?? {}) as { limit?: number; offset?: number; query?: string };
-      const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, { includeNonTechnical: true });
+      const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, {
+        includeNonTechnical: true,
+      });
       return toPlain(result.items);
     },
 
@@ -94,25 +90,29 @@ export function buildExecuteFunctions(): HostFunctions {
 
     async eventImportSources() {
       const sources = await getAllEventImportSources();
-      return toPlain(sources.map((s) => ({
-        id: s.id,
-        name: s.name,
-        sourceType: s.sourceType,
-        lastFetchedAt: s.lastFetchedAt,
-        fetchStatus: s.fetchStatus,
-        pendingCount: s.pendingCount,
-      })));
+      return toPlain(
+        sources.map((s) => ({
+          id: s.id,
+          name: s.name,
+          sourceType: s.sourceType,
+          lastFetchedAt: s.lastFetchedAt,
+          fetchStatus: s.fetchStatus,
+          pendingCount: s.pendingCount,
+        })),
+      );
     },
 
     async jobImportSources() {
       const sources = await getAllImportSources();
-      return toPlain(sources.map((s) => ({
-        id: s.id,
-        name: s.sourceIdentifier,
-        sourceType: s.sourceType,
-        lastFetchedAt: s.lastFetchedAt,
-        fetchStatus: s.fetchStatus,
-      })));
+      return toPlain(
+        sources.map((s) => ({
+          id: s.id,
+          name: s.sourceIdentifier,
+          sourceType: s.sourceType,
+          lastFetchedAt: s.lastFetchedAt,
+          fetchStatus: s.fetchStatus,
+        })),
+      );
     },
 
     async pendingEvents() {
@@ -122,10 +122,18 @@ export function buildExecuteFunctions(): HostFunctions {
         const evts = await db
           .select({ id: events.id, title: events.title, firstSeenAt: events.firstSeenAt })
           .from(events)
-          .where(and(eq(events.importSourceId, source.id), eq(events.importStatus, "pending_review")))
+          .where(
+            and(eq(events.importSourceId, source.id), eq(events.importStatus, "pending_review")),
+          )
           .limit(50);
         for (const e of evts) {
-          pending.push({ sourceId: source.id, sourceName: source.name, eventId: e.id, title: e.title, firstSeenAt: e.firstSeenAt });
+          pending.push({
+            sourceId: source.id,
+            sourceName: source.name,
+            eventId: e.id,
+            title: e.title,
+            firstSeenAt: e.firstSeenAt,
+          });
         }
       }
       return toPlain(pending);
@@ -142,9 +150,19 @@ export function buildExecuteFunctions(): HostFunctions {
           .limit(50);
         for (const j of jobRows) {
           const [company] = j.companyId
-            ? await db.select({ name: companies.name }).from(companies).where(eq(companies.id, j.companyId)).limit(1)
+            ? await db
+                .select({ name: companies.name })
+                .from(companies)
+                .where(eq(companies.id, j.companyId))
+                .limit(1)
             : [];
-          pending.push({ sourceId: source.id, sourceName: source.sourceIdentifier, jobId: j.id, title: j.title, companyName: company?.name ?? null });
+          pending.push({
+            sourceId: source.id,
+            sourceName: source.sourceIdentifier,
+            jobId: j.id,
+            title: j.title,
+            companyName: company?.name ?? null,
+          });
         }
       }
       return toPlain(pending);

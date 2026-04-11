@@ -27,9 +27,7 @@ interface WPJobListing {
 async function fetchJobListings(): Promise<WPJobListing[]> {
   // Try the hyphenated endpoint first (most common for WP Job Manager)
   try {
-    const listings = await fetchJson<WPJobListing[]>(
-      `${BASE_URL}/job-listings?per_page=100`
-    );
+    const listings = await fetchJson<WPJobListing[]>(`${BASE_URL}/job-listings?per_page=100`);
     return listings;
   } catch {
     // Fall through to try alternate endpoint
@@ -37,9 +35,7 @@ async function fetchJobListings(): Promise<WPJobListing[]> {
 
   // Try the underscored endpoint variant
   try {
-    const listings = await fetchJson<WPJobListing[]>(
-      `${BASE_URL}/job_listing?per_page=100`
-    );
+    const listings = await fetchJson<WPJobListing[]>(`${BASE_URL}/job_listing?per_page=100`);
     return listings;
   } catch {
     // Neither endpoint available — no jobs to return
@@ -58,9 +54,7 @@ export async function scrapeTriware(): Promise<FetchedJob[]> {
       title: htmlToText(listing.title.rendered),
       location: "St. John's, NL",
       descriptionHtml: descriptionHtml || undefined,
-      descriptionText: descriptionHtml
-        ? htmlToText(descriptionHtml)
-        : undefined,
+      descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
       url: listing.link,
       postedAt: new Date(listing.date),
       updatedAt: new Date(listing.modified),

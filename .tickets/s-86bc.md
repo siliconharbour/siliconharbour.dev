@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Apply background change on company job cards (not chip color)
 
+# Apply background change on company job cards (not chip color)

@@ -47,7 +47,6 @@ async function fetchNetBenefitEvents(): Promise<FetchedEvent[]> {
   const fetched: FetchedEvent[] = [];
 
   for (const block of blocks.slice(1)) {
-
     // Date
     const dateMatch = block.match(/<div[^>]*class="[^"]*blog-date[^"]*"[^>]*>([^<]+)<\/div>/);
     if (!dateMatch) continue;

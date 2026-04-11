@@ -66,25 +66,15 @@ describe("makeSlugUnique", () => {
   });
 
   it("appends -2 when base slug conflicts", () => {
-    expect(makeSlugUnique("hello-world", ["hello-world"])).toBe(
-      "hello-world-2",
-    );
+    expect(makeSlugUnique("hello-world", ["hello-world"])).toBe("hello-world-2");
   });
 
   it("appends -3 when base and -2 both conflict", () => {
-    expect(
-      makeSlugUnique("hello-world", ["hello-world", "hello-world-2"]),
-    ).toBe("hello-world-3");
+    expect(makeSlugUnique("hello-world", ["hello-world", "hello-world-2"])).toBe("hello-world-3");
   });
 
   it("finds the next available number with many conflicts", () => {
-    const existing = [
-      "slug",
-      "slug-2",
-      "slug-3",
-      "slug-4",
-      "slug-5",
-    ];
+    const existing = ["slug", "slug-2", "slug-3", "slug-4", "slug-5"];
     expect(makeSlugUnique("slug", existing)).toBe("slug-6");
   });
 });

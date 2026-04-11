@@ -6,17 +6,19 @@
 
 **Architecture:** A new `GET /api/entities/search?q=...&types=...` endpoint does `LIKE '%q%'` across the relevant tables and returns `{id, name, type, slug}[]`. A new `EntityPicker` React component has an inline text filter input with debounced fetch — no external state library needed. It emits the selected names as a single comma-separated hidden input, matching the existing `organizer` wire exactly. `EventForm.tsx` swaps the plain text input for `EntityPicker`. `event_import_sources` has its `group_id` FK replaced with an `organizer` text column; the sync algorithm pre-populates new events from that field. The add-source form gets `EntityPicker` instead of the group `<select>`.
 
-**Tech Stack:** Drizzle ORM (SQLite LIKE queries), React Router v7 loader pattern, `@base-ui/react/select` (already installed), Tailwind CSS harbour-* design system.
+**Tech Stack:** Drizzle ORM (SQLite LIKE queries), React Router v7 loader pattern, `@base-ui/react/select` (already installed), Tailwind CSS harbour-\* design system.
 
 ---
 
 ## File Map
 
 **New files:**
+
 - `app/routes/api/entities.search.tsx` — search endpoint
 - `app/components/EntityPicker.tsx` — reusable picker component
 
 **Modified files:**
+
 - `app/routes.ts` — register new API route
 - `app/db/schema.ts` — replace `groupId` with `organizer` on `eventImportSources`
 - `app/lib/event-importers/types.ts` — update `ImportSourceConfig`
@@ -26,6 +28,7 @@
 - `app/components/EventForm.tsx` — swap organizer input for EntityPicker
 
 **New migration files:**
+
 - `drizzle/0041_event_import_sources_organizer.sql`
 - `drizzle/meta/_journal.json`
 
@@ -34,6 +37,7 @@
 ## Task 1: Search API Endpoint
 
 **Files:**
+
 - Create: `app/routes/api/entities.search.tsx`
 - Modify: `app/routes.ts`
 
@@ -130,9 +134,11 @@ pnpm run build 2>&1 | grep -E "^.*error" | grep -v "node_modules" | head -10
 ```
 
 Then start dev server and test:
+
 ```bash
 curl "http://localhost:5173/api/entities/search?q=tech"
 ```
+
 Expected: JSON array of matching entities.
 
 - [ ] **Step 4: Commit**
@@ -147,6 +153,7 @@ git commit -m "feat: add entity search API endpoint"
 ## Task 2: EntityPicker Component
 
 **Files:**
+
 - Create: `app/components/EntityPicker.tsx`
 
 The component renders a combobox-style picker: a text input for filtering, a dropdown list of results (fetched via `fetch` with debounce), selected items shown as removable chips below, and hidden inputs for form submission.
@@ -178,9 +185,9 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 interface EntityPickerProps {
-  name: string;                   // form field name, e.g. "organizer"
-  defaultValue?: string;          // comma-separated initial value, e.g. "TechNest, CoLab"
-  types?: string[];               // which entity types to search, defaults to all
+  name: string; // form field name, e.g. "organizer"
+  defaultValue?: string; // comma-separated initial value, e.g. "TechNest, CoLab"
+  types?: string[]; // which entity types to search, defaults to all
   placeholder?: string;
   label?: string;
 }
@@ -277,9 +284,7 @@ export function EntityPicker({
 
   return (
     <div className="flex flex-col gap-2" ref={containerRef}>
-      {label && (
-        <label className="block text-sm font-medium text-harbour-700">{label}</label>
-      )}
+      {label && <label className="block text-sm font-medium text-harbour-700">{label}</label>}
 
       {/* Hidden input — single comma-separated string matching existing wire */}
       <input type="hidden" name={name} value={hiddenValue} />
@@ -379,6 +384,7 @@ git commit -m "feat: add EntityPicker component with async search and free-text 
 ## Task 3: Migrate event_import_sources from groupId to organizer
 
 **Files:**
+
 - Create: `drizzle/0041_event_import_sources_organizer.sql`
 - Modify: `drizzle/meta/_journal.json`
 - Modify: `app/db/schema.ts`
@@ -442,13 +448,13 @@ Also remove any import of `groups` that was only used for this FK if it's no lon
 Read `app/lib/event-importers/types.ts`. In `ImportSourceConfig`, replace:
 
 ```typescript
-  groupId: number | null;
+groupId: number | null;
 ```
 
 With:
 
 ```typescript
-  organizer: string | null;
+organizer: string | null;
 ```
 
 - [ ] **Step 4: Update `sync.server.ts`**
@@ -458,19 +464,19 @@ Read `app/lib/event-importers/sync.server.ts`. Make these changes:
 **A. `getEventImportSourceWithStats`** (around line 88) — remove the group FK lookup. Replace:
 
 ```typescript
-  let group = null;
-  if (source.groupId) {
-    const [g] = await db.select().from(groups).where(eq(groups.id, source.groupId)).limit(1);
-    group = g ?? null;
-  }
+let group = null;
+if (source.groupId) {
+  const [g] = await db.select().from(groups).where(eq(groups.id, source.groupId)).limit(1);
+  group = g ?? null;
+}
 
-  return { ...source, group, pending, approved, published, hidden, removed };
+return { ...source, group, pending, approved, published, hidden, removed };
 ```
 
 With:
 
 ```typescript
-  return { ...source, pending, approved, published, hidden, removed };
+return { ...source, pending, approved, published, hidden, removed };
 ```
 
 **B. `createEventImportSource` data type** (around line 113) — replace `groupId: number | null` with `organizer: string | null`.
@@ -510,21 +516,27 @@ Then in the `.values({...})` block, update the organizer field to fall back to t
 Read `app/routes/manage/import/events.new.tsx`. Remove the `getAllGroups` loader call and the group select UI. Replace with `EntityPicker`.
 
 Remove from loader:
+
 ```typescript
 const groups = await getAllGroups();
 return { groups };
 ```
+
 Replace with:
+
 ```typescript
 return {};
 ```
 
 Remove from action parsing:
+
 ```typescript
 const groupIdRaw = formData.get("groupId") as string;
 const groupId = groupIdRaw ? Number(groupIdRaw) : null;
 ```
+
 Replace with:
+
 ```typescript
 const organizer = (formData.get("organizer") as string)?.trim() || null;
 ```
@@ -532,6 +544,7 @@ const organizer = (formData.get("organizer") as string)?.trim() || null;
 Update `validateEventImportSourceConfig` call — remove `groupId`, this field isn't needed for validation.
 
 Update `createEventImportSource` call — replace `groupId` with `organizer`:
+
 ```typescript
 const source = await createEventImportSource({
   name,
@@ -543,11 +556,13 @@ const source = await createEventImportSource({
 ```
 
 In the component, add `EntityPicker` import:
+
 ```typescript
 import { EntityPicker } from "~/components/EntityPicker";
 ```
 
 Replace the group select JSX:
+
 ```tsx
 <div className="flex flex-col gap-1">
   <label className="text-sm font-medium text-harbour-600" htmlFor="groupId">
@@ -560,6 +575,7 @@ Replace the group select JSX:
 ```
 
 With:
+
 ```tsx
 <div className="flex flex-col gap-1">
   <EntityPicker
@@ -580,13 +596,17 @@ Also remove the `getAllGroups` import from the top of the file.
 Read `app/routes/manage/import/events.$sourceId.tsx`. Find where `source.group?.name` is rendered (in the source detail header). Replace:
 
 ```tsx
-{source.group ? ` · ${source.group.name}` : ""}
+{
+  source.group ? ` · ${source.group.name}` : "";
+}
 ```
 
 With:
 
 ```tsx
-{source.organizer ? ` · ${source.organizer}` : ""}
+{
+  source.organizer ? ` · ${source.organizer}` : "";
+}
 ```
 
 - [ ] **Step 7: Verify build**
@@ -596,6 +616,7 @@ pnpm run build 2>&1 | grep -E "^.*error" | grep -v "node_modules" | head -20
 ```
 
 Fix any TypeScript errors. Common ones:
+
 - `getAllGroups` still imported somewhere — remove it
 - `groups` table still imported in sync.server.ts — remove it if unused
 - `groupId` referenced in loader/action return type — update it
@@ -609,9 +630,10 @@ git commit -m "feat: replace groupId FK on event_import_sources with organizer t
 
 ---
 
-## Task 4: Wire EntityPicker into EventForm  
+## Task 4: Wire EntityPicker into EventForm
 
 **Files:**
+
 - Modify: `app/components/EventForm.tsx`
 
 Replace the plain organizer `<input type="text">` with `<EntityPicker>`. The hidden input emitted by `EntityPicker` uses `name="organizer"` and submits a comma-separated string — identical to what the server already expects via `parseEventBaseForm`.
@@ -633,7 +655,9 @@ import { EntityPicker } from "~/components/EntityPicker";
 Find the organizer `<div>` block (lines ~306–320):
 
 ```tsx
-{/* Organizer */}
+{
+  /* Organizer */
+}
 <div>
   <label htmlFor="organizer" className="block text-sm font-medium mb-1 text-harbour-700">
     Organizer (optional)
@@ -645,19 +669,21 @@ Find the organizer `<div>` block (lines ~306–320):
     defaultValue={event?.organizer || ""}
     className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
   />
-</div>
+</div>;
 ```
 
 Replace it with:
 
 ```tsx
-{/* Organizer */}
+{
+  /* Organizer */
+}
 <EntityPicker
   name="organizer"
   defaultValue={event?.organizer ?? ""}
   label="Organizer (optional)"
   placeholder="Search companies, groups, people..."
-/>
+/>;
 ```
 
 - [ ] **Step 4: Verify build**
@@ -671,6 +697,7 @@ Expected: no errors.
 - [ ] **Step 5: Smoke test in browser**
 
 Start dev server (`pnpm dev`) and navigate to any event edit page (e.g. `/manage/events/1`). Verify:
+
 1. The organizer field shows chips for any existing organizer names
 2. Typing in the search box shows a dropdown with type badges
 3. Clicking a result adds it as a chip

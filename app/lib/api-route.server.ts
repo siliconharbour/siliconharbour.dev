@@ -1,4 +1,9 @@
-import { parsePagination, paginatedJsonResponse, jsonResponse, notFoundResponse } from "~/lib/api.server";
+import {
+  parsePagination,
+  paginatedJsonResponse,
+  jsonResponse,
+  notFoundResponse,
+} from "~/lib/api.server";
 
 interface PaginatedLoaderOptions<TItem, TResponseItem> {
   loadPage: (args: { limit: number; offset: number; url: URL }) => Promise<{

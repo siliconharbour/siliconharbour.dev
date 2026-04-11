@@ -22,10 +22,7 @@ async function seedUser(
   role: "admin" | "regular" = "admin",
 ) {
   const passwordHash = await hashPassword(password);
-  const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash, role })
-    .returning();
+  const [user] = await db.insert(users).values({ email, passwordHash, role }).returning();
   return { user, password };
 }
 
@@ -57,11 +54,7 @@ describe("createSession", () => {
     expect(typeof sessionId).toBe("string");
     expect(sessionId.length).toBe(64); // 32 random bytes -> 64 hex chars
 
-    const row = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+    const row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
 
     expect(row).toBeDefined();
     expect(row!.userId).toBe(user.id);
@@ -73,11 +66,7 @@ describe("createSession", () => {
     const sessionId = await createSession(user.id);
     const after = Date.now();
 
-    const row = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+    const row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
 
     const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
     const expiresMs = row!.expiresAt.getTime();
@@ -117,20 +106,13 @@ describe("validateSession", () => {
 
     // Manually set expiresAt to the past
     const pastDate = new Date(Date.now() - 1000);
-    await db
-      .update(sessions)
-      .set({ expiresAt: pastDate })
-      .where(eq(sessions.id, sessionId));
+    await db.update(sessions).set({ expiresAt: pastDate }).where(eq(sessions.id, sessionId));
 
     const result = await validateSession(sessionId);
     expect(result).toBeNull();
 
     // Session row should have been deleted
-    const row = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+    const row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     expect(row).toBeUndefined();
   });
 });
@@ -145,20 +127,12 @@ describe("invalidateSession", () => {
     const sessionId = await createSession(user.id);
 
     // Confirm it exists
-    let row = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+    let row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     expect(row).toBeDefined();
 
     await invalidateSession(sessionId);
 
-    row = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .get();
+    row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
     expect(row).toBeUndefined();
   });
 
@@ -201,11 +175,7 @@ describe("login", () => {
     expect(typeof result!.sessionId).toBe("string");
 
     // Session row should exist in DB
-    const row = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, result!.sessionId))
-      .get();
+    const row = await db.select().from(sessions).where(eq(sessions.id, result!.sessionId)).get();
     expect(row).toBeDefined();
   });
 

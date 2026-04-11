@@ -86,11 +86,7 @@ export function TechnologySelect({
         onClick={() => setIsOpen(!isOpen)}
         className="px-3 py-2 border border-harbour-300 text-left text-harbour-600 hover:border-harbour-400 transition-colors flex items-center justify-between"
       >
-        <span>
-          {selected.size === 0
-            ? "Select technologies..."
-            : `${selected.size} selected`}
-        </span>
+        <span>{selected.size === 0 ? "Select technologies..." : `${selected.size} selected`}</span>
         <span className="text-harbour-400">{isOpen ? "▲" : "▼"}</span>
       </button>
 

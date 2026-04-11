@@ -5,7 +5,9 @@ import { buildSeoMeta } from "~/lib/seo";
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: frontmatter?.title ?? "About siliconharbour.dev",
-    description: frontmatter?.description ?? "About siliconharbour.dev — a community directory for the tech scene in St. John's, Newfoundland & Labrador.",
+    description:
+      frontmatter?.description ??
+      "About siliconharbour.dev — a community directory for the tech scene in St. John's, Newfoundland & Labrador.",
     url: "/about",
   });
 }

@@ -79,7 +79,7 @@ function parseJobPage(html: string, _url: string): JobPageData | null {
     doc.querySelector("#job-description") ??
     doc.querySelector('[class*="description"]') ??
     doc.querySelector("article") ??
-    doc.querySelector(".col-md-8") ??  // CBS uses Bootstrap grid
+    doc.querySelector(".col-md-8") ?? // CBS uses Bootstrap grid
     doc.querySelector("main");
 
   const descriptionHtml = descEl?.innerHTML ?? "";

@@ -9,7 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 parent: s-e34b
 ---
+
 # Update public /jobs pages and API
 
 Update /jobs listing, /jobs/:slug detail, /jobs.md, /api/jobs, /jobs.rss to use unified table
-

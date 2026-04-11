@@ -292,204 +292,202 @@ export default function ImportTechNL() {
       backLabel="Back to Dashboard"
       maxWidthClassName="max-w-6xl"
     >
-        <p className="text-harbour-500">
-          Import company data from the TechNL member directory. Companies will be flagged as TechNL
-          members with a dedicated link to their directory listing.
-        </p>
+      <p className="text-harbour-500">
+        Import company data from the TechNL member directory. Companies will be flagged as TechNL
+        members with a dedicated link to their directory listing.
+      </p>
 
-        {fetchedCompanies.length === 0 && (
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="fetch" />
-            <button
-              type="submit"
-              disabled={isFetching}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
-            >
-              {isFetching ? "Fetching..." : "Fetch Companies from TechNL"}
-            </button>
-          </fetcher.Form>
-        )}
+      {fetchedCompanies.length === 0 && (
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="fetch" />
+          <button
+            type="submit"
+            disabled={isFetching}
+            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+          >
+            {isFetching ? "Fetching..." : "Fetch Companies from TechNL"}
+          </button>
+        </fetcher.Form>
+      )}
 
-        {fetcherData?.intent === "fetch" && fetcherData.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-            {fetcherData.error}
-          </div>
-        )}
+      {fetcherData?.intent === "fetch" && fetcherData.error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-600">{fetcherData.error}</div>
+      )}
 
-        {fetcherData?.intent === "import" && (
-          <div className="flex flex-col gap-2">
-            {fetcherData.imported && fetcherData.imported.length > 0 && (
-              <div className="p-4 bg-green-50 border border-green-200 text-green-700">
-                Successfully imported {fetcherData.imported.length} companies
-              </div>
-            )}
-            {fetcherData.errors && fetcherData.errors.length > 0 && (
-              <div className="p-4 bg-red-50 border border-red-200 text-red-600">
-                <p className="font-medium">Errors:</p>
-                <ul className="list-disc list-inside mt-2">
-                  {fetcherData.errors.map((e, i) => (
-                    <li key={i}>{e}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-
-        {fetchedCompanies.length > 0 && (
-          <>
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-harbour-500">Found {fetchedCompanies.length} companies</span>
-              <button
-                type="button"
-                onClick={selectAll}
-                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
-              >
-                Select all new
-              </button>
-              <button
-                type="button"
-                onClick={selectNone}
-                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
-              >
-                Select none
-              </button>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={downloadLogos}
-                  onChange={(e) => setDownloadLogos(e.target.checked)}
-                  className="border border-harbour-300"
-                />
-                Download logos
-              </label>
+      {fetcherData?.intent === "import" && (
+        <div className="flex flex-col gap-2">
+          {fetcherData.imported && fetcherData.imported.length > 0 && (
+            <div className="p-4 bg-green-50 border border-green-200 text-green-700">
+              Successfully imported {fetcherData.imported.length} companies
             </div>
+          )}
+          {fetcherData.errors && fetcherData.errors.length > 0 && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+              <p className="font-medium">Errors:</p>
+              <ul className="list-disc list-inside mt-2">
+                {fetcherData.errors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
-            <div className="flex flex-col gap-2">
-              {fetchedCompanies.map((company) => {
-                const existing = isExisting(company);
-                const hasTechNLFlag = alreadyHasTechNL(company);
-                const blocked = isBlocked(company);
-                return (
-                  <div
-                    key={company.sourceId}
-                    className={`flex items-center gap-4 p-3 border ${
-                      blocked
-                        ? "bg-red-50 border-red-200 opacity-50"
-                        : hasTechNLFlag
-                          ? "bg-harbour-50 border-harbour-200 opacity-60"
-                          : selected.has(company.sourceId)
-                            ? "bg-blue-50 border-blue-300"
-                            : existing
-                              ? "bg-amber-50 border-amber-200"
-                              : "bg-white border-harbour-200"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.has(company.sourceId)}
-                      onChange={() => toggleSelect(company.sourceId)}
-                      disabled={hasTechNLFlag || blocked}
-                      className="w-5 h-5"
+      {fetchedCompanies.length > 0 && (
+        <>
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-harbour-500">Found {fetchedCompanies.length} companies</span>
+            <button
+              type="button"
+              onClick={selectAll}
+              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+            >
+              Select all new
+            </button>
+            <button
+              type="button"
+              onClick={selectNone}
+              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+            >
+              Select none
+            </button>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={downloadLogos}
+                onChange={(e) => setDownloadLogos(e.target.checked)}
+                className="border border-harbour-300"
+              />
+              Download logos
+            </label>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {fetchedCompanies.map((company) => {
+              const existing = isExisting(company);
+              const hasTechNLFlag = alreadyHasTechNL(company);
+              const blocked = isBlocked(company);
+              return (
+                <div
+                  key={company.sourceId}
+                  className={`flex items-center gap-4 p-3 border ${
+                    blocked
+                      ? "bg-red-50 border-red-200 opacity-50"
+                      : hasTechNLFlag
+                        ? "bg-harbour-50 border-harbour-200 opacity-60"
+                        : selected.has(company.sourceId)
+                          ? "bg-blue-50 border-blue-300"
+                          : existing
+                            ? "bg-amber-50 border-amber-200"
+                            : "bg-white border-harbour-200"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(company.sourceId)}
+                    onChange={() => toggleSelect(company.sourceId)}
+                    disabled={hasTechNLFlag || blocked}
+                    className="w-5 h-5"
+                  />
+
+                  {company.logoUrl ? (
+                    <img
+                      src={company.logoUrl}
+                      alt=""
+                      className={`w-10 h-10 object-contain bg-white border border-harbour-100 ${blocked ? "grayscale" : ""}`}
+                      loading="lazy"
                     />
+                  ) : (
+                    <div className="w-10 h-10 bg-harbour-100" />
+                  )}
 
-                    {company.logoUrl ? (
-                      <img
-                        src={company.logoUrl}
-                        alt=""
-                        className={`w-10 h-10 object-contain bg-white border border-harbour-100 ${blocked ? "grayscale" : ""}`}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-harbour-100" />
-                    )}
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`font-medium truncate ${blocked ? "line-through text-harbour-400" : ""}`}
-                        >
-                          {company.name}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`font-medium truncate ${blocked ? "line-through text-harbour-400" : ""}`}
+                      >
+                        {company.name}
+                      </span>
+                      {blocked && (
+                        <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
+                          Import blocked
                         </span>
-                        {blocked && (
-                          <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
-                            Import blocked
-                          </span>
-                        )}
-                        {!blocked && hasTechNLFlag && (
-                          <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
-                            Already imported
-                          </span>
-                        )}
-                        {!blocked && existing && !hasTechNLFlag && (
-                          <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
-                            Will update
-                          </span>
-                        )}
-                      </div>
-                      {company.website && (
-                        <a
-                          href={company.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-harbour-400 hover:text-harbour-600 truncate block"
-                        >
-                          {company.website}
-                        </a>
+                      )}
+                      {!blocked && hasTechNLFlag && (
+                        <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
+                          Already imported
+                        </span>
+                      )}
+                      {!blocked && existing && !hasTechNLFlag && (
+                        <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
+                          Will update
+                        </span>
                       )}
                     </div>
-
-                    {company.categories.length > 0 && (
-                      <div className="hidden sm:flex gap-1 flex-wrap max-w-xs">
-                        {company.categories.slice(0, 3).map((cat, i) => (
-                          <span
-                            key={i}
-                            className="text-xs px-2 py-0.5 bg-harbour-100 text-harbour-600"
-                          >
-                            {cat}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {blocked ? (
-                      <button
-                        type="button"
-                        onClick={() => handleUnblock(company)}
-                        className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                    {company.website && (
+                      <a
+                        href={company.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-harbour-400 hover:text-harbour-600 truncate block"
                       >
-                        Remove block
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleBlock(company)}
-                        className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
-                      >
-                        Import block
-                      </button>
+                        {company.website}
+                      </a>
                     )}
                   </div>
-                );
-              })}
-            </div>
 
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={handleImport}
-                disabled={selected.size === 0 || isImporting}
-                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
-              >
-                {isImporting ? "Importing..." : `Import ${selected.size} Selected Companies`}
-              </button>
+                  {company.categories.length > 0 && (
+                    <div className="hidden sm:flex gap-1 flex-wrap max-w-xs">
+                      {company.categories.slice(0, 3).map((cat, i) => (
+                        <span
+                          key={i}
+                          className="text-xs px-2 py-0.5 bg-harbour-100 text-harbour-600"
+                        >
+                          {cat}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-              {selected.size > 0 && (
-                <span className="text-sm text-harbour-500">{selected.size} companies selected</span>
-              )}
-            </div>
-          </>
-        )}
+                  {blocked ? (
+                    <button
+                      type="button"
+                      onClick={() => handleUnblock(company)}
+                      className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                    >
+                      Remove block
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleBlock(company)}
+                      className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
+                    >
+                      Import block
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleImport}
+              disabled={selected.size === 0 || isImporting}
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+            >
+              {isImporting ? "Importing..." : `Import ${selected.size} Selected Companies`}
+            </button>
+
+            {selected.size > 0 && (
+              <span className="text-sm text-harbour-500">{selected.size} companies selected</span>
+            )}
+          </div>
+        </>
+      )}
     </ManagePage>
   );
 }

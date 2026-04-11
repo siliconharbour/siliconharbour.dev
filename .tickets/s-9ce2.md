@@ -8,5 +8,5 @@ type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Add Discord config helpers to config.server.ts
 
+# Add Discord config helpers to config.server.ts

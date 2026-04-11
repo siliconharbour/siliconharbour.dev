@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  htmlToText,
-  normalizeTextForDisplay,
-} from "~/lib/job-importers/text.server";
+import { htmlToText, normalizeTextForDisplay } from "~/lib/job-importers/text.server";
 
 // =============================================================================
 // normalizeTextForDisplay
@@ -84,18 +81,14 @@ describe("htmlToText", () => {
   });
 
   it("strips script tags and their contents", () => {
-    const result = htmlToText(
-      "<p>Hello</p><script>alert('xss')</script><p>World</p>",
-    );
+    const result = htmlToText("<p>Hello</p><script>alert('xss')</script><p>World</p>");
     expect(result).not.toContain("alert");
     expect(result).toContain("Hello");
     expect(result).toContain("World");
   });
 
   it("strips style tags and their contents", () => {
-    const result = htmlToText(
-      "<p>Hello</p><style>.foo { color: red; }</style><p>World</p>",
-    );
+    const result = htmlToText("<p>Hello</p><style>.foo { color: red; }</style><p>World</p>");
     expect(result).not.toContain("color");
     expect(result).toContain("Hello");
     expect(result).toContain("World");
@@ -112,9 +105,7 @@ describe("htmlToText", () => {
   });
 
   it("handles nested HTML elements", () => {
-    const result = htmlToText(
-      "<div><p>Outer <strong>bold</strong> text</p></div>",
-    );
+    const result = htmlToText("<div><p>Outer <strong>bold</strong> text</p></div>");
     expect(result).toContain("Outer bold text");
   });
 
@@ -156,9 +147,7 @@ describe("htmlToText", () => {
   });
 
   it("strips meta tags", () => {
-    const result = htmlToText(
-      '<meta charset="utf-8"><p>Content</p>',
-    );
+    const result = htmlToText('<meta charset="utf-8"><p>Content</p>');
     expect(result).toBe("Content");
   });
 

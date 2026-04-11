@@ -9,6 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Admin UI: Import sources list page
 
 Create app/routes/manage/import/jobs.tsx - dashboard showing all configured import sources with company name, source type, last fetched, job count, status.
@@ -20,4 +21,3 @@ Create app/routes/manage/import/jobs.tsx - dashboard showing all configured impo
 - Shows active job count per source
 - Link to add new source
 - Link to view/edit each source
-

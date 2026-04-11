@@ -22,11 +22,7 @@ describe("getPublicEventBySlug", () => {
       link: "https://example.com",
     });
     // Also add a date so the event is complete
-    const evt = await db
-      .select()
-      .from(events)
-      .where(eq(events.slug, "local-meetup"))
-      .get();
+    const evt = await db.select().from(events).where(eq(events.slug, "local-meetup")).get();
     await db.insert(eventDates).values({
       eventId: evt!.id,
       startDate: new Date("2025-06-01T18:00:00Z"),

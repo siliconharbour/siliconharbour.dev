@@ -9,6 +9,7 @@ priority: 1
 assignee: Jack Arthur Harrhy
 parent: s-6b74
 ---
+
 # Greenhouse importer module
 
 Implement Greenhouse API importer at app/lib/job-importers/greenhouse.server.ts. Uses public API at boards-api.greenhouse.io. Test with CoLab (colabsoftware).
@@ -19,4 +20,3 @@ Implement Greenhouse API importer at app/lib/job-importers/greenhouse.server.ts.
 - validateConfig checks board token exists
 - Handles API errors gracefully
 - Works with CoLab's board
-

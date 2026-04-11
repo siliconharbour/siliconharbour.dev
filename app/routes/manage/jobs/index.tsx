@@ -7,7 +7,12 @@ import { eq, desc, like, or } from "drizzle-orm";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 import { ManagePage } from "~/components/manage/ManagePage";
-import { ManageList, ManageListActions, ManageListEmpty, ManageListItem } from "~/components/manage/ManageList";
+import {
+  ManageList,
+  ManageListActions,
+  ManageListEmpty,
+  ManageListItem,
+} from "~/components/manage/ManageList";
 import { deleteJob, getJobById } from "~/lib/jobs.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -112,10 +117,14 @@ export default function ManageJobsIndex() {
                 <div className="flex items-center gap-2">
                   <h2 className="font-medium truncate text-harbour-700">{job.title}</h2>
                   {job.sourceType === "imported" && (
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700">Imported</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700">
+                      Imported
+                    </span>
                   )}
                   {job.sourceType === "manual" && (
-                    <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">Manual</span>
+                    <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">
+                      Manual
+                    </span>
                   )}
                   {job.workplaceType === "remote" && (
                     <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700">

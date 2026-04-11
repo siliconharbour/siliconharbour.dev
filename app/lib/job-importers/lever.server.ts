@@ -47,9 +47,7 @@ interface LeverPosting {
 /**
  * Convert Lever workplace type to our WorkplaceType
  */
-function convertWorkplaceType(
-  leverType: string | undefined
-): WorkplaceType | undefined {
+function convertWorkplaceType(leverType: string | undefined): WorkplaceType | undefined {
   if (!leverType || leverType === "unspecified") return undefined;
   if (leverType === "remote") return "remote";
   if (leverType === "on-site") return "onsite";
@@ -60,9 +58,7 @@ function convertWorkplaceType(
 /**
  * Detect workplace type from location string as fallback
  */
-function detectWorkplaceTypeFromLocation(
-  location: string | undefined
-): WorkplaceType | undefined {
+function detectWorkplaceTypeFromLocation(location: string | undefined): WorkplaceType | undefined {
   if (!location) return undefined;
   const loc = location.toLowerCase();
   if (loc.includes("remote")) return "remote";
@@ -118,13 +114,9 @@ async function fetchLeverPostings(company: string): Promise<LeverPosting[]> {
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error(
-        `Lever company "${company}" not found. Check the company slug.`
-      );
+      throw new Error(`Lever company "${company}" not found. Check the company slug.`);
     }
-    throw new Error(
-      `Lever API error: ${response.status} ${response.statusText}`
-    );
+    throw new Error(`Lever API error: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
@@ -155,8 +147,7 @@ function convertPosting(posting: LeverPosting): FetchedJob {
     externalId: posting.id,
     title: posting.text,
     location: formatLocation(posting.categories),
-    department:
-      posting.categories.department || posting.categories.team || undefined,
+    department: posting.categories.department || posting.categories.team || undefined,
     descriptionHtml: descriptionHtml || undefined,
     descriptionText: descriptionHtml ? htmlToText(descriptionHtml) : undefined,
     url: posting.hostedUrl,
@@ -174,10 +165,7 @@ export const leverImporter: JobImporter = {
     return postings.map(convertPosting);
   },
 
-  async fetchJobDetails(
-    jobId: string,
-    config: ImportSourceConfig
-  ): Promise<FetchedJob | null> {
+  async fetchJobDetails(jobId: string, config: ImportSourceConfig): Promise<FetchedJob | null> {
     const company = config.sourceIdentifier;
 
     try {
@@ -196,14 +184,11 @@ export const leverImporter: JobImporter = {
     }
   },
 
-  async validateConfig(
-    config: Omit<ImportSourceConfig, "id">
-  ): Promise<ValidationResult> {
+  async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,
-        error:
-          "Company slug is required (e.g., 'getmysa' from jobs.lever.co/getmysa)",
+        error: "Company slug is required (e.g., 'getmysa' from jobs.lever.co/getmysa)",
       };
     }
 

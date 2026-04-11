@@ -63,6 +63,7 @@ Currently uses `react-router-serve`. Switching to a custom Express server is req
 **`server.ts`** (new, project root) — mounts `/mcp` before the React Router catch-all. Uses stateful MCP sessions (in-memory `Map<sessionId, transport>`). Fine for a single-process server.
 
 **Script changes:**
+
 ```json
 "dev":   "tsx watch server.ts",
 "start": "NODE_ENV=production tsx server.ts"
@@ -92,10 +93,11 @@ output: text — matching schema definitions + field names + example values
 Implementation: load `openapi.json` once at server startup. On each call, filter `paths` and `components.schemas` by the query string (case-insensitive substring match on names, descriptions, and field names). Return the matching slice as formatted text. No sandbox needed — pure JSON filtering.
 
 **Example interaction:**
+
 ```
 AI: search("event")
-→  Event schema: { id, slug, title, description, organizer, location, 
-                   link, coverImage, dates: [{startDate, endDate}], 
+→  Event schema: { id, slug, title, description, organizer, location,
+                   link, coverImage, dates: [{startDate, endDate}],
                    url, createdAt, updatedAt }
    Available in siliconharbour module: events({ limit?, offset?, upcoming? })
 ```
@@ -131,6 +133,7 @@ education(opts?: { limit?: number; offset?: number }): Promise<Education[]>
 Each function is a thin wrapper over the existing `app/lib/*.server.ts` query functions, serialised to plain JSON before being returned into the sandbox (so no Drizzle types or DB handles ever enter the WASM boundary).
 
 **Sandbox setup:**
+
 ```ts
 import variant from "@jitl/quickjs-ng-wasmfile-release-sync";
 import { loadQuickJs } from "@sebastianwessel/quickjs";
@@ -142,13 +145,14 @@ const { runSandboxed } = await loadQuickJs(variant);
 The `nodeModules` option injects the `siliconharbour` module as a virtual module whose `index.js` content is a pre-built JS string. Host functions are bridged into the sandbox via `globalThis.__sh__` — an object the host sets on the QuickJS context before running user code, with one async function per entity. The module JS string calls `globalThis.__sh__.events(opts)` etc. and returns the result. The sandbox cannot access the real DB or any host module directly — `__sh__` is the only exit point.
 
 **Example query:**
+
 ```js
-import { events, jobs } from 'siliconharbour'
+import { events, jobs } from "siliconharbour";
 
-const upcoming = await events({ upcoming: true, limit: 5 })
-const techJobs = await jobs({ query: 'react', limit: 10 })
+const upcoming = await events({ upcoming: true, limit: 5 });
+const techJobs = await jobs({ query: "react", limit: 10 });
 
-export default { upcoming, techJobs }
+export default { upcoming, techJobs };
 ```
 
 **Timeout:** 5 seconds. Any code that doesn't complete within 5s is killed.
@@ -192,31 +196,33 @@ jobImportSources(): Promise<Array<{ id: number; name: string; sourceType: string
 ```
 
 **Example execute — "what needs my attention?":**
-```js
-import { pendingEvents, pendingJobs } from 'siliconharbour'
 
-const events = await pendingEvents()
-const jobs = await pendingJobs()
+```js
+import { pendingEvents, pendingJobs } from "siliconharbour";
+
+const events = await pendingEvents();
+const jobs = await pendingJobs();
 
 export default {
   pendingEventCount: events.length,
   pendingJobCount: jobs.length,
-  events: events.map(e => `${e.title} (source: ${e.sourceName})`),
-  jobs: jobs.map(j => `${j.title} at ${j.companyName ?? 'unknown'} (source: ${j.sourceName})`),
-}
+  events: events.map((e) => `${e.title} (source: ${e.sourceName})`),
+  jobs: jobs.map((j) => `${j.title} at ${j.companyName ?? "unknown"} (source: ${j.sourceName})`),
+};
 ```
 
 **Example execute — sync all and report:**
+
 ```js
-import { syncAllEventSources, syncAllJobSources } from 'siliconharbour'
+import { syncAllEventSources, syncAllJobSources } from "siliconharbour";
 
-const eventResults = await syncAllEventSources()
-const jobResults = await syncAllJobSources()
+const eventResults = await syncAllEventSources();
+const jobResults = await syncAllJobSources();
 
-const newEvents = eventResults.reduce((n, r) => n + r.added, 0)
-const newJobs = jobResults.reduce((n, r) => n + r.added, 0)
+const newEvents = eventResults.reduce((n, r) => n + r.added, 0);
+const newJobs = jobResults.reduce((n, r) => n + r.added, 0);
 
-export default { newEvents, newJobs, eventResults, jobResults }
+export default { newEvents, newJobs, eventResults, jobResults };
 ```
 
 **Timeout:** 60 seconds (syncs can take time fetching external pages).
@@ -238,6 +244,7 @@ app/mcp/
 ```
 
 **Modified files:**
+
 - `package.json` — dev/start scripts, add `@sebastianwessel/quickjs`, `@jitl/quickjs-ng-wasmfile-release-sync`, `@modelcontextprotocol/sdk`, `express`, `@types/express`
 - `Dockerfile` (or equivalent deploy config) — update CMD
 
@@ -246,18 +253,21 @@ app/mcp/
 ## Security Model
 
 **`query` tool (public):**
+
 - QuickJS WASM sandbox: no filesystem, no network, no `require()` escape
 - DB is never exposed — only pre-serialised JSON from host functions crosses the boundary
 - 5s timeout kills runaway code
 - No destructive operations possible — module only has read functions
 
 **`execute` tool (authenticated):**
+
 - Same WASM sandbox constraints
 - Auth check happens on the host before the sandbox runs — wrong token = immediate error, no code executed
 - Action functions call existing sync logic which already has its own error handling
 - Sync functions are the only side effects; no raw DB writes exposed
 
 **MCP transport level:**
+
 - DNS rebinding protection via `hostHeaderValidation` middleware from MCP SDK
 - Origin header validation in production (allow only `https://siliconharbour.dev`)
 - `MCP_API_TOKEN` is a long random secret set as an env var, never logged
@@ -276,6 +286,7 @@ SITE_URL=https://siliconharbour.dev  — already exists
 ## Client Configuration
 
 **Claude Desktop / OpenCode / any MCP client:**
+
 ```json
 {
   "mcpServers": {

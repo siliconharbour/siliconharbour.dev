@@ -71,11 +71,13 @@ CREATE TABLE `discord_post_items` (
 ### Query logic
 
 An event is **unposted** when:
+
 1. It has no row in `discord_post_items` where `event_id = X` (neither posted nor skipped)
 2. It is publicly visible (`import_status IS NULL OR import_status = 'published'`)
 3. It has an upcoming date (any row in `event_dates` with `start_date >= now`, OR a `recurrence_rule` with `recurrence_end` null or in the future)
 
 A job is **unposted** when:
+
 1. It has no row in `discord_post_items` where `job_id = X`
 2. It has `status = 'active'`
 
@@ -85,11 +87,11 @@ A job is **unposted** when:
 
 Three new keys in the `site_config` key-value table, following the existing pattern:
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `discord_bot_token` | text | Discord bot token (stored as plaintext in the DB, displayed as password input in UI) |
-| `discord_events_channel_id` | text | Discord channel snowflake for event posts |
-| `discord_jobs_channel_id` | text | Discord channel snowflake for job posts |
+| Key                         | Type | Description                                                                          |
+| --------------------------- | ---- | ------------------------------------------------------------------------------------ |
+| `discord_bot_token`         | text | Discord bot token (stored as plaintext in the DB, displayed as password input in UI) |
+| `discord_events_channel_id` | text | Discord channel snowflake for event posts                                            |
+| `discord_jobs_channel_id`   | text | Discord channel snowflake for job posts                                              |
 
 ### Settings page changes
 
@@ -124,12 +126,14 @@ A link to each is added to the manage dashboard (`/manage`) in a new "Discord" t
 ### `/manage/discord/events` -- Compose Events Post
 
 **Loader:**
+
 1. Require auth
 2. Load Discord config (bot token + events channel ID) -- if not configured, show a message linking to settings
 3. Query unposted upcoming events (LEFT JOIN against `discord_post_items`, filter for null)
 4. Load recent post history (last 10 `discord_posts` where `channel_type = 'events'`, with their items)
 
 **UI sections:**
+
 1. **Unposted events list** -- each event shown as a row with:
    - Checkbox (checked by default) to include in the post
    - Event title, next date, location
@@ -139,6 +143,7 @@ A link to each is added to the manage dashboard (`/manage`) in a new "Discord" t
 4. **Post button** -- disabled if no events are selected or channel is not configured
 
 **Actions (form intents):**
+
 - `intent=skip` + `eventId` -- creates a `discord_post_items` row with `skipped=1`, `discord_post_id` pointing to a special "skip" post entry (a `discord_posts` row with `channel_type='events'`, `discord_message_id=NULL`, `discord_channel_id` from config). This keeps the schema clean -- every item always belongs to a post record.
 - `intent=post` + selected event IDs + intro text -- calls Discord API, creates `discord_posts` + `discord_post_items` rows
 - `intent=test` -- verifies bot token (used from settings, but could be reused here)
@@ -146,6 +151,7 @@ A link to each is added to the manage dashboard (`/manage`) in a new "Discord" t
 ### `/manage/discord/jobs` -- Compose Jobs Post
 
 Identical structure to the events page, but for jobs:
+
 - Shows unposted active jobs instead of events
 - Each job row shows: title, company name, location, workplace type
 - Posts to the jobs channel ID
@@ -154,6 +160,7 @@ Identical structure to the events page, but for jobs:
 ### Skip mechanic detail
 
 When an item is skipped, we create a `discord_posts` row as a "skip batch" (no Discord message ID, acts as a grouping record) and attach the skipped item to it. This means:
+
 - The `discord_post_items` table always has a valid `discord_post_id` foreign key
 - Skip history is visible in the recent posts list (shown as "Skipped 3 events" or similar)
 - The unposted query remains a simple LEFT JOIN check
@@ -229,7 +236,10 @@ Same container pattern, but jobs typically have no image:
         { "type": 14, "spacing": 1 },
 
         // Per job (repeated, with separator between):
-        { "type": 10, "content": "**Senior Developer**\nCoLab Software \u2022 St. John's \u2022 Hybrid" },
+        {
+          "type": 10,
+          "content": "**Senior Developer**\nCoLab Software \u2022 St. John's \u2022 Hybrid"
+        },
         {
           "type": 1,
           "components": [
@@ -263,12 +273,12 @@ Plain `fetch()` calls to the Discord REST API v10 (`https://discord.com/api/v10`
 
 ### Functions
 
-| Function | Purpose |
-|----------|---------|
-| `verifyBotToken(token: string)` | `GET /users/@me` -- returns `{ valid: boolean, username?: string }` |
+| Function                                                         | Purpose                                                                                      |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `verifyBotToken(token: string)`                                  | `GET /users/@me` -- returns `{ valid: boolean, username?: string }`                          |
 | `postMessage(channelId: string, payload: object, token: string)` | `POST /channels/{id}/messages` -- returns `{ id: string }` (the message snowflake) or throws |
-| `buildEventsMessage(events: Event[], introText?: string)` | Assembles the Components v2 JSON for an events roundup |
-| `buildJobsMessage(jobs: Job[], introText?: string)` | Assembles the Components v2 JSON for a jobs roundup |
+| `buildEventsMessage(events: Event[], introText?: string)`        | Assembles the Components v2 JSON for an events roundup                                       |
+| `buildJobsMessage(jobs: Job[], introText?: string)`              | Assembles the Components v2 JSON for a jobs roundup                                          |
 
 ### Error handling
 
@@ -279,6 +289,7 @@ Plain `fetch()` calls to the Discord REST API v10 (`https://discord.com/api/v10`
 ### Auth headers
 
 All Discord API calls use:
+
 ```
 Authorization: Bot {token}
 Content-Type: application/json
@@ -288,15 +299,15 @@ Content-Type: application/json
 
 ## File Inventory
 
-| File | Purpose |
-|------|---------|
-| `drizzle/0043_add_discord_posts.sql` | Migration: create `discord_posts` and `discord_post_items` tables |
-| `app/db/schema.ts` | Add `discordPosts` and `discordPostItems` table definitions |
-| `app/lib/config.server.ts` | Add `getDiscordConfig()` and `updateDiscordConfig()` |
-| `app/lib/discord.server.ts` | New: Discord API client + message builders |
-| `app/lib/discord-posts.server.ts` | New: DB operations for discord posts (create post, skip items, get unposted, get history) |
-| `app/routes/manage/settings.tsx` | Add Discord settings section |
-| `app/routes/manage/discord/events.tsx` | New: compose & post events to Discord |
-| `app/routes/manage/discord/jobs.tsx` | New: compose & post jobs to Discord |
-| `app/routes/manage/index.tsx` | Add Discord links to dashboard |
-| `app/routes.ts` | Register new discord routes |
+| File                                   | Purpose                                                                                   |
+| -------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `drizzle/0043_add_discord_posts.sql`   | Migration: create `discord_posts` and `discord_post_items` tables                         |
+| `app/db/schema.ts`                     | Add `discordPosts` and `discordPostItems` table definitions                               |
+| `app/lib/config.server.ts`             | Add `getDiscordConfig()` and `updateDiscordConfig()`                                      |
+| `app/lib/discord.server.ts`            | New: Discord API client + message builders                                                |
+| `app/lib/discord-posts.server.ts`      | New: DB operations for discord posts (create post, skip items, get unposted, get history) |
+| `app/routes/manage/settings.tsx`       | Add Discord settings section                                                              |
+| `app/routes/manage/discord/events.tsx` | New: compose & post events to Discord                                                     |
+| `app/routes/manage/discord/jobs.tsx`   | New: compose & post jobs to Discord                                                       |
+| `app/routes/manage/index.tsx`          | Add Discord links to dashboard                                                            |
+| `app/routes.ts`                        | Register new discord routes                                                               |

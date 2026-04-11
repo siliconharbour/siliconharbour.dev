@@ -8,7 +8,7 @@ type: feature
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
+
 # Add ADP ATS importer and wire Avalon source
 
 Add first-class ADP job importer with flexible endpoint parsing and configure Avalon Holographics to use ADP source.
-

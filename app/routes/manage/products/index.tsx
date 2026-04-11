@@ -5,7 +5,12 @@ import { getPaginatedProducts } from "~/lib/products.server";
 import { SearchInput } from "~/components/SearchInput";
 import type { ProductType } from "~/db/schema";
 import { ManagePage } from "~/components/manage/ManagePage";
-import { ManageList, ManageListActions, ManageListEmpty, ManageListItem } from "~/components/manage/ManageList";
+import {
+  ManageList,
+  ManageListActions,
+  ManageListEmpty,
+  ManageListItem,
+} from "~/components/manage/ManageList";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Products - siliconharbour.dev" }];
@@ -53,7 +58,9 @@ export default function ManageProductsIndex() {
       <SearchInput placeholder="Search products..." />
 
       {products.length === 0 ? (
-        <ManageListEmpty>No products yet. Create your first product to get started.</ManageListEmpty>
+        <ManageListEmpty>
+          No products yet. Create your first product to get started.
+        </ManageListEmpty>
       ) : (
         <ManageList>
           {products.map((product) => (
@@ -61,7 +68,11 @@ export default function ManageProductsIndex() {
               {product.logo ? (
                 <img src={`/images/${product.logo}`} alt="" className="w-12 h-12 object-contain" />
               ) : product.coverImage ? (
-                <img src={`/images/${product.coverImage}`} alt="" className="w-12 h-12 object-cover" />
+                <img
+                  src={`/images/${product.coverImage}`}
+                  alt=""
+                  className="w-12 h-12 object-cover"
+                />
               ) : (
                 <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
                   <span className="text-lg font-bold text-harbour-300">
@@ -77,7 +88,9 @@ export default function ManageProductsIndex() {
                     {typeLabels[product.type]}
                   </span>
                 </div>
-                {product.company && <p className="text-sm text-harbour-400">by {product.company.name}</p>}
+                {product.company && (
+                  <p className="text-sm text-harbour-400">by {product.company.name}</p>
+                )}
               </div>
 
               <ManageListActions>

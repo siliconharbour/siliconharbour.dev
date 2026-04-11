@@ -23,7 +23,8 @@ const workplaceTypeFilterOptions = jobsWorkplaceFilterOptions.map((value) => ({
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
     title: "Tech Jobs in St. John's, NL",
-    description: "Software engineering, development, and tech job opportunities in St. John's, Newfoundland. Find your next role in the local tech industry.",
+    description:
+      "Software engineering, development, and tech job opportunities in St. John's, Newfoundland. Find your next role in the local tech industry.",
     url: "/jobs",
   });
 }
@@ -47,7 +48,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       }),
     }))
     .filter((cwj) => cwj.jobs.length > 0);
-  
+
   // Filter by search query if provided
   if (searchQuery.trim()) {
     const query = searchQuery.toLowerCase();
@@ -59,7 +60,7 @@ export async function loader({ request }: Route.LoaderArgs) {
             job.title.toLowerCase().includes(query) ||
             job.location?.toLowerCase().includes(query) ||
             job.department?.toLowerCase().includes(query) ||
-            cwj.company.name.toLowerCase().includes(query)
+            cwj.company.name.toLowerCase().includes(query),
         ),
       }))
       .filter((cwj) => cwj.jobs.length > 0);
@@ -77,8 +78,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function JobsIndex() {
-  const { companiesWithJobs, totalJobs, searchQuery, isAdmin, showNonTechnical, selectedWorkplaceTypes } =
-    useLoaderData<typeof loader>();
+  const {
+    companiesWithJobs,
+    totalJobs,
+    searchQuery,
+    isAdmin,
+    showNonTechnical,
+    selectedWorkplaceTypes,
+  } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -158,15 +165,15 @@ export default function JobsIndex() {
               <div className="flex items-center gap-2 md:justify-end">
                 <span className="text-sm text-harbour-500 whitespace-nowrap">Workplace:</span>
                 <div className="min-w-[240px] max-w-sm w-full">
-                <BaseMultiSelect
-                  name="workplaceType"
-                  options={workplaceTypeFilterOptions}
-                  selectedValues={selectedWorkplaceTypes}
-                  onChange={handleWorkplaceTypeChange}
-                  placeholder="Workplace types"
-                  showSelectedChipsInTrigger
-                  showSelectedChipsBelow={false}
-                />
+                  <BaseMultiSelect
+                    name="workplaceType"
+                    options={workplaceTypeFilterOptions}
+                    selectedValues={selectedWorkplaceTypes}
+                    onChange={handleWorkplaceTypeChange}
+                    placeholder="Workplace types"
+                    showSelectedChipsInTrigger
+                    showSelectedChipsBelow={false}
+                  />
                 </div>
               </div>
             </div>
@@ -217,9 +224,7 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
         ) : (
           <Link to={`/directory/companies/${company.slug}`} className="flex-shrink-0">
             <div className="w-12 h-12 bg-harbour-200 flex items-center justify-center">
-              <span className="text-lg font-medium text-harbour-500">
-                {company.name.charAt(0)}
-              </span>
+              <span className="text-lg font-medium text-harbour-500">{company.name.charAt(0)}</span>
             </div>
           </Link>
         )}

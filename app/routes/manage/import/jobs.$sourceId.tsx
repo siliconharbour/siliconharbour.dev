@@ -3,10 +3,24 @@ import { Link, useLoaderData, useFetcher, redirect } from "react-router";
 import type { ReactNode } from "react";
 import { requireAuth } from "~/lib/session.server";
 import type { FetchedJob } from "~/lib/job-importers/types";
-import { getImportSourceWithStats, syncJobs, syncJobsFromFetched, deleteImportSource, hideImportedJob, unhideImportedJob, markJobNonTechnical, markJobTechnical, approveJob, approveJobAsNonTechnical } from "~/lib/job-importers/sync.server";
+import {
+  getImportSourceWithStats,
+  syncJobs,
+  syncJobsFromFetched,
+  deleteImportSource,
+  hideImportedJob,
+  unhideImportedJob,
+  markJobNonTechnical,
+  markJobTechnical,
+  approveJob,
+  approveJobAsNonTechnical,
+} from "~/lib/job-importers/sync.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
-import { extractTechnologiesForSource, getTechnologyPreviewForSource } from "~/lib/job-importers/tech-extractor.server";
+import {
+  extractTechnologiesForSource,
+  getTechnologyPreviewForSource,
+} from "~/lib/job-importers/tech-extractor.server";
 import { applyTechnologyEvidenceFromJobMentions } from "~/lib/technologies.server";
 import {
   getTechnologyProvenanceSourceByKey,
@@ -23,7 +37,11 @@ function defaultLastVerifiedMonth(): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-function isVerafinManualSource(source: { id: number; sourceType: string; sourceIdentifier: string }): boolean {
+function isVerafinManualSource(source: {
+  id: number;
+  sourceType: string;
+  sourceIdentifier: string;
+}): boolean {
   return (
     source.id === VERAFIN_SOURCE_ID &&
     source.sourceType === "workday" &&
@@ -55,14 +73,21 @@ function sanitizeManualFetchedJob(input: unknown): FetchedJob | null {
     externalId,
     title,
     location: typeof value.location === "string" ? value.location.trim() || undefined : undefined,
-    department: typeof value.department === "string" ? value.department.trim() || undefined : undefined,
+    department:
+      typeof value.department === "string" ? value.department.trim() || undefined : undefined,
     descriptionHtml:
-      typeof value.descriptionHtml === "string" ? value.descriptionHtml.trim() || undefined : undefined,
+      typeof value.descriptionHtml === "string"
+        ? value.descriptionHtml.trim() || undefined
+        : undefined,
     descriptionText:
-      typeof value.descriptionText === "string" ? value.descriptionText.trim() || undefined : undefined,
+      typeof value.descriptionText === "string"
+        ? value.descriptionText.trim() || undefined
+        : undefined,
     url: typeof value.url === "string" ? value.url.trim() || undefined : undefined,
     workplaceType:
-      value.workplaceType === "remote" || value.workplaceType === "onsite" || value.workplaceType === "hybrid"
+      value.workplaceType === "remote" ||
+      value.workplaceType === "onsite" ||
+      value.workplaceType === "hybrid"
         ? value.workplaceType
         : undefined,
     postedAt: postedAt && !Number.isNaN(postedAt.getTime()) ? postedAt : undefined,
@@ -75,7 +100,9 @@ function parseManualJobsJson(rawJson: string): { jobs?: FetchedJob[]; error?: st
     const parsed = JSON.parse(rawJson) as unknown;
     const list = Array.isArray(parsed)
       ? parsed
-      : parsed && typeof parsed === "object" && Array.isArray((parsed as Record<string, unknown>).jobs)
+      : parsed &&
+          typeof parsed === "object" &&
+          Array.isArray((parsed as Record<string, unknown>).jobs)
         ? ((parsed as Record<string, unknown>).jobs as unknown[])
         : null;
 
@@ -175,25 +202,25 @@ export function meta({ data }: Route.MetaArgs) {
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
-  
+
   const sourceId = Number(params.sourceId);
   if (!sourceId) {
     throw new Response("Not Found", { status: 404 });
   }
-  
+
   const source = await getImportSourceWithStats(sourceId);
   if (!source) {
     throw new Response("Not Found", { status: 404 });
   }
-  
+
   const company = await getCompanyById(source.companyId);
-  
+
   return { source, company, isVerafinManualMode: isVerafinManualSource(source) };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAuth(request);
-  
+
   const sourceId = Number(params.sourceId);
   const source = await getImportSourceWithStats(sourceId);
   if (!source) {
@@ -202,7 +229,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const company = await getCompanyById(source.companyId);
   const formData = await request.formData();
   const intent = formData.get("intent");
-  
+
   if (intent === "sync") {
     const result = await syncJobs(sourceId);
     return { intent: "sync", ...result };
@@ -210,17 +237,29 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (intent === "manual-sync") {
     if (!source || !isVerafinManualSource(source)) {
-      return { intent: "manual-sync", success: false, error: "Manual ingestion is not enabled for this source." };
+      return {
+        intent: "manual-sync",
+        success: false,
+        error: "Manual ingestion is not enabled for this source.",
+      };
     }
 
     const rawJson = String(formData.get("manualJobsJson") || "").trim();
     if (!rawJson) {
-      return { intent: "manual-sync", success: false, error: "Paste the JSON from the browser console output." };
+      return {
+        intent: "manual-sync",
+        success: false,
+        error: "Paste the JSON from the browser console output.",
+      };
     }
 
     const parsed = parseManualJobsJson(rawJson);
     if (!parsed.jobs) {
-      return { intent: "manual-sync", success: false, error: parsed.error || "Invalid manual JSON." };
+      return {
+        intent: "manual-sync",
+        success: false,
+        error: parsed.error || "Invalid manual JSON.",
+      };
     }
 
     const result = await syncJobsFromFetched(sourceId, parsed.jobs);
@@ -247,14 +286,19 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (intent === "apply-tech-preview") {
     const selectedTechnologyIds = parseSelectedTechnologyIds(formData);
     if (selectedTechnologyIds.length === 0) {
-      return { intent: "apply-tech-preview", success: false, error: "Select at least one technology to apply." };
+      return {
+        intent: "apply-tech-preview",
+        success: false,
+        error: "Select at least one technology to apply.",
+      };
     }
 
     const sourceKey = String(formData.get("sourceKey") || "job_postings");
     const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
     const rawSourceUrl = String(formData.get("sourceUrl") || "").trim() || null;
     const sourceUrl = sourceDefinition.sourceUrl ?? rawSourceUrl;
-    const lastVerified = String(formData.get("lastVerified") || "").trim() || defaultLastVerifiedMonth();
+    const lastVerified =
+      String(formData.get("lastVerified") || "").trim() || defaultLastVerifiedMonth();
 
     const applyResult = await applyTechnologyEvidenceFromJobMentions({
       companyId: source.companyId,
@@ -278,12 +322,12 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     };
   }
-  
+
   if (intent === "delete") {
     await deleteImportSource(sourceId);
     return redirect("/manage/import/jobs");
   }
-  
+
   if (intent === "hide") {
     const jobId = Number(formData.get("jobId"));
     if (jobId) {
@@ -291,7 +335,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { intent: "hide", jobId, success: true };
     }
   }
-  
+
   if (intent === "unhide") {
     const jobId = Number(formData.get("jobId"));
     if (jobId) {
@@ -299,7 +343,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { intent: "unhide", jobId, success: true };
     }
   }
-  
+
   if (intent === "mark-non-technical") {
     const jobId = Number(formData.get("jobId"));
     if (jobId) {
@@ -307,7 +351,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { intent: "mark-non-technical", jobId, success: true };
     }
   }
-  
+
   if (intent === "mark-technical") {
     const jobId = Number(formData.get("jobId"));
     if (jobId) {
@@ -315,7 +359,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { intent: "mark-technical", jobId, success: true };
     }
   }
-  
+
   if (intent === "approve") {
     const jobId = Number(formData.get("jobId"));
     if (jobId) {
@@ -323,7 +367,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { intent: "approve", jobId, success: true };
     }
   }
-  
+
   if (intent === "approve-non-technical") {
     const jobId = Number(formData.get("jobId"));
     if (jobId) {
@@ -331,7 +375,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { intent: "approve-non-technical", jobId, success: true };
     }
   }
-  
+
   return { success: false, error: "Unknown action" };
 }
 
@@ -352,13 +396,15 @@ function StatusBadge({ status }: { status: string }) {
     expired: "bg-amber-100 text-amber-700",
     hidden: "bg-amber-100 text-amber-700",
   };
-  
+
   const labels: Record<string, string> = {
     pending_review: "pending review",
   };
-  
+
   return (
-    <span className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}>
+    <span
+      className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}
+    >
       {labels[status] || status}
     </span>
   );
@@ -366,13 +412,13 @@ function StatusBadge({ status }: { status: string }) {
 
 function WorkplaceBadge({ type }: { type: string | null }) {
   if (!type) return null;
-  
+
   const colors: Record<string, string> = {
     remote: "bg-purple-100 text-purple-700",
     hybrid: "bg-orange-100 text-orange-700",
     onsite: "bg-blue-100 text-blue-700",
   };
-  
+
   return (
     <span className={`text-xs px-1.5 py-0.5 ${colors[type] || "bg-harbour-100 text-harbour-600"}`}>
       {type}
@@ -395,7 +441,12 @@ function JobTitleWithDescription({
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-2">
         {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-harbour-600 hover:underline"
+          >
             {title}
           </a>
         ) : (
@@ -421,7 +472,7 @@ export default function ViewJobImportSource() {
   const { source, company, isVerafinManualMode } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const techFetcher = useFetcher<typeof action>();
-  
+
   const isLoading = fetcher.state !== "idle";
   const isTechLoading = techFetcher.state !== "idle";
   const careersPageUrl = source.sourceUrl || company?.careersUrl || company?.website || null;
@@ -432,32 +483,36 @@ export default function ViewJobImportSource() {
     (fetcher.data.intent === "sync" || fetcher.data.intent === "manual-sync")
       ? fetcher.data
       : null;
-  
+
   // Separate jobs by status
-  const pendingReviewJobs = source.jobs.filter(j => j.status === "pending_review");
-  const activeJobs = source.jobs.filter(j => j.status === "active");
-  const hiddenJobs = source.jobs.filter(j => j.status === "hidden");
-  const removedJobs = source.jobs.filter(j => j.status !== "active" && j.status !== "hidden" && j.status !== "pending_review");
-  const techResult = techFetcher.data && "intent" in techFetcher.data && (
-    techFetcher.data.intent === "extract-tech-preview" || techFetcher.data.intent === "apply-tech-preview"
-  ) ? techFetcher.data : null;
+  const pendingReviewJobs = source.jobs.filter((j) => j.status === "pending_review");
+  const activeJobs = source.jobs.filter((j) => j.status === "active");
+  const hiddenJobs = source.jobs.filter((j) => j.status === "hidden");
+  const removedJobs = source.jobs.filter(
+    (j) => j.status !== "active" && j.status !== "hidden" && j.status !== "pending_review",
+  );
+  const techResult =
+    techFetcher.data &&
+    "intent" in techFetcher.data &&
+    (techFetcher.data.intent === "extract-tech-preview" ||
+      techFetcher.data.intent === "apply-tech-preview")
+      ? techFetcher.data
+      : null;
   const techPreview = techResult && "preview" in techResult ? techResult.preview : null;
-  const techDefaults = techResult && "defaults" in techResult
-    ? techResult.defaults
-    : {
-        sourceKey: "job_postings" as TechnologyProvenanceSourceKey,
-        sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || "",
-        lastVerified: defaultLastVerifiedMonth(),
-      };
+  const techDefaults =
+    techResult && "defaults" in techResult
+      ? techResult.defaults
+      : {
+          sourceKey: "job_postings" as TechnologyProvenanceSourceKey,
+          sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || "",
+          lastVerified: defaultLastVerifiedMonth(),
+        };
 
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         <div className="flex items-center gap-4">
-          <Link
-            to="/manage/import/jobs"
-            className="text-harbour-400 hover:text-harbour-600"
-          >
+          <Link to="/manage/import/jobs" className="text-harbour-400 hover:text-harbour-600">
             &larr; Back
           </Link>
           <h1 className="text-2xl font-semibold text-harbour-700">
@@ -486,13 +541,15 @@ export default function ViewJobImportSource() {
         </div>
 
         {syncResult && "added" in syncResult && (
-          <div className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+          <div
+            className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
+          >
             {syncResult.success ? (
               <div>
                 <p className="font-medium text-green-700">Sync completed</p>
                 <p className="text-sm text-green-600">
-                  Added: {syncResult.added}, Updated: {syncResult.updated}, 
-                  Removed: {syncResult.removed}, Reactivated: {syncResult.reactivated}
+                  Added: {syncResult.added}, Updated: {syncResult.updated}, Removed:{" "}
+                  {syncResult.removed}, Reactivated: {syncResult.reactivated}
                 </p>
               </div>
             ) : (
@@ -510,7 +567,10 @@ export default function ViewJobImportSource() {
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-harbour-500">Source Type</dt>
-              <dd className="font-medium text-harbour-700">{sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] || source.sourceType}</dd>
+              <dd className="font-medium text-harbour-700">
+                {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
+                  source.sourceType}
+              </dd>
             </div>
             <div>
               <dt className="text-harbour-500">Identifier</dt>
@@ -524,14 +584,20 @@ export default function ViewJobImportSource() {
               <dt className="text-harbour-500">Fetch Status</dt>
               <dd>
                 {source.fetchStatus ? (
-                  <span className={`text-xs px-1.5 py-0.5 ${
-                    source.fetchStatus === "success" ? "bg-green-100 text-green-700" :
-                    source.fetchStatus === "error" ? "bg-red-100 text-red-700" :
-                    "bg-amber-100 text-amber-700"
-                  }`}>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 ${
+                      source.fetchStatus === "success"
+                        ? "bg-green-100 text-green-700"
+                        : source.fetchStatus === "error"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
                     {source.fetchStatus}
                   </span>
-                ) : "-"}
+                ) : (
+                  "-"
+                )}
                 {source.fetchError && (
                   <span className="ml-2 text-red-600 text-xs">{source.fetchError}</span>
                 )}
@@ -541,14 +607,19 @@ export default function ViewJobImportSource() {
               <div className="col-span-2">
                 <dt className="text-harbour-500">Careers URL</dt>
                 <dd>
-                  <a href={source.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-harbour-600 hover:underline">
+                  <a
+                    href={source.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-harbour-600 hover:underline"
+                  >
                     {source.sourceUrl}
                   </a>
                 </dd>
               </div>
             )}
           </dl>
-          
+
           <div className="flex items-center gap-3 mt-6 pt-4 border-t border-harbour-100">
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="sync" />
@@ -560,10 +631,14 @@ export default function ViewJobImportSource() {
                 {isLoading ? "Syncing..." : "Sync Now"}
               </button>
             </fetcher.Form>
-            <fetcher.Form 
-              method="post" 
+            <fetcher.Form
+              method="post"
               onSubmit={(e) => {
-                if (!confirm("Delete this import source and all imported jobs? This cannot be undone.")) {
+                if (
+                  !confirm(
+                    "Delete this import source and all imported jobs? This cannot be undone.",
+                  )
+                ) {
                   e.preventDefault();
                 }
               }}
@@ -581,9 +656,12 @@ export default function ViewJobImportSource() {
 
         {isVerafinManualMode && (
           <div className="bg-amber-50 border border-amber-200 p-6">
-            <h2 className="text-lg font-semibold text-amber-800 mb-2">Manual Workday Ingestion (Verafin)</h2>
+            <h2 className="text-lg font-semibold text-amber-800 mb-2">
+              Manual Workday Ingestion (Verafin)
+            </h2>
             <p className="text-sm text-amber-700 mb-3">
-              Cloudflare blocks server fetches for this source. Use this fallback: run the script on the Workday careers page, then paste the JSON output below.
+              Cloudflare blocks server fetches for this source. Use this fallback: run the script on
+              the Workday careers page, then paste the JSON output below.
             </p>
             <ol className="list-decimal list-inside text-sm text-amber-700 space-y-1 mb-4">
               <li>Open the Verafin careers page in your browser.</li>
@@ -621,7 +699,8 @@ export default function ViewJobImportSource() {
         <div className="bg-white border border-harbour-200 p-6">
           <h2 className="text-lg font-semibold text-harbour-700 mb-2">Technology Extraction</h2>
           <p className="text-sm text-harbour-500 mb-4">
-            Extract technology mentions from this source&apos;s job descriptions, preview them, then apply selected items to company technology evidence.
+            Extract technology mentions from this source&apos;s job descriptions, preview them, then
+            apply selected items to company technology evidence.
           </p>
 
           <techFetcher.Form method="post" className="mb-4">
@@ -645,11 +724,15 @@ export default function ViewJobImportSource() {
             <div className="border border-harbour-200">
               <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
                 <p className="text-sm text-harbour-700 font-medium">
-                  Preview: {techPreview.uniqueTechnologies} technologies from {techPreview.jobsScanned} jobs ({techPreview.mentionsFound} mentions)
+                  Preview: {techPreview.uniqueTechnologies} technologies from{" "}
+                  {techPreview.jobsScanned} jobs ({techPreview.mentionsFound} mentions)
                 </p>
                 {techResult && "applyResult" in techResult && techResult.applyResult && (
                   <p className="text-xs text-green-700 mt-1">
-                    Applied. Assigned: {techResult.applyResult.assignedCount}, Evidence Created: {techResult.applyResult.evidenceCreated}, Updated: {techResult.applyResult.evidenceUpdated}, Skipped: {techResult.applyResult.skipped}
+                    Applied. Assigned: {techResult.applyResult.assignedCount}, Evidence Created:{" "}
+                    {techResult.applyResult.evidenceCreated}, Updated:{" "}
+                    {techResult.applyResult.evidenceUpdated}, Skipped:{" "}
+                    {techResult.applyResult.skipped}
                   </p>
                 )}
               </div>
@@ -659,7 +742,10 @@ export default function ViewJobImportSource() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="tech-sourceKey" className="text-sm font-medium text-harbour-700">
+                    <label
+                      htmlFor="tech-sourceKey"
+                      className="text-sm font-medium text-harbour-700"
+                    >
                       Source
                     </label>
                     <select
@@ -676,7 +762,10 @@ export default function ViewJobImportSource() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="tech-lastVerified" className="text-sm font-medium text-harbour-700">
+                    <label
+                      htmlFor="tech-lastVerified"
+                      className="text-sm font-medium text-harbour-700"
+                    >
                       Last Verified (YYYY-MM)
                     </label>
                     <input
@@ -688,7 +777,10 @@ export default function ViewJobImportSource() {
                     />
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label htmlFor="tech-sourceUrl" className="text-sm font-medium text-harbour-700">
+                    <label
+                      htmlFor="tech-sourceUrl"
+                      className="text-sm font-medium text-harbour-700"
+                    >
                       Source URL
                     </label>
                     <input
@@ -705,12 +797,24 @@ export default function ViewJobImportSource() {
                   <table className="w-full">
                     <thead className="bg-harbour-50 border-b border-harbour-200">
                       <tr>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600 w-10">Use</th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Technology</th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Category</th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Mentions</th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Jobs</th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">Evidence</th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600 w-10">
+                          Use
+                        </th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                          Technology
+                        </th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                          Category
+                        </th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                          Mentions
+                        </th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                          Jobs
+                        </th>
+                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                          Evidence
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-harbour-100">
@@ -725,19 +829,28 @@ export default function ViewJobImportSource() {
                               className="border border-harbour-300"
                             />
                           </td>
-                          <td className="px-3 py-2 text-sm text-harbour-700">{item.technologyName}</td>
+                          <td className="px-3 py-2 text-sm text-harbour-700">
+                            {item.technologyName}
+                          </td>
                           <td className="px-3 py-2 text-sm text-harbour-500">
                             {categoryLabels[item.category as TechnologyCategory] || item.category}
                           </td>
-                          <td className="px-3 py-2 text-sm text-harbour-500">{item.mentionCount}</td>
+                          <td className="px-3 py-2 text-sm text-harbour-500">
+                            {item.mentionCount}
+                          </td>
                           <td className="px-3 py-2 text-sm text-harbour-500">{item.jobCount}</td>
                           <td className="px-3 py-2 text-xs text-harbour-600">
                             {item.examples.map((example) => (
-                              <details key={`${item.technologyId}-${example.jobId}`} className="mb-1">
+                              <details
+                                key={`${item.technologyId}-${example.jobId}`}
+                                className="mb-1"
+                              >
                                 <summary className="cursor-pointer hover:text-harbour-700">
                                   {example.jobTitle} (conf {example.confidence})
                                 </summary>
-                                <p className="mt-1 text-harbour-500">{example.context || "No context snippet"}</p>
+                                <p className="mt-1 text-harbour-500">
+                                  {example.context || "No context snippet"}
+                                </p>
                               </details>
                             ))}
                           </td>
@@ -787,18 +900,34 @@ export default function ViewJobImportSource() {
         {pendingReviewJobs.length > 0 && (
           <div className="border border-blue-200 bg-white overflow-hidden">
             <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
-              <h2 className="font-medium text-blue-800">Pending Review ({pendingReviewJobs.length})</h2>
-              <p className="text-xs text-blue-600 mt-1">New jobs awaiting review. Approve to make visible, or hide to reject.</p>
+              <h2 className="font-medium text-blue-800">
+                Pending Review ({pendingReviewJobs.length})
+              </h2>
+              <p className="text-xs text-blue-600 mt-1">
+                New jobs awaiting review. Approve to make visible, or hide to reject.
+              </p>
             </div>
             <table className="w-full">
               <thead className="bg-blue-50/50 border-b border-blue-100">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Title</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Location</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Department</th>
-                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">Type</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">First Seen</th>
-                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">Actions</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Title
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Location
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Department
+                  </th>
+                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">
+                    Type
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    First Seen
+                  </th>
+                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-blue-100">
@@ -816,7 +945,9 @@ export default function ViewJobImportSource() {
                     <td className="px-4 py-3 text-center">
                       <WorkplaceBadge type={job.workplaceType} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.firstSeenAt)}</td>
+                    <td className="px-4 py-3 text-sm text-harbour-400">
+                      {formatDate(job.firstSeenAt)}
+                    </td>
                     <td className="px-4 py-3 text-right flex gap-1 justify-end">
                       <fetcher.Form method="post" className="inline">
                         <input type="hidden" name="intent" value="approve" />
@@ -861,17 +992,31 @@ export default function ViewJobImportSource() {
           <div className="border border-harbour-200 bg-white overflow-hidden">
             <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
               <h2 className="font-medium text-harbour-700">Active Jobs ({activeJobs.length})</h2>
-              <p className="text-xs text-harbour-400 mt-1">These jobs are shown on the company page. Hide jobs you don't want displayed.</p>
+              <p className="text-xs text-harbour-400 mt-1">
+                These jobs are shown on the company page. Hide jobs you don't want displayed.
+              </p>
             </div>
             <table className="w-full">
               <thead className="bg-harbour-50 border-b border-harbour-200">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Title</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Location</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Department</th>
-                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">Type</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">First Seen</th>
-                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">Actions</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Title
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Location
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Department
+                  </th>
+                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">
+                    Type
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    First Seen
+                  </th>
+                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
@@ -883,9 +1028,11 @@ export default function ViewJobImportSource() {
                         url={job.url}
                         descriptionText={job.descriptionText}
                         badge={
-                          !job.isTechnical
-                            ? <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">Non-tech</span>
-                            : undefined
+                          !job.isTechnical ? (
+                            <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">
+                              Non-tech
+                            </span>
+                          ) : undefined
                         }
                       />
                     </td>
@@ -894,7 +1041,9 @@ export default function ViewJobImportSource() {
                     <td className="px-4 py-3 text-center">
                       <WorkplaceBadge type={job.workplaceType} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.firstSeenAt)}</td>
+                    <td className="px-4 py-3 text-sm text-harbour-400">
+                      {formatDate(job.firstSeenAt)}
+                    </td>
                     <td className="px-4 py-3 text-right flex gap-1 justify-end">
                       {job.isTechnical ? (
                         <fetcher.Form method="post" className="inline">
@@ -942,16 +1091,28 @@ export default function ViewJobImportSource() {
           <div className="border border-amber-200 bg-white overflow-hidden">
             <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
               <h2 className="font-medium text-amber-800">Hidden Jobs ({hiddenJobs.length})</h2>
-              <p className="text-xs text-amber-600 mt-1">These jobs won't be shown on the company page and won't be reactivated by syncs.</p>
+              <p className="text-xs text-amber-600 mt-1">
+                These jobs won't be shown on the company page and won't be reactivated by syncs.
+              </p>
             </div>
             <table className="w-full">
               <thead className="bg-amber-50/50 border-b border-amber-100">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Title</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Location</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Department</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">First Seen</th>
-                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">Actions</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Title
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Location
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Department
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    First Seen
+                  </th>
+                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-100">
@@ -966,7 +1127,9 @@ export default function ViewJobImportSource() {
                     </td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
                     <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.firstSeenAt)}</td>
+                    <td className="px-4 py-3 text-sm text-harbour-400">
+                      {formatDate(job.firstSeenAt)}
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <fetcher.Form method="post" className="inline">
                         <input type="hidden" name="intent" value="unhide" />
@@ -990,16 +1153,28 @@ export default function ViewJobImportSource() {
         {removedJobs.length > 0 && (
           <div className="border border-harbour-200 bg-white overflow-hidden">
             <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
-              <h2 className="font-medium text-harbour-700">Removed/Historical Jobs ({removedJobs.length})</h2>
+              <h2 className="font-medium text-harbour-700">
+                Removed/Historical Jobs ({removedJobs.length})
+              </h2>
             </div>
             <table className="w-full">
               <thead className="bg-harbour-50 border-b border-harbour-200">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Title</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Location</th>
-                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">Status</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">First Seen</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">Removed</th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Title
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Location
+                  </th>
+                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">
+                    Status
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    First Seen
+                  </th>
+                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                    Removed
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
@@ -1016,8 +1191,12 @@ export default function ViewJobImportSource() {
                     <td className="px-4 py-3 text-center">
                       <StatusBadge status={job.status} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.firstSeenAt)}</td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">{formatDate(job.removedAt)}</td>
+                    <td className="px-4 py-3 text-sm text-harbour-400">
+                      {formatDate(job.firstSeenAt)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-harbour-400">
+                      {formatDate(job.removedAt)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1027,7 +1206,9 @@ export default function ViewJobImportSource() {
 
         {source.jobs.length === 0 && (
           <div className="p-8 border border-harbour-200 bg-harbour-50 text-center">
-            <p className="text-harbour-600">No jobs imported yet. Click "Sync Now" to fetch jobs.</p>
+            <p className="text-harbour-600">
+              No jobs imported yet. Click "Sync Now" to fetch jobs.
+            </p>
           </div>
         )}
       </div>

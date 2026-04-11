@@ -10,7 +10,7 @@ assignee: Jack Arthur Harrhy
 parent: s-1ada
 tags: [refactor, dry, directory, ui]
 ---
+
 # Directory detail page section decomposition
 
 Break large directory detail routes into shared section components and reusable loader fragments, starting with companies slug page.
-
