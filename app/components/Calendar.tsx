@@ -12,6 +12,7 @@ interface CalendarEventData {
   slug: string;
   title: string;
   dates: string[]; // "YYYY-MM-DD" strings
+  isRecurring: boolean;
 }
 
 type CalendarProps = {
@@ -179,7 +180,7 @@ export function Calendar({
                   {dayEvents.slice(0, 3).map((event) => (
                     <div
                       key={event.id}
-                      className="w-1.5 h-1.5 bg-harbour-500"
+                      className={`w-1.5 h-1.5 ${event.isRecurring ? "border border-harbour-500" : "bg-harbour-500"}`}
                       title={event.title}
                     />
                   ))}

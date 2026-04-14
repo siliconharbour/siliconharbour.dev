@@ -326,6 +326,7 @@ export interface CalendarEventData {
   slug: string;
   title: string;
   dates: string[]; // Array of "YYYY-MM-DD" date strings within the month
+  isRecurring: boolean;
 }
 
 /**
@@ -375,6 +376,7 @@ export async function getEventsForMonth(
         slug: event.slug,
         title: event.title,
         dates: dateStrs,
+        isRecurring: false,
       });
     }
   }
@@ -409,6 +411,7 @@ export async function getEventsForMonth(
         slug: event.slug,
         title: event.title,
         dates: dateStrs,
+        isRecurring: true,
       });
     }
   }
