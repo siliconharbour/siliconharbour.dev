@@ -66,7 +66,7 @@ export default function ImportEvents() {
   const isLoading = fetcher.state !== "idle";
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         <div>
           <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
@@ -74,7 +74,7 @@ export default function ImportEvents() {
           </Link>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-2xl font-semibold text-harbour-700">Event Import Sources</h1>
           <div className="flex gap-2">
             <fetcher.Form method="post">
@@ -113,7 +113,7 @@ export default function ImportEvents() {
             .
           </div>
         ) : (
-          <div className="border border-harbour-200">
+          <div className="border border-harbour-200 overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-harbour-50">
                 <tr className="border-b border-harbour-200">
