@@ -128,9 +128,9 @@ export default function ManageImportJobs() {
       : null;
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h1 className="text-2xl font-semibold text-harbour-700">Job Import Sources</h1>
           <div className="flex items-center gap-2">
             <Link
@@ -224,7 +224,7 @@ export default function ManageImportJobs() {
             </Link>
           </div>
         ) : (
-          <div className="border border-harbour-200 bg-white overflow-hidden">
+          <div className="border border-harbour-200 bg-white overflow-x-auto">
             <table className="w-full">
               <thead className="bg-harbour-50 border-b border-harbour-200">
                 <tr>
