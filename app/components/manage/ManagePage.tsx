@@ -19,9 +19,9 @@ export function ManagePage({
   actions,
 }: ManagePageProps) {
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className={`${maxWidthClassName} mx-auto flex flex-col gap-6`}>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold text-harbour-700">{title}</h1>
           {actions}
         </div>
