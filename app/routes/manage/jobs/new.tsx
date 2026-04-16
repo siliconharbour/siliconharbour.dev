@@ -118,7 +118,7 @@ export default function NewJob() {
             />
           </ManageField>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="location" className="font-medium text-harbour-700">
                 Location
@@ -146,7 +146,7 @@ export default function NewJob() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="workplaceType" className="font-medium text-harbour-700">
                 Workplace Type
