@@ -56,7 +56,7 @@ export default function ManageComments() {
   const { comments, total, totalPages, currentPage } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">

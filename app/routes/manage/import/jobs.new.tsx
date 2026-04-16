@@ -90,7 +90,7 @@ export default function NewJobImportSource() {
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div className="flex items-center gap-4">
           <Link to="/manage/import/jobs" className="text-harbour-400 hover:text-harbour-600">

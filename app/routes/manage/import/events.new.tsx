@@ -69,7 +69,7 @@ export default function NewEventImportSource() {
   const [selectedType, setSelectedType] = useState<string>("");
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-xl mx-auto flex flex-col gap-6">
         <div>
           <Link

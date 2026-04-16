@@ -141,7 +141,7 @@ export default function DiscordEvents() {
     navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">

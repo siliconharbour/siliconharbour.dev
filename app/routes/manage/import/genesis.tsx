@@ -204,7 +204,7 @@ export default function ImportGenesis() {
   const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-6xl mx-auto flex flex-col gap-6">
         <div>
           <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">

@@ -65,7 +65,7 @@ export default function NewNews() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-6">
         <div>
           <Link to="/manage/news" className="text-sm text-harbour-400 hover:text-harbour-600">

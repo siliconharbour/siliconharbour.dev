@@ -379,7 +379,7 @@ export default function ReviewCompanies() {
   // Empty state - all done!
   if (companies.length === 0 || !currentCompany) {
     return (
-      <div className="min-h-screen p-6">
+      <div className="min-h-screen p-4 md:p-6">
         <div className="max-w-2xl mx-auto flex flex-col items-center justify-center gap-6 py-20">
           <div className="text-6xl">🎉</div>
           <h1 className="text-2xl font-semibold text-harbour-700">All caught up!</h1>
@@ -398,7 +398,7 @@ export default function ReviewCompanies() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-3xl mx-auto flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">

@@ -28,7 +28,7 @@ export default function ManageEducationIndex() {
   const { institutions } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-4xl mx-auto flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Education</h1>

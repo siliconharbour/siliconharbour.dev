@@ -193,7 +193,7 @@ export default function DiscordJobs() {
   const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-3xl mx-auto flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
