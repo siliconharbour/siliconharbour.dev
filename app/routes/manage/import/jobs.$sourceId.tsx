@@ -509,7 +509,7 @@ export default function ViewJobImportSource() {
         };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
         <div className="flex items-center gap-4">
           <Link to="/manage/import/jobs" className="text-harbour-400 hover:text-harbour-600">
@@ -564,7 +564,7 @@ export default function ViewJobImportSource() {
         {/* Source details */}
         <div className="bg-white border border-harbour-200 p-6">
           <h2 className="text-lg font-semibold text-harbour-700 mb-4">Source Configuration</h2>
-          <dl className="grid grid-cols-2 gap-4 text-sm">
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-harbour-500">Source Type</dt>
               <dd className="font-medium text-harbour-700">
@@ -793,7 +793,7 @@ export default function ViewJobImportSource() {
                   </div>
                 </div>
 
-                <div className="border border-harbour-200">
+                <div className="border border-harbour-200 overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-harbour-50 border-b border-harbour-200">
                       <tr>
@@ -873,7 +873,7 @@ export default function ViewJobImportSource() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="p-4 border border-blue-200 bg-blue-50 text-center">
             <div className="text-3xl font-bold text-blue-600">{pendingReviewJobs.length}</div>
             <div className="text-sm text-blue-700">Pending Review</div>
@@ -898,7 +898,7 @@ export default function ViewJobImportSource() {
 
         {/* Pending Review Jobs */}
         {pendingReviewJobs.length > 0 && (
-          <div className="border border-blue-200 bg-white overflow-hidden">
+          <div className="border border-blue-200 bg-white overflow-x-auto">
             <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
               <h2 className="font-medium text-blue-800">
                 Pending Review ({pendingReviewJobs.length})
@@ -989,7 +989,7 @@ export default function ViewJobImportSource() {
 
         {/* Active Jobs */}
         {activeJobs.length > 0 && (
-          <div className="border border-harbour-200 bg-white overflow-hidden">
+          <div className="border border-harbour-200 bg-white overflow-x-auto">
             <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
               <h2 className="font-medium text-harbour-700">Active Jobs ({activeJobs.length})</h2>
               <p className="text-xs text-harbour-400 mt-1">
@@ -1088,7 +1088,7 @@ export default function ViewJobImportSource() {
 
         {/* Hidden Jobs */}
         {hiddenJobs.length > 0 && (
-          <div className="border border-amber-200 bg-white overflow-hidden">
+          <div className="border border-amber-200 bg-white overflow-x-auto">
             <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
               <h2 className="font-medium text-amber-800">Hidden Jobs ({hiddenJobs.length})</h2>
               <p className="text-xs text-amber-600 mt-1">
@@ -1151,7 +1151,7 @@ export default function ViewJobImportSource() {
 
         {/* Removed Jobs */}
         {removedJobs.length > 0 && (
-          <div className="border border-harbour-200 bg-white overflow-hidden">
+          <div className="border border-harbour-200 bg-white overflow-x-auto">
             <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
               <h2 className="font-medium text-harbour-700">
                 Removed/Historical Jobs ({removedJobs.length})
