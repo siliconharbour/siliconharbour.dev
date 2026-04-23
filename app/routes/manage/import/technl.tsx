@@ -141,13 +141,11 @@ export async function action({ request }: Route.ActionArgs) {
           const existing = await getCompanyByName(company.name);
 
           if (existing) {
-            // Update: set technl flag, fill in missing data
+            // Just set the technl flag — don't overwrite curated data
             await updateCompany(existing.id, {
               technl: true,
-              website: existing.website || company.website,
-              logo: existing.logo || logo,
             });
-            imported.push(`${company.name} (updated)`);
+            imported.push(`${company.name} (marked TechNL)`);
           } else {
             // Create new company (hidden by default, requires review)
             await createCompany({
@@ -421,7 +419,7 @@ export default function ImportTechNL() {
                       )}
                       {!blocked && existing && !hasTechNLFlag && (
                         <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
-                          Will update
+                          Not TechNL, mark TechNL
                         </span>
                       )}
                     </div>

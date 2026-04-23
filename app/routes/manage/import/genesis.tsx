@@ -115,16 +115,11 @@ export async function action({ request }: Route.ActionArgs) {
           const existing = await getCompanyByName(company.name);
 
           if (existing) {
-            // Update: set genesis flag, fill in missing data
+            // Just set the genesis flag — don't overwrite curated data
             await updateCompany(existing.id, {
               genesis: true,
-              website: existing.website || company.website,
-              location: existing.location || "St. John's, NL",
-              logo: existing.logo || logo,
-              // Update description if we have one and existing is empty
-              description: existing.description || company.description || "",
             });
-            imported.push(`${company.name} (updated)`);
+            imported.push(`${company.name} (marked Genesis)`);
           } else {
             // Create new company (hidden by default, requires review)
             await createCompany({
@@ -433,7 +428,7 @@ export default function ImportGenesis() {
                         )}
                         {!blocked && existing && !hasGenesisFlag && (
                           <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
-                            Will update
+                            Not Genesis, mark Genesis
                           </span>
                         )}
                         {status && (
