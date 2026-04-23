@@ -1,8 +1,9 @@
 /**
  * Eventbrite Organizer Event Importer
  *
- * Eventbrite embeds a schema.org `itemListElement` JSON-LD block on organizer
- * pages containing all upcoming events with full details — no API key needed.
+ * Parses the __NEXT_DATA__ JSON blob embedded in Eventbrite organizer pages.
+ * This contains structured event data including timezone, venue, and dates.
+ * Falls back to JSON-LD itemListElement if __NEXT_DATA__ has no events.
  *
  * The sourceIdentifier is the numeric organizer ID from the URL, e.g. "108767432471"
  * from https://www.eventbrite.ca/o/108767432471
@@ -12,13 +13,36 @@ import type { EventImporter, ImportSourceConfig, FetchedEvent, ValidationResult 
 
 const EVENTBRITE_BASE = "https://www.eventbrite.ca";
 
-interface SchemaOrgAddress {
-  streetAddress?: string;
-  addressLocality?: string;
-  addressRegion?: string;
-  postalCode?: string;
-  addressCountry?: string;
+// ---------------------------------------------------------------------------
+// __NEXT_DATA__ types (primary source)
+// ---------------------------------------------------------------------------
+
+interface NextDataEvent {
+  id?: string;
+  name?: string;
+  summary?: string;
+  url?: string;
+  start_date?: string; // "YYYY-MM-DD"
+  start_time?: string; // "HH:mm:ss"
+  end_date?: string;
+  end_time?: string;
+  timezone?: string;
+  is_online_event?: boolean;
+  image?: { url?: string };
+  primary_venue?: {
+    name?: string;
+    address?: {
+      address_1?: string;
+      city?: string;
+      region?: string;
+      localized_area_display?: string;
+    };
+  };
 }
+
+// ---------------------------------------------------------------------------
+// JSON-LD types (legacy fallback)
+// ---------------------------------------------------------------------------
 
 interface SchemaOrgEvent {
   "@type"?: string;
@@ -29,26 +53,46 @@ interface SchemaOrgEvent {
   url?: string;
   image?: string;
   location?: {
-    "@type"?: string;
     name?: string;
-    address?: SchemaOrgAddress;
+    address?: {
+      streetAddress?: string;
+      addressLocality?: string;
+      addressRegion?: string;
+    };
   };
-  organizer?: {
-    name?: string;
-    url?: string;
-  };
+  organizer?: { name?: string };
 }
 
-interface SchemaOrgListItem {
-  "@type"?: string;
-  position?: number;
-  item?: SchemaOrgEvent;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract the numeric event ID from an Eventbrite URL.
+ * e.g. "https://www.eventbrite.ca/e/foo-tickets-1985937179564" → "1985937179564"
+ * Falls back to the event's own id field if URL pattern doesn't match.
+ */
+function extractEventId(url: string, fallbackId?: string): string | null {
+  const match = url.match(/tickets-(\d+)(?:\?.*)?$/);
+  if (match) return match[1];
+  // Eventbrite URLs sometimes end with just the numeric ID
+  const trailingId = url.match(/(\d{10,})(?:\?.*)?$/);
+  if (trailingId) return trailingId[1];
+  return fallbackId || null;
 }
 
 /**
- * Parse the local date and time directly from an ISO string with offset.
+ * Parse "HH:mm:ss" or "HH:mm" → "HH:mm"
+ */
+function formatTime(time: string | undefined): string | null {
+  if (!time) return null;
+  const match = time.match(/^(\d{2}:\d{2})/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Parse the local date and time from an ISO string with offset (JSON-LD path).
  * e.g. "2026-04-08T11:30:00-0230" → { date: "2026-04-08", time: "11:30" }
- * The offset is embedded in the string, so we read the local portion directly.
  */
 function parseISOToLocal(isoString: string | undefined): { date: string; time: string | null } {
   if (!isoString) return { date: "", time: null };
@@ -57,32 +101,144 @@ function parseISOToLocal(isoString: string | undefined): { date: string; time: s
   return { date: match[1], time: match[2] };
 }
 
-/**
- * Default timezone for Eventbrite events.
- * This importer is currently scoped to NL-based organizers.
- * If we need to support other regions, this should parse the ISO offset
- * from the event's startDate and map it to a timezone name.
- */
-function getDefaultTimezone(): string {
-  return "America/St_Johns";
-}
+// ---------------------------------------------------------------------------
+// __NEXT_DATA__ parser (primary)
+// ---------------------------------------------------------------------------
 
-/**
- * Extract the numeric event ID from an Eventbrite URL.
- * e.g. "https://www.eventbrite.ca/e/foo-tickets-1985937179564" → "1985937179564"
- */
-function extractEventId(url: string): string | null {
-  const match = url.match(/tickets-(\d+)(?:\?.*)?$/);
-  return match ? match[1] : null;
-}
-
-function formatAddress(address: SchemaOrgAddress | undefined): string {
-  if (!address) return "";
-  const parts = [address.streetAddress, address.addressLocality, address.addressRegion].filter(
-    Boolean,
+function parseNextDataEvents(html: string): FetchedEvent[] {
+  const scriptMatch = html.match(
+    /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/,
   );
-  return parts.join(", ");
+  if (!scriptMatch) return [];
+
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(scriptMatch[1]);
+  } catch {
+    return [];
+  }
+
+  const pageProps = (data?.props as Record<string, unknown>)?.pageProps as
+    | Record<string, unknown>
+    | undefined;
+  if (!pageProps) return [];
+
+  const organizer = pageProps.organizer as { name?: string } | undefined;
+  const organizerName = organizer?.name?.trim() ?? "";
+
+  const upcomingEvents = pageProps.upcomingEvents as NextDataEvent[] | undefined;
+  if (!upcomingEvents || !Array.isArray(upcomingEvents)) return [];
+
+  const fetched: FetchedEvent[] = [];
+
+  for (const ev of upcomingEvents) {
+    const title = ev.name?.trim();
+    if (!title) continue;
+
+    const eventUrl = ev.url ?? "";
+    const externalId = extractEventId(eventUrl, ev.id);
+    if (!externalId) continue;
+
+    const startDate = ev.start_date ?? "";
+    if (!startDate) continue;
+
+    // Build location from venue
+    const venue = ev.primary_venue;
+    let location = "";
+    if (ev.is_online_event) {
+      location = "Online";
+    } else if (venue) {
+      const venueName = venue.name?.trim() ?? "";
+      const area = venue.address?.localized_area_display?.trim() ?? "";
+      location = [venueName, area].filter(Boolean).join(" — ");
+    }
+
+    // Eventbrite provides the image as a pre-sized URL — use it directly
+    const coverImageUrl = ev.image?.url ?? null;
+
+    fetched.push({
+      externalId,
+      title,
+      description: ev.summary?.trim() ?? "",
+      location,
+      link: eventUrl,
+      organizer: organizerName,
+      startDate,
+      endDate: ev.end_date || startDate,
+      startTime: formatTime(ev.start_time),
+      endTime: formatTime(ev.end_time),
+      coverImageUrl,
+      timezone: ev.timezone ?? "America/St_Johns",
+    });
+  }
+
+  return fetched;
 }
+
+// ---------------------------------------------------------------------------
+// JSON-LD parser (legacy fallback)
+// ---------------------------------------------------------------------------
+
+function parseJsonLdEvents(html: string): FetchedEvent[] {
+  const jsonLdRegex = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
+  const fetched: FetchedEvent[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = jsonLdRegex.exec(html)) !== null) {
+    try {
+      const data = JSON.parse(match[1]);
+      if (!Array.isArray(data.itemListElement)) continue;
+
+      for (const listItem of data.itemListElement) {
+        const ev: SchemaOrgEvent = listItem.item;
+        if (!ev || ev["@type"] !== "Event") continue;
+
+        const title = ev.name?.trim();
+        if (!title) continue;
+
+        const eventUrl = ev.url ?? "";
+        const externalId = extractEventId(eventUrl);
+        if (!externalId) continue;
+
+        const placeName = ev.location?.name?.trim() ?? "";
+        const addr = ev.location?.address;
+        const address = addr
+          ? [addr.streetAddress, addr.addressLocality, addr.addressRegion]
+              .filter(Boolean)
+              .join(", ")
+          : "";
+        const location = [placeName, address].filter(Boolean).join(" — ");
+
+        const { date: startDate, time: startTime } = parseISOToLocal(ev.startDate);
+        const { date: endDate, time: endTime } = parseISOToLocal(ev.endDate);
+        if (!startDate) continue;
+
+        fetched.push({
+          externalId,
+          title,
+          description: ev.description?.trim() ?? "",
+          location,
+          link: eventUrl,
+          organizer: ev.organizer?.name?.trim() ?? "",
+          startDate,
+          endDate: endDate || startDate,
+          startTime,
+          endTime,
+          coverImageUrl: ev.image ?? null,
+          timezone: "America/St_Johns",
+        });
+      }
+    } catch {
+      // Skip malformed JSON-LD
+    }
+  }
+
+  return fetched;
+}
+
+// ---------------------------------------------------------------------------
+// Main fetch
+// ---------------------------------------------------------------------------
 
 async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]> {
   const url = `${EVENTBRITE_BASE}/o/${organizerId}`;
@@ -95,66 +251,12 @@ async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]
   if (!res.ok) throw new Error(`Failed to fetch Eventbrite organizer page: ${res.status}`);
   const html = await res.text();
 
-  // Extract the itemListElement JSON-LD block
-  const jsonLdRegex = /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi;
-  const fetched: FetchedEvent[] = [];
-  let match: RegExpExecArray | null;
+  // Try __NEXT_DATA__ first (current Eventbrite format)
+  const events = parseNextDataEvents(html);
+  if (events.length > 0) return events;
 
-  while ((match = jsonLdRegex.exec(html)) !== null) {
-    try {
-      const data = JSON.parse(match[1]);
-      if (!Array.isArray(data.itemListElement)) continue;
-
-      const items: SchemaOrgListItem[] = data.itemListElement;
-
-      for (const listItem of items) {
-        const ev = listItem.item;
-        if (!ev || ev["@type"] !== "Event") continue;
-
-        const title = ev.name?.trim();
-        if (!title) continue;
-
-        const eventUrl = ev.url ?? "";
-        const externalId = extractEventId(eventUrl);
-        if (!externalId) continue;
-
-        const description = ev.description?.trim() ?? "";
-
-        const placeName = ev.location?.name?.trim() ?? "";
-        const address = formatAddress(ev.location?.address);
-        const location = [placeName, address].filter(Boolean).join(" — ");
-
-        const organizer = ev.organizer?.name?.trim() ?? "";
-        const link = eventUrl;
-        const coverImageUrl = ev.image ?? null;
-
-        const timezone = getDefaultTimezone();
-        const { date: startDate, time: startTime } = parseISOToLocal(ev.startDate);
-        const { date: endDate, time: endTime } = parseISOToLocal(ev.endDate);
-
-        if (!startDate) continue;
-
-        fetched.push({
-          externalId,
-          title,
-          description,
-          location,
-          link,
-          organizer,
-          startDate,
-          endDate: endDate || startDate,
-          startTime,
-          endTime,
-          coverImageUrl,
-          timezone,
-        });
-      }
-    } catch {
-      // Skip malformed JSON-LD
-    }
-  }
-
-  return fetched;
+  // Fall back to JSON-LD (legacy format)
+  return parseJsonLdEvents(html);
 }
 
 export const eventbriteImporter: EventImporter = {
