@@ -43,13 +43,19 @@ export async function scrapeTechNL(): Promise<ScrapedCompany[]> {
   const { document } = parseHTML(html);
 
   const companies: ScrapedCompany[] = [];
+  const seen = new Set<string>();
   const cards = document.querySelectorAll(".gz-directory-card");
 
   for (const card of cards) {
     try {
       const company = parseTechNLCard(card);
       if (company) {
-        companies.push(company);
+        // Deduplicate by sourceId — TechNL's directory can list the same company multiple times
+        const key = company.sourceId || company.name.toLowerCase();
+        if (!seen.has(key)) {
+          seen.add(key);
+          companies.push(company);
+        }
       }
     } catch (e) {
       console.error("Failed to parse TechNL card:", e);
