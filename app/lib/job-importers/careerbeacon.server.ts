@@ -16,7 +16,7 @@ import type {
 import { htmlToText } from "./text.server";
 
 const CAREERBEACON_JOB_URL_RE =
-  /https?:\/\/www\.careerbeacon\.com\/en\/job\/\d+\/[\w-]+\/[\w-]+\/[\w-]+/gi;
+  /https?:\/\/www\.careerbeacon\.com\/en\/job\/\d+\/[^\s"'<>]+/gi;
 
 interface CareerBeaconPosting {
   externalId: string;
@@ -188,12 +188,10 @@ async function resolveJobUrls(config: ImportSourceConfig): Promise<string[]> {
 }
 
 function convertPosting(posting: CareerBeaconPosting): FetchedJob {
-  const department = posting.employmentType?.join(", ") || undefined;
   return {
     externalId: posting.externalId,
     title: posting.title,
     location: posting.location,
-    department,
     descriptionHtml: posting.descriptionHtml,
     descriptionText: posting.descriptionHtml ? htmlToText(posting.descriptionHtml) : undefined,
     url: posting.url,
