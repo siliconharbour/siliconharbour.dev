@@ -7,6 +7,7 @@ import {
   createDiscordPost,
   skipItems,
   getPostHistory,
+  undoDiscordPost,
 } from "~/lib/discord-posts.server";
 import { buildEventsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
@@ -130,6 +131,14 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true, posted: selectedEvents.length };
   }
 
+  if (intent === "undo") {
+    const postId = Number(formData.get("postId"));
+    if (!postId) return { error: "Invalid post ID" };
+
+    await undoDiscordPost(postId);
+    return { success: true, undone: true };
+  }
+
   return { error: "Unknown action" };
 }
 
@@ -187,6 +196,12 @@ export default function DiscordEvents() {
         {actionData && "skipped" in actionData && actionData.skipped && (
           <div className="p-4 bg-harbour-50 border border-harbour-200 text-harbour-600 text-sm">
             Event skipped.
+          </div>
+        )}
+
+        {actionData && "undone" in actionData && actionData.undone && (
+          <div className="p-4 bg-harbour-50 border border-harbour-200 text-harbour-600 text-sm">
+            Post undone. Events have been requeued.
           </div>
         )}
 
@@ -291,9 +306,26 @@ export default function DiscordEvents() {
                       </span>
                     )}
                   </div>
-                  <span className="text-harbour-400 text-xs">
-                    {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-harbour-400 text-xs">
+                      {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="undo" />
+                      <input type="hidden" name="postId" value={post.id} />
+                      <button
+                        type="submit"
+                        className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
+                        onClick={(e) => {
+                          if (!confirm("Undo this post? Events will be requeued for posting.")) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        Undo
+                      </button>
+                    </Form>
+                  </div>
                 </div>
               ))}
             </div>

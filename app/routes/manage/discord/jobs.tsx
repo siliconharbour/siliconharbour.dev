@@ -7,6 +7,7 @@ import {
   createDiscordPost,
   skipItems,
   getPostHistory,
+  undoDiscordPost,
 } from "~/lib/discord-posts.server";
 import { buildJobsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
@@ -119,6 +120,14 @@ export async function action({ request }: Route.ActionArgs) {
     });
 
     return { success: true, posted: selectedJobs.length };
+  }
+
+  if (intent === "undo") {
+    const postId = Number(formData.get("postId"));
+    if (!postId) return { error: "Invalid post ID" };
+
+    await undoDiscordPost(postId);
+    return { success: true, undone: true };
   }
 
   return { error: "Unknown action" };
@@ -249,6 +258,12 @@ export default function DiscordJobs() {
           </div>
         )}
 
+        {actionData && "undone" in actionData && actionData.undone && (
+          <div className="p-4 bg-harbour-50 border border-harbour-200 text-harbour-600 text-sm">
+            Post undone. Jobs have been requeued.
+          </div>
+        )}
+
         {configured && jobs.length === 0 && (
           <div className="p-6 bg-white border border-harbour-200 text-harbour-400 text-sm text-center">
             No unposted active jobs. All caught up!
@@ -350,9 +365,26 @@ export default function DiscordJobs() {
                       </span>
                     )}
                   </div>
-                  <span className="text-harbour-400 text-xs">
-                    {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-harbour-400 text-xs">
+                      {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
+                    </span>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="undo" />
+                      <input type="hidden" name="postId" value={post.id} />
+                      <button
+                        type="submit"
+                        className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
+                        onClick={(e) => {
+                          if (!confirm("Undo this post? Jobs will be requeued for posting.")) {
+                            e.preventDefault();
+                          }
+                        }}
+                      >
+                        Undo
+                      </button>
+                    </Form>
+                  </div>
                 </div>
               ))}
             </div>

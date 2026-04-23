@@ -189,6 +189,19 @@ export async function skipItems(params: {
 }
 
 // ============================================================================
+// Undo / requeue
+// ============================================================================
+
+/**
+ * Undo a discord post — deletes the post record (and cascades to items),
+ * which makes the events/jobs reappear in the unposted queue.
+ * Does NOT delete the actual Discord message from the channel.
+ */
+export async function undoDiscordPost(postId: number) {
+  return db.delete(discordPosts).where(eq(discordPosts.id, postId));
+}
+
+// ============================================================================
 // History
 // ============================================================================
 
