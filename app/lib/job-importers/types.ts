@@ -15,6 +15,7 @@ export const jobSourceTypes = [
   "collage",
   "rippling",
   "adp",
+  "careerbeacon",
   "custom",
 ] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
@@ -132,6 +133,7 @@ export const sourceTypeLabels: Record<JobSourceType, string> = {
   collage: "Collage",
   rippling: "Rippling",
   adp: "ADP",
+  careerbeacon: "CareerBeacon",
   custom: "Custom",
 };
 
@@ -147,5 +149,7 @@ export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   collage: "e.g., heyorca (from secure.collage.co/jobs/heyorca)",
   rippling: "e.g., kraken-robotics-inc (from ats.rippling.com/kraken-robotics-inc/jobs)",
   adp: "e.g., cid:ccId or full ADP URL (from workforcenow.adp.com recruitment link)",
+  careerbeacon:
+    "Job URL(s), company ID, or employer slug. e.g., https://www.careerbeacon.com/en/job/2223407/... or 216642 or genesis",
   custom: "Custom identifier or URL",
 };
