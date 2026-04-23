@@ -182,7 +182,13 @@ export const groups = sqliteTable("groups", {
 export const fetchStatuses = ["pending", "success", "error"] as const;
 export type FetchStatus = (typeof fetchStatuses)[number];
 
-export const eventSourceTypes = ["luma-user", "technl", "netbenefit", "eventbrite"] as const;
+export const eventSourceTypes = [
+  "luma-user",
+  "luma-calendar",
+  "technl",
+  "netbenefit",
+  "eventbrite",
+] as const;
 export type EventSourceType = (typeof eventSourceTypes)[number];
 
 export const eventImportSources = sqliteTable("event_import_sources", {

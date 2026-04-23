@@ -57,7 +57,7 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect(`/manage/import/events/${source.id}`);
 }
 
-const SOURCE_TYPES = ["luma-user", "technl", "netbenefit", "eventbrite"] as const;
+const SOURCE_TYPES = ["luma-user", "luma-calendar", "technl", "netbenefit", "eventbrite"] as const;
 
 const FIXED_SOURCES: Partial<Record<string, { identifier: string; url: string }>> = {
   technl: { identifier: "technl", url: "https://technl.ca/news-events/" },
@@ -133,12 +133,22 @@ export default function NewEventImportSource() {
                 id="sourceIdentifier"
                 name="sourceIdentifier"
                 type="text"
-                placeholder="e.g. usr-bSGJmqMm6oO62Ze or EthanDenny"
+                placeholder={
+                  selectedType === "luma-calendar"
+                    ? "e.g. fintechcadence or cal-AIQJgsjMuWFK8Xb"
+                    : selectedType === "luma-user"
+                      ? "e.g. usr-bSGJmqMm6oO62Ze or EthanDenny"
+                      : ""
+                }
                 className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
                 required
               />
               <p className="text-xs text-harbour-400">
-                The user ID (e.g. usr-xxxx) or username from the Luma profile URL.
+                {selectedType === "luma-calendar"
+                  ? "The calendar slug (e.g. fintechcadence) or API ID (cal-xxxx) from the Luma calendar URL."
+                  : selectedType === "luma-user"
+                    ? "The user ID (e.g. usr-xxxx) or username from the Luma profile URL."
+                    : "The identifier for this source."}
               </p>
             </div>
           )}
@@ -163,7 +173,11 @@ export default function NewEventImportSource() {
                 id="sourceUrl"
                 name="sourceUrl"
                 type="url"
-                placeholder="https://luma.com/user/usr-xxxx"
+                placeholder={
+                  selectedType === "luma-calendar"
+                    ? "https://luma.com/fintechcadence"
+                    : "https://luma.com/user/usr-xxxx"
+                }
                 className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
                 required
               />

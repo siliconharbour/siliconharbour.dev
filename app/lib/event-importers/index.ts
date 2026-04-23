@@ -5,12 +5,14 @@
 
 import type { EventImporter } from "./types";
 import { lumaUserImporter } from "./luma-user.server";
+import { lumaCalendarImporter } from "./luma-calendar.server";
 import { technlImporter } from "./technl.server";
 import { netbenefitImporter } from "./netbenefit.server";
 import { eventbriteImporter } from "./eventbrite.server";
 
 const importers: Record<string, EventImporter> = {
   "luma-user": lumaUserImporter,
+  "luma-calendar": lumaCalendarImporter,
   technl: technlImporter,
   netbenefit: netbenefitImporter,
   eventbrite: eventbriteImporter,
