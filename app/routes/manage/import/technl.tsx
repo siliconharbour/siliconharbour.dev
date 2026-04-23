@@ -28,9 +28,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const companyWebsites = new Set(
     existingCompanies.filter((c) => c.website).map((c) => normalizeUrl(c.website!)),
   );
-  // Track which companies already have TechNL flag set
-  const hasTechNL = new Set(
+  // Track which companies already have TechNL flag set — by name AND website
+  const hasTechNLNames = new Set(
     existingCompanies.filter((c) => c.technl).map((c) => c.name.toLowerCase()),
+  );
+  const hasTechNLWebsites = new Set(
+    existingCompanies
+      .filter((c) => c.technl && c.website)
+      .map((c) => normalizeUrl(c.website!)),
   );
 
   // Get existing education institutions (TechNL lists some educational orgs too)
@@ -44,30 +49,35 @@ export async function loader({ request }: Route.LoaderArgs) {
   const existingNames = new Set([...companyNames, ...educationNames]);
   const existingWebsites = companyWebsites; // Only companies have websites typically
 
-  // Combine TechNL flags
-  const allTechNL = new Set([...hasTechNL, ...educationWithTechNL]);
+  // Combine TechNL flags (names only — websites handled separately)
+  const allTechNLNames = new Set([...hasTechNLNames, ...educationWithTechNL]);
 
   // Get blocked items
   const blockedTechNL = await getBlockedExternalIds("technl");
 
-  // Build a lookup of existing company data for diff display
+  // Build a lookup of existing company data for diff display — keyed by both name and website
   const existingCompanyData: Record<
     string,
     { website: string | null; description: string; email: string | null; logo: string | null }
   > = {};
   for (const c of existingCompanies) {
-    existingCompanyData[c.name.toLowerCase()] = {
+    const data = {
       website: c.website,
       description: c.description,
       email: c.email,
       logo: c.logo,
     };
+    existingCompanyData[c.name.toLowerCase()] = data;
+    if (c.website) {
+      existingCompanyData[`website:${normalizeUrl(c.website)}`] = data;
+    }
   }
 
   return {
     existingNames: Array.from(existingNames),
     existingWebsites: Array.from(existingWebsites),
-    hasTechNL: Array.from(allTechNL),
+    hasTechNLNames: Array.from(allTechNLNames),
+    hasTechNLWebsites: Array.from(hasTechNLWebsites),
     blockedTechNL: Array.from(blockedTechNL),
     existingCompanyData,
   };
@@ -219,7 +229,8 @@ export default function ImportTechNL() {
   const {
     existingNames,
     existingWebsites,
-    hasTechNL,
+    hasTechNLNames,
+    hasTechNLWebsites,
     blockedTechNL: initialBlocked,
     existingCompanyData,
   } = useLoaderData<typeof loader>();
@@ -288,7 +299,9 @@ export default function ImportTechNL() {
   };
 
   const alreadyHasTechNL = (company: ScrapedCompany) => {
-    return hasTechNL.includes(company.name.toLowerCase());
+    if (hasTechNLNames.includes(company.name.toLowerCase())) return true;
+    if (company.website && hasTechNLWebsites.includes(normalizeUrl(company.website))) return true;
+    return false;
   };
 
   const getExternalId = (company: ScrapedCompany) => {
@@ -365,7 +378,9 @@ export default function ImportTechNL() {
   };
 
   const getDiffs = (company: ScrapedCompany) => {
-    const existing = existingCompanyData[company.name.toLowerCase()];
+    const existing =
+      existingCompanyData[company.name.toLowerCase()] ||
+      (company.website ? existingCompanyData[`website:${normalizeUrl(company.website)}`] : null);
     if (!existing) return [];
     const diffs: { key: string; field: string; ours: string; theirs: string; rawValue: string }[] = [];
     if (company.website && existing.website && normalizeUrl(company.website) !== normalizeUrl(existing.website)) {
