@@ -14,6 +14,7 @@ import type {
   WorkplaceType,
 } from "./types";
 import { htmlToText } from "./text.server";
+import pLimit from "p-limit";
 
 const CAREERBEACON_JOB_URL_RE =
   /https?:\/\/www\.careerbeacon\.com\/en\/job\/\d+\/[^\s"'<>]+/gi;
@@ -205,13 +206,17 @@ export const careerbeaconImporter: JobImporter = {
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const urls = await resolveJobUrls(config);
-    const jobs: FetchedJob[] = [];
+    const limit = pLimit(5);
 
-    for (const url of urls) {
-      const html = await fetchHtml(url);
-      const posting = parseCareerBeaconPostingFromHtml(html, url);
-      jobs.push(convertPosting(posting));
-    }
+    const jobs = await Promise.all(
+      urls.map((url) =>
+        limit(async () => {
+          const html = await fetchHtml(url);
+          const posting = parseCareerBeaconPostingFromHtml(html, url);
+          return convertPosting(posting);
+        }),
+      ),
+    );
 
     return jobs;
   },

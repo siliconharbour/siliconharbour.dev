@@ -9,6 +9,7 @@
  */
 
 import type { EventImporter, ImportSourceConfig, FetchedEvent, ValidationResult } from "./types";
+import pLimit from "p-limit";
 
 const LUMA_API = "https://api2.luma.com";
 const LUMA_BASE = "https://luma.com";
@@ -182,14 +183,13 @@ async function fetchUserEvents(identifier: string): Promise<FetchedEvent[]> {
     }
   }
 
-  const results: FetchedEvent[] = [];
+  // Build event data (no async needed), collecting slugs for description fetch
+  const pending: { event: Omit<FetchedEvent, "description">; slug: string }[] = [];
 
   for (const entry of allEntries) {
     const ev = entry.event;
     if (!ev?.api_id || !ev.name?.trim()) continue;
 
-    const externalId = ev.api_id;
-    const title = ev.name.trim();
     const eventSlug = ev.url ?? ev.api_id;
     const timezone = ev.timezone ?? "America/St_Johns";
 
@@ -200,34 +200,39 @@ async function fetchUserEvents(identifier: string): Promise<FetchedEvent[]> {
       geo?.city ??
       (ev.location_type === "online" ? "Online" : "");
 
-    const organizer = entry.hosts?.[0]?.name ?? entry.calendar?.name ?? "Unknown";
-
-    const link = `${LUMA_BASE}/${eventSlug}`;
-    const coverImageUrl = ev.cover_url ?? null;
-
     const { date: startDate, time: startTime } = parseToLocalDateAndTime(ev.start_at, timezone);
     const { date: endDate, time: endTime } = parseToLocalDateAndTime(ev.end_at, timezone);
 
     if (!startDate) continue;
 
-    // Fetch description from event page — do this after checking other required fields
-    const description = await fetchEventDescription(eventSlug);
-
-    results.push({
-      externalId,
-      title,
-      description,
-      location,
-      link,
-      organizer,
-      startDate,
-      endDate: endDate || startDate,
-      startTime,
-      endTime,
-      coverImageUrl,
-      timezone,
+    pending.push({
+      slug: eventSlug,
+      event: {
+        externalId: ev.api_id,
+        title: ev.name.trim(),
+        location,
+        link: `${LUMA_BASE}/${eventSlug}`,
+        organizer: entry.hosts?.[0]?.name ?? entry.calendar?.name ?? "Unknown",
+        startDate,
+        endDate: endDate || startDate,
+        startTime,
+        endTime,
+        coverImageUrl: ev.cover_url ?? null,
+        timezone,
+      },
     });
   }
+
+  // Fetch descriptions concurrently (bounded to avoid hammering Luma)
+  const limit = pLimit(5);
+  const results = await Promise.all(
+    pending.map(({ event, slug }) =>
+      limit(async () => {
+        const description = await fetchEventDescription(slug);
+        return { ...event, description };
+      }),
+    ),
+  );
 
   return results;
 }
