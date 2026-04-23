@@ -16,7 +16,6 @@ import { scrapeVirtualMarine } from "./custom/virtual-marine";
 import { scrapeNetbenefit } from "./custom/netbenefit";
 import { scrapeRutter } from "./custom/rutter";
 import { scrapeCompusult } from "./custom/compusult";
-import { scrapeEnaimco } from "./custom/enaimco";
 import { scrapeTriware } from "./custom/triware";
 import { scrapeFocusfs } from "./custom/focusfs";
 import { scrapeBluedrop } from "./custom/bluedrop";
@@ -37,7 +36,6 @@ const scrapers: Record<string, CustomScraper> = {
   netbenefit: () => scrapeNetbenefit(),
   rutter: () => scrapeRutter(),
   compusult: () => scrapeCompusult(),
-  enaimco: () => scrapeEnaimco(),
   triware: () => scrapeTriware(),
   focusfs: () => scrapeFocusfs(),
   bluedrop: () => scrapeBluedrop(),
