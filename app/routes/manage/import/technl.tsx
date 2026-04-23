@@ -150,7 +150,19 @@ export async function action({ request }: Route.ActionArgs) {
       return { intent: "adopt-field", error: `Field "${field}" is not adoptable` };
     }
 
-    const existing = await getCompanyByName(name);
+    let existing = await getCompanyByName(name);
+    if (!existing && value) {
+      // Company may have been renamed — try matching by website from form data
+      const websiteValue = formData.get("companyWebsite") as string;
+      if (websiteValue) {
+        const allCompanies = await getAllCompanies(true);
+        const normalizedWebsite = normalizeUrl(websiteValue);
+        existing =
+          allCompanies.find(
+            (c) => c.website && normalizeUrl(c.website) === normalizedWebsite,
+          ) ?? null;
+      }
+    }
     if (!existing) {
       return { intent: "adopt-field", error: `Company "${name}" not found` };
     }
@@ -188,15 +200,23 @@ export async function action({ request }: Route.ActionArgs) {
             }
           }
 
-          // Check if company already exists
-          const existing = await getCompanyByName(company.name);
+          // Check if company already exists — by name first, then by website
+          let existing = await getCompanyByName(company.name);
+          if (!existing && company.website) {
+            const allCompanies = await getAllCompanies(true);
+            const normalizedWebsite = normalizeUrl(company.website);
+            existing =
+              allCompanies.find(
+                (c) => c.website && normalizeUrl(c.website) === normalizedWebsite,
+              ) ?? null;
+          }
 
           if (existing) {
             // Just set the technl flag — don't overwrite curated data
             await updateCompany(existing.id, {
               technl: true,
             });
-            imported.push(`${company.name} (marked TechNL)`);
+            imported.push(`${existing.name} (marked TechNL)`);
           } else {
             // Create new company (hidden by default, requires review)
             await createCompany({
@@ -609,6 +629,7 @@ export default function ImportTechNL() {
                                       name: company.name,
                                       field: d.key,
                                       value: d.rawValue,
+                                      companyWebsite: company.website || "",
                                     },
                                     { method: "post" },
                                   )
