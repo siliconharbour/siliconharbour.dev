@@ -191,10 +191,11 @@ export const bamboohrImporter: JobImporter = {
       try {
         const details = await fetchBambooHRJobDetail(company, listing.id);
         const fullJob = convertDetailJob(details, company);
-        // Merge listing data with detail data
+        // Merge: detail has richer data, but keep listing's externalId (reliable)
         jobs.push({
           ...job,
           ...fullJob,
+          externalId: job.externalId,
         });
       } catch (e) {
         // Continue without full description if detail fetch fails

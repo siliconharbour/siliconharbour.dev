@@ -125,6 +125,14 @@ function parsePostedOn(postedOn: string): Date | undefined {
 }
 
 /**
+ * Parse an ISO date string, returning undefined if invalid.
+ */
+function parseIsoDate(value: string): Date | undefined {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+/**
  * Detect workplace type from job location or time type
  */
 function detectWorkplaceType(location: string, _timeType: string): WorkplaceType | undefined {
@@ -252,7 +260,7 @@ async function fetchWorkdayJobDetail(
 function convertListingJob(job: WorkdayJobListing, company: string, site: string): FetchedJob {
   const baseUrl = buildBaseUrl(company);
   // Extract job ID from externalPath (e.g., /job/Canada---St-Johns/Title_R0025228 -> R0025228)
-  const jobIdMatch = job.externalPath.match(/_([A-Z0-9-]+(?:-\d+)?)$/);
+  const jobIdMatch = job.externalPath.match(/_([A-Za-z0-9_-]+)$/);
   const externalId = jobIdMatch ? jobIdMatch[1] : job.externalPath;
 
   return {
@@ -286,7 +294,7 @@ function convertDetailJob(detail: WorkdayJobDetail, company: string, site: strin
     descriptionText: info.jobDescription ? htmlToText(info.jobDescription) : undefined,
     url: info.externalUrl || `${baseUrl}/${site}/job/${info.jobPostingId}`,
     workplaceType: detectWorkplaceType(info.location || "", info.timeType || ""),
-    postedAt: info.startDate ? new Date(info.startDate) : undefined,
+    postedAt: info.startDate ? parseIsoDate(info.startDate) : undefined,
   };
 }
 

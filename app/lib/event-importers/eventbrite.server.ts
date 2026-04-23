@@ -58,14 +58,12 @@ function parseISOToLocal(isoString: string | undefined): { date: string; time: s
 }
 
 /**
- * Infer timezone name from an ISO offset string like "-0230" or "-0330".
- * NST is America/St_Johns — we default to that for known NL offsets.
+ * Default timezone for Eventbrite events.
+ * This importer is currently scoped to NL-based organizers.
+ * If we need to support other regions, this should parse the ISO offset
+ * from the event's startDate and map it to a timezone name.
  */
-function inferTimezone(isoString: string | undefined): string {
-  if (!isoString) return "America/St_Johns";
-  const match = isoString.match(/[+-]\d{4}$/);
-  if (!match) return "America/St_Johns";
-  // -0230 = NST summer, -0330 = NST winter — both are America/St_Johns
+function getDefaultTimezone(): string {
   return "America/St_Johns";
 }
 
@@ -130,7 +128,7 @@ async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]
         const link = eventUrl;
         const coverImageUrl = ev.image ?? null;
 
-        const timezone = inferTimezone(ev.startDate);
+        const timezone = getDefaultTimezone();
         const { date: startDate, time: startTime } = parseISOToLocal(ev.startDate);
         const { date: endDate, time: endTime } = parseISOToLocal(ev.endDate);
 
