@@ -8,8 +8,10 @@ import {
   updateCompany,
   getAllCompanies,
   getCompanyByName,
+  deleteCompany,
 } from "~/lib/companies.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
+import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from Genesis Centre - siliconharbour.dev" }];
@@ -28,10 +30,13 @@ export async function loader({ request }: Route.LoaderArgs) {
     existingCompanies.filter((c) => c.genesis).map((c) => c.name.toLowerCase()),
   );
 
+  const blockedGenesis = await getBlockedExternalIds("genesis");
+
   return {
     existingNames: Array.from(existingNames),
     existingWebsites: Array.from(existingWebsites),
     hasGenesis: Array.from(hasGenesis),
+    blockedGenesis: Array.from(blockedGenesis),
   };
 }
 
@@ -49,6 +54,33 @@ export async function action({ request }: Route.ActionArgs) {
 
   const formData = await request.formData();
   const intent = formData.get("intent");
+
+  if (intent === "block") {
+    const externalId = formData.get("externalId") as string;
+    const name = formData.get("name") as string;
+
+    if (externalId && name) {
+      await blockItem("genesis", externalId, name);
+
+      const existingCompany = await getCompanyByName(name);
+      if (existingCompany) {
+        await deleteCompany(existingCompany.id);
+      }
+
+      return { intent: "block", blocked: { externalId, name } };
+    }
+    return { intent: "block", error: "Missing externalId or name" };
+  }
+
+  if (intent === "unblock") {
+    const externalId = formData.get("externalId") as string;
+
+    if (externalId) {
+      await unblockItem("genesis", externalId);
+      return { intent: "unblock", unblocked: externalId };
+    }
+    return { intent: "unblock", error: "Missing externalId" };
+  }
 
   if (intent === "fetch") {
     try {
@@ -122,13 +154,19 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ImportGenesis() {
-  const { existingNames, existingWebsites, hasGenesis } = useLoaderData<typeof loader>();
+  const {
+    existingNames,
+    existingWebsites,
+    hasGenesis,
+    blockedGenesis: initialBlocked,
+  } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
   const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadLogos, setDownloadLogos] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [blockedGenesis, setBlockedGenesis] = useState<Set<string>>(new Set(initialBlocked));
 
   // Sync fetcher data to local state - using useEffect to avoid setState during render
   const fetcherData = fetcher.data;
@@ -141,6 +179,17 @@ export default function ImportGenesis() {
       if (fetchedCompanies.length === 0) {
         setFetchedCompanies(fetcherData.companies);
       }
+    }
+
+    if (fetcherData?.intent === "block" && fetcherData.blocked) {
+      setBlockedGenesis((prev) => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
+    }
+    if (fetcherData?.intent === "unblock" && fetcherData.unblocked) {
+      setBlockedGenesis((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(fetcherData.unblocked.toLowerCase());
+        return newSet;
+      });
     }
   }, [fetcherData, fetchedCompanies.length]);
 
@@ -156,6 +205,25 @@ export default function ImportGenesis() {
 
   const alreadyHasGenesis = (company: ScrapedCompany) => {
     return hasGenesis.includes(company.name.toLowerCase());
+  };
+
+  const getExternalId = (company: ScrapedCompany) => {
+    return company.website ? normalizeUrl(company.website) : company.name.toLowerCase();
+  };
+
+  const isBlocked = (company: ScrapedCompany) => {
+    return blockedGenesis.has(getExternalId(company));
+  };
+
+  const handleBlock = (company: ScrapedCompany) => {
+    fetcher.submit(
+      { intent: "block", externalId: getExternalId(company), name: company.name },
+      { method: "post" },
+    );
+  };
+
+  const handleUnblock = (company: ScrapedCompany) => {
+    fetcher.submit({ intent: "unblock", externalId: getExternalId(company) }, { method: "post" });
   };
 
   const getStatus = (company: ScrapedCompany) => {
@@ -180,7 +248,7 @@ export default function ImportGenesis() {
   };
 
   const selectAll = () => {
-    const selectable = filteredCompanies.filter((c) => !alreadyHasGenesis(c));
+    const selectable = filteredCompanies.filter((c) => !alreadyHasGenesis(c) && !isBlocked(c));
     setSelected(new Set(selectable.map((c) => c.sourceId)));
   };
 
@@ -310,25 +378,28 @@ export default function ImportGenesis() {
               {filteredCompanies.map((company) => {
                 const existing = isExisting(company);
                 const hasGenesisFlag = alreadyHasGenesis(company);
+                const blocked = isBlocked(company);
                 const status = getStatus(company);
                 return (
                   <div
                     key={company.sourceId}
                     className={`flex items-center gap-4 p-3 border ${
-                      hasGenesisFlag
-                        ? "bg-harbour-50 border-harbour-200 opacity-60"
-                        : selected.has(company.sourceId)
-                          ? "bg-blue-50 border-blue-300"
-                          : existing
-                            ? "bg-amber-50 border-amber-200"
-                            : "bg-white border-harbour-200"
+                      blocked
+                        ? "bg-red-50 border-red-200 opacity-50"
+                        : hasGenesisFlag
+                          ? "bg-harbour-50 border-harbour-200 opacity-60"
+                          : selected.has(company.sourceId)
+                            ? "bg-blue-50 border-blue-300"
+                            : existing
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-white border-harbour-200"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={selected.has(company.sourceId)}
                       onChange={() => toggleSelect(company.sourceId)}
-                      disabled={hasGenesisFlag}
+                      disabled={hasGenesisFlag || blocked}
                       className="w-5 h-5"
                     />
 
@@ -336,7 +407,7 @@ export default function ImportGenesis() {
                       <img
                         src={company.logoUrl}
                         alt=""
-                        className="w-10 h-10 object-contain bg-white border border-harbour-100"
+                        className={`w-10 h-10 object-contain bg-white border border-harbour-100 ${blocked ? "grayscale" : ""}`}
                         loading="lazy"
                       />
                     ) : (
@@ -345,13 +416,22 @@ export default function ImportGenesis() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium truncate">{company.name}</span>
-                        {hasGenesisFlag && (
+                        <span
+                          className={`font-medium truncate ${blocked ? "line-through text-harbour-400" : ""}`}
+                        >
+                          {company.name}
+                        </span>
+                        {blocked && (
+                          <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
+                            Import blocked
+                          </span>
+                        )}
+                        {!blocked && hasGenesisFlag && (
                           <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
                             Already imported
                           </span>
                         )}
-                        {existing && !hasGenesisFlag && (
+                        {!blocked && existing && !hasGenesisFlag && (
                           <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
                             Will update
                           </span>
@@ -399,6 +479,24 @@ export default function ImportGenesis() {
                             </span>
                           ))}
                       </div>
+                    )}
+
+                    {blocked ? (
+                      <button
+                        type="button"
+                        onClick={() => handleUnblock(company)}
+                        className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                      >
+                        Remove block
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleBlock(company)}
+                        className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
+                      >
+                        Import block
+                      </button>
                     )}
                   </div>
                 );
