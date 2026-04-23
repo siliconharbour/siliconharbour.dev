@@ -123,6 +123,29 @@ export async function action({ request }: Route.ActionArgs) {
     return { intent: "unblock", error: "Missing externalId" };
   }
 
+  if (intent === "adopt-field") {
+    const name = formData.get("name") as string;
+    const field = formData.get("field") as string;
+    const value = formData.get("value") as string;
+
+    if (!name || !field || !value) {
+      return { intent: "adopt-field", error: "Missing name, field, or value" };
+    }
+
+    const allowedFields = ["website", "description", "email"];
+    if (!allowedFields.includes(field)) {
+      return { intent: "adopt-field", error: `Field "${field}" is not adoptable` };
+    }
+
+    const existing = await getCompanyByName(name);
+    if (!existing) {
+      return { intent: "adopt-field", error: `Company "${name}" not found` };
+    }
+
+    await updateCompany(existing.id, { [field]: value });
+    return { intent: "adopt-field", adopted: { name, field } };
+  }
+
   if (intent === "fetch") {
     try {
       const scraped = await scrapeTechNL();
@@ -221,6 +244,24 @@ export default function ImportTechNL() {
     }
 
     // Handle block/unblock responses
+    // Update local existingCompanyData when a field is adopted so diffs refresh
+    if (fetcherData?.intent === "adopt-field" && fetcherData.adopted) {
+      const { name, field } = fetcherData.adopted;
+      const key = name.toLowerCase();
+      if (existingCompanyData[key]) {
+        const scraped = fetchedCompanies.find((c) => c.name.toLowerCase() === key);
+        if (scraped) {
+          const val =
+            field === "website" ? scraped.website :
+            field === "description" ? scraped.description :
+            field === "email" ? scraped.email : null;
+          if (val !== null && val !== undefined) {
+            existingCompanyData[key] = { ...existingCompanyData[key], [field]: val };
+          }
+        }
+      }
+    }
+
     if (fetcherData?.intent === "block" && fetcherData.blocked) {
       setBlockedTechNL((prev) => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
     }
@@ -323,23 +364,23 @@ export default function ImportTechNL() {
   const getDiffs = (company: ScrapedCompany) => {
     const existing = existingCompanyData[company.name.toLowerCase()];
     if (!existing) return [];
-    const diffs: { field: string; ours: string; theirs: string }[] = [];
+    const diffs: { key: string; field: string; ours: string; theirs: string; rawValue: string }[] = [];
     if (company.website && existing.website && normalizeUrl(company.website) !== normalizeUrl(existing.website)) {
-      diffs.push({ field: "Website", ours: existing.website, theirs: company.website });
+      diffs.push({ key: "website", field: "Website", ours: existing.website, theirs: company.website, rawValue: company.website });
     }
     if (company.website && !existing.website) {
-      diffs.push({ field: "Website", ours: "(none)", theirs: company.website });
+      diffs.push({ key: "website", field: "Website", ours: "(none)", theirs: company.website, rawValue: company.website });
     }
     if (company.description && existing.description && company.description.trim() !== existing.description.trim()) {
       const oursShort = existing.description.length > 80 ? existing.description.slice(0, 80) + "..." : existing.description;
       const theirsShort = company.description.length > 80 ? company.description.slice(0, 80) + "..." : company.description;
-      diffs.push({ field: "Description", ours: oursShort, theirs: theirsShort });
+      diffs.push({ key: "description", field: "Description", ours: oursShort, theirs: theirsShort, rawValue: company.description });
     }
     if (company.email && existing.email && company.email.toLowerCase() !== existing.email.toLowerCase()) {
-      diffs.push({ field: "Email", ours: existing.email, theirs: company.email });
+      diffs.push({ key: "email", field: "Email", ours: existing.email, theirs: company.email, rawValue: company.email });
     }
     if (company.email && !existing.email) {
-      diffs.push({ field: "Email", ours: "(none)", theirs: company.email });
+      diffs.push({ key: "email", field: "Email", ours: "(none)", theirs: company.email, rawValue: company.email });
     }
     return diffs;
   };
@@ -532,15 +573,32 @@ export default function ImportTechNL() {
                       return (
                         <div className="mt-2 text-xs border border-harbour-100 divide-y divide-harbour-100">
                           {diffs.map((d) => (
-                            <div key={d.field} className="flex gap-2 px-2 py-1">
+                            <div key={d.key} className="flex items-center gap-2 px-2 py-1">
                               <span className="text-harbour-400 w-20 shrink-0">{d.field}</span>
                               <span className="text-harbour-500 truncate" title={d.ours}>
                                 {d.ours}
                               </span>
                               <span className="text-harbour-300 shrink-0">{"\u2192"}</span>
-                              <span className="text-amber-700 truncate" title={d.theirs}>
+                              <span className="text-amber-700 truncate flex-1" title={d.theirs}>
                                 {d.theirs}
                               </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  fetcher.submit(
+                                    {
+                                      intent: "adopt-field",
+                                      name: company.name,
+                                      field: d.key,
+                                      value: d.rawValue,
+                                    },
+                                    { method: "post" },
+                                  )
+                                }
+                                className="shrink-0 px-1.5 py-0.5 text-xs border border-harbour-200 text-harbour-500 hover:text-harbour-700 hover:border-harbour-400 transition-colors"
+                              >
+                                Use this
+                              </button>
                             </div>
                           ))}
                         </div>
