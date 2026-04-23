@@ -50,11 +50,26 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Get blocked items
   const blockedTechNL = await getBlockedExternalIds("technl");
 
+  // Build a lookup of existing company data for diff display
+  const existingCompanyData: Record<
+    string,
+    { website: string | null; description: string; email: string | null; logo: string | null }
+  > = {};
+  for (const c of existingCompanies) {
+    existingCompanyData[c.name.toLowerCase()] = {
+      website: c.website,
+      description: c.description,
+      email: c.email,
+      logo: c.logo,
+    };
+  }
+
   return {
     existingNames: Array.from(existingNames),
     existingWebsites: Array.from(existingWebsites),
     hasTechNL: Array.from(allTechNL),
     blockedTechNL: Array.from(blockedTechNL),
+    existingCompanyData,
   };
 }
 
@@ -180,6 +195,7 @@ export default function ImportTechNL() {
     existingWebsites,
     hasTechNL,
     blockedTechNL: initialBlocked,
+    existingCompanyData,
   } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
@@ -187,6 +203,9 @@ export default function ImportTechNL() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadLogos, setDownloadLogos] = useState(true);
   const [blockedTechNL, setBlockedTechNL] = useState<Set<string>>(new Set(initialBlocked));
+  const [filter, setFilter] = useState<"all" | "new" | "not-technl" | "already-technl" | "blocked">(
+    "all",
+  );
 
   const fetcherData = fetcher.data;
 
@@ -280,6 +299,51 @@ export default function ImportTechNL() {
     );
   };
 
+  const getCompanyCategory = (company: ScrapedCompany) => {
+    if (isBlocked(company)) return "blocked" as const;
+    if (alreadyHasTechNL(company)) return "already-technl" as const;
+    if (isExisting(company)) return "not-technl" as const;
+    return "new" as const;
+  };
+
+  const filteredCompanies = fetchedCompanies.filter((c) => {
+    if (filter === "all") return true;
+    return getCompanyCategory(c) === filter;
+  });
+
+  const categoryCounts = {
+    all: fetchedCompanies.length,
+    new: fetchedCompanies.filter((c) => getCompanyCategory(c) === "new").length,
+    "not-technl": fetchedCompanies.filter((c) => getCompanyCategory(c) === "not-technl").length,
+    "already-technl": fetchedCompanies.filter((c) => getCompanyCategory(c) === "already-technl")
+      .length,
+    blocked: fetchedCompanies.filter((c) => getCompanyCategory(c) === "blocked").length,
+  };
+
+  const getDiffs = (company: ScrapedCompany) => {
+    const existing = existingCompanyData[company.name.toLowerCase()];
+    if (!existing) return [];
+    const diffs: { field: string; ours: string; theirs: string }[] = [];
+    if (company.website && existing.website && normalizeUrl(company.website) !== normalizeUrl(existing.website)) {
+      diffs.push({ field: "Website", ours: existing.website, theirs: company.website });
+    }
+    if (company.website && !existing.website) {
+      diffs.push({ field: "Website", ours: "(none)", theirs: company.website });
+    }
+    if (company.description && existing.description && company.description.trim() !== existing.description.trim()) {
+      const oursShort = existing.description.length > 80 ? existing.description.slice(0, 80) + "..." : existing.description;
+      const theirsShort = company.description.length > 80 ? company.description.slice(0, 80) + "..." : company.description;
+      diffs.push({ field: "Description", ours: oursShort, theirs: theirsShort });
+    }
+    if (company.email && existing.email && company.email.toLowerCase() !== existing.email.toLowerCase()) {
+      diffs.push({ field: "Email", ours: existing.email, theirs: company.email });
+    }
+    if (company.email && !existing.email) {
+      diffs.push({ field: "Email", ours: "(none)", theirs: company.email });
+    }
+    return diffs;
+  };
+
   const isFetching = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "fetch";
   const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
 
@@ -334,35 +398,64 @@ export default function ImportTechNL() {
 
       {fetchedCompanies.length > 0 && (
         <>
-          <div className="flex items-center gap-4 flex-wrap">
-            <span className="text-harbour-500">Found {fetchedCompanies.length} companies</span>
-            <button
-              type="button"
-              onClick={selectAll}
-              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
-            >
-              Select all new
-            </button>
-            <button
-              type="button"
-              onClick={selectNone}
-              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
-            >
-              Select none
-            </button>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={downloadLogos}
-                onChange={(e) => setDownloadLogos(e.target.checked)}
-                className="border border-harbour-300"
-              />
-              Download logos
-            </label>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {(
+                [
+                  ["all", "All"],
+                  ["new", "New"],
+                  ["not-technl", "Not TechNL"],
+                  ["already-technl", "Already TechNL"],
+                  ["blocked", "Blocked"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilter(key)}
+                  className={`text-xs px-2.5 py-1 border transition-colors ${
+                    filter === key
+                      ? "bg-harbour-600 text-white border-harbour-600"
+                      : "bg-white text-harbour-600 border-harbour-200 hover:border-harbour-400"
+                  }`}
+                >
+                  {label} ({categoryCounts[key]})
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="text-harbour-500">
+                Showing {filteredCompanies.length} of {fetchedCompanies.length}
+              </span>
+              <button
+                type="button"
+                onClick={selectAll}
+                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              >
+                Select all new
+              </button>
+              <button
+                type="button"
+                onClick={selectNone}
+                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              >
+                Select none
+              </button>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={downloadLogos}
+                  onChange={(e) => setDownloadLogos(e.target.checked)}
+                  className="border border-harbour-300"
+                />
+                Download logos
+              </label>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2">
-            {fetchedCompanies.map((company) => {
+            {filteredCompanies.map((company) => {
               const existing = isExisting(company);
               const hasTechNLFlag = alreadyHasTechNL(company);
               const blocked = isBlocked(company);
@@ -433,6 +526,26 @@ export default function ImportTechNL() {
                         {company.website}
                       </a>
                     )}
+                    {!blocked && existing && !hasTechNLFlag && (() => {
+                      const diffs = getDiffs(company);
+                      if (diffs.length === 0) return null;
+                      return (
+                        <div className="mt-2 text-xs border border-harbour-100 divide-y divide-harbour-100">
+                          {diffs.map((d) => (
+                            <div key={d.field} className="flex gap-2 px-2 py-1">
+                              <span className="text-harbour-400 w-20 shrink-0">{d.field}</span>
+                              <span className="text-harbour-500 truncate" title={d.ours}>
+                                {d.ours}
+                              </span>
+                              <span className="text-harbour-300 shrink-0">{"\u2192"}</span>
+                              <span className="text-amber-700 truncate" title={d.theirs}>
+                                {d.theirs}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {company.categories.length > 0 && (
