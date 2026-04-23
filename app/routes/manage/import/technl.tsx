@@ -76,7 +76,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 function normalizeUrl(url: string): string {
   try {
     const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./, "").toLowerCase() + parsed.pathname.replace(/\/$/, "");
+    return (
+      parsed.hostname.replace(/^www\./, "").toLowerCase() +
+      parsed.pathname.replace(/\/$/, "").toLowerCase()
+    );
   } catch {
     return url.toLowerCase();
   }

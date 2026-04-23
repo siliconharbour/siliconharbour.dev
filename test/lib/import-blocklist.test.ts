@@ -8,6 +8,22 @@ import {
 } from "~/lib/import-blocklist.server";
 
 // =============================================================================
+// normalizeUrl mirror — must match the one in technl.tsx and genesis.tsx
+// =============================================================================
+
+function normalizeUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.hostname.replace(/^www\./, "").toLowerCase() +
+      parsed.pathname.replace(/\/$/, "").toLowerCase()
+    );
+  } catch {
+    return url.toLowerCase();
+  }
+}
+
+// =============================================================================
 // isBlocked / blockItem / unblockItem
 // =============================================================================
 
@@ -102,5 +118,35 @@ describe("getBlockedExternalIds", () => {
     const ids = await getBlockedExternalIds("github");
     expect(ids.has("mixedcase")).toBe(true);
     expect(ids.has("MixedCase")).toBe(false);
+  });
+});
+
+// =============================================================================
+// normalizeUrl + blocklist integration (reproduces the URL-path-case bug)
+// =============================================================================
+
+describe("normalizeUrl blocklist integration", () => {
+  it("normalizeUrl lowercases path so it matches getBlockedExternalIds", async () => {
+    // Simulate: block a company whose website has mixed-case path
+    const url = "http://www.ic.gc.ca/Intro.html";
+    const externalId = normalizeUrl(url);
+
+    expect(externalId).toBe("ic.gc.ca/intro.html"); // path must be lowercased
+
+    await blockItem("technl", externalId, "ISED Canada");
+
+    // getBlockedExternalIds also lowercases — should find it
+    const blockedSet = await getBlockedExternalIds("technl");
+    expect(blockedSet.has(externalId)).toBe(true);
+  });
+
+  it("normalizeUrl strips www and trailing slash", () => {
+    expect(normalizeUrl("https://www.example.com/Page/")).toBe("example.com/page");
+    expect(normalizeUrl("http://Example.COM/")).toBe("example.com");
+  });
+
+  it("normalizeUrl handles non-URL input gracefully", () => {
+    expect(normalizeUrl("not a url")).toBe("not a url");
+    expect(normalizeUrl("Company Name")).toBe("company name");
   });
 });
