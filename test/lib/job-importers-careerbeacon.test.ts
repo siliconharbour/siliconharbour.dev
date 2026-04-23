@@ -14,6 +14,16 @@ describe("careerbeacon importer helpers", () => {
     expect(urls[1]).toContain("/job/3333000/");
   });
 
+  it("extracts job urls with special characters in path segments", () => {
+    const text = `
+      https://www.careerbeacon.com/en/job/1234567/st.-john%27s-company/sr.-developer/st.-john%27s-nl
+    `;
+
+    const urls = __testables.parseJobUrlsFromText(text);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toContain("/job/1234567/");
+  });
+
   it("parses JobPosting schema from a job page", () => {
     const html = `
       <html><body>
