@@ -1,6 +1,6 @@
 ---
 id: s-6ea8
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-04-23T00:09:07Z
