@@ -166,7 +166,7 @@ function JobRow({
         </span>
         <span className="text-sm text-harbour-400">
           {[job.companyName, job.location, job.workplaceType].filter(Boolean).join(" \u2022 ")}
-          {job.postedAt && <> \u2022 {format(new Date(job.postedAt), "MMM d")}</>}
+          {job.postedAt && <> {"\u2022"} {format(new Date(job.postedAt), "MMM d")}</>}
         </span>
       </div>
       <Form method="post" className="flex-shrink-0">
