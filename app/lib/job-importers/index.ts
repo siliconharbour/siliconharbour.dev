@@ -12,6 +12,7 @@ import { leverImporter } from "./lever.server";
 import { collageImporter } from "./collage.server";
 import { ripplingImporter } from "./rippling.server";
 import { adpImporter } from "./adp.server";
+import { careerbeaconImporter } from "./careerbeacon.server";
 import { customImporter } from "./custom.server";
 
 // Registry of all available importers
@@ -24,6 +25,7 @@ const importers: Record<string, JobImporter> = {
   collage: collageImporter,
   rippling: ripplingImporter,
   adp: adpImporter,
+  careerbeacon: careerbeaconImporter,
   custom: customImporter,
 };
 
