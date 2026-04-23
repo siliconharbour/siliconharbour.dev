@@ -58,18 +58,29 @@ function decodeHtmlEntities(str: string): string {
 /**
  * Mirror of netbenefit.server.ts parseDateString
  */
+const MONTH_NAMES: Record<string, string> = {
+  jan: "01", january: "01",
+  feb: "02", february: "02",
+  mar: "03", march: "03",
+  apr: "04", april: "04",
+  may: "05",
+  jun: "06", june: "06",
+  jul: "07", july: "07",
+  aug: "08", august: "08",
+  sep: "09", september: "09",
+  oct: "10", october: "10",
+  nov: "11", november: "11",
+  dec: "12", december: "12",
+};
+
 function parseDateString(raw: string): string {
-  try {
-    const cleaned = raw.trim().replace(/\s+/g, " ");
-    const d = new Date(cleaned);
-    if (isNaN(d.getTime())) return "";
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
-  } catch {
-    return "";
-  }
+  const cleaned = raw.trim().replace(/,/g, "").replace(/\s+/g, " ");
+  const match = cleaned.match(/^([A-Za-z]+)\s+(\d{1,2})\s+(\d{4})$/);
+  if (!match) return "";
+  const month = MONTH_NAMES[match[1].toLowerCase()];
+  if (!month) return "";
+  const day = match[2].padStart(2, "0");
+  return `${match[3]}-${month}-${day}`;
 }
 
 /**

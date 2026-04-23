@@ -241,11 +241,13 @@ export const lumaUserImporter: EventImporter = {
 
   async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     try {
-      // Fetch just one page of future events to validate the user ID is real
+      // Resolve username → usr-xxx if needed (same as fetchEvents does)
+      const userApiId = await resolveUserApiId(config.sourceIdentifier);
+
       const params = new URLSearchParams({
         pagination_limit: "1",
         period: "future",
-        user_api_id: config.sourceIdentifier,
+        user_api_id: userApiId,
       });
       const res = await fetch(`${LUMA_API}/user/profile/events-hosting?${params}`, {
         headers: LUMA_HEADERS,
@@ -254,7 +256,6 @@ export const lumaUserImporter: EventImporter = {
         return { valid: false, error: `Luma API returned ${res.status} — check the user ID` };
       }
       const data: LumaApiResponse = await res.json();
-      // Count is approximate (one page only), just confirms the user exists
       return { valid: true, eventCount: data.entries.length };
     } catch (err) {
       return {
