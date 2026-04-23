@@ -31,7 +31,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("This event is not recurring", { status: 400 });
   }
 
-  const eventWithOccurrences = await getEventWithOccurrences(id);
+  // Show the past week so admins can still cancel/edit today's or recent occurrences
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const eventWithOccurrences = await getEventWithOccurrences(id, oneWeekAgo);
   const occurrences = eventWithOccurrences?.occurrences || [];
 
   const parsed = parseRecurrenceRule(event.recurrenceRule);
@@ -134,14 +136,21 @@ export default function ManageOccurrences() {
           </p>
 
           <div className="divide-y divide-harbour-200">
-            {occurrences.map((occurrence, i) => (
-              <div key={i} className={`py-4 ${occurrence.cancelled ? "opacity-60" : ""}`}>
+            {occurrences.map((occurrence, i) => {
+              const isPast = new Date(occurrence.date) < new Date();
+              return (
+              <div key={i} className={`py-4 ${occurrence.cancelled ? "opacity-60" : isPast ? "opacity-75" : ""}`}>
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
                     <div
                       className={`font-medium ${occurrence.cancelled ? "line-through text-harbour-400" : "text-harbour-700"}`}
                     >
                       {formatInTimezone(occurrence.date, "EEEE, MMMM d, yyyy")}
+                      {isPast && !occurrence.cancelled && (
+                        <span className="ml-2 text-xs px-1.5 py-0.5 bg-harbour-50 text-harbour-400">
+                          Past
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-harbour-500">
                       {formatInTimezone(occurrence.date, "h:mm a")}
@@ -279,7 +288,8 @@ export default function ManageOccurrences() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {occurrences.length === 0 && (
