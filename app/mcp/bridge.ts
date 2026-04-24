@@ -21,6 +21,10 @@ import {
   getAllImportSources,
   syncJobs,
   createImportSource as createJobImportSource,
+  getImportedJobById,
+  approveJob,
+  approveJobAsNonTechnical,
+  hideImportedJob,
 } from "~/lib/job-importers/sync.server";
 import { getImporter, getAllImporterMeta } from "~/lib/job-importers/index";
 import type { JobSourceType } from "~/lib/job-importers/types";
@@ -159,7 +163,7 @@ export function buildExecuteFunctions(): HostFunctions {
       const pending: unknown[] = [];
       for (const source of sources) {
         const jobRows = await db
-          .select({ id: jobs.id, title: jobs.title, companyId: jobs.companyId })
+          .select()
           .from(jobs)
           .where(and(eq(jobs.sourceId, source.id), eq(jobs.status, "pending_review")))
           .limit(50);
@@ -172,15 +176,71 @@ export function buildExecuteFunctions(): HostFunctions {
                 .limit(1)
             : [];
           pending.push({
-            sourceId: source.id,
-            sourceName: source.sourceIdentifier,
             jobId: j.id,
             title: j.title,
             companyName: company?.name ?? null,
+            location: j.location,
+            workplaceType: j.workplaceType,
+            url: j.url,
+            descriptionSnippet: j.descriptionText
+              ? j.descriptionText.slice(0, 500) + (j.descriptionText.length > 500 ? "..." : "")
+              : null,
+            sourceType: source.sourceType,
           });
         }
       }
       return toPlain(pending);
+    },
+
+    async getJobDetail(jobId: unknown) {
+      const job = await getImportedJobById(Number(jobId));
+      if (!job) return { found: false, message: `Job ${jobId} not found` };
+      const [company] = job.companyId
+        ? await db
+            .select({ name: companies.name })
+            .from(companies)
+            .where(eq(companies.id, job.companyId))
+            .limit(1)
+        : [];
+      return toPlain({
+        found: true,
+        job: {
+          id: job.id,
+          title: job.title,
+          companyName: company?.name ?? null,
+          location: job.location,
+          workplaceType: job.workplaceType,
+          department: job.department,
+          status: job.status,
+          isTechnical: job.isTechnical,
+          url: job.url,
+          descriptionText: job.descriptionText,
+          postedAt: job.postedAt,
+        },
+      });
+    },
+
+    async reviewJob(opts: unknown) {
+      const o = (opts ?? {}) as { jobId?: number; action?: string };
+      if (!o.jobId) throw new Error("jobId is required");
+      if (!o.action) throw new Error("action is required (approve, approve-non-technical, hide)");
+
+      const job = await getImportedJobById(o.jobId);
+      if (!job) throw new Error(`Job ${o.jobId} not found`);
+
+      switch (o.action) {
+        case "approve":
+          await approveJob(o.jobId);
+          return { jobId: o.jobId, action: "approve", message: `"${job.title}" approved as technical` };
+        case "approve-non-technical":
+          await approveJobAsNonTechnical(o.jobId);
+          return { jobId: o.jobId, action: "approve-non-technical", message: `"${job.title}" approved as non-technical` };
+        case "hide":
+          await hideImportedJob(o.jobId);
+          return { jobId: o.jobId, action: "hide", message: `"${job.title}" hidden` };
+        default:
+          throw new Error(`Unknown action "${o.action}". Use: approve, approve-non-technical, hide`);
+      }
     },
 
     async syncEventSource(sourceId: unknown) {

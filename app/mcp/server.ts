@@ -76,17 +76,34 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
       {
         title: "Execute authenticated SiliconHarbour actions",
         description:
-          "Like 'query' but also exposes sync, creation, and pending-review functions. Requires apiToken. " +
+          "Like 'query' but also exposes sync, creation, review, and pending functions. Requires apiToken. " +
           "Additional imports from 'siliconharbour': " +
+          // Sync & listing
           "eventImportSources(), jobImportSources(), pendingEvents(), pendingJobs(), " +
           "syncEventSource(id), syncAllEventSources(), syncJobSource(id), syncAllJobSources(), " +
+          // Entity creation
           "createCompany({ name, website?, description?, location?, email? }), " +
           "getCompanyByName(name), " +
           "createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl? }), " +
           "createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? }), " +
-          "listImporterTypes(). " +
+          "listImporterTypes(), " +
+          // Job review
+          "getJobDetail(jobId), " +
+          "reviewJob({ jobId, action }). " +
+          // Guidance
           "createCompany creates hidden companies (pending review). " +
           "createJobSource/createEventSource validate the config before saving. " +
+          "pendingJobs() returns title, company, location, workplaceType, descriptionSnippet, URL. " +
+          "getJobDetail(jobId) returns full description text for deeper analysis. " +
+          "reviewJob actions: 'approve' (technical job, published), " +
+          "'approve-non-technical' (non-technical job, published but deprioritized), " +
+          "'hide' (not relevant, hidden from public). " +
+          "JOB REVIEW CRITERIA: " +
+          "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada. " +
+          "- 'approve-non-technical' if: non-technical role (sales, marketing, HR, operations, finance, admin) BUT in St. John's NL or remote. Also use for remote technical roles that are clearly not NL-connected. " +
+          "- 'hide' if: not in St. John's/NL and not remote, OR completely irrelevant to the NL tech community. " +
+          "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech. " +
+          "When uncertain, lean toward 'approve-non-technical' over 'hide'. " +
           "All functions call the real database on-demand. " +
           "Timeout: 60 seconds. If sync times out, use pendingEvents/pendingJobs instead.",
         inputSchema: {
