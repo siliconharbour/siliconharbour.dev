@@ -76,10 +76,17 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
       {
         title: "Execute authenticated SiliconHarbour actions",
         description:
-          "Like 'query' but also exposes sync and pending-review functions. Requires apiToken. " +
-          "Additional imports from 'siliconharbour': eventImportSources(), jobImportSources(), " +
-          "pendingEvents(), pendingJobs(), syncEventSource(id), syncAllEventSources(), " +
-          "syncJobSource(id), syncAllJobSources(). " +
+          "Like 'query' but also exposes sync, creation, and pending-review functions. Requires apiToken. " +
+          "Additional imports from 'siliconharbour': " +
+          "eventImportSources(), jobImportSources(), pendingEvents(), pendingJobs(), " +
+          "syncEventSource(id), syncAllEventSources(), syncJobSource(id), syncAllJobSources(), " +
+          "createCompany({ name, website?, description?, location?, email? }), " +
+          "getCompanyByName(name), " +
+          "createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl? }), " +
+          "createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? }), " +
+          "listImporterTypes(). " +
+          "createCompany creates hidden companies (pending review). " +
+          "createJobSource/createEventSource validate the config before saving. " +
           "All functions call the real database on-demand. " +
           "Timeout: 60 seconds. If sync times out, use pendingEvents/pendingJobs instead.",
         inputSchema: {

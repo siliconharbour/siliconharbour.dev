@@ -11,8 +11,23 @@ import { getPaginatedGroups } from "~/lib/groups.server";
 import { getPaginatedPeople } from "~/lib/people.server";
 import { getAllTechnologies } from "~/lib/technologies.server";
 import { getPaginatedEducation } from "~/lib/education.server";
-import { getAllEventImportSources, syncEvents } from "~/lib/event-importers/sync.server";
-import { getAllImportSources, syncJobs } from "~/lib/job-importers/sync.server";
+import {
+  getAllEventImportSources,
+  syncEvents,
+  createEventImportSource,
+  validateEventImportSourceConfig,
+} from "~/lib/event-importers/sync.server";
+import {
+  getAllImportSources,
+  syncJobs,
+  createImportSource as createJobImportSource,
+} from "~/lib/job-importers/sync.server";
+import { getImporter, getAllImporterMeta } from "~/lib/job-importers/index";
+import type { JobSourceType } from "~/lib/job-importers/types";
+import {
+  createCompany as createCompanyRecord,
+  getCompanyByName as getCompanyByNameRecord,
+} from "~/lib/companies.server";
 import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -194,6 +209,152 @@ export function buildExecuteFunctions(): HostFunctions {
         results.push({ sourceId: source.id, name: source.sourceIdentifier, ...result });
       }
       return toPlain(results);
+    },
+
+    // ── Entity creation ──────────────────────────────────────────────
+
+    async createCompany(opts: unknown) {
+      const o = (opts ?? {}) as {
+        name?: string;
+        website?: string;
+        description?: string;
+        location?: string;
+        email?: string;
+      };
+      if (!o.name?.trim()) throw new Error("name is required");
+      const existing = await getCompanyByNameRecord(o.name.trim());
+      if (existing) {
+        return toPlain({
+          created: false,
+          message: `Company "${existing.name}" already exists (id: ${existing.id})`,
+          company: { id: existing.id, name: existing.name, slug: existing.slug },
+        });
+      }
+      const company = await createCompanyRecord({
+        name: o.name.trim(),
+        description: o.description?.trim() || "",
+        website: o.website?.trim() || null,
+        location: o.location?.trim() || null,
+        email: o.email?.trim() || null,
+        logo: null,
+        visible: false,
+      });
+      return toPlain({
+        created: true,
+        message: `Company "${company.name}" created (hidden, pending review)`,
+        company: { id: company.id, name: company.name, slug: company.slug },
+      });
+    },
+
+    async getCompanyByName(name: unknown) {
+      if (!name || typeof name !== "string") throw new Error("name is required (string)");
+      const company = await getCompanyByNameRecord(name.trim());
+      if (!company) return { found: false, message: `No company found matching "${name}"` };
+      return toPlain({
+        found: true,
+        company: {
+          id: company.id,
+          name: company.name,
+          slug: company.slug,
+          website: company.website,
+          visible: company.visible,
+        },
+      });
+    },
+
+    async createJobSource(opts: unknown) {
+      const o = (opts ?? {}) as {
+        companyId?: number;
+        sourceType?: string;
+        sourceIdentifier?: string;
+        sourceUrl?: string;
+      };
+      if (!o.companyId) throw new Error("companyId is required");
+      if (!o.sourceType) throw new Error("sourceType is required");
+      if (!o.sourceIdentifier?.trim()) throw new Error("sourceIdentifier is required");
+
+      // Validate the source type is supported
+      try {
+        getImporter(o.sourceType as JobSourceType);
+      } catch {
+        throw new Error(
+          `Unsupported sourceType "${o.sourceType}". Use listImporterTypes() to see available types.`,
+        );
+      }
+
+      // Validate the config actually works
+      const importer = getImporter(o.sourceType as JobSourceType);
+      const validation = await importer.validateConfig({
+        companyId: o.companyId,
+        sourceType: o.sourceType as JobSourceType,
+        sourceIdentifier: o.sourceIdentifier.trim(),
+        sourceUrl: o.sourceUrl?.trim() || null,
+      });
+      if (!validation.valid) {
+        return {
+          created: false,
+          message: `Validation failed: ${validation.error}`,
+        };
+      }
+
+      const sourceId = await createJobImportSource({
+        companyId: o.companyId,
+        sourceType: o.sourceType as JobSourceType,
+        sourceIdentifier: o.sourceIdentifier.trim(),
+        sourceUrl: o.sourceUrl?.trim() || null,
+      });
+      return {
+        created: true,
+        sourceId,
+        message: `Job import source created (id: ${sourceId}). Use syncJobSource(${sourceId}) to run first sync.`,
+        jobCount: validation.jobCount,
+      };
+    },
+
+    async createEventSource(opts: unknown) {
+      const o = (opts ?? {}) as {
+        name?: string;
+        sourceType?: string;
+        sourceIdentifier?: string;
+        sourceUrl?: string;
+        organizer?: string;
+      };
+      if (!o.name?.trim()) throw new Error("name is required");
+      if (!o.sourceType) throw new Error("sourceType is required");
+      if (!o.sourceIdentifier?.trim()) throw new Error("sourceIdentifier is required");
+      if (!o.sourceUrl?.trim()) throw new Error("sourceUrl is required");
+
+      // Validate the config actually works
+      const validation = await validateEventImportSourceConfig({
+        organizer: o.organizer?.trim() || null,
+        sourceType: o.sourceType,
+        sourceIdentifier: o.sourceIdentifier.trim(),
+        sourceUrl: o.sourceUrl.trim(),
+      });
+      if (!validation.valid) {
+        return {
+          created: false,
+          message: `Validation failed: ${validation.error}`,
+        };
+      }
+
+      const source = await createEventImportSource({
+        name: o.name.trim(),
+        organizer: o.organizer?.trim() || null,
+        sourceType: o.sourceType,
+        sourceIdentifier: o.sourceIdentifier.trim(),
+        sourceUrl: o.sourceUrl.trim(),
+      });
+      return {
+        created: true,
+        sourceId: source.id,
+        message: `Event import source "${o.name}" created (id: ${source.id}). Use syncEventSource(${source.id}) to run first sync.`,
+        eventCount: validation.eventCount,
+      };
+    },
+
+    async listImporterTypes() {
+      return getAllImporterMeta();
     },
   };
 }
