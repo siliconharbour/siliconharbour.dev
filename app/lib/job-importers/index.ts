@@ -13,6 +13,9 @@ import { collageImporter } from "./collage.server";
 import { ripplingImporter } from "./rippling.server";
 import { adpImporter } from "./adp.server";
 import { careerbeaconImporter } from "./careerbeacon.server";
+import { workableImporter } from "./workable.server";
+import { icimsImporter } from "./icims.server";
+import { jibeImporter } from "./jibe.server";
 import { customImporter } from "./custom.server";
 
 // Registry of all available importers
@@ -26,6 +29,9 @@ const importers: Record<string, JobImporter> = {
   rippling: ripplingImporter,
   adp: adpImporter,
   careerbeacon: careerbeaconImporter,
+  workable: workableImporter,
+  icims: icimsImporter,
+  jibe: jibeImporter,
   custom: customImporter,
 };
 

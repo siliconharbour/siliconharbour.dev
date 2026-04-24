@@ -714,6 +714,9 @@ export const atsSourceTypes = [
   "rippling",
   "adp",
   "careerbeacon",
+  "workable",
+  "icims",
+  "jibe",
   "custom",
 ] as const;
 export type AtsSourceType = (typeof atsSourceTypes)[number];

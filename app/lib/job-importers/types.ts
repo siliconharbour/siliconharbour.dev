@@ -16,6 +16,9 @@ export const jobSourceTypes = [
   "rippling",
   "adp",
   "careerbeacon",
+  "workable",
+  "icims",
+  "jibe",
   "custom",
 ] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
@@ -134,6 +137,9 @@ export const sourceTypeLabels: Record<JobSourceType, string> = {
   rippling: "Rippling",
   adp: "ADP",
   careerbeacon: "CareerBeacon",
+  workable: "Workable",
+  icims: "iCIMS",
+  jibe: "Jibe",
   custom: "Custom",
 };
 
@@ -151,5 +157,8 @@ export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   adp: "e.g., cid:ccId or full ADP URL (from workforcenow.adp.com recruitment link)",
   careerbeacon:
     "Job URL(s), company ID, or employer slug. e.g., https://www.careerbeacon.com/en/job/2223407/... or 216642 or genesis",
+  workable: "e.g., upstream (from apply.workable.com/upstream)",
+  icims: "e.g., uscareers-repairify (from uscareers-repairify.icims.com)",
+  jibe: "e.g., jobs.symphonyai.com (the full Jibe careers domain)",
   custom: "Custom identifier or URL",
 };
