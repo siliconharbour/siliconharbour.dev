@@ -151,7 +151,10 @@ async function fetchAllJibeJobs(domain: string): Promise<JibeJob[]> {
     const url = `https://${domain}/api/jobs?limit=${PAGE_SIZE}&page=${page}`;
 
     const response = await fetch(url, {
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",
+      },
     });
 
     if (!response.ok) {
