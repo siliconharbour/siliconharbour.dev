@@ -443,6 +443,19 @@ export async function createImportSource(data: {
 }
 
 /**
+ * Update an import source's identifier and/or URL
+ */
+export async function updateImportSource(
+  sourceId: number,
+  data: { sourceIdentifier?: string; sourceUrl?: string | null },
+) {
+  await db
+    .update(jobImportSources)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(jobImportSources.id, sourceId));
+}
+
+/**
  * Delete an import source (cascades to jobs)
  */
 export async function deleteImportSource(sourceId: number) {

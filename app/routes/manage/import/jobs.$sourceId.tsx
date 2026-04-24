@@ -8,6 +8,7 @@ import {
   syncJobs,
   syncJobsFromFetched,
   deleteImportSource,
+  updateImportSource,
   hideImportedJob,
   unhideImportedJob,
   markJobNonTechnical,
@@ -376,6 +377,18 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   }
 
+  if (intent === "edit-source") {
+    const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
+    const sourceUrl = (formData.get("sourceUrl") as string)?.trim() || null;
+
+    if (!sourceIdentifier) {
+      return { intent: "edit-source", success: false, error: "Identifier is required" };
+    }
+
+    await updateImportSource(sourceId, { sourceIdentifier, sourceUrl });
+    return { intent: "edit-source", success: true };
+  }
+
   return { success: false, error: "Unknown action" };
 }
 
@@ -572,9 +585,43 @@ export default function ViewJobImportSource() {
                   source.sourceType}
               </dd>
             </div>
-            <div>
-              <dt className="text-harbour-500">Identifier</dt>
-              <dd className="font-mono text-harbour-600">{source.sourceIdentifier}</dd>
+            <div className="col-span-2">
+              <fetcher.Form method="post" className="flex flex-col gap-3">
+                <input type="hidden" name="intent" value="edit-source" />
+                <div>
+                  <label className="text-harbour-500 text-sm" htmlFor="sourceIdentifier">
+                    Identifier
+                  </label>
+                  <input
+                    id="sourceIdentifier"
+                    name="sourceIdentifier"
+                    type="text"
+                    defaultValue={source.sourceIdentifier}
+                    className="w-full mt-1 px-2 py-1 text-sm font-mono border border-harbour-200 text-harbour-600 focus:outline-none focus:border-harbour-400"
+                  />
+                </div>
+                <div>
+                  <label className="text-harbour-500 text-sm" htmlFor="editSourceUrl">
+                    Careers URL
+                  </label>
+                  <input
+                    id="editSourceUrl"
+                    name="sourceUrl"
+                    type="text"
+                    defaultValue={source.sourceUrl || ""}
+                    placeholder="https://..."
+                    className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 text-harbour-600 focus:outline-none focus:border-harbour-400"
+                  />
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    className="px-3 py-1 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              </fetcher.Form>
             </div>
             <div>
               <dt className="text-harbour-500">Last Fetched</dt>
@@ -603,21 +650,6 @@ export default function ViewJobImportSource() {
                 )}
               </dd>
             </div>
-            {source.sourceUrl && (
-              <div className="col-span-2">
-                <dt className="text-harbour-500">Careers URL</dt>
-                <dd>
-                  <a
-                    href={source.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-harbour-600 hover:underline"
-                  >
-                    {source.sourceUrl}
-                  </a>
-                </dd>
-              </div>
-            )}
           </dl>
 
           <div className="flex items-center gap-3 mt-6 pt-4 border-t border-harbour-100">
