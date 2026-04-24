@@ -49,6 +49,12 @@ const scrapers: Record<string, CustomScraper> = {
 
 export const customImporter: JobImporter = {
   sourceType: "custom",
+  meta: {
+    name: "Custom",
+    approach: "Dispatches to per-company custom scrapers based on sourceIdentifier. Some use APIs; many parse bespoke HTML.",
+    style: "Mixed, site-specific",
+    reliability: "mixed",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const scraper = scrapers[config.sourceIdentifier];

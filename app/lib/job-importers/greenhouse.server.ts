@@ -124,6 +124,12 @@ async function fetchGreenhouseJobs(
 
 export const greenhouseImporter: JobImporter = {
   sourceType: "greenhouse",
+  meta: {
+    name: "Greenhouse",
+    approach: "Calls Greenhouse public JSON API (boards-api.greenhouse.io), maps jobs directly.",
+    style: "Clean API integration",
+    reliability: "high",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const data = await fetchGreenhouseJobs(config.sourceIdentifier);

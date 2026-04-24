@@ -158,6 +158,13 @@ function convertPosting(posting: LeverPosting): FetchedJob {
 
 export const leverImporter: JobImporter = {
   sourceType: "lever",
+  meta: {
+    name: "Lever",
+    approach:
+      "Calls Lever public postings API (api.lever.co), builds description from structured sections.",
+    style: "Clean API integration",
+    reliability: "high",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const company = config.sourceIdentifier;

@@ -203,6 +203,13 @@ function convertPosting(posting: CareerBeaconPosting): FetchedJob {
 
 export const careerbeaconImporter: JobImporter = {
   sourceType: "careerbeacon",
+  meta: {
+    name: "CareerBeacon",
+    approach: "Fetches individual job pages, extracts JSON-LD JobPosting schema. Supports direct URLs or listing scrape.",
+    style: "JSON-LD extraction with p-limit(5) concurrency",
+    reliability: "medium-high",
+    quirks: "Listing pages may be blocked by Cloudflare; direct job URLs are recommended.",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const urls = await resolveJobUrls(config);

@@ -173,6 +173,12 @@ async function fetchCollagePage(path: string): Promise<string> {
 
 export const collageImporter: JobImporter = {
   sourceType: "collage",
+  meta: {
+    name: "Collage",
+    approach: "Scrapes rendered HTML and parses listing/detail content using linkedom DOM parsing.",
+    style: "Direct HTML parsing",
+    reliability: "medium-low",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const company = config.sourceIdentifier;

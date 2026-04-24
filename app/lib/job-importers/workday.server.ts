@@ -300,6 +300,15 @@ function convertDetailJob(detail: WorkdayJobDetail, company: string, site: strin
 
 export const workdayImporter: JobImporter = {
   sourceType: "workday",
+  meta: {
+    name: "Workday",
+    approach:
+      "Uses Workday JSON endpoints (/wday/cxs/...) with browser-like user agent and custom identifier parsing.",
+    style: "API-based with platform quirks",
+    reliability: "medium-high",
+    quirks:
+      "Cloudflare protection on some tenants may block automation. Source identifier format: company:site[:searchText].",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const { company, site, searchText } = parseSourceIdentifier(config.sourceIdentifier);

@@ -177,6 +177,12 @@ function convertDetailJob(detail: BambooHRJobDetail, company: string): FetchedJo
 
 export const bamboohrImporter: JobImporter = {
   sourceType: "bamboohr",
+  meta: {
+    name: "BambooHR",
+    approach: "Calls BambooHR JSON endpoints (/careers/list and per-job /detail).",
+    style: "Clean API integration with detail fetch pass",
+    reliability: "high",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const company = config.sourceIdentifier;

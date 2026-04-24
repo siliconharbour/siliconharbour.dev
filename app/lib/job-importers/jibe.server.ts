@@ -200,6 +200,15 @@ function convertJob(domain: string, job: JibeJob): FetchedJob {
 
 export const jibeImporter: JobImporter = {
   sourceType: "jibe",
+  meta: {
+    name: "Jibe",
+    approach:
+      "Calls Jibe JSON API (/api/jobs?limit=100&page=N). Returns full descriptions in one call, paginated.",
+    style: "Clean API integration, single-step fetch",
+    reliability: "high",
+    quirks:
+      "Each customer has their own domain. API wraps jobs in a { data: {...} } envelope.",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const domain = normalizeDomain(config.sourceIdentifier);

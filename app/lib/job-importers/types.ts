@@ -95,11 +95,36 @@ export interface SyncResult {
 }
 
 /**
+ * Reliability rating for importer documentation
+ */
+export type ImporterReliability = "high" | "medium-high" | "medium" | "medium-low" | "low" | "mixed";
+
+/**
+ * Self-describing metadata colocated with each importer.
+ * Used to generate the importers overview page automatically.
+ */
+export interface ImporterMeta {
+  /** Human-readable display name */
+  name: string;
+  /** Brief description of how the importer works */
+  approach: string;
+  /** Implementation style (e.g. "Clean API integration", "HTML parsing") */
+  style: string;
+  /** Reliability rating */
+  reliability: ImporterReliability;
+  /** Notable quirks or caveats (optional) */
+  quirks?: string;
+}
+
+/**
  * Interface that all job importer modules must implement
  */
 export interface JobImporter {
   /** The source type this importer handles */
   readonly sourceType: JobSourceType;
+
+  /** Self-describing metadata for documentation */
+  readonly meta: ImporterMeta;
 
   /**
    * Fetch all jobs from the source

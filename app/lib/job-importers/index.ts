@@ -63,5 +63,15 @@ export function getAvailableSourceTypes(): JobSourceType[] {
   return Object.keys(importers) as JobSourceType[];
 }
 
+/**
+ * Get metadata for all importers (for documentation/overview pages)
+ */
+export function getAllImporterMeta() {
+  return Object.values(importers).map((imp) => ({
+    sourceType: imp.sourceType,
+    ...imp.meta,
+  }));
+}
+
 // Re-export types for convenience
 export * from "./types";

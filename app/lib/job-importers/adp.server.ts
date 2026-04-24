@@ -243,6 +243,15 @@ function buildRecruitmentJobUrl(config: AdpConfig, job: AdpJobRequisition): stri
 
 export const adpImporter: JobImporter = {
   sourceType: "adp",
+  meta: {
+    name: "ADP",
+    approach:
+      "Parses ADP WorkforceNow recruitment pages, extracts job data from embedded JSON structures.",
+    style: "Structured data extraction from HTML",
+    reliability: "medium-high",
+    quirks:
+      "ADP page structure can vary between tenants. Uses custom client ID parsing.",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const adp = parseSourceIdentifier(config.sourceIdentifier);

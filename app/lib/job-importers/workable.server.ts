@@ -215,6 +215,13 @@ function convertJob(
 
 export const workableImporter: JobImporter = {
   sourceType: "workable",
+  meta: {
+    name: "Workable",
+    approach:
+      "Calls Workable public JSON API (v1 widget for list, v2 for detail). Uses p-limit(5) for concurrent detail fetches.",
+    style: "Clean API integration with detail fetch pass",
+    reliability: "high",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const slug = config.sourceIdentifier;

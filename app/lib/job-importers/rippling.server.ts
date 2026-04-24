@@ -191,6 +191,13 @@ async function fetchRipplingPage(path: string): Promise<RipplingPageData> {
 
 export const ripplingImporter: JobImporter = {
   sourceType: "rippling",
+  meta: {
+    name: "Rippling",
+    approach:
+      "Scrapes HTML page, extracts embedded __NEXT_DATA__ from Next.js pages, then fetches each job detail.",
+    style: "Structured data extraction from framework internals",
+    reliability: "medium",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const company = config.sourceIdentifier;

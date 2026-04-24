@@ -144,6 +144,12 @@ function convertListingJob(job: AshbyJobPosting, orgSlug: string): FetchedJob {
 
 export const ashbyImporter: JobImporter = {
   sourceType: "ashby",
+  meta: {
+    name: "Ashby",
+    approach: "Scrapes HTML page, extracts embedded window.__appData, then fetches each job detail page.",
+    style: "Structured data extraction from HTML shell",
+    reliability: "medium",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const data = await fetchAshbyListingPage(config.sourceIdentifier);

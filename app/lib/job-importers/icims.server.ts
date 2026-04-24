@@ -244,6 +244,14 @@ function convertPosting(posting: ParsedIcimsPosting): FetchedJob {
 
 export const icimsImporter: JobImporter = {
   sourceType: "icims",
+  meta: {
+    name: "iCIMS",
+    approach:
+      "Two-step: scrapes listing HTML for job URLs, then extracts JSON-LD JobPosting from detail pages.",
+    style: "HTML listing scrape + JSON-LD detail",
+    reliability: "medium-high",
+    quirks: "JSON-LD only present on ?in_iframe=1 version of pages.",
+  },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const identifier = config.sourceIdentifier.trim();
