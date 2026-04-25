@@ -56,9 +56,10 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
     education: "Education",
   };
 
-  // Sort events by their earliest date
-  const sorted = type === "event"
-    ? [...backlinks].sort((a, b) => {
+  // Sort by date where applicable
+  const sorted = (() => {
+    if (type === "event") {
+      return [...backlinks].sort((a, b) => {
         const aDate = a.type === "event" && a.data.dates?.[0]?.startDate
           ? new Date(a.data.dates[0].startDate).getTime()
           : 0;
@@ -66,8 +67,21 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
           ? new Date(b.data.dates[0].startDate).getTime()
           : 0;
         return aDate - bDate;
-      })
-    : backlinks;
+      });
+    }
+    if (type === "news") {
+      return [...backlinks].sort((a, b) => {
+        const aDate = a.type === "news" && a.data.publishedAt
+          ? new Date(a.data.publishedAt).getTime()
+          : 0;
+        const bDate = b.type === "news" && b.data.publishedAt
+          ? new Date(b.data.publishedAt).getTime()
+          : 0;
+        return bDate - aDate; // newest first
+      });
+    }
+    return backlinks;
+  })();
 
   // Events use single column with max-width, others use 2-column grid
   const gridClass =

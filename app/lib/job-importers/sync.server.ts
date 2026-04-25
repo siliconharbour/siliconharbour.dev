@@ -5,7 +5,7 @@
 
 import { db } from "~/db";
 import { jobImportSources, jobs } from "~/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 import type { SyncResult, ImportSourceConfig, JobSourceType, FetchedJob } from "./types";
 import { getImporter } from "./index";
 import { generateJobSlug } from "~/lib/jobs.server";
@@ -350,7 +350,7 @@ export async function getActiveJobsForCompany(companyId: number) {
     .select()
     .from(jobs)
     .where(and(eq(jobs.companyId, companyId), eq(jobs.status, "active")))
-    .orderBy(jobs.firstSeenAt);
+    .orderBy(desc(jobs.postedAt));
 }
 
 /**
