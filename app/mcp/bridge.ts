@@ -371,6 +371,7 @@ export function buildExecuteFunctions(): HostFunctions {
         sourceType?: string;
         sourceIdentifier?: string;
         sourceUrl?: string;
+        skipValidation?: boolean;
       };
       if (!o.companyId) throw new Error("companyId is required");
       if (!o.sourceType) throw new Error("sourceType is required");
@@ -385,19 +386,24 @@ export function buildExecuteFunctions(): HostFunctions {
         );
       }
 
-      // Validate the config actually works
-      const importer = getImporter(o.sourceType as JobSourceType);
-      const validation = await importer.validateConfig({
-        companyId: o.companyId,
-        sourceType: o.sourceType as JobSourceType,
-        sourceIdentifier: o.sourceIdentifier.trim(),
-        sourceUrl: o.sourceUrl?.trim() || null,
-      });
-      if (!validation.valid) {
-        return {
-          created: false,
-          message: `Validation failed: ${validation.error}`,
-        };
+      let jobCount: number | undefined;
+
+      if (!o.skipValidation) {
+        // Validate the config actually works
+        const importer = getImporter(o.sourceType as JobSourceType);
+        const validation = await importer.validateConfig({
+          companyId: o.companyId,
+          sourceType: o.sourceType as JobSourceType,
+          sourceIdentifier: o.sourceIdentifier.trim(),
+          sourceUrl: o.sourceUrl?.trim() || null,
+        });
+        if (!validation.valid) {
+          return {
+            created: false,
+            message: `Validation failed: ${validation.error}. Use skipValidation: true to create anyway.`,
+          };
+        }
+        jobCount = validation.jobCount;
       }
 
       const sourceId = await createJobImportSource({
@@ -409,8 +415,8 @@ export function buildExecuteFunctions(): HostFunctions {
       return {
         created: true,
         sourceId,
-        message: `Job import source created (id: ${sourceId}). Use syncJobSource(${sourceId}) to run first sync.`,
-        jobCount: validation.jobCount,
+        message: `Job import source created (id: ${sourceId})${o.skipValidation ? " (validation skipped)" : ""}. Use syncJobSource(${sourceId}) to run first sync.`,
+        jobCount,
       };
     },
 
