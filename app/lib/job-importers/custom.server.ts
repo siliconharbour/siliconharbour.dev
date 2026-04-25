@@ -25,6 +25,7 @@ import { scrapeDataFarms } from "./custom/data-farms";
 import { scrapeDigitalSix } from "./custom/digital-six";
 import { scrapeCanadianBloodServices } from "./custom/canadian-blood-services";
 import { scrapeVerlo } from "./custom/verlo";
+import { scrapeAudyse } from "./custom/audyse";
 
 /**
  * Registry of custom scrapers by company identifier
@@ -45,6 +46,7 @@ const scrapers: Record<string, CustomScraper> = {
   "digital-six-consulting": () => scrapeDigitalSix(),
   "canadian-blood-services": (careersUrl: string) => scrapeCanadianBloodServices(careersUrl),
   verlo: (careersUrl: string) => scrapeVerlo(careersUrl),
+  audyse: () => scrapeAudyse(),
 };
 
 export const customImporter: JobImporter = {
