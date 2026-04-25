@@ -84,6 +84,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
           // Entity creation
           "createCompany({ name, website?, description?, location?, email? }), " +
           "getCompanyByName(name), " +
+          "updateCompany({ id, name?, website?, description?, location?, email?, linkedin?, careersUrl?, visible? }), " +
           "createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl? }), " +
           "createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? }), " +
           "listImporterTypes(), " +

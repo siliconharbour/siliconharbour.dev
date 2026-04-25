@@ -31,6 +31,8 @@ import type { JobSourceType } from "~/lib/job-importers/types";
 import {
   createCompany as createCompanyRecord,
   getCompanyByName as getCompanyByNameRecord,
+  updateCompany as updateCompanyRecord,
+  getCompanyById as getCompanyByIdRecord,
 } from "~/lib/companies.server";
 import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
@@ -319,6 +321,43 @@ export function buildExecuteFunctions(): HostFunctions {
           website: company.website,
           visible: company.visible,
         },
+      });
+    },
+
+    async updateCompany(opts: unknown) {
+      const o = (opts ?? {}) as {
+        id?: number;
+        name?: string;
+        website?: string;
+        description?: string;
+        location?: string;
+        email?: string;
+        linkedin?: string;
+        careersUrl?: string;
+        visible?: boolean;
+      };
+      if (!o.id) throw new Error("id is required");
+      const existing = await getCompanyByIdRecord(o.id);
+      if (!existing) throw new Error(`Company with id ${o.id} not found`);
+
+      const updates: Record<string, unknown> = {};
+      if (o.name !== undefined) updates.name = o.name.trim();
+      if (o.website !== undefined) updates.website = o.website.trim() || null;
+      if (o.description !== undefined) updates.description = o.description.trim();
+      if (o.location !== undefined) updates.location = o.location.trim() || null;
+      if (o.email !== undefined) updates.email = o.email.trim() || null;
+      if (o.linkedin !== undefined) updates.linkedin = o.linkedin.trim() || null;
+      if (o.careersUrl !== undefined) updates.careersUrl = o.careersUrl.trim() || null;
+      if (o.visible !== undefined) updates.visible = o.visible;
+
+      if (Object.keys(updates).length === 0) {
+        return { updated: false, message: "No fields to update" };
+      }
+
+      await updateCompanyRecord(o.id, updates);
+      return toPlain({
+        updated: true,
+        message: `Company "${existing.name}" updated (${Object.keys(updates).join(", ")})`,
       });
     },
 
