@@ -145,6 +145,7 @@ export const companies = sqliteTable("companies", {
   // Directory listings
   technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
   genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
+  bounce: integer("bounce", { mode: "boolean" }).default(false), // listed on Bounce Health Innovation
   // Visibility - false means only visible in manage UI, not public
   visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
@@ -229,6 +230,7 @@ export const education = sqliteTable("education", {
   // Directory listings (same as companies)
   technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
   genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
+  bounce: integer("bounce", { mode: "boolean" }).default(false), // listed on Bounce Health Innovation
   // Visibility - false means only visible in manage UI, not public
   visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })

@@ -214,6 +214,7 @@ export default [
     ...prefix("import", [
       route("technl", "routes/manage/import/technl.tsx"),
       route("genesis", "routes/manage/import/genesis.tsx"),
+      route("bounce", "routes/manage/import/bounce.tsx"),
       route("github-by-location", "routes/manage/import/github-by-location.tsx"),
       route("github-following", "routes/manage/import/github-following.tsx"),
       route("jobs", "routes/manage/import/jobs.tsx"),

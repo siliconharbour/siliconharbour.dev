@@ -337,6 +337,7 @@ export function buildExecuteFunctions(): HostFunctions {
         visible?: boolean;
         technl?: boolean;
         genesis?: boolean;
+        bounce?: boolean;
       };
       if (!o.id) throw new Error("id is required");
       const existing = await getCompanyByIdRecord(o.id);
@@ -353,6 +354,7 @@ export function buildExecuteFunctions(): HostFunctions {
       if (o.visible !== undefined) updates.visible = o.visible;
       if (o.technl !== undefined) updates.technl = o.technl;
       if (o.genesis !== undefined) updates.genesis = o.genesis;
+      if (o.bounce !== undefined) updates.bounce = o.bounce;
 
       if (Object.keys(updates).length === 0) {
         return { updated: false, message: "No fields to update" };

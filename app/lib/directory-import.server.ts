@@ -37,7 +37,7 @@ export type { DirectoryImportLoaderData } from "~/lib/directory-import";
 
 export interface DirectoryImportConfig {
   sourceKey: string; // "technl" | "genesis" -- blocklist source key
-  sourceFlag: "technl" | "genesis"; // DB column to set
+  sourceFlag: "technl" | "genesis" | "bounce"; // DB column to set
   sourceLabel: string; // "TechNL" | "Genesis Centre" -- display label
   defaultLocation: string | null; // null for technl, "St. John's, NL" for genesis
   scrapeFn: () => Promise<ScrapedCompany[]>;

@@ -200,6 +200,127 @@ function parseGenesisCard(card: Element): ScrapedCompany | null {
 }
 
 // =============================================================================
+// Bounce Health Innovation Scraper
+// =============================================================================
+
+const BOUNCE_COMPANIES_URL = "https://bounceinnovation.ca/companies/";
+
+/**
+ * Fetch and parse company data from Bounce Health Innovation
+ */
+export async function scrapeBounce(): Promise<ScrapedCompany[]> {
+  const response = await fetch(BOUNCE_COMPANIES_URL, {
+    headers: {
+      "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Bounce companies: ${response.status}`);
+  }
+
+  const html = await response.text();
+  const { document } = parseHTML(html);
+
+  // Company links are in h2 > a elements pointing to /company/{slug}/
+  const companyLinks = document.querySelectorAll('h2 > a[href*="/company/"]');
+  const companies: ScrapedCompany[] = [];
+  const seen = new Set<string>();
+
+  for (const link of companyLinks) {
+    try {
+      const name = (link.textContent || "").trim();
+      const href = link.getAttribute("href") || "";
+      if (!name || !href.includes("/company/")) continue;
+
+      // Deduplicate — the page renders each company twice (card + expanded)
+      const slug = href.replace(/.*\/company\//, "").replace(/\/$/, "");
+      if (seen.has(slug)) continue;
+      seen.add(slug);
+
+      const company = await parseBounceCompanyDetail(name, href, slug);
+      if (company) companies.push(company);
+    } catch (e) {
+      console.error("Failed to parse Bounce company:", e);
+    }
+  }
+
+  return companies;
+}
+
+async function parseBounceCompanyDetail(
+  name: string,
+  detailUrl: string,
+  slug: string,
+): Promise<ScrapedCompany | null> {
+  try {
+    const response = await fetch(detailUrl, {
+      headers: {
+        "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
+      },
+    });
+    if (!response.ok) return null;
+
+    const html = await response.text();
+    const { document } = parseHTML(html);
+
+    // Website link: elementor button with "Website" text
+    let website: string | null = null;
+    const buttons = document.querySelectorAll("a.elementor-button");
+    for (const btn of buttons) {
+      const text = (btn.textContent || "").trim();
+      if (text === "Website") {
+        website = btn.getAttribute("href") || null;
+        break;
+      }
+    }
+
+    // Industry: h5 element text
+    const industryEl = document.querySelector("h5");
+    const industry = industryEl ? (industryEl.textContent || "").trim() : null;
+    const categories = industry ? [industry] : [];
+
+    // Description: longest paragraph that isn't boilerplate
+    let description: string | null = null;
+    const allParagraphs = document.querySelectorAll("p");
+    let bestDesc = "";
+    for (const p of allParagraphs) {
+      const text = (p.textContent || "").trim();
+      // Skip short, boilerplate, or social media text
+      if (text.length < 30) continue;
+      if (text.startsWith("©") || text.includes("Facebook") || text.includes("Instagram")) continue;
+      if (text.includes("Bounce helps HealthTech")) continue; // site boilerplate
+      if (text.length > bestDesc.length) bestDesc = text;
+    }
+    if (bestDesc) description = bestDesc.slice(0, 500);
+
+    // Logo: first wp-content image
+    let logoUrl: string | null = null;
+    const images = document.querySelectorAll("img");
+    for (const img of images) {
+      const src = img.getAttribute("src") || "";
+      if (src.includes("wp-content/uploads") && !src.includes("Logo.webp") && !src.includes("bounce-logo")) {
+        logoUrl = src;
+        break;
+      }
+    }
+
+    return {
+      name,
+      description,
+      website,
+      email: null,
+      logoUrl,
+      categories,
+      sourceUrl: detailUrl,
+      sourceId: slug,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// =============================================================================
 // Image Utilities
 // =============================================================================
 
