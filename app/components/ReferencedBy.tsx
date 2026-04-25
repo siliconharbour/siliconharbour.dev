@@ -56,6 +56,19 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
     education: "Education",
   };
 
+  // Sort events by their earliest date
+  const sorted = type === "event"
+    ? [...backlinks].sort((a, b) => {
+        const aDate = a.type === "event" && a.data.dates?.[0]?.startDate
+          ? new Date(a.data.dates[0].startDate).getTime()
+          : 0;
+        const bDate = b.type === "event" && b.data.dates?.[0]?.startDate
+          ? new Date(b.data.dates[0].startDate).getTime()
+          : 0;
+        return aDate - bDate;
+      })
+    : backlinks;
+
   // Events use single column with max-width, others use 2-column grid
   const gridClass =
     type === "event" ? "flex flex-col gap-4 max-w-md" : "grid grid-cols-1 sm:grid-cols-2 gap-3";
@@ -64,7 +77,7 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
     <div>
       <h3 className="text-sm font-medium text-harbour-500 mb-3">{labels[type] || type}</h3>
       <div className={gridClass}>
-        {backlinks.map((link) => (
+        {sorted.map((link) => (
           <BacklinkCard key={`${link.type}-${link.data.id}`} backlink={link} />
         ))}
       </div>
