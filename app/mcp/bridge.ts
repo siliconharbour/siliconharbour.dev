@@ -333,7 +333,10 @@ export function buildExecuteFunctions(): HostFunctions {
         location?: string;
         email?: string;
         linkedin?: string;
+        github?: string;
+        wikipedia?: string;
         careersUrl?: string;
+        founded?: string;
         visible?: boolean;
         technl?: boolean;
         genesis?: boolean;
@@ -350,7 +353,10 @@ export function buildExecuteFunctions(): HostFunctions {
       if (o.location !== undefined) updates.location = o.location.trim() || null;
       if (o.email !== undefined) updates.email = o.email.trim() || null;
       if (o.linkedin !== undefined) updates.linkedin = o.linkedin.trim() || null;
+      if (o.github !== undefined) updates.github = o.github.trim() || null;
+      if (o.wikipedia !== undefined) updates.wikipedia = o.wikipedia.trim() || null;
       if (o.careersUrl !== undefined) updates.careersUrl = o.careersUrl.trim() || null;
+      if (o.founded !== undefined) updates.founded = o.founded.trim() || null;
       if (o.visible !== undefined) updates.visible = o.visible;
       if (o.technl !== undefined) updates.technl = o.technl;
       if (o.genesis !== undefined) updates.genesis = o.genesis;
