@@ -2,7 +2,67 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { searchSpec } from "./search.js";
 import { runInSandbox } from "./sandbox.js";
+import type { HostFunctions } from "./sandbox.js";
 import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
+
+// ── Shared sandbox result handler ──────────────────────────────────────
+
+async function runSandboxTool(code: string, fns: HostFunctions, timeout: number) {
+  try {
+    const result = await runInSandbox(code, fns, timeout);
+    if (result.ok) {
+      return { content: [{ type: "text" as const, text: JSON.stringify(result.data, null, 2) }] };
+    }
+    return { content: [{ type: "text" as const, text: `Error: ${result.error}` }], isError: true };
+  } catch (err) {
+    return {
+      content: [
+        { type: "text" as const, text: `Error: ${err instanceof Error ? err.message : String(err)}` },
+      ],
+      isError: true,
+    };
+  }
+}
+
+// ── Tool descriptions ──────────────────────────────────────────────────
+
+const EXECUTE_DESCRIPTION = [
+  "Like 'query' but also exposes sync, creation, review, and pending functions.",
+  "Requires apiToken.",
+  "",
+  "Additional imports from 'siliconharbour':",
+  "- eventImportSources(), jobImportSources(), pendingEvents(), pendingJobs()",
+  "- syncEventSource(id), syncAllEventSources(), syncJobSource(id), syncAllJobSources()",
+  "- createCompany({ name, website?, description?, location?, email? })",
+  "- getCompanyByName(name)",
+  "- updateCompany({ id, name?, website?, description?, location?, email?, linkedin?, github?, wikipedia?, careersUrl?, founded?, visible?, technl?, genesis?, bounce? })",
+  "- createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl? })",
+  "- createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? })",
+  "- listImporterTypes()",
+  "- getJobDetail(jobId)",
+  "- reviewJob({ jobId, action })",
+  "",
+  "createCompany creates hidden companies (pending review).",
+  "createJobSource/createEventSource validate the config before saving.",
+  "pendingJobs() returns title, company, location, workplaceType, descriptionSnippet, URL.",
+  "getJobDetail(jobId) returns full description text for deeper analysis.",
+  "",
+  "reviewJob actions: 'approve' (technical job, published),",
+  "'approve-non-technical' (non-technical job, published but deprioritized),",
+  "'hide' (not relevant, hidden from public).",
+  "",
+  "JOB REVIEW CRITERIA:",
+  "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",
+  "- 'approve-non-technical' if: non-technical role (sales, marketing, HR, operations, finance, admin) BUT in St. John's NL or remote. Also use for remote technical roles that are clearly not NL-connected.",
+  "- 'hide' if: not in St. John's/NL and not remote, OR completely irrelevant to the NL tech community.",
+  "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech.",
+  "When uncertain, lean toward 'approve-non-technical' over 'hide'.",
+  "",
+  "All functions call the real database on-demand.",
+  "Timeout: 60 seconds. If sync times out, use pendingEvents/pendingJobs instead.",
+].join("\n");
+
+// ── Server factory ─────────────────────────────────────────────────────
 
 export async function createMcpServer(authenticated = false): Promise<McpServer> {
   const server = new McpServer({
@@ -51,22 +111,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
           ),
       },
     },
-    async ({ code }) => {
-      try {
-        const result = await runInSandbox(code, buildReadFunctions(), 10_000);
-        if (result.ok) {
-          return { content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }] };
-        }
-        return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
-      } catch (err) {
-        return {
-          content: [
-            { type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` },
-          ],
-          isError: true,
-        };
-      }
-    },
+    async ({ code }) => runSandboxTool(code, buildReadFunctions(), 10_000),
   );
 
   // ── Tool 3: execute (authenticated sessions only) ───────────────────
@@ -75,38 +120,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
       "execute",
       {
         title: "Execute authenticated SiliconHarbour actions",
-        description:
-          "Like 'query' but also exposes sync, creation, review, and pending functions. Requires apiToken. " +
-          "Additional imports from 'siliconharbour': " +
-          // Sync & listing
-          "eventImportSources(), jobImportSources(), pendingEvents(), pendingJobs(), " +
-          "syncEventSource(id), syncAllEventSources(), syncJobSource(id), syncAllJobSources(), " +
-          // Entity creation
-          "createCompany({ name, website?, description?, location?, email? }), " +
-          "getCompanyByName(name), " +
-          "updateCompany({ id, name?, website?, description?, location?, email?, linkedin?, careersUrl?, visible? }), " +
-          "createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl? }), " +
-          "createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? }), " +
-          "listImporterTypes(), " +
-          // Job review
-          "getJobDetail(jobId), " +
-          "reviewJob({ jobId, action }). " +
-          // Guidance
-          "createCompany creates hidden companies (pending review). " +
-          "createJobSource/createEventSource validate the config before saving. " +
-          "pendingJobs() returns title, company, location, workplaceType, descriptionSnippet, URL. " +
-          "getJobDetail(jobId) returns full description text for deeper analysis. " +
-          "reviewJob actions: 'approve' (technical job, published), " +
-          "'approve-non-technical' (non-technical job, published but deprioritized), " +
-          "'hide' (not relevant, hidden from public). " +
-          "JOB REVIEW CRITERIA: " +
-          "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada. " +
-          "- 'approve-non-technical' if: non-technical role (sales, marketing, HR, operations, finance, admin) BUT in St. John's NL or remote. Also use for remote technical roles that are clearly not NL-connected. " +
-          "- 'hide' if: not in St. John's/NL and not remote, OR completely irrelevant to the NL tech community. " +
-          "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech. " +
-          "When uncertain, lean toward 'approve-non-technical' over 'hide'. " +
-          "All functions call the real database on-demand. " +
-          "Timeout: 60 seconds. If sync times out, use pendingEvents/pendingJobs instead.",
+        description: EXECUTE_DESCRIPTION,
         inputSchema: {
           code: z
             .string()
@@ -115,22 +129,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
             ),
         },
       },
-      async ({ code }) => {
-        try {
-          const result = await runInSandbox(code, buildExecuteFunctions(), 60_000);
-          if (result.ok) {
-            return { content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }] };
-          }
-          return { content: [{ type: "text", text: `Error: ${result.error}` }], isError: true };
-        } catch (err) {
-          return {
-            content: [
-              { type: "text", text: `Error: ${err instanceof Error ? err.message : String(err)}` },
-            ],
-            isError: true,
-          };
-        }
-      },
+      async ({ code }) => runSandboxTool(code, buildExecuteFunctions(), 60_000),
     );
 
   return server;

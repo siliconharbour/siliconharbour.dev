@@ -3,6 +3,7 @@
  * Each function is called on-demand by user code — no pre-fetching.
  */
 
+import { z } from "zod";
 import type { HostFunctions } from "./sandbox.js";
 import { getUpcomingEvents, getPaginatedEvents } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
@@ -38,6 +39,64 @@ import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
+// ── Zod schemas ────────────────────────────────────────────────────────
+
+const PaginationSchema = z.object({
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+  query: z.string().optional(),
+  upcoming: z.boolean().optional(),
+});
+
+const CreateCompanySchema = z.object({
+  name: z.string().min(1, "name is required"),
+  website: z.string().optional(),
+  description: z.string().optional(),
+  location: z.string().optional(),
+  email: z.string().optional(),
+});
+
+const UpdateCompanySchema = z.object({
+  id: z.number({ required_error: "id is required" }),
+  name: z.string().optional(),
+  website: z.string().optional(),
+  description: z.string().optional(),
+  location: z.string().optional(),
+  email: z.string().optional(),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
+  wikipedia: z.string().optional(),
+  careersUrl: z.string().optional(),
+  founded: z.string().optional(),
+  visible: z.boolean().optional(),
+  technl: z.boolean().optional(),
+  genesis: z.boolean().optional(),
+  bounce: z.boolean().optional(),
+});
+
+const CreateJobSourceSchema = z.object({
+  companyId: z.number({ required_error: "companyId is required" }),
+  sourceType: z.string().min(1, "sourceType is required"),
+  sourceIdentifier: z.string().min(1, "sourceIdentifier is required"),
+  sourceUrl: z.string().optional(),
+  skipValidation: z.boolean().optional(),
+});
+
+const CreateEventSourceSchema = z.object({
+  name: z.string().min(1, "name is required"),
+  sourceType: z.string().min(1, "sourceType is required"),
+  sourceIdentifier: z.string().min(1, "sourceIdentifier is required"),
+  sourceUrl: z.string().min(1, "sourceUrl is required"),
+  organizer: z.string().optional(),
+});
+
+const ReviewJobSchema = z.object({
+  jobId: z.number({ required_error: "jobId is required" }),
+  action: z.enum(["approve", "approve-non-technical", "hide"], {
+    required_error: "action is required (approve, approve-non-technical, hide)",
+  }),
+});
+
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
 function toPlain<T>(val: T): T {
   return JSON.parse(
@@ -52,7 +111,7 @@ function toPlain<T>(val: T): T {
 export function buildReadFunctions(): HostFunctions {
   return {
     async events(opts: unknown) {
-      const o = (opts ?? {}) as { limit?: number; offset?: number; upcoming?: boolean };
+      const o = PaginationSchema.parse(opts ?? {});
       const limit = o.limit ?? 20;
       const offset = o.offset ?? 0;
       if (o.upcoming) {
@@ -64,7 +123,7 @@ export function buildReadFunctions(): HostFunctions {
     },
 
     async jobs(opts: unknown) {
-      const o = (opts ?? {}) as { limit?: number; offset?: number; query?: string };
+      const o = PaginationSchema.parse(opts ?? {});
       const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, {
         includeNonTechnical: true,
       });
@@ -72,32 +131,32 @@ export function buildReadFunctions(): HostFunctions {
     },
 
     async companies(opts: unknown) {
-      const o = (opts ?? {}) as { limit?: number; offset?: number; query?: string };
+      const o = PaginationSchema.parse(opts ?? {});
       const result = await getPaginatedCompanies(o.limit ?? 20, o.offset ?? 0, o.query);
       return toPlain(result.items);
     },
 
     async groups(opts: unknown) {
-      const o = (opts ?? {}) as { limit?: number; offset?: number };
+      const o = PaginationSchema.parse(opts ?? {});
       const result = await getPaginatedGroups(o.limit ?? 20, o.offset ?? 0);
       return toPlain(result.items);
     },
 
     async people(opts: unknown) {
-      const o = (opts ?? {}) as { limit?: number; offset?: number; query?: string };
+      const o = PaginationSchema.parse(opts ?? {});
       const result = await getPaginatedPeople(o.limit ?? 20, o.offset ?? 0, o.query);
       return toPlain(result.items);
     },
 
     async technologies(opts: unknown) {
-      const o = (opts ?? {}) as { limit?: number; offset?: number };
+      const o = PaginationSchema.parse(opts ?? {});
       const all = await getAllTechnologies();
       const offset = o.offset ?? 0;
       return toPlain(all.slice(offset, offset + (o.limit ?? 20)));
     },
 
     async education(opts: unknown) {
-      const o = (opts ?? {}) as { limit?: number; offset?: number };
+      const o = PaginationSchema.parse(opts ?? {});
       const result = await getPaginatedEducation(o.limit ?? 20, o.offset ?? 0);
       return toPlain(result.items);
     },
@@ -223,9 +282,7 @@ export function buildExecuteFunctions(): HostFunctions {
     },
 
     async reviewJob(opts: unknown) {
-      const o = (opts ?? {}) as { jobId?: number; action?: string };
-      if (!o.jobId) throw new Error("jobId is required");
-      if (!o.action) throw new Error("action is required (approve, approve-non-technical, hide)");
+      const o = ReviewJobSchema.parse(opts ?? {});
 
       const job = await getImportedJobById(o.jobId);
       if (!job) throw new Error(`Job ${o.jobId} not found`);
@@ -240,8 +297,6 @@ export function buildExecuteFunctions(): HostFunctions {
         case "hide":
           await hideImportedJob(o.jobId);
           return { jobId: o.jobId, action: "hide", message: `"${job.title}" hidden` };
-        default:
-          throw new Error(`Unknown action "${o.action}". Use: approve, approve-non-technical, hide`);
       }
     },
 
@@ -276,14 +331,7 @@ export function buildExecuteFunctions(): HostFunctions {
     // ── Entity creation ──────────────────────────────────────────────
 
     async createCompany(opts: unknown) {
-      const o = (opts ?? {}) as {
-        name?: string;
-        website?: string;
-        description?: string;
-        location?: string;
-        email?: string;
-      };
-      if (!o.name?.trim()) throw new Error("name is required");
+      const o = CreateCompanySchema.parse(opts ?? {});
       const existing = await getCompanyByNameRecord(o.name.trim());
       if (existing) {
         return toPlain({
@@ -325,48 +373,29 @@ export function buildExecuteFunctions(): HostFunctions {
     },
 
     async updateCompany(opts: unknown) {
-      const o = (opts ?? {}) as {
-        id?: number;
-        name?: string;
-        website?: string;
-        description?: string;
-        location?: string;
-        email?: string;
-        linkedin?: string;
-        github?: string;
-        wikipedia?: string;
-        careersUrl?: string;
-        founded?: string;
-        visible?: boolean;
-        technl?: boolean;
-        genesis?: boolean;
-        bounce?: boolean;
-      };
-      if (!o.id) throw new Error("id is required");
-      const existing = await getCompanyByIdRecord(o.id);
-      if (!existing) throw new Error(`Company with id ${o.id} not found`);
+      const { id, ...fields } = UpdateCompanySchema.parse(opts ?? {});
+      const existing = await getCompanyByIdRecord(id);
+      if (!existing) throw new Error(`Company with id ${id} not found`);
 
+      // Trim strings, convert empty to null (except description which stays "")
       const updates: Record<string, unknown> = {};
-      if (o.name !== undefined) updates.name = o.name.trim();
-      if (o.website !== undefined) updates.website = o.website.trim() || null;
-      if (o.description !== undefined) updates.description = o.description.trim();
-      if (o.location !== undefined) updates.location = o.location.trim() || null;
-      if (o.email !== undefined) updates.email = o.email.trim() || null;
-      if (o.linkedin !== undefined) updates.linkedin = o.linkedin.trim() || null;
-      if (o.github !== undefined) updates.github = o.github.trim() || null;
-      if (o.wikipedia !== undefined) updates.wikipedia = o.wikipedia.trim() || null;
-      if (o.careersUrl !== undefined) updates.careersUrl = o.careersUrl.trim() || null;
-      if (o.founded !== undefined) updates.founded = o.founded.trim() || null;
-      if (o.visible !== undefined) updates.visible = o.visible;
-      if (o.technl !== undefined) updates.technl = o.technl;
-      if (o.genesis !== undefined) updates.genesis = o.genesis;
-      if (o.bounce !== undefined) updates.bounce = o.bounce;
+      for (const [key, value] of Object.entries(fields)) {
+        if (value === undefined) continue;
+        if (typeof value === "string") {
+          updates[key] = value.trim() || null;
+        } else {
+          updates[key] = value;
+        }
+      }
+      if ("description" in updates && updates.description === null) {
+        updates.description = "";
+      }
 
       if (Object.keys(updates).length === 0) {
         return { updated: false, message: "No fields to update" };
       }
 
-      await updateCompanyRecord(o.id, updates);
+      await updateCompanyRecord(id, updates);
       return toPlain({
         updated: true,
         message: `Company "${existing.name}" updated (${Object.keys(updates).join(", ")})`,
@@ -374,16 +403,7 @@ export function buildExecuteFunctions(): HostFunctions {
     },
 
     async createJobSource(opts: unknown) {
-      const o = (opts ?? {}) as {
-        companyId?: number;
-        sourceType?: string;
-        sourceIdentifier?: string;
-        sourceUrl?: string;
-        skipValidation?: boolean;
-      };
-      if (!o.companyId) throw new Error("companyId is required");
-      if (!o.sourceType) throw new Error("sourceType is required");
-      if (!o.sourceIdentifier?.trim()) throw new Error("sourceIdentifier is required");
+      const o = CreateJobSourceSchema.parse(opts ?? {});
 
       // Validate the source type is supported
       try {
@@ -429,17 +449,7 @@ export function buildExecuteFunctions(): HostFunctions {
     },
 
     async createEventSource(opts: unknown) {
-      const o = (opts ?? {}) as {
-        name?: string;
-        sourceType?: string;
-        sourceIdentifier?: string;
-        sourceUrl?: string;
-        organizer?: string;
-      };
-      if (!o.name?.trim()) throw new Error("name is required");
-      if (!o.sourceType) throw new Error("sourceType is required");
-      if (!o.sourceIdentifier?.trim()) throw new Error("sourceIdentifier is required");
-      if (!o.sourceUrl?.trim()) throw new Error("sourceUrl is required");
+      const o = CreateEventSourceSchema.parse(opts ?? {});
 
       // Validate the config actually works
       const validation = await validateEventImportSourceConfig({
