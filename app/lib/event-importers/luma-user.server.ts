@@ -224,7 +224,7 @@ async function fetchUserEvents(identifier: string): Promise<FetchedEvent[]> {
   }
 
   // Fetch descriptions concurrently (bounded to avoid hammering Luma)
-  const limit = pLimit(5);
+  const limit = pLimit(2);
   const results = await Promise.all(
     pending.map(({ event, slug }) =>
       limit(async () => {
