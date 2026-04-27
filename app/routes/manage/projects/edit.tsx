@@ -478,7 +478,7 @@ function GalleryImageUploader() {
       <button
         type="submit"
         disabled={fetcher.state !== "idle"}
-        className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors self-start disabled:opacity-50"
+        className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors self-start disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {fetcher.state !== "idle" ? "Adding..." : "Add to Gallery"}
       </button>

@@ -740,7 +740,7 @@ export default function ViewJobImportSource() {
             <button
               type="submit"
               disabled={isTechLoading}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isTechLoading ? "Extracting..." : "Extract Technologies (Preview)"}
             </button>

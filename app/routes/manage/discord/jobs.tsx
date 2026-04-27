@@ -286,7 +286,7 @@ export default function DiscordJobs() {
                       <button
                         type="submit"
                         disabled={isSkippingOld}
-                        className="text-xs px-3 py-1.5 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors disabled:opacity-60"
+                        className="text-xs px-3 py-1.5 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                       >
                         {isSkippingOld ? "Skipping..." : `Skip ${oldJobCount} older than a week`}
                       </button>

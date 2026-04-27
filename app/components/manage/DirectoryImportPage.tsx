@@ -354,7 +354,7 @@ export function DirectoryImportPage({
           <button
             type="submit"
             disabled={isFetching}
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
           >
             {isFetching
               ? "Fetching..."
@@ -653,7 +653,7 @@ export function DirectoryImportPage({
               type="button"
               onClick={handleImport}
               disabled={selected.size === 0 || isImporting}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isImporting
                 ? "Importing..."

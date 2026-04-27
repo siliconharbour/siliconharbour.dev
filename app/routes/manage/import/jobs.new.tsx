@@ -207,7 +207,7 @@ export default function NewJobImportSource() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isSubmitting ? "Validating..." : "Add Source"}
             </button>

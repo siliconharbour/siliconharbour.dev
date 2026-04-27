@@ -481,7 +481,7 @@ export default function ImportGitHub() {
               type="button"
               onClick={handleBulkStart}
               disabled={isBulkRunning}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isBulkRunning ? "Starting..." : "Import All Users"}
             </button>
@@ -502,7 +502,7 @@ export default function ImportGitHub() {
                   type="button"
                   onClick={handleBulkStart}
                   disabled={isBulkRunning}
-                  className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+                  className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
                 >
                   {isBulkRunning ? "Resuming..." : "Resume"}
                 </button>
@@ -534,7 +534,7 @@ export default function ImportGitHub() {
                 type="button"
                 onClick={handleBulkStart}
                 disabled={isBulkRunning}
-                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
               >
                 Retry
               </button>
@@ -665,7 +665,7 @@ export default function ImportGitHub() {
           type="button"
           onClick={() => handleSearch(1)}
           disabled={isSearching}
-          className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors self-start"
+          className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors self-start"
         >
           {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland & Labrador"}
         </button>
@@ -871,7 +871,7 @@ export default function ImportGitHub() {
               type="button"
               onClick={handleImport}
               disabled={selected.size === 0 || isImporting}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 text-white font-medium transition-colors"
+              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isImporting ? "Importing..." : `Import ${selected.size} Selected Users`}
             </button>

@@ -159,7 +159,7 @@ function CommentRow({ comment }: { comment: Comment }) {
           <button
             type="submit"
             disabled={isDeleting}
-            className="px-3 py-1.5 text-xs text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 disabled:opacity-50"
+            className="px-3 py-1.5 text-xs text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Delete
           </button>
