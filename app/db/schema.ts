@@ -190,6 +190,7 @@ export const eventSourceTypes = [
   "netbenefit",
   "eventbrite",
   "bevy",
+  "meetup",
 ] as const;
 export type EventSourceType = (typeof eventSourceTypes)[number];
 

@@ -69,4 +69,5 @@ export const sourceTypeLabels: Record<string, string> = {
   netbenefit: "NetBenefit Software",
   eventbrite: "Eventbrite (Organizer)",
   bevy: "Bevy (GDG/Community)",
+  meetup: "Meetup",
 };
