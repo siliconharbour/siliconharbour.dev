@@ -9,6 +9,7 @@ import { lumaCalendarImporter } from "./luma-calendar.server";
 import { technlImporter } from "./technl.server";
 import { netbenefitImporter } from "./netbenefit.server";
 import { eventbriteImporter } from "./eventbrite.server";
+import { bevyImporter } from "./bevy.server";
 
 const importers: Record<string, EventImporter> = {
   "luma-user": lumaUserImporter,
@@ -16,6 +17,7 @@ const importers: Record<string, EventImporter> = {
   technl: technlImporter,
   netbenefit: netbenefitImporter,
   eventbrite: eventbriteImporter,
+  bevy: bevyImporter,
 };
 
 /**
