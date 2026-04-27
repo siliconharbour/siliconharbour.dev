@@ -4,6 +4,7 @@ import { requireAuth } from "~/lib/session.server";
 import {
   getEventImportSourceWithStats,
   deleteEventImportSource,
+  updateEventImportSource,
   syncEvents,
   approveImportedEvent,
   hideImportedEvent,
@@ -89,6 +90,20 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { intent: "unhide", success: true };
   }
 
+  if (intent === "edit-source") {
+    const name = (formData.get("name") as string)?.trim();
+    const organizer = (formData.get("organizer") as string)?.trim() || null;
+    const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
+    const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
+
+    if (!name) return { intent: "edit-source", error: "Name is required" };
+    if (!sourceIdentifier) return { intent: "edit-source", error: "Identifier is required" };
+    if (!sourceUrl) return { intent: "edit-source", error: "Source URL is required" };
+
+    await updateEventImportSource(sourceId, { name, organizer, sourceIdentifier, sourceUrl });
+    return { intent: "edit-source", success: true };
+  }
+
   if (intent === "delete-source") {
     await deleteEventImportSource(sourceId);
     return redirect("/manage/import/events");
@@ -116,22 +131,7 @@ export default function EventImportSourceDetail() {
         </div>
 
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-harbour-700">{source.name}</h1>
-            <p className="text-sm text-harbour-400 mt-1">
-              {sourceTypeLabels[source.sourceType] ?? source.sourceType}
-              {source.organizer ? ` · ${source.organizer}` : ""}
-              {" · "}
-              <a
-                href={source.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                View source
-              </a>
-            </p>
-          </div>
+          <h1 className="text-2xl font-semibold text-harbour-700">{source.name}</h1>
           <fetcher.Form method="post">
             <input type="hidden" name="intent" value="sync" />
             <button
@@ -143,6 +143,62 @@ export default function EventImportSourceDetail() {
             </button>
           </fetcher.Form>
         </div>
+
+        <fetcher.Form method="post" className="bg-white border border-harbour-200 p-4 flex flex-col gap-3">
+          <input type="hidden" name="intent" value="edit-source" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-harbour-500" htmlFor="name">Name</label>
+              <input
+                id="name" name="name" type="text"
+                defaultValue={source.name}
+                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-harbour-500" htmlFor="organizer">Organizer</label>
+              <input
+                id="organizer" name="organizer" type="text"
+                defaultValue={source.organizer ?? ""}
+                placeholder="e.g. GDG St. John's"
+                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-harbour-500" htmlFor="sourceIdentifier">Identifier</label>
+              <input
+                id="sourceIdentifier" name="sourceIdentifier" type="text"
+                defaultValue={source.sourceIdentifier}
+                className="w-full mt-1 px-2 py-1 text-sm font-mono border border-harbour-200 focus:outline-none focus:border-harbour-400"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-harbour-500" htmlFor="sourceUrl">Source URL</label>
+              <input
+                id="sourceUrl" name="sourceUrl" type="text"
+                defaultValue={source.sourceUrl}
+                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="px-3 py-1 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+            >
+              Save
+            </button>
+            <span className="text-xs text-harbour-400">
+              {sourceTypeLabels[source.sourceType] ?? source.sourceType}
+            </span>
+            {actionData && "intent" in actionData && actionData.intent === "edit-source" && "success" in actionData && (
+              <span className="text-xs text-green-600">Saved</span>
+            )}
+            {actionData && "intent" in actionData && actionData.intent === "edit-source" && "error" in actionData && (
+              <span className="text-xs text-red-600">{actionData.error}</span>
+            )}
+          </div>
+        </fetcher.Form>
 
         {source.fetchStatus === "error" && (
           <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">

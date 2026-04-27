@@ -156,6 +156,16 @@ export async function createEventImportSource(data: {
   return source;
 }
 
+export async function updateEventImportSource(
+  sourceId: number,
+  data: { name?: string; organizer?: string | null; sourceIdentifier?: string; sourceUrl?: string },
+) {
+  await db
+    .update(eventImportSources)
+    .set({ ...data, updatedAt: new Date() })
+    .where(eq(eventImportSources.id, sourceId));
+}
+
 export async function deleteEventImportSource(sourceId: number) {
   // Delete pending/hidden/removed events — they were never published, not worth keeping
   const eventsToDelete = await db
