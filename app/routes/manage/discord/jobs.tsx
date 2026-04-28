@@ -103,16 +103,24 @@ export async function action({ request }: Route.ActionArgs) {
       url: j.url,
     }));
 
-    const components = buildJobsMessage(jobsForMessage, introText || undefined);
-    const result = await postMessage(config.jobsChannelId, components, config.botToken);
+    const messages = buildJobsMessage(jobsForMessage, introText || undefined);
 
-    if (!result.success) {
-      return { error: `Failed to post to Discord: ${result.error}` };
+    // Send each message chunk (multiple when jobs exceed Discord's 40-component container limit)
+    const messageIds: string[] = [];
+    for (const components of messages) {
+      const result = await postMessage(config.jobsChannelId, components, config.botToken);
+      if (!result.success) {
+        return {
+          error: `Failed to post to Discord: ${result.error}${messageIds.length > 0 ? ` (${messageIds.length} message(s) already sent)` : ""}`,
+        };
+      }
+      if (result.messageId) messageIds.push(result.messageId);
     }
 
+    // Track all jobs under a single discord post record (using first message ID)
     await createDiscordPost({
       channelType: "jobs",
-      discordMessageId: result.messageId || null,
+      discordMessageId: messageIds[0] || null,
       discordChannelId: config.jobsChannelId,
       introText,
       itemIds: selectedIds,

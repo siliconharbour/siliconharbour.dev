@@ -91,91 +91,140 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
 }
 
 /**
+ * Build a single technical job's components (text + button).
+ * Returns 2-3 inner components (text, action row, optional separator).
+ */
+function buildTechJobComponents(
+  job: JobForDiscord,
+  includeSeparator: boolean,
+): object[] {
+  const parts: string[] = [];
+  if (job.companyName) parts.push(job.companyName);
+  if (job.location) parts.push(job.location);
+  if (job.workplaceType) {
+    parts.push(job.workplaceType.charAt(0).toUpperCase() + job.workplaceType.slice(1));
+  }
+  const subtitle = parts.join(" \u2022 ");
+  const textContent = `**${job.title}**${subtitle ? `\n${subtitle}` : ""}`;
+  const jobUrl = job.url || `${SITE_URL}/jobs/${job.slug}`;
+
+  const components: object[] = [
+    { type: 10, content: textContent },
+    { type: 1, components: [{ type: 2, style: 5, label: "Apply", url: jobUrl }] },
+  ];
+  if (includeSeparator) {
+    components.push({ type: 14, spacing: 1 });
+  }
+  return components;
+}
+
+/**
+ * Build the "Also hiring" non-technical section components.
+ * Returns 2-3 inner components.
+ */
+function buildNonTechSection(
+  nonTechnicalJobs: JobForDiscord[],
+  needsLeadingSeparator: boolean,
+): object[] {
+  const components: object[] = [];
+  if (needsLeadingSeparator) {
+    components.push({ type: 14, spacing: 2 });
+  }
+  const lines = nonTechnicalJobs.map((job) => {
+    const company = job.companyName ? ` - ${job.companyName}` : "";
+    return `${job.title}${company}`;
+  });
+  const listContent = `**Also hiring**\n${lines.join("\n")}`;
+  components.push({ type: 10, content: listContent });
+  components.push({
+    type: 1,
+    components: [{ type: 2, style: 5, label: "View All Jobs", url: `${SITE_URL}/jobs` }],
+  });
+  return components;
+}
+
+/**
+ * Discord Components v2 Container limit: max 40 child components.
+ * Each technical job = 3 components (text + button + separator), last = 2.
+ * Intro = 2, non-tech section = 3. Safe budget: 12 tech jobs per container.
+ */
+const MAX_CONTAINER_CHILDREN = 40;
+const TECH_JOB_COMPONENTS = 3; // text + button + separator
+const OVERHEAD_BUDGET = 5; // intro + non-tech section worst case
+const SAFE_TECH_PER_CONTAINER = Math.floor(
+  (MAX_CONTAINER_CHILDREN - OVERHEAD_BUDGET) / TECH_JOB_COMPONENTS,
+);
+
+/**
  * Build Components v2 payload for a jobs roundup message.
  *
  * Technical jobs get full treatment (title, subtitle, link button each).
  * Non-technical jobs are grouped into a compact "Also hiring" section
- * at the bottom with just title + company as a bullet list.
+ * at the bottom of the last container.
+ *
+ * Returns an array of Container objects. When there are many jobs, multiple
+ * containers are returned — each should be sent as a separate Discord message.
+ * Discord limits containers to 40 child components each.
  */
-export function buildJobsMessage(jobs: JobForDiscord[], introText?: string): object[] {
+export function buildJobsMessage(jobs: JobForDiscord[], introText?: string): object[][] {
   const technicalJobs = jobs.filter((j) => j.isTechnical);
   const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
 
-  const innerComponents: object[] = [];
-
-  // Intro text
-  if (introText?.trim()) {
-    innerComponents.push({ type: 10, content: introText.trim() });
-    innerComponents.push({ type: 14, spacing: 1 });
+  // Chunk technical jobs into groups that fit within a single container
+  const chunks: JobForDiscord[][] = [];
+  for (let i = 0; i < technicalJobs.length; i += SAFE_TECH_PER_CONTAINER) {
+    chunks.push(technicalJobs.slice(i, i + SAFE_TECH_PER_CONTAINER));
   }
 
-  // Technical jobs: full treatment
-  technicalJobs.forEach((job, index) => {
-    const parts: string[] = [];
-    if (job.companyName) parts.push(job.companyName);
-    if (job.location) parts.push(job.location);
-    if (job.workplaceType) {
-      parts.push(job.workplaceType.charAt(0).toUpperCase() + job.workplaceType.slice(1));
-    }
-    const subtitle = parts.join(" \u2022 ");
-    const textContent = `**${job.title}**${subtitle ? `\n${subtitle}` : ""}`;
+  // Edge case: no technical jobs but have non-technical
+  if (chunks.length === 0 && nonTechnicalJobs.length > 0) {
+    chunks.push([]);
+  }
 
-    const jobUrl = job.url || `${SITE_URL}/jobs/${job.slug}`;
+  // Edge case: no jobs at all
+  if (chunks.length === 0) {
+    chunks.push([]);
+  }
 
-    innerComponents.push({ type: 10, content: textContent });
+  const messages: object[][] = [];
 
-    // Link button -- points to external application page
-    innerComponents.push({
-      type: 1,
-      components: [
-        {
-          type: 2,
-          style: 5,
-          label: "Apply",
-          url: jobUrl,
-        },
-      ],
-    });
+  chunks.forEach((chunk, chunkIndex) => {
+    const innerComponents: object[] = [];
+    const isFirst = chunkIndex === 0;
+    const isLast = chunkIndex === chunks.length - 1;
 
-    // Separator between technical jobs (not after the last one if no non-technical follow)
-    if (index < technicalJobs.length - 1) {
+    // Intro text only on first message
+    if (isFirst && introText?.trim()) {
+      innerComponents.push({ type: 10, content: introText.trim() });
       innerComponents.push({ type: 14, spacing: 1 });
     }
-  });
 
-  // Non-technical jobs: compact grouped section
-  if (nonTechnicalJobs.length > 0) {
-    if (technicalJobs.length > 0) {
-      innerComponents.push({ type: 14, spacing: 2 });
+    // Continuation header for subsequent messages
+    if (!isFirst) {
+      innerComponents.push({ type: 10, content: `**New jobs (continued)**` });
+      innerComponents.push({ type: 14, spacing: 1 });
     }
 
-    const lines = nonTechnicalJobs.map((job) => {
-      const company = job.companyName ? ` - ${job.companyName}` : "";
-      return `${job.title}${company}`;
+    // Technical jobs in this chunk
+    chunk.forEach((job, index) => {
+      const isLastJob = index === chunk.length - 1;
+      const needsSeparator = !isLastJob; // separator between jobs, not after last
+      innerComponents.push(...buildTechJobComponents(job, needsSeparator));
     });
-    const listContent = `**Also hiring**\n${lines.join("\n")}`;
-    innerComponents.push({ type: 10, content: listContent });
 
-    // Single link to the jobs page
-    innerComponents.push({
-      type: 1,
-      components: [
-        {
-          type: 2,
-          style: 5,
-          label: "View All Jobs",
-          url: `${SITE_URL}/jobs`,
-        },
-      ],
-    });
-  }
+    // Non-technical section only on the last message
+    if (isLast && nonTechnicalJobs.length > 0) {
+      innerComponents.push(...buildNonTechSection(nonTechnicalJobs, chunk.length > 0));
+    }
 
-  // Wrap in a Container with accent color
-  return [
-    {
-      type: 17,
-      color: ACCENT_COLOR,
-      components: innerComponents,
-    },
-  ];
+    messages.push([
+      {
+        type: 17,
+        color: ACCENT_COLOR,
+        components: innerComponents,
+      },
+    ]);
+  });
+
+  return messages;
 }
