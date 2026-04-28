@@ -36,6 +36,7 @@ import {
   getCompanyById as getCompanyByIdRecord,
 } from "~/lib/companies.server";
 import { createJob as createJobRecord, updateJob as updateJobRecord } from "~/lib/jobs.server";
+import { searchIndeed, searchLinkedIn } from "~/lib/job-search.server";
 import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -127,6 +128,13 @@ const UpdateJobSchema = z.object({
   department: z.string().optional(),
   workplaceType: z.enum(["remote", "onsite", "hybrid"]).optional(),
   salaryRange: z.string().optional(),
+});
+
+const SearchJobsSchema = z.object({
+  query: z.string().optional(),
+  location: z.string().default("St. John's, NL"),
+  limit: z.number().default(25),
+  hoursOld: z.number().optional(),
 });
 
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
@@ -630,6 +638,16 @@ export function buildExecuteFunctions(): HostFunctions {
         reason: o.reason,
         message: `"${job.title}" marked as ${o.reason}`,
       };
+    },
+
+    async searchIndeedJobs(opts: unknown) {
+      const o = SearchJobsSchema.parse(opts ?? {});
+      return searchIndeed(o);
+    },
+
+    async searchLinkedInJobs(opts: unknown) {
+      const o = SearchJobsSchema.parse(opts ?? {});
+      return searchLinkedIn(o);
     },
   };
 }

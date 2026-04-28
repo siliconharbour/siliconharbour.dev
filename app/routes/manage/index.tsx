@@ -216,6 +216,15 @@ export default function ManageIndex() {
               <p className="text-harbour-400 text-sm">Import jobs from company career pages</p>
             </Link>
             <Link
+              to="/manage/import/jobs/search"
+              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
+            >
+              <h3 className="font-medium text-harbour-700">Job Board Search</h3>
+              <p className="text-harbour-400 text-sm">
+                Search Indeed and LinkedIn for local job postings
+              </p>
+            </Link>
+            <Link
               to="/manage/import/events"
               className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
             >

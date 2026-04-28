@@ -45,6 +45,8 @@ const EXECUTE_DESCRIPTION = [
   "- updateJob({ id, title?, description?, url?, location?, department?, workplaceType?, salaryRange? })",
   "- getManualJobs()",
   "- deactivateJob({ jobId, reason }) where reason is 'removed', 'filled', or 'expired'",
+  "- searchIndeedJobs({ query?, location?, limit?, hoursOld? })",
+  "- searchLinkedInJobs({ query?, location?, limit? })",
   "",
   "createCompany creates hidden companies (pending review).",
   "createJob creates a manual job posting (active immediately). Pass companyName to auto-resolve the company ID.",
