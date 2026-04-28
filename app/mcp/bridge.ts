@@ -111,6 +111,13 @@ const CreateJobSchema = z.object({
   isTechnical: z.boolean().optional(),
 });
 
+const DeactivateJobSchema = z.object({
+  jobId: z.number({ required_error: "jobId is required" }),
+  reason: z.enum(["removed", "filled", "expired"], {
+    required_error: "reason is required (removed, filled, expired)",
+  }),
+});
+
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
 function toPlain<T>(val: T): T {
   return JSON.parse(
@@ -540,6 +547,52 @@ export function buildExecuteFunctions(): HostFunctions {
         slug: job.slug,
         message: `Job "${o.title}" created (active, manual). View at /manage/jobs/${job.id}`,
       });
+    },
+
+    async getManualJobs() {
+      const manualJobs = await db
+        .select()
+        .from(jobs)
+        .where(and(eq(jobs.sourceType, "manual"), eq(jobs.status, "active")));
+
+      const results = [];
+      for (const j of manualJobs) {
+        const [company] = j.companyId
+          ? await db
+              .select({ name: companies.name })
+              .from(companies)
+              .where(eq(companies.id, j.companyId))
+              .limit(1)
+          : [];
+        results.push({
+          jobId: j.id,
+          title: j.title,
+          companyName: company?.name ?? null,
+          location: j.location,
+          workplaceType: j.workplaceType,
+          url: j.url,
+          createdAt: j.createdAt,
+        });
+      }
+      return toPlain(results);
+    },
+
+    async deactivateJob(opts: unknown) {
+      const o = DeactivateJobSchema.parse(opts ?? {});
+      const job = await getImportedJobById(o.jobId);
+      if (!job) throw new Error(`Job ${o.jobId} not found`);
+
+      const now = new Date();
+      await db
+        .update(jobs)
+        .set({ status: o.reason, removedAt: now, updatedAt: now })
+        .where(eq(jobs.id, o.jobId));
+
+      return {
+        jobId: o.jobId,
+        reason: o.reason,
+        message: `"${job.title}" marked as ${o.reason}`,
+      };
     },
   };
 }
