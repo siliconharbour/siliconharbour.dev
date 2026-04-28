@@ -35,7 +35,7 @@ import {
   updateCompany as updateCompanyRecord,
   getCompanyById as getCompanyByIdRecord,
 } from "~/lib/companies.server";
-import { createJob as createJobRecord } from "~/lib/jobs.server";
+import { createJob as createJobRecord, updateJob as updateJobRecord } from "~/lib/jobs.server";
 import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -116,6 +116,17 @@ const DeactivateJobSchema = z.object({
   reason: z.enum(["removed", "filled", "expired"], {
     required_error: "reason is required (removed, filled, expired)",
   }),
+});
+
+const UpdateJobSchema = z.object({
+  id: z.number({ required_error: "id is required" }),
+  title: z.string().optional(),
+  description: z.string().optional(),
+  url: z.string().optional(),
+  location: z.string().optional(),
+  department: z.string().optional(),
+  workplaceType: z.enum(["remote", "onsite", "hybrid"]).optional(),
+  salaryRange: z.string().optional(),
 });
 
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
@@ -575,6 +586,32 @@ export function buildExecuteFunctions(): HostFunctions {
         });
       }
       return toPlain(results);
+    },
+
+    async updateJob(opts: unknown) {
+      const { id, ...fields } = UpdateJobSchema.parse(opts ?? {});
+      const job = await getImportedJobById(id);
+      if (!job) throw new Error(`Job ${id} not found`);
+
+      const updates: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(fields)) {
+        if (value === undefined) continue;
+        if (typeof value === "string") {
+          updates[key] = value.trim() || null;
+        } else {
+          updates[key] = value;
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return { updated: false, message: "No fields to update" };
+      }
+
+      await updateJobRecord(id, updates);
+      return {
+        updated: true,
+        message: `Job "${job.title}" updated (${Object.keys(updates).join(", ")})`,
+      };
     },
 
     async deactivateJob(opts: unknown) {

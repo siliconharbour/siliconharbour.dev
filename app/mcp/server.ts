@@ -42,6 +42,7 @@ const EXECUTE_DESCRIPTION = [
   "- getJobDetail(jobId)",
   "- reviewJob({ jobId, action })",
   "- createJob({ title, description, url, companyName?, companyId?, location?, department?, workplaceType?, salaryRange?, isTechnical? })",
+  "- updateJob({ id, title?, description?, url?, location?, department?, workplaceType?, salaryRange? })",
   "- getManualJobs()",
   "- deactivateJob({ jobId, reason }) where reason is 'removed', 'filled', or 'expired'",
   "",
