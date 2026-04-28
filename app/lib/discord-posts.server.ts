@@ -84,6 +84,13 @@ export async function getUnpostedEvents() {
     }),
   );
 
+  // Sort by earliest upcoming date (soonest first), recurring events without dates go last
+  eventsWithDates.sort((a, b) => {
+    const aDate = a.dates[0]?.startDate ? new Date(a.dates[0].startDate).getTime() : Infinity;
+    const bDate = b.dates[0]?.startDate ? new Date(b.dates[0].startDate).getTime() : Infinity;
+    return aDate - bDate;
+  });
+
   return eventsWithDates;
 }
 
