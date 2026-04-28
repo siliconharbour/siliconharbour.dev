@@ -447,7 +447,7 @@ export async function createImportSource(data: {
  */
 export async function updateImportSource(
   sourceId: number,
-  data: { sourceIdentifier?: string; sourceUrl?: string | null },
+  data: { sourceType?: string; sourceIdentifier?: string; sourceUrl?: string | null },
 ) {
   await db
     .update(jobImportSources)

@@ -22,6 +22,8 @@ import {
   getAllImportSources,
   syncJobs,
   createImportSource as createJobImportSource,
+  updateImportSource as updateJobImportSource,
+  getSourceById,
   getImportedJobById,
   approveJob,
   approveJobAsNonTechnical,
@@ -82,6 +84,13 @@ const CreateJobSourceSchema = z.object({
   sourceIdentifier: z.string().min(1, "sourceIdentifier is required"),
   sourceUrl: z.string().optional(),
   skipValidation: z.boolean().optional(),
+});
+
+const UpdateJobSourceSchema = z.object({
+  sourceId: z.number({ required_error: "sourceId is required" }),
+  sourceType: z.string().optional(),
+  sourceIdentifier: z.string().optional(),
+  sourceUrl: z.string().optional(),
 });
 
 const CreateEventSourceSchema = z.object({
@@ -485,6 +494,38 @@ export function buildExecuteFunctions(): HostFunctions {
         sourceId,
         message: `Job import source created (id: ${sourceId})${o.skipValidation ? " (validation skipped)" : ""}. Use syncJobSource(${sourceId}) to run first sync.`,
         jobCount,
+      };
+    },
+
+    async updateJobSource(opts: unknown) {
+      const o = UpdateJobSourceSchema.parse(opts ?? {});
+      const existing = await getSourceById(o.sourceId);
+      if (!existing) throw new Error(`Job import source ${o.sourceId} not found`);
+
+      // Validate new sourceType if changing
+      if (o.sourceType) {
+        try {
+          getImporter(o.sourceType as JobSourceType);
+        } catch {
+          throw new Error(
+            `Unsupported sourceType "${o.sourceType}". Use listImporterTypes() to see available types.`,
+          );
+        }
+      }
+
+      const updates: { sourceType?: string; sourceIdentifier?: string; sourceUrl?: string | null } = {};
+      if (o.sourceType) updates.sourceType = o.sourceType;
+      if (o.sourceIdentifier) updates.sourceIdentifier = o.sourceIdentifier.trim();
+      if (o.sourceUrl !== undefined) updates.sourceUrl = o.sourceUrl?.trim() || null;
+
+      if (Object.keys(updates).length === 0) {
+        return { updated: false, message: "No fields to update" };
+      }
+
+      await updateJobImportSource(o.sourceId, updates);
+      return {
+        updated: true,
+        message: `Job import source ${o.sourceId} updated (${Object.keys(updates).join(", ")})`,
       };
     },
 

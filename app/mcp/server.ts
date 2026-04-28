@@ -37,6 +37,7 @@ const EXECUTE_DESCRIPTION = [
   "- getCompanyByName(name)",
   "- updateCompany({ id, name?, website?, description?, location?, email?, linkedin?, github?, wikipedia?, careersUrl?, founded?, visible?, technl?, genesis?, bounce? })",
   "- createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl? })",
+  "- updateJobSource({ sourceId, sourceType?, sourceIdentifier?, sourceUrl? })",
   "- createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? })",
   "- listImporterTypes()",
   "- getJobDetail(jobId)",
