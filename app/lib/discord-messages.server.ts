@@ -144,15 +144,21 @@ function buildNonTechSection(
 }
 
 /**
- * Discord Components v2 Container limit: max 40 child components.
- * Each technical job = 3 components (text + button + separator), last = 2.
- * Intro = 2, non-tech section = 3. Safe budget: 12 tech jobs per container.
+ * Discord Components v2 limit: max 40 TOTAL components per message,
+ * counted recursively (container + its children + nested button inside action rows).
+ *
+ * Per technical job (recursive count):
+ *   TextDisplay(1) + ActionRow(1) + Button-inside(1) + Separator(1) = 4
+ *   Last job has no separator = 3
+ *
+ * Overhead: Container itself(1) + intro(2-3) + non-tech section(4) + continuation header(2)
+ * Safe budget: ~8 overhead worst case → (40 - 8) / 4 = 8 tech jobs per message.
  */
-const MAX_CONTAINER_CHILDREN = 40;
-const TECH_JOB_COMPONENTS = 3; // text + button + separator
-const OVERHEAD_BUDGET = 5; // intro + non-tech section worst case
+const MAX_TOTAL_COMPONENTS = 40;
+const TECH_JOB_TOTAL_COMPONENTS = 4; // text + actionRow + button + separator (recursive)
+const OVERHEAD_BUDGET = 8; // container(1) + intro/header(3) + non-tech(4)
 const SAFE_TECH_PER_CONTAINER = Math.floor(
-  (MAX_CONTAINER_CHILDREN - OVERHEAD_BUDGET) / TECH_JOB_COMPONENTS,
+  (MAX_TOTAL_COMPONENTS - OVERHEAD_BUDGET) / TECH_JOB_TOTAL_COMPONENTS,
 );
 
 /**
