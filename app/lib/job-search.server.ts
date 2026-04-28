@@ -6,6 +6,12 @@
  * being added via createJob().
  *
  * Used by the MCP execute tool for agent-assisted job discovery.
+ *
+ * Approach derived from JobSpy (MIT): https://github.com/speedyapply/JobSpy
+ * If these scrapers break, check JobSpy for updated API keys, endpoints,
+ * headers, or workarounds:
+ *   Indeed:   https://github.com/speedyapply/JobSpy/blob/main/jobspy/indeed/
+ *   LinkedIn: https://github.com/speedyapply/JobSpy/blob/main/jobspy/linkedin/
  */
 
 import { htmlToText } from "./job-importers/text.server";
