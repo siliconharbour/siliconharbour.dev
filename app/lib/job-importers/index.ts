@@ -16,6 +16,8 @@ import { careerbeaconImporter } from "./careerbeacon.server";
 import { workableImporter } from "./workable.server";
 import { icimsImporter } from "./icims.server";
 import { jibeImporter } from "./jibe.server";
+import { oracleHcmImporter } from "./oracle-hcm.server";
+import { successfactorsImporter } from "./successfactors.server";
 import { customImporter } from "./custom.server";
 
 // Registry of all available importers
@@ -32,6 +34,8 @@ const importers: Record<string, JobImporter> = {
   workable: workableImporter,
   icims: icimsImporter,
   jibe: jibeImporter,
+  "oracle-hcm": oracleHcmImporter,
+  successfactors: successfactorsImporter,
   custom: customImporter,
 };
 

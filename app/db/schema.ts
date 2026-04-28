@@ -721,6 +721,8 @@ export const atsSourceTypes = [
   "workable",
   "icims",
   "jibe",
+  "oracle-hcm",
+  "successfactors",
   "custom",
 ] as const;
 export type AtsSourceType = (typeof atsSourceTypes)[number];

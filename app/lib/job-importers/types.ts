@@ -19,6 +19,8 @@ export const jobSourceTypes = [
   "workable",
   "icims",
   "jibe",
+  "oracle-hcm",
+  "successfactors",
   "custom",
 ] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
@@ -165,6 +167,8 @@ export const sourceTypeLabels: Record<JobSourceType, string> = {
   workable: "Workable",
   icims: "iCIMS",
   jibe: "Jibe",
+  "oracle-hcm": "Oracle HCM",
+  successfactors: "SuccessFactors",
   custom: "Custom",
 };
 
@@ -185,5 +189,8 @@ export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   workable: "e.g., upstream (from apply.workable.com/upstream)",
   icims: "e.g., uscareers-repairify (from uscareers-repairify.icims.com)",
   jibe: "e.g., jobs.symphonyai.com (the full Jibe careers domain)",
+  "oracle-hcm":
+    "e.g., emit.fa.ca3.oraclecloud.com:CX_2001:St. John's (host:siteNumber:keyword)",
+  successfactors: "e.g., jobs.hatch.com:St. John's (host:location)",
   custom: "Custom identifier or URL",
 };
