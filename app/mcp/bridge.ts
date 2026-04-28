@@ -35,6 +35,7 @@ import {
   updateCompany as updateCompanyRecord,
   getCompanyById as getCompanyByIdRecord,
 } from "~/lib/companies.server";
+import { createJob as createJobRecord } from "~/lib/jobs.server";
 import { db } from "~/db";
 import { events, jobs, companies } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -95,6 +96,19 @@ const ReviewJobSchema = z.object({
   action: z.enum(["approve", "approve-non-technical", "hide"], {
     required_error: "action is required (approve, approve-non-technical, hide)",
   }),
+});
+
+const CreateJobSchema = z.object({
+  title: z.string().min(1, "title is required"),
+  description: z.string().min(1, "description is required"),
+  url: z.string().min(1, "url is required (apply link)"),
+  companyId: z.number().optional(),
+  companyName: z.string().optional(),
+  location: z.string().optional(),
+  department: z.string().optional(),
+  workplaceType: z.enum(["remote", "onsite", "hybrid"]).optional(),
+  salaryRange: z.string().optional(),
+  isTechnical: z.boolean().optional(),
 });
 
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
@@ -482,6 +496,50 @@ export function buildExecuteFunctions(): HostFunctions {
 
     async listImporterTypes() {
       return getAllImporterMeta();
+    },
+
+    async createJob(opts: unknown) {
+      const o = CreateJobSchema.parse(opts ?? {});
+
+      // Resolve company by name if companyName provided instead of companyId
+      let companyId = o.companyId ?? null;
+      if (!companyId && o.companyName) {
+        const company = await getCompanyByNameRecord(o.companyName);
+        if (company) {
+          companyId = company.id;
+        } else {
+          return {
+            created: false,
+            message: `Company "${o.companyName}" not found. Use getCompanyByName() to check, or createCompany() first.`,
+          };
+        }
+      }
+
+      const job = await createJobRecord({
+        title: o.title.trim(),
+        description: o.description.trim(),
+        url: o.url.trim(),
+        companyId,
+        location: o.location?.trim() || null,
+        department: o.department?.trim() || null,
+        workplaceType: o.workplaceType || null,
+        salaryRange: o.salaryRange?.trim() || null,
+      });
+
+      // If isTechnical is explicitly set to false, mark as non-technical
+      if (o.isTechnical === false) {
+        await db
+          .update(jobs)
+          .set({ isTechnical: false })
+          .where(eq(jobs.id, job.id));
+      }
+
+      return toPlain({
+        created: true,
+        jobId: job.id,
+        slug: job.slug,
+        message: `Job "${o.title}" created (active, manual). View at /manage/jobs/${job.id}`,
+      });
     },
   };
 }
