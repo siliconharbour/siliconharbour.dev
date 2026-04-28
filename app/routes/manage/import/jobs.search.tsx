@@ -8,6 +8,7 @@ import {
   type IndeedSearchResult,
   type LinkedInSearchResult,
 } from "~/lib/job-search.server";
+import { JOB_SEARCH_TERMS } from "~/lib/job-search";
 import { createJob } from "~/lib/jobs.server";
 import { getCompanyByName } from "~/lib/companies.server";
 
@@ -141,13 +142,18 @@ export default function JobSearchPage() {
               </select>
             </div>
             <div className="flex-1 flex flex-col gap-1 min-w-48">
-              <label className="text-sm text-harbour-600">Keywords (optional)</label>
-              <input
+              <label className="text-sm text-harbour-600">Search Term</label>
+              <select
                 name="query"
-                type="text"
-                placeholder="e.g. software developer"
                 className="px-3 py-2 border border-harbour-200 text-sm"
-              />
+              >
+                <option value="">All jobs (no filter)</option>
+                {JOB_SEARCH_TERMS.map((term) => (
+                  <option key={term} value={term}>
+                    {term}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm text-harbour-600">Location</label>

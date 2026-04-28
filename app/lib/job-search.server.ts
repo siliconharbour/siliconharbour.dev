@@ -16,6 +16,9 @@
 
 import { htmlToText } from "./job-importers/text.server";
 
+// Re-export client-safe constants
+export { JOB_SEARCH_TERMS, type JobSearchTerm } from "./job-search";
+
 // ── Indeed (GraphQL API) ─────────────────────────────────────────────
 
 const INDEED_API = "https://apis.indeed.com/graphql";
