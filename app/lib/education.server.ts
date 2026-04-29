@@ -138,8 +138,8 @@ export async function getPaginatedEducation(
         .orderBy(asc(education.name))
         .limit(limit)
         .offset(offset);
-      const allMatching = await db.select({ id: education.id }).from(education).where(whereClause);
-      return { items, total: allMatching.length };
+      const [{ total }] = await db.select({ total: count() }).from(education).where(whereClause);
+      return { items, total };
     },
   });
 }

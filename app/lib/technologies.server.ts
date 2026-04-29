@@ -15,7 +15,7 @@ import {
   type TechnologyEvidenceSourceType,
   type TechnologizedType,
 } from "~/db/schema";
-import { eq, asc, count, and, inArray } from "drizzle-orm";
+import { eq, asc, count, and, inArray, sql } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { normalizeTechnologyEvidenceSourceLabel } from "./technology-evidence";
 
@@ -89,9 +89,12 @@ export async function getTechnologyBySlug(slug: string): Promise<Technology | nu
 }
 
 export async function getTechnologyByName(name: string): Promise<Technology | null> {
-  const all = await db.select().from(technologies);
-  const nameLower = name.toLowerCase();
-  return all.find((t) => t.name.toLowerCase() === nameLower) ?? null;
+  const result = await db
+    .select()
+    .from(technologies)
+    .where(sql`LOWER(${technologies.name}) = LOWER(${name.trim()})`)
+    .limit(1);
+  return result[0] ?? null;
 }
 
 export async function getAllTechnologies(includeHidden: boolean = false): Promise<Technology[]> {

@@ -120,8 +120,8 @@ export async function getPaginatedGroups(
         .orderBy(asc(groups.name))
         .limit(limit)
         .offset(offset);
-      const allMatching = await db.select({ id: groups.id }).from(groups).where(whereClause);
-      return { items, total: allMatching.length };
+      const [{ total }] = await db.select({ total: count() }).from(groups).where(whereClause);
+      return { items, total };
     },
   });
 }

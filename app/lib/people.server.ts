@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { people, type Person, type NewPerson } from "~/db/schema";
-import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, and, sql } from "drizzle-orm";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
 import { generateEntitySlug, getPaginatedBySearch } from "./crud-helpers.server";
@@ -73,17 +73,21 @@ export async function getPersonBySlug(slug: string): Promise<Person | null> {
 }
 
 export async function getPersonByName(name: string): Promise<Person | null> {
-  // Case-insensitive search by lowercasing both sides
-  const all = await db.select().from(people);
-  const nameLower = name.toLowerCase();
-  return all.find((p) => p.name.toLowerCase() === nameLower) ?? null;
+  const result = await db
+    .select()
+    .from(people)
+    .where(sql`LOWER(${people.name}) = LOWER(${name.trim()})`)
+    .limit(1);
+  return result[0] ?? null;
 }
 
 export async function getPersonByGitHub(githubUrl: string): Promise<Person | null> {
-  // Find by GitHub URL
-  const all = await db.select().from(people);
-  const urlLower = githubUrl.toLowerCase();
-  return all.find((p) => p.github?.toLowerCase() === urlLower) ?? null;
+  const result = await db
+    .select()
+    .from(people)
+    .where(sql`LOWER(${people.github}) = LOWER(${githubUrl.trim()})`)
+    .limit(1);
+  return result[0] ?? null;
 }
 
 export async function getAllPeople(includeHidden: boolean = false): Promise<Person[]> {
@@ -162,8 +166,8 @@ export async function getPaginatedPeople(
         .orderBy(asc(people.name))
         .limit(limit)
         .offset(offset);
-      const allMatching = await db.select({ id: people.id }).from(people).where(whereClause);
-      return { items, total: allMatching.length };
+      const [{ total }] = await db.select({ total: count() }).from(people).where(whereClause);
+      return { items, total };
     },
   });
 }

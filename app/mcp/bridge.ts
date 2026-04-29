@@ -40,7 +40,7 @@ import {
 import { createJob as createJobRecord, updateJob as updateJobRecord } from "~/lib/jobs.server";
 import { searchIndeed, searchLinkedIn } from "~/lib/job-search.server";
 import { db } from "~/db";
-import { events, jobs, companies } from "~/db/schema";
+import { events, jobs, companies, eventImportSources, jobImportSources } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
 // ── Zod schemas ────────────────────────────────────────────────────────
@@ -245,61 +245,48 @@ export function buildExecuteFunctions(): HostFunctions {
     },
 
     async pendingEvents() {
-      const sources = await getAllEventImportSources();
-      const pending: unknown[] = [];
-      for (const source of sources) {
-        const evts = await db
-          .select({ id: events.id, title: events.title, firstSeenAt: events.firstSeenAt })
-          .from(events)
-          .where(
-            and(eq(events.importSourceId, source.id), eq(events.importStatus, "pending_review")),
-          )
-          .limit(50);
-        for (const e of evts) {
-          pending.push({
-            sourceId: source.id,
-            sourceName: source.name,
-            eventId: e.id,
-            title: e.title,
-            firstSeenAt: e.firstSeenAt,
-          });
-        }
-      }
-      return toPlain(pending);
+      const rows = await db
+        .select({
+          sourceId: eventImportSources.id,
+          sourceName: eventImportSources.name,
+          eventId: events.id,
+          title: events.title,
+          firstSeenAt: events.firstSeenAt,
+        })
+        .from(events)
+        .innerJoin(eventImportSources, eq(events.importSourceId, eventImportSources.id))
+        .where(eq(events.importStatus, "pending_review"))
+        .limit(200);
+      return toPlain(rows);
     },
 
     async pendingJobs() {
-      const sources = await getAllImportSources();
-      const pending: unknown[] = [];
-      for (const source of sources) {
-        const jobRows = await db
-          .select()
-          .from(jobs)
-          .where(and(eq(jobs.sourceId, source.id), eq(jobs.status, "pending_review")))
-          .limit(50);
-        for (const j of jobRows) {
-          const [company] = j.companyId
-            ? await db
-                .select({ name: companies.name })
-                .from(companies)
-                .where(eq(companies.id, j.companyId))
-                .limit(1)
-            : [];
-          pending.push({
-            jobId: j.id,
-            title: j.title,
-            companyName: company?.name ?? null,
-            location: j.location,
-            workplaceType: j.workplaceType,
-            url: j.url,
-            descriptionSnippet: j.descriptionText
-              ? j.descriptionText.slice(0, 500) + (j.descriptionText.length > 500 ? "..." : "")
-              : null,
-            sourceType: source.sourceType,
-          });
-        }
-      }
-      return toPlain(pending);
+      const rows = await db
+        .select({
+          jobId: jobs.id,
+          title: jobs.title,
+          companyName: companies.name,
+          location: jobs.location,
+          workplaceType: jobs.workplaceType,
+          url: jobs.url,
+          descriptionText: jobs.descriptionText,
+          sourceType: jobImportSources.sourceType,
+        })
+        .from(jobs)
+        .leftJoin(companies, eq(jobs.companyId, companies.id))
+        .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
+        .where(eq(jobs.status, "pending_review"))
+        .limit(200);
+
+      return toPlain(
+        rows.map((r) => ({
+          ...r,
+          descriptionSnippet: r.descriptionText
+            ? r.descriptionText.slice(0, 500) + (r.descriptionText.length > 500 ? "..." : "")
+            : null,
+          descriptionText: undefined,
+        })),
+      );
     },
 
     async getJobDetail(jobId: unknown) {
@@ -610,31 +597,20 @@ export function buildExecuteFunctions(): HostFunctions {
     },
 
     async getManualJobs() {
-      const manualJobs = await db
-        .select()
+      const rows = await db
+        .select({
+          jobId: jobs.id,
+          title: jobs.title,
+          companyName: companies.name,
+          location: jobs.location,
+          workplaceType: jobs.workplaceType,
+          url: jobs.url,
+          createdAt: jobs.createdAt,
+        })
         .from(jobs)
+        .leftJoin(companies, eq(jobs.companyId, companies.id))
         .where(and(eq(jobs.sourceType, "manual"), eq(jobs.status, "active")));
-
-      const results = [];
-      for (const j of manualJobs) {
-        const [company] = j.companyId
-          ? await db
-              .select({ name: companies.name })
-              .from(companies)
-              .where(eq(companies.id, j.companyId))
-              .limit(1)
-          : [];
-        results.push({
-          jobId: j.id,
-          title: j.title,
-          companyName: company?.name ?? null,
-          location: j.location,
-          workplaceType: j.workplaceType,
-          url: j.url,
-          createdAt: j.createdAt,
-        });
-      }
-      return toPlain(results);
+      return toPlain(rows);
     },
 
     async updateJob(opts: unknown) {

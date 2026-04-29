@@ -10,7 +10,7 @@ import {
   type EventOccurrence,
   type NewEventOccurrence,
 } from "~/db/schema";
-import { eq, gte, and, lte, asc, desc, isNull, or } from "drizzle-orm";
+import { eq, gte, and, lte, asc, desc, isNull, or, inArray } from "drizzle-orm";
 import { deleteImage } from "./images.server";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences, syncOrganizerReferences } from "./references.server";
@@ -21,6 +21,27 @@ import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 
 export type EventWithDates = Event & { dates: EventDate[] };
+
+/**
+ * Batch-fetch dates for multiple events in a single query, avoiding N+1.
+ * Returns events with their dates attached, preserving input order.
+ */
+async function attachDates(eventList: Event[]): Promise<EventWithDates[]> {
+  if (eventList.length === 0) return [];
+  const ids = eventList.map((e) => e.id);
+  const allDates = await db
+    .select()
+    .from(eventDates)
+    .where(inArray(eventDates.eventId, ids))
+    .orderBy(asc(eventDates.startDate));
+  const datesByEvent = new Map<number, EventDate[]>();
+  for (const d of allDates) {
+    const list = datesByEvent.get(d.eventId) ?? [];
+    list.push(d);
+    datesByEvent.set(d.eventId, list);
+  }
+  return eventList.map((event) => ({ ...event, dates: datesByEvent.get(event.id) ?? [] }));
+}
 
 /** Filter: show manually-created events (importStatus IS NULL) and published imports */
 const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
@@ -218,19 +239,7 @@ export async function getPublicEventBySlug(slug: string): Promise<EventWithDates
 
 export async function getAllEvents(): Promise<EventWithDates[]> {
   const allEvents = await db.select().from(events).orderBy(desc(events.createdAt));
-
-  const eventsWithDates = await Promise.all(
-    allEvents.map(async (event) => {
-      const dates = await db
-        .select()
-        .from(eventDates)
-        .where(eq(eventDates.eventId, event.id))
-        .orderBy(asc(eventDates.startDate));
-      return { ...event, dates };
-    }),
-  );
-
-  return eventsWithDates;
+  return attachDates(allEvents);
 }
 
 export async function getUpcomingEvents(): Promise<EventWithDates[]> {
@@ -268,46 +277,39 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
 
   if (allEventIds.size === 0) return [];
 
-  const eventsWithDates = await Promise.all(
-    Array.from(allEventIds).map(async (eventId) => {
-      const eventData = await getEventById(eventId);
-      if (!eventData) return null;
+  const ids = Array.from(allEventIds);
+  const eventRows = await db.select().from(events).where(inArray(events.id, ids));
+  const batchedWithDates = await attachDates(eventRows);
 
-      // For recurring events, generate upcoming dates
-      if (eventData.recurrenceRule) {
-        const generatedDates = getGeneratedOccurrences(eventData, now, threeMonthsFromNow);
-        // Only keep next 3 dates for listing display (cards only need the next occurrence)
-        const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
-          // Get the date string in Newfoundland timezone
-          const dateStr = getDateInTimezone(date);
+  const eventsWithDates = batchedWithDates.map((eventData) => {
+    if (eventData.recurrenceRule) {
+      const generatedDates = getGeneratedOccurrences(eventData, now, threeMonthsFromNow);
+      const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
+        const dateStr = getDateInTimezone(date);
+        const startTime = eventData.defaultStartTime || "00:00";
+        const startDateTime = parseAsTimezone(dateStr, startTime);
 
-          // Parse the date with the time as Newfoundland timezone
-          const startTime = eventData.defaultStartTime || "00:00";
-          const startDateTime = parseAsTimezone(dateStr, startTime);
+        let endDateTime: Date | null = null;
+        if (eventData.defaultEndTime) {
+          endDateTime = parseAsTimezone(dateStr, eventData.defaultEndTime);
+        }
 
-          let endDateTime: Date | null = null;
-          if (eventData.defaultEndTime) {
-            endDateTime = parseAsTimezone(dateStr, eventData.defaultEndTime);
-          }
+        return {
+          id: -(i + 1),
+          eventId: eventData.id,
+          startDate: startDateTime,
+          endDate: endDateTime,
+        };
+      });
 
-          return {
-            id: -(i + 1), // Negative IDs for synthetic dates
-            eventId: eventData.id,
-            startDate: startDateTime,
-            endDate: endDateTime,
-          };
-        });
+      return { ...eventData, dates: syntheticDates };
+    }
 
-        return { ...eventData, dates: syntheticDates };
-      }
+    return eventData;
+  });
 
-      return eventData;
-    }),
-  );
-
-  // Filter nulls, filter unpublished imports, filter to only those with upcoming dates, and sort
+  // Filter unpublished imports, filter to only those with upcoming dates, and sort
   return eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
     .filter((e) => e.importStatus === null || e.importStatus === "published")
     .filter((e) => e.dates.some((d) => isUpcomingOrInProgress(d, now)))
     .sort((a, b) => {
@@ -436,14 +438,11 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
 
   if (eventIdsThisWeek.length === 0) return [];
 
-  const eventsWithDates = await Promise.all(
-    eventIdsThisWeek.map(async ({ eventId }) => {
-      return getEventById(eventId);
-    }),
-  );
+  const ids = eventIdsThisWeek.map((r) => r.eventId);
+  const eventRows = await db.select().from(events).where(inArray(events.id, ids));
+  const eventsWithDates = await attachDates(eventRows);
 
   return eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
     .filter((e) => e.importStatus === null || e.importStatus === "published")
     .filter((e) => !e.recurrenceRule) // exclude recurring even if they have explicit dates
     .sort((a, b) => {
@@ -465,15 +464,13 @@ export async function getEventsByMonth(year: number, month: number): Promise<Eve
 
   if (eventIdsInMonth.length === 0) return [];
 
-  const eventsWithDates = await Promise.all(
-    eventIdsInMonth.map(async ({ eventId }) => {
-      return getEventById(eventId);
-    }),
-  );
+  const ids = eventIdsInMonth.map((r) => r.eventId);
+  const eventRows = await db.select().from(events).where(inArray(events.id, ids));
+  const eventsWithDates = await attachDates(eventRows);
 
-  return eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
-    .filter((e) => e.importStatus === null || e.importStatus === "published");
+  return eventsWithDates.filter(
+    (e) => e.importStatus === null || e.importStatus === "published",
+  );
 }
 
 // =============================================================================
@@ -572,44 +569,41 @@ export async function getPaginatedEvents(
 
   const total = filteredEventIds.length;
 
-  // Fetch full event data with dates for all matching events, then sort and paginate.
+  // Fetch full event data with dates for all matching events in batch.
   // Sorting requires date data, so we fetch first and slice after.
-  const eventsWithDates = await Promise.all(
-    filteredEventIds.map(async (id) => {
-      const event = await getEventById(id);
-      if (!event) return null;
+  const eventRows = await db
+    .select()
+    .from(events)
+    .where(inArray(events.id, filteredEventIds));
+  const batchedWithDates = await attachDates(eventRows);
 
-      // For recurring events, generate synthetic dates
-      if (event.recurrenceRule) {
-        const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
-        // Only keep next 3 dates for listing display
-        const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
-          // Get the date string in Newfoundland timezone
-          const dateStr = getDateInTimezone(date);
+  // For recurring events, replace stored dates with generated synthetic ones
+  const eventsWithDates: (EventWithDates | null)[] = batchedWithDates.map((event) => {
+    if (event.recurrenceRule) {
+      const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
+      const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
+        const dateStr = getDateInTimezone(date);
+        const startTime = event.defaultStartTime || "00:00";
+        const startDateTime = parseAsTimezone(dateStr, startTime);
 
-          // Parse the date with the time as Newfoundland timezone
-          const startTime = event.defaultStartTime || "00:00";
-          const startDateTime = parseAsTimezone(dateStr, startTime);
+        let endDateTime: Date | null = null;
+        if (event.defaultEndTime) {
+          endDateTime = parseAsTimezone(dateStr, event.defaultEndTime);
+        }
 
-          let endDateTime: Date | null = null;
-          if (event.defaultEndTime) {
-            endDateTime = parseAsTimezone(dateStr, event.defaultEndTime);
-          }
+        return {
+          id: -(i + 1),
+          eventId: event.id,
+          startDate: startDateTime,
+          endDate: endDateTime,
+        };
+      });
 
-          return {
-            id: -(i + 1),
-            eventId: event.id,
-            startDate: startDateTime,
-            endDate: endDateTime,
-          };
-        });
+      return { ...event, dates: syntheticDates };
+    }
 
-        return { ...event, dates: syntheticDates };
-      }
-
-      return event;
-    }),
-  );
+    return event;
+  });
 
   const items = eventsWithDates
     .filter((e): e is EventWithDates => e !== null)

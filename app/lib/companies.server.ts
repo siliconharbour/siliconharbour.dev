@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { companies, type Company, type NewCompany } from "~/db/schema";
-import { eq, desc, asc, count, inArray, and, isNotNull } from "drizzle-orm";
+import { eq, desc, asc, count, inArray, and, isNotNull, sql } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -84,10 +84,12 @@ export async function getCompanyBySlug(slug: string): Promise<Company | null> {
 }
 
 export async function getCompanyByName(name: string): Promise<Company | null> {
-  // Case-insensitive search by lowercasing both sides
-  const all = await db.select().from(companies);
-  const nameLower = name.toLowerCase();
-  return all.find((c) => c.name.toLowerCase() === nameLower) ?? null;
+  const result = await db
+    .select()
+    .from(companies)
+    .where(sql`LOWER(${companies.name}) = LOWER(${name.trim()})`)
+    .limit(1);
+  return result[0] ?? null;
 }
 
 export async function getAllCompanies(includeHidden: boolean = false): Promise<Company[]> {
@@ -194,9 +196,9 @@ export async function getPaginatedCompanies(
       .limit(limit)
       .offset(offset);
 
-    const allMatching = await db.select({ id: companies.id }).from(companies).where(whereClause);
+    const [{ total }] = await db.select({ total: count() }).from(companies).where(whereClause);
 
-    return { items, total: allMatching.length };
+    return { items, total };
   }
 
   // No search - get total count and paginated items
