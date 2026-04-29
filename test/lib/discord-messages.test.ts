@@ -261,16 +261,24 @@ describe("buildEventsMessage", () => {
 // =============================================================================
 
 describe("buildJobsMessage", () => {
-  it("returns a single container with accent color", () => {
+  /** Helper: buildJobsMessage returns object[][] (array of messages).
+   *  For tests with few jobs, there's one message with one container. */
+  function firstContainer(result: object[][]): { type: number; components: any[] } {
+    return result[0][0] as { type: number; components: any[] };
+  }
+
+  it("returns a single message with a single container with accent color", () => {
     const result = buildJobsMessage([makeJob()]);
-    expect(result).toHaveLength(1);
-    expect(result[0]).toHaveProperty("type", 17);
-    expect(result[0]).toHaveProperty("color", ACCENT_COLOR);
+    expect(result).toHaveLength(1); // one message
+    expect(result[0]).toHaveLength(1); // one container in that message
+    const container = firstContainer(result);
+    expect(container).toHaveProperty("type", 17);
+    expect(container).toHaveProperty("color", ACCENT_COLOR);
   });
 
   it("technical job has title, subtitle, and Apply button", () => {
     const result = buildJobsMessage([makeJob()]);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
 
     const texts = container.components.filter((c: any) => c.type === 10);
     expect(texts.length).toBeGreaterThanOrEqual(1);
@@ -286,7 +294,7 @@ describe("buildJobsMessage", () => {
   it("technical job with external url uses that url for Apply", () => {
     const job = makeJob({ url: "https://example.com/apply" });
     const result = buildJobsMessage([job]);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
     const actionRow = container.components.find((c: any) => c.type === 1);
     expect(actionRow.components[0].url).toBe("https://example.com/apply");
   });
@@ -294,7 +302,7 @@ describe("buildJobsMessage", () => {
   it("technical job without external url falls back to site url", () => {
     const job = makeJob({ url: null });
     const result = buildJobsMessage([job]);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
     const actionRow = container.components.find((c: any) => c.type === 1);
     expect(actionRow.components[0].url).toBe(`${SITE_URL}/jobs/test-job`);
   });
@@ -316,7 +324,7 @@ describe("buildJobsMessage", () => {
       }),
     ];
     const result = buildJobsMessage(jobs);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
 
     const allContent = container.components
       .filter((c: any) => c.type === 10)
@@ -344,7 +352,7 @@ describe("buildJobsMessage", () => {
       makeJob({ slug: "dev2", title: "Dev 2", isTechnical: true }),
     ];
     const result = buildJobsMessage(jobs);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
 
     const allContent = container.components
       .filter((c: any) => c.type === 10)
@@ -369,7 +377,7 @@ describe("buildJobsMessage", () => {
       }),
     ];
     const result = buildJobsMessage(jobs);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
 
     const allContent = container.components
       .filter((c: any) => c.type === 10)
@@ -395,7 +403,7 @@ describe("buildJobsMessage", () => {
       }),
     ];
     const result = buildJobsMessage(jobs);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
     const allContent = container.components
       .filter((c: any) => c.type === 10)
       .map((c: any) => c.content)
@@ -407,7 +415,7 @@ describe("buildJobsMessage", () => {
 
   it("custom introText is prepended", () => {
     const result = buildJobsMessage([makeJob()], "Fresh jobs this week!");
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
     expect(container.components[0].type).toBe(10);
     expect(container.components[0].content).toBe("Fresh jobs this week!");
     expect(container.components[1].type).toBe(14); // separator
@@ -415,7 +423,7 @@ describe("buildJobsMessage", () => {
 
   it("empty jobs array returns container with no components", () => {
     const result = buildJobsMessage([]);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
     expect(container.components).toHaveLength(0);
   });
 
@@ -426,7 +434,7 @@ describe("buildJobsMessage", () => {
       workplaceType: "remote",
     });
     const result = buildJobsMessage([job]);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
     const text = container.components.find((c: any) => c.type === 10);
     expect(text.content).toContain("Acme");
     expect(text.content).toContain("Toronto");
@@ -443,11 +451,52 @@ describe("buildJobsMessage", () => {
       }),
     ];
     const result = buildJobsMessage(jobs);
-    const container = result[0] as { type: number; components: any[] };
+    const container = firstContainer(result);
     // Find separators with spacing 2 (larger separator between sections)
     const largeSeparators = container.components.filter(
       (c: any) => c.type === 14 && c.spacing === 2,
     );
     expect(largeSeparators.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("splits into multiple messages when many technical jobs exceed container limit", () => {
+    // Create 15 technical jobs — should exceed the 8-per-chunk limit
+    const jobs = Array.from({ length: 15 }, (_, i) =>
+      makeJob({ slug: `dev-${i}`, title: `Developer ${i}`, isTechnical: true }),
+    );
+    const result = buildJobsMessage(jobs);
+
+    // Should produce 2 messages
+    expect(result.length).toBe(2);
+
+    // Each message has exactly one container
+    expect(result[0]).toHaveLength(1);
+    expect(result[1]).toHaveLength(1);
+
+    // First container has 8 jobs, second has 7
+    const container1 = result[0][0] as { type: number; components: any[] };
+    const container2 = result[1][0] as { type: number; components: any[] };
+
+    const applyButtons1 = container1.components.filter(
+      (c: any) => c.type === 1 && c.components?.[0]?.label === "Apply",
+    );
+    const applyButtons2 = container2.components.filter(
+      (c: any) => c.type === 1 && c.components?.[0]?.label === "Apply",
+    );
+    expect(applyButtons1).toHaveLength(8);
+    expect(applyButtons2).toHaveLength(7);
+
+    // Second message has a "continued" header
+    const firstText = container2.components[0];
+    expect(firstText.content).toContain("continued");
+
+    // Neither container should exceed 40 total recursive components
+    function countRecursive(obj: any): number {
+      let n = 1;
+      if (obj.components) for (const c of obj.components) n += countRecursive(c);
+      return n;
+    }
+    expect(countRecursive(container1)).toBeLessThanOrEqual(40);
+    expect(countRecursive(container2)).toBeLessThanOrEqual(40);
   });
 });
