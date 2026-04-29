@@ -3,7 +3,10 @@ import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getPaginatedEvents } from "~/lib/events.server";
 import { SearchInput } from "~/components/SearchInput";
+import { Pagination } from "~/components/manage/Pagination";
 import { formatInTimezone } from "~/lib/timezone";
+
+const PER_PAGE = 50;
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Events - siliconharbour.dev" }];
@@ -13,12 +16,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: events } = await getPaginatedEvents(100, 0, searchQuery, "all");
-  return { events, searchQuery };
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const offset = (page - 1) * PER_PAGE;
+  const { items: events, total } = await getPaginatedEvents(PER_PAGE, offset, searchQuery, "all");
+  const totalPages = Math.ceil(total / PER_PAGE);
+  return { events, searchQuery, currentPage: page, totalPages, total };
 }
 
 export default function ManageEventsIndex() {
-  const { events } = useLoaderData<typeof loader>();
+  const { events, currentPage, totalPages, total } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -96,6 +102,8 @@ export default function ManageEventsIndex() {
             ))}
           </div>
         )}
+
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} />
 
         <div>
           <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">

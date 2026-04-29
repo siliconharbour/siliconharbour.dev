@@ -3,8 +3,9 @@ import { Link, Form, useLoaderData, redirect } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { db } from "~/db";
 import { jobs, companies } from "~/db/schema";
-import { eq, desc, like, or } from "drizzle-orm";
+import { eq, desc, like, or, count } from "drizzle-orm";
 import { SearchInput } from "~/components/SearchInput";
+import { Pagination } from "~/components/manage/Pagination";
 import { format } from "date-fns";
 import { ManagePage } from "~/components/manage/ManagePage";
 import {
@@ -15,6 +16,8 @@ import {
 } from "~/components/manage/ManageList";
 import { deleteJob, getJobById } from "~/lib/jobs.server";
 
+const PER_PAGE = 50;
+
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Jobs - siliconharbour.dev" }];
 }
@@ -23,8 +26,25 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const offset = (page - 1) * PER_PAGE;
 
-  // Build query with optional search
+  const searchFilter = searchQuery
+    ? or(
+        like(jobs.title, `%${searchQuery}%`),
+        like(companies.name, `%${searchQuery}%`),
+        like(jobs.location, `%${searchQuery}%`),
+      )
+    : undefined;
+
+  // Get total count
+  const [{ total: totalCount }] = await db
+    .select({ total: count() })
+    .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
+    .where(searchFilter);
+
+  // Get page of results
   let query = db
     .select({
       job: jobs,
@@ -35,24 +55,19 @@ export async function loader({ request }: Route.LoaderArgs) {
     .orderBy(desc(jobs.updatedAt))
     .$dynamic();
 
-  if (searchQuery) {
-    query = query.where(
-      or(
-        like(jobs.title, `%${searchQuery}%`),
-        like(companies.name, `%${searchQuery}%`),
-        like(jobs.location, `%${searchQuery}%`),
-      ),
-    );
+  if (searchFilter) {
+    query = query.where(searchFilter);
   }
 
-  const results = await query.limit(100);
+  const results = await query.limit(PER_PAGE).offset(offset);
 
   const jobsList = results.map((r) => ({
     ...r.job,
     companyName: r.companyName,
   }));
 
-  return { jobs: jobsList, searchQuery };
+  const totalPages = Math.ceil(totalCount / PER_PAGE);
+  return { jobs: jobsList, searchQuery, currentPage: page, totalPages, total: totalCount };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -81,7 +96,7 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ManageJobsIndex() {
-  const { jobs } = useLoaderData<typeof loader>();
+  const { jobs, currentPage, totalPages, total } = useLoaderData<typeof loader>();
 
   return (
     <ManagePage
@@ -212,6 +227,7 @@ export default function ManageJobsIndex() {
           ))}
         </ManageList>
       )}
+      <Pagination currentPage={currentPage} totalPages={totalPages} total={total} />
     </ManagePage>
   );
 }

@@ -8,6 +8,9 @@ import {
   hideAllVisiblePeople,
 } from "~/lib/people.server";
 import { SearchInput } from "~/components/SearchInput";
+import { Pagination } from "~/components/manage/Pagination";
+
+const PER_PAGE = 50;
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage People - siliconharbour.dev" }];
@@ -17,12 +20,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const [{ items: people }, hiddenCount, visibleCount] = await Promise.all([
-    getPaginatedPeople(100, 0, searchQuery, true),
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+  const offset = (page - 1) * PER_PAGE;
+  const [{ items: people, total }, hiddenCount, visibleCount] = await Promise.all([
+    getPaginatedPeople(PER_PAGE, offset, searchQuery, true),
     getHiddenPeopleCount(),
     getVisiblePeopleCount(),
   ]);
-  return { people, searchQuery, hiddenCount, visibleCount };
+  const totalPages = Math.ceil(total / PER_PAGE);
+  return { people, searchQuery, hiddenCount, visibleCount, currentPage: page, totalPages, total };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -39,7 +45,8 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function ManagePeopleIndex() {
-  const { people, hiddenCount, visibleCount } = useLoaderData<typeof loader>();
+  const { people, hiddenCount, visibleCount, currentPage, totalPages, total } =
+    useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -140,6 +147,8 @@ export default function ManagePeopleIndex() {
             ))}
           </div>
         )}
+
+        <Pagination currentPage={currentPage} totalPages={totalPages} total={total} />
 
         <div>
           <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
