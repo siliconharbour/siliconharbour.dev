@@ -178,7 +178,7 @@ describe("buildSeoMeta", () => {
     });
 
     const ogImage = tags.find((t) => t.property === "og:image");
-    expect(ogImage!.content).toBe("https://siliconharbour.dev/siliconharbour.svg");
+    expect(ogImage!.content).toBe("https://siliconharbour.dev/og.png");
   });
 
   it("does not double-append site name if title already includes it", () => {
