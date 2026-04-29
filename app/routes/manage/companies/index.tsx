@@ -7,8 +7,8 @@ import {
   hideAllVisibleCompanies,
 } from "~/lib/companies.server";
 import { db } from "~/db";
-import { companies } from "~/db/schema";
-import { asc, and, or, eq, isNull, count as countFn } from "drizzle-orm";
+import { companies, jobImportSources } from "~/db/schema";
+import { asc, and, or, eq, isNull, notInArray, count as countFn } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
@@ -18,23 +18,34 @@ import { inArray } from "drizzle-orm";
 const PER_PAGE = 50;
 
 const MISSING_FILTERS = {
-  logo: { label: "No Logo", condition: or(isNull(companies.logo), eq(companies.logo, "")) },
-  linkedin: {
-    label: "No LinkedIn",
-    condition: or(isNull(companies.linkedin), eq(companies.linkedin, "")),
-  },
-  location: {
-    label: "No Location",
-    condition: or(isNull(companies.location), eq(companies.location, "")),
-  },
-  founded: { label: "No Founded", condition: isNull(companies.founded) },
-  careers: {
-    label: "No Careers URL",
-    condition: or(isNull(companies.careersUrl), eq(companies.careersUrl, "")),
-  },
+  logo: "No Logo",
+  linkedin: "No LinkedIn",
+  location: "No Location",
+  founded: "No Founded",
+  careers: "No Careers URL",
+  "no-source": "No Job Source",
 } as const;
 
-type MissingFilter = keyof typeof MISSING_FILTERS;
+/**
+ * Build the WHERE condition for a missing-field filter.
+ * Called inside the loader so DB references stay server-side.
+ */
+function getFilterCondition(key: string): SQL | undefined {
+  const empty = (col: typeof companies.logo) => or(isNull(col), eq(col, ""));
+  switch (key) {
+    case "logo": return empty(companies.logo);
+    case "linkedin": return empty(companies.linkedin);
+    case "location": return empty(companies.location);
+    case "founded": return isNull(companies.founded);
+    case "careers": return empty(companies.careersUrl);
+    case "no-source":
+      return notInArray(
+        companies.id,
+        db.selectDistinct({ id: jobImportSources.companyId }).from(jobImportSources),
+      );
+    default: return undefined;
+  }
+}
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Companies - siliconharbour.dev" }];
@@ -75,9 +86,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   // Missing field filter
-  const missingFilter = MISSING_FILTERS[missingParam as MissingFilter];
-  if (missingFilter) {
-    conditions.push(missingFilter.condition!);
+  const filterCondition = getFilterCondition(missingParam);
+  if (filterCondition) {
+    conditions.push(filterCondition);
     // Only show visible companies when filtering by missing fields
     conditions.push(eq(companies.visible, true));
   }
@@ -100,11 +111,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // Get counts for each missing filter (visible companies only)
   const filterCountResults = await Promise.all(
-    Object.entries(MISSING_FILTERS).map(async ([key, { condition }]) => {
+    Object.keys(MISSING_FILTERS).map(async (key) => {
+      const cond = getFilterCondition(key);
+      if (!cond) return [key, 0] as const;
       const [{ cnt }] = await db
         .select({ cnt: countFn() })
         .from(companies)
-        .where(and(eq(companies.visible, true), condition));
+        .where(and(eq(companies.visible, true), cond));
       return [key, cnt] as const;
     }),
   );
@@ -164,7 +177,7 @@ function FilterButtons({
 
   return (
     <div className="flex flex-wrap gap-2">
-      {Object.entries(MISSING_FILTERS).map(([key, { label }]) => {
+      {Object.entries(MISSING_FILTERS).map(([key, label]) => {
         const count = filterCounts[key] ?? 0;
         if (count === 0) return null;
         const isActive = activeFilter === key;
