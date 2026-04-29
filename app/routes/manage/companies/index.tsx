@@ -1,16 +1,40 @@
 import type { Route } from "./+types/index";
-import { Link, useLoaderData, Form } from "react-router";
+import { Link, useLoaderData, useSearchParams, Form } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import {
-  getPaginatedCompanies,
   getHiddenCompaniesCount,
   getVisibleCompaniesCount,
   hideAllVisibleCompanies,
 } from "~/lib/companies.server";
+import { db } from "~/db";
+import { companies } from "~/db/schema";
+import { asc, and, or, eq, isNull, count as countFn } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
+import { searchContentIds } from "~/lib/search.server";
+import { inArray } from "drizzle-orm";
 
 const PER_PAGE = 50;
+
+const MISSING_FILTERS = {
+  logo: { label: "No Logo", condition: or(isNull(companies.logo), eq(companies.logo, "")) },
+  linkedin: {
+    label: "No LinkedIn",
+    condition: or(isNull(companies.linkedin), eq(companies.linkedin, "")),
+  },
+  location: {
+    label: "No Location",
+    condition: or(isNull(companies.location), eq(companies.location, "")),
+  },
+  founded: { label: "No Founded", condition: isNull(companies.founded) },
+  careers: {
+    label: "No Careers URL",
+    condition: or(isNull(companies.careersUrl), eq(companies.careersUrl, "")),
+  },
+} as const;
+
+type MissingFilter = keyof typeof MISSING_FILTERS;
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Companies - siliconharbour.dev" }];
@@ -20,15 +44,88 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
+  const missingParam = url.searchParams.get("missing") || "";
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const offset = (page - 1) * PER_PAGE;
-  const [{ items: companies, total }, hiddenCount, visibleCount] = await Promise.all([
-    getPaginatedCompanies(PER_PAGE, offset, searchQuery, true),
+
+  // Build WHERE conditions
+  const conditions: SQL[] = [];
+
+  // Search filter
+  if (searchQuery.trim()) {
+    const matchingIds = searchContentIds("company", searchQuery);
+    if (matchingIds.length === 0) {
+      const [hiddenCount, visibleCount] = await Promise.all([
+        getHiddenCompaniesCount(),
+        getVisibleCompaniesCount(),
+      ]);
+      return {
+        companies: [],
+        searchQuery,
+        missingFilter: missingParam,
+        hiddenCount,
+        visibleCount,
+        currentPage: 1,
+        totalPages: 0,
+        total: 0,
+        filterCounts: {} as Record<string, number>,
+      };
+    }
+    conditions.push(inArray(companies.id, matchingIds));
+  }
+
+  // Missing field filter
+  const missingFilter = MISSING_FILTERS[missingParam as MissingFilter];
+  if (missingFilter) {
+    conditions.push(missingFilter.condition!);
+    // Only show visible companies when filtering by missing fields
+    conditions.push(eq(companies.visible, true));
+  }
+
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+  // Count + fetch in parallel
+  const [[{ total }], items] = await Promise.all([
+    db.select({ total: countFn() }).from(companies).where(whereClause),
+    db
+      .select()
+      .from(companies)
+      .where(whereClause)
+      .orderBy(asc(companies.name))
+      .limit(PER_PAGE)
+      .offset(offset),
+  ]);
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+
+  // Get counts for each missing filter (visible companies only)
+  const filterCountResults = await Promise.all(
+    Object.entries(MISSING_FILTERS).map(async ([key, { condition }]) => {
+      const [{ cnt }] = await db
+        .select({ cnt: countFn() })
+        .from(companies)
+        .where(and(eq(companies.visible, true), condition));
+      return [key, cnt] as const;
+    }),
+  );
+  const filterCounts = Object.fromEntries(filterCountResults) as Record<string, number>;
+
+  const [hiddenCount, visibleCount] = await Promise.all([
     getHiddenCompaniesCount(),
     getVisibleCompaniesCount(),
   ]);
-  const totalPages = Math.ceil(total / PER_PAGE);
-  return { companies, searchQuery, hiddenCount, visibleCount, currentPage: page, totalPages, total };
+
+  return {
+    companies: items,
+    searchQuery,
+    missingFilter: missingParam,
+    hiddenCount,
+    visibleCount,
+    currentPage: page,
+    totalPages,
+    total,
+    filterCounts,
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -44,9 +141,77 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: false };
 }
 
+function FilterButtons({
+  filterCounts,
+  activeFilter,
+}: {
+  filterCounts: Record<string, number>;
+  activeFilter: string;
+}) {
+  const [searchParams] = useSearchParams();
+
+  function buildFilterUrl(filter: string): string {
+    const params = new URLSearchParams(searchParams);
+    params.delete("page"); // reset page when changing filter
+    if (filter === activeFilter) {
+      params.delete("missing");
+    } else {
+      params.set("missing", filter);
+    }
+    const qs = params.toString();
+    return qs ? `?${qs}` : "?";
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {Object.entries(MISSING_FILTERS).map(([key, { label }]) => {
+        const count = filterCounts[key] ?? 0;
+        if (count === 0) return null;
+        const isActive = activeFilter === key;
+        return (
+          <Link
+            key={key}
+            to={buildFilterUrl(key)}
+            className={`px-3 py-1.5 text-xs font-medium border transition-colors flex items-center gap-1.5 ${
+              isActive
+                ? "bg-harbour-600 text-white border-harbour-600"
+                : "bg-white text-harbour-600 border-harbour-200 hover:border-harbour-300"
+            }`}
+          >
+            {label}
+            <span
+              className={`px-1 py-0.5 text-xs ${
+                isActive ? "bg-harbour-700" : "bg-harbour-100 text-harbour-500"
+              }`}
+            >
+              {count}
+            </span>
+          </Link>
+        );
+      })}
+      {activeFilter && (
+        <Link
+          to={buildFilterUrl(activeFilter)}
+          className="px-3 py-1.5 text-xs font-medium text-harbour-400 hover:text-harbour-600"
+        >
+          Clear filter
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default function ManageCompaniesIndex() {
-  const { companies, hiddenCount, visibleCount, currentPage, totalPages, total } =
-    useLoaderData<typeof loader>();
+  const {
+    companies: companyList,
+    hiddenCount,
+    visibleCount,
+    currentPage,
+    totalPages,
+    total,
+    missingFilter,
+    filterCounts,
+  } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -95,15 +260,18 @@ export default function ManageCompaniesIndex() {
           </div>
         </div>
 
-        <SearchInput placeholder="Search companies..." />
+        <SearchInput placeholder="Search companies..." preserveParams={["missing"]} />
+        <FilterButtons filterCounts={filterCounts} activeFilter={missingFilter} />
 
-        {companies.length === 0 ? (
+        {companyList.length === 0 ? (
           <div className="text-center p-12 text-harbour-400">
-            No companies yet. Create your first company to get started.
+            {missingFilter
+              ? "No companies match this filter."
+              : "No companies yet. Create your first company to get started."}
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            {companies.map((company) => (
+            {companyList.map((company) => (
               <div
                 key={company.id}
                 className={`flex items-center gap-4 p-4 border ${
