@@ -337,6 +337,13 @@
       "when": 1768732000000,
       "tag": "0047_news_aggregator",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "6",
+      "when": 1768733000000,
+      "tag": "0048_news_excerpt_mode",
+      "breakpoints": true
     }
   ]
 }

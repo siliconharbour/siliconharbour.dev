@@ -7,14 +7,34 @@ import type {
   NewsImporter,
   FetchedNewsItem,
   NewsImportSourceConfig,
+  ExcerptMode,
 } from "./types";
+
+/**
+ * Pick the excerpt text based on excerptMode.
+ * - "description": use <description> field
+ * - "content": use <content:encoded> field (full article body, truncated)
+ * - "none": no excerpt
+ */
+function pickExcerpt(
+  description: string | null,
+  contentEncoded: string | null,
+  mode: ExcerptMode,
+): string | undefined {
+  if (mode === "none") return undefined;
+
+  const raw = mode === "content" ? (contentEncoded || description) : description;
+  if (!raw) return undefined;
+
+  return decodeHtmlEntities(stripHtml(raw)).slice(0, 500) || undefined;
+}
 
 /**
  * Parse RSS/Atom XML into news items.
  * Handles both RSS 2.0 (<item>) and Atom (<entry>) feeds.
  * Uses regex-based parsing to avoid XML parser dependencies.
  */
-function parseRssItems(xml: string): FetchedNewsItem[] {
+export function parseRssItems(xml: string, excerptMode: ExcerptMode = "description"): FetchedNewsItem[] {
   const items: FetchedNewsItem[] = [];
 
   // Try RSS 2.0 format first (<item> elements)
@@ -27,6 +47,7 @@ function parseRssItems(xml: string): FetchedNewsItem[] {
     const link = extractTag(block, "link");
     const guid = extractTag(block, "guid");
     const description = extractTag(block, "description");
+    const contentEncoded = extractTag(block, "content:encoded");
     const pubDate = extractTag(block, "pubDate");
 
     if (!title || !link) continue;
@@ -35,9 +56,7 @@ function parseRssItems(xml: string): FetchedNewsItem[] {
       sourceItemId: guid || link,
       title: decodeHtmlEntities(title),
       url: link,
-      excerpt: description
-        ? decodeHtmlEntities(stripHtml(description)).slice(0, 500)
-        : undefined,
+      excerpt: pickExcerpt(description, contentEncoded, excerptMode),
       publishedAt: pubDate ? new Date(pubDate) : undefined,
     });
   }
@@ -50,8 +69,8 @@ function parseRssItems(xml: string): FetchedNewsItem[] {
       const title = extractTag(block, "title");
       const link = extractAtomLink(block);
       const id = extractTag(block, "id");
-      const summary =
-        extractTag(block, "summary") || extractTag(block, "content");
+      const summary = extractTag(block, "summary");
+      const content = extractTag(block, "content");
       const published =
         extractTag(block, "published") || extractTag(block, "updated");
 
@@ -61,9 +80,7 @@ function parseRssItems(xml: string): FetchedNewsItem[] {
         sourceItemId: id || link,
         title: decodeHtmlEntities(title),
         url: link,
-        excerpt: summary
-          ? decodeHtmlEntities(stripHtml(summary)).slice(0, 500)
-          : undefined,
+        excerpt: pickExcerpt(summary, content, excerptMode),
         publishedAt: published ? new Date(published) : undefined,
       });
     }
@@ -143,6 +160,6 @@ export const rssImporter: NewsImporter = {
     }
 
     const xml = await response.text();
-    return parseRssItems(xml);
+    return parseRssItems(xml, config.excerptMode || "description");
   },
 };

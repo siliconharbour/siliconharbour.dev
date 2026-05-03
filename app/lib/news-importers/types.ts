@@ -48,6 +48,21 @@ export interface NewsSyncResult {
 /**
  * Configuration for a news import source
  */
+/**
+ * Excerpt extraction mode for RSS feeds
+ */
+export const excerptModes = ["description", "content", "none"] as const;
+export type ExcerptMode = (typeof excerptModes)[number];
+
+export const excerptModeLabels: Record<ExcerptMode, string> = {
+  description: "Use description",
+  content: "Use content:encoded",
+  none: "No excerpt",
+};
+
+/**
+ * Configuration for a news import source
+ */
 export interface NewsImportSourceConfig {
   id: number;
   name: string;
@@ -55,6 +70,7 @@ export interface NewsImportSourceConfig {
   sourceUrl: string;
   sourceIdentifier?: string | null;
   keywords?: string | null;
+  excerptMode?: ExcerptMode;
 }
 
 /**

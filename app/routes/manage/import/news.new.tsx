@@ -1,10 +1,17 @@
 import type { Route } from "./+types/news.new";
-import { Form, Link, useActionData, useNavigation, redirect } from "react-router";
+import { Form, Link, useActionData, useNavigation } from "react-router";
+import { redirect } from "react-router";
 import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { createNewsImportSource } from "~/lib/news-importers/sync.server";
-import { newsSourceTypes, sourceTypeLabels } from "~/lib/news-importers/types";
-import type { NewsSourceType } from "~/lib/news-importers/types";
+import {
+  newsSourceTypes,
+  sourceTypeLabels,
+  excerptModes,
+  excerptModeLabels,
+} from "~/lib/news-importers/types";
+import type { NewsSourceType, ExcerptMode } from "~/lib/news-importers/types";
+import { parseRssItems } from "~/lib/news-importers/rss.server";
 import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
@@ -28,18 +35,88 @@ const formSchema = z.object({
     (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
     z.string().nullable(),
   ),
+  excerptMode: z.enum(excerptModes),
   enabled: z.preprocess((v) => v === "on", z.boolean()),
 });
+
+function matchesKeywords(
+  title: string,
+  excerpt: string | undefined,
+  keywords: string,
+): boolean {
+  const keywordList = keywords
+    .split(",")
+    .map((k) => k.trim().toLowerCase())
+    .filter(Boolean);
+  if (keywordList.length === 0) return true;
+  const searchText = `${title} ${excerpt || ""}`.toLowerCase();
+  return keywordList.some((keyword) => searchText.includes(keyword));
+}
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "test-feed") {
+    const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
+    const keywords = (formData.get("keywords") as string)?.trim() || null;
+    const excerptMode = (formData.get("excerptMode") as ExcerptMode) || "description";
+
+    if (!sourceUrl) {
+      return { intent: "test-feed", error: "Source URL is required" };
+    }
+
+    try {
+      const response = await fetch(sourceUrl, {
+        headers: {
+          "User-Agent": "siliconharbour.dev news aggregator",
+          Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        },
+      });
+
+      if (!response.ok) {
+        return {
+          intent: "test-feed",
+          error: `Feed returned ${response.status} ${response.statusText}`,
+        };
+      }
+
+      const xml = await response.text();
+      const allItems = parseRssItems(xml, excerptMode);
+
+      const items = allItems.map((item) => ({
+        title: item.title,
+        url: item.url,
+        excerpt: item.excerpt?.slice(0, 200) || null,
+        publishedAt: item.publishedAt?.toISOString() || null,
+        matched: keywords ? matchesKeywords(item.title, item.excerpt, keywords) : true,
+      }));
+
+      const matchedCount = items.filter((i) => i.matched).length;
+
+      return {
+        intent: "test-feed",
+        success: true,
+        items,
+        totalCount: allItems.length,
+        matchedCount,
+        filteredCount: allItems.length - matchedCount,
+      };
+    } catch (e) {
+      return {
+        intent: "test-feed",
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+
+  // Default: create source
   const values: Record<string, FormDataEntryValue> = {};
   for (const [key, value] of formData.entries()) {
     values[key] = value;
   }
-  // Checkbox won't be present if unchecked
   if (!formData.has("enabled")) {
     values.enabled = "" as FormDataEntryValue;
   }
@@ -57,6 +134,7 @@ export async function action({ request }: Route.ActionArgs) {
       sourceUrl: parsed.data.sourceUrl,
       sourceIdentifier: parsed.data.sourceIdentifier,
       keywords: parsed.data.keywords,
+      excerptMode: parsed.data.excerptMode,
       enabled: parsed.data.enabled,
     });
 
@@ -70,6 +148,14 @@ export default function NewNewsImportSource() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const activeIntent = navigation.formData?.get("intent");
+  const isTesting = isSubmitting && activeIntent === "test-feed";
+  const isCreating = isSubmitting && activeIntent !== "test-feed";
+
+  const testResult =
+    actionData && "intent" in actionData && actionData.intent === "test-feed"
+      ? actionData
+      : null;
 
   return (
     <ManagePage
@@ -77,7 +163,7 @@ export default function NewNewsImportSource() {
       backTo="/manage/import/news"
       backLabel="Back to Import News"
     >
-      {actionData?.error && (
+      {actionData && "error" in actionData && !("intent" in actionData) && (
         <div className="p-4 bg-red-50 border border-red-200 text-red-700">{actionData.error}</div>
       )}
 
@@ -91,7 +177,7 @@ export default function NewNewsImportSource() {
             id="name"
             name="name"
             required
-            placeholder="e.g. Halifax Tech News RSS"
+            placeholder="e.g. TechNL Blog"
             className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
           />
         </div>
@@ -123,7 +209,7 @@ export default function NewNewsImportSource() {
             id="sourceUrl"
             name="sourceUrl"
             required
-            placeholder="https://example.com/feed.xml"
+            placeholder="https://example.com/feed/"
             className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
           />
           <p className="mt-1 text-xs text-harbour-400">
@@ -158,11 +244,32 @@ export default function NewNewsImportSource() {
             type="text"
             id="keywords"
             name="keywords"
-            placeholder="halifax, nova scotia, atlantic canada"
+            placeholder="tech, startup, innovation, AI"
             className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
           />
           <p className="mt-1 text-xs text-harbour-400">
             Comma-separated keywords for filtering. Leave empty to import all items.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="excerptMode" className="block text-sm font-medium text-harbour-700 mb-1">
+            Excerpt Mode
+          </label>
+          <select
+            id="excerptMode"
+            name="excerptMode"
+            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+          >
+            {excerptModes.map((mode) => (
+              <option key={mode} value={mode}>
+                {excerptModeLabels[mode]}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-harbour-400">
+            Where to pull the excerpt from. WordPress feeds often have junk in description — try
+            &quot;Use content:encoded&quot; instead. Use &quot;Test Feed&quot; to preview.
           </p>
         </div>
 
@@ -185,7 +292,16 @@ export default function NewNewsImportSource() {
             disabled={isSubmitting}
             className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
           >
-            {isSubmitting ? "Creating..." : "Add Source"}
+            {isCreating ? "Creating..." : "Add Source"}
+          </button>
+          <button
+            type="submit"
+            name="intent"
+            value="test-feed"
+            disabled={isSubmitting}
+            className="px-4 py-2 border border-harbour-200 hover:border-harbour-400 text-harbour-600 hover:text-harbour-700 disabled:text-harbour-300 disabled:cursor-not-allowed font-medium transition-colors"
+          >
+            {isTesting ? "Testing..." : "Test Feed"}
           </button>
           <Link
             to="/manage/import/news"
@@ -195,6 +311,82 @@ export default function NewNewsImportSource() {
           </Link>
         </div>
       </Form>
+
+      {/* Test feed results */}
+      {testResult && (
+        <div className="flex flex-col gap-3">
+          {testResult.error && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700">
+              Feed test failed: {testResult.error}
+            </div>
+          )}
+
+          {testResult.success && testResult.items && (
+            <>
+              <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm">
+                Found {testResult.totalCount} items
+                {testResult.filteredCount > 0 && (
+                  <span>
+                    {" "}
+                    ({testResult.matchedCount} matched keywords, {testResult.filteredCount}{" "}
+                    filtered)
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1">
+                {testResult.items.map(
+                  (
+                    item: {
+                      title: string;
+                      url: string;
+                      excerpt: string | null;
+                      publishedAt: string | null;
+                      matched: boolean;
+                    },
+                    i: number,
+                  ) => (
+                    <div
+                      key={i}
+                      className={`p-3 border border-harbour-200 bg-white ${!item.matched ? "opacity-40" : ""}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-harbour-700 hover:text-harbour-500 truncate"
+                            >
+                              {item.title}
+                            </a>
+                            {!item.matched && (
+                              <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-400 shrink-0">
+                                filtered
+                              </span>
+                            )}
+                          </div>
+                          {item.excerpt && (
+                            <p className="text-sm text-harbour-500 mt-1 line-clamp-2">
+                              {item.excerpt}
+                            </p>
+                          )}
+                          {item.publishedAt && (
+                            <p className="text-xs text-harbour-400 mt-1">
+                              {new Date(item.publishedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </ManagePage>
   );
 }

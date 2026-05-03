@@ -6,7 +6,7 @@
 import { db } from "~/db";
 import { newsImportSources, news } from "~/db/schema";
 import { eq, desc, count } from "drizzle-orm";
-import type { NewsSyncResult, NewsImportSourceConfig, NewsSourceType, FetchedNewsItem } from "./types";
+import type { NewsSyncResult, NewsImportSourceConfig, NewsSourceType, FetchedNewsItem, ExcerptMode } from "./types";
 import { getNewsImporter } from "./index";
 import { generateNewsSlug } from "~/lib/news.server";
 
@@ -31,6 +31,7 @@ export async function createNewsImportSource(data: {
   sourceUrl: string;
   sourceIdentifier?: string | null;
   keywords?: string | null;
+  excerptMode?: ExcerptMode;
   enabled?: boolean;
 }) {
   const now = new Date();
@@ -54,6 +55,7 @@ export async function updateNewsImportSource(
     sourceUrl: string;
     sourceIdentifier: string | null;
     keywords: string | null;
+    excerptMode: ExcerptMode;
     enabled: boolean;
   }>,
 ) {
@@ -125,6 +127,7 @@ export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> 
       sourceUrl: source.sourceUrl,
       sourceIdentifier: source.sourceIdentifier,
       keywords: source.keywords,
+      excerptMode: (source.excerptMode as ExcerptMode) || "description",
     };
 
     const fetchedItems = await importer.fetchItems(config);

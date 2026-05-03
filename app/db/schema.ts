@@ -274,6 +274,9 @@ export type NewsStatus = (typeof newsStatuses)[number];
 export const newsSourceTypes = ["rss", "custom"] as const;
 export type NewsSourceType = (typeof newsSourceTypes)[number];
 
+export const excerptModes = ["description", "content", "none"] as const;
+export type ExcerptMode = (typeof excerptModes)[number];
+
 export const newsImportSources = sqliteTable("news_import_sources", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
@@ -281,6 +284,7 @@ export const newsImportSources = sqliteTable("news_import_sources", {
   sourceUrl: text("source_url").notNull(),
   sourceIdentifier: text("source_identifier"),
   keywords: text("keywords"),
+  excerptMode: text("excerpt_mode", { enum: excerptModes }).notNull().default("description"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
   lastSyncStatus: text("last_sync_status"),
