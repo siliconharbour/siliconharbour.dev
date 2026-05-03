@@ -343,7 +343,12 @@ export default function ManageImportNews() {
                   return (
                     <tr key={source.id} className="hover:bg-harbour-50">
                       <td className="px-4 py-3">
-                        <span className="font-medium text-harbour-700">{source.name}</span>
+                        <Link
+                          to={`/manage/import/news/${source.id}`}
+                          className="font-medium text-harbour-700 hover:text-harbour-500"
+                        >
+                          {source.name}
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">

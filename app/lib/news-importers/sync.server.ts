@@ -66,7 +66,50 @@ export async function updateNewsImportSource(
 }
 
 export async function deleteNewsImportSource(sourceId: number) {
+  // Delete associated news items first, then the source
+  await db.delete(news).where(eq(news.sourceId, sourceId));
   await db.delete(newsImportSources).where(eq(newsImportSources.id, sourceId));
+}
+
+/**
+ * Get a news import source with all its news items, grouped by status.
+ */
+export async function getNewsSourceWithItems(sourceId: number) {
+  const source = await getNewsSourceById(sourceId);
+  if (!source) return null;
+
+  const items = await db
+    .select()
+    .from(news)
+    .where(eq(news.sourceId, sourceId))
+    .orderBy(desc(news.createdAt));
+
+  const pending = items.filter((n) => n.status === "pending_review");
+  const published = items.filter((n) => n.status === "published");
+  const hidden = items.filter((n) => n.status === "hidden");
+  const drafts = items.filter((n) => n.status === "draft");
+
+  return {
+    ...source,
+    items: { pending, published, hidden, drafts },
+    counts: {
+      pending: pending.length,
+      published: published.length,
+      hidden: hidden.length,
+      drafts: drafts.length,
+      total: items.length,
+    },
+  };
+}
+
+/**
+ * Unhide a news item (restore to published).
+ */
+export async function unhideNewsItem(newsId: number) {
+  await db
+    .update(news)
+    .set({ status: "published", updatedAt: new Date() })
+    .where(eq(news.id, newsId));
 }
 
 // ---- Keyword filtering ----
