@@ -264,19 +264,49 @@ export const people = sqliteTable("people", {
     .$defaultFn(() => new Date()),
 });
 
-// News - announcements, articles, editorials
-export const newsTypes = ["announcement", "general", "editorial", "meta"] as const;
+// News - link posts and original articles
+export const newsTypes = ["link", "article"] as const;
 export type NewsType = (typeof newsTypes)[number];
+
+export const newsStatuses = ["draft", "pending_review", "published", "hidden"] as const;
+export type NewsStatus = (typeof newsStatuses)[number];
+
+export const newsSourceTypes = ["rss", "custom"] as const;
+export type NewsSourceType = (typeof newsSourceTypes)[number];
+
+export const newsImportSources = sqliteTable("news_import_sources", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  sourceType: text("source_type", { enum: newsSourceTypes }).notNull(),
+  sourceUrl: text("source_url").notNull(),
+  sourceIdentifier: text("source_identifier"),
+  keywords: text("keywords"),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+  lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),
+  lastSyncStatus: text("last_sync_status"),
+  lastSyncError: text("last_sync_error"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
 
 export const news = sqliteTable("news", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   slug: text("slug").notNull().unique(),
+  type: text("type", { enum: newsTypes }).notNull().default("link"),
   title: text("title").notNull(),
-  type: text("type", { enum: newsTypes }).notNull().default("announcement"),
-  content: text("content").notNull(), // markdown
-  excerpt: text("excerpt"), // short summary for lists/RSS
+  externalUrl: text("external_url"),
+  sourceName: text("source_name"),
+  content: text("content").notNull().default(""),
+  excerpt: text("excerpt"),
   coverImage: text("cover_image"),
-  publishedAt: integer("published_at", { mode: "timestamp" }), // null = draft
+  publishedAt: integer("published_at", { mode: "timestamp" }),
+  status: text("status", { enum: newsStatuses }).notNull().default("draft"),
+  sourceId: integer("source_id").references(() => newsImportSources.id, { onDelete: "set null" }),
+  sourceItemId: text("source_item_id"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -853,6 +883,9 @@ export type NewPerson = typeof people.$inferInsert;
 
 export type News = typeof news.$inferSelect;
 export type NewNews = typeof news.$inferInsert;
+
+export type NewsImportSource = typeof newsImportSources.$inferSelect;
+export type NewNewsImportSource = typeof newsImportSources.$inferInsert;
 
 export type Job = typeof jobs.$inferSelect;
 export type NewJob = typeof jobs.$inferInsert;

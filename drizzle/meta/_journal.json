@@ -330,6 +330,13 @@
       "when": 1768731000000,
       "tag": "0046_add_missing_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "6",
+      "when": 1768732000000,
+      "tag": "0047_news_aggregator",
+      "breakpoints": true
     }
   ]
 }
