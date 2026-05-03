@@ -1,6 +1,6 @@
 ---
 id: s-eebf
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-05-03T21:15:48Z

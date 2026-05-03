@@ -1,6 +1,6 @@
 import { db } from "~/db";
 import { news, type News, type NewNews, type NewsType, newsTypes } from "~/db/schema";
-import { eq, desc, lte, and, count, inArray } from "drizzle-orm";
+import { eq, desc, and, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -15,7 +15,6 @@ async function getExistingSlugs(): Promise<string[]> {
 export async function generateNewsSlug(title: string, excludeId?: number): Promise<string> {
   const baseSlug = generateSlug(title);
   let existingSlugs = await getExistingSlugs();
-
   if (excludeId) {
     const current = await db
       .select({ slug: news.slug })
@@ -26,19 +25,20 @@ export async function generateNewsSlug(title: string, excludeId?: number): Promi
       existingSlugs = existingSlugs.filter((s) => s !== current.slug);
     }
   }
-
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
-export async function createNews(item: Omit<NewNews, "slug">): Promise<News> {
+export async function createNews(
+  item: Omit<NewNews, "slug">,
+): Promise<News> {
   const slug = await generateNewsSlug(item.title);
   const [newItem] = await db
     .insert(news)
     .values({ ...item, slug })
     .returning();
-
-  await syncReferences("news", newItem.id, newItem.content);
-
+  if (newItem.content) {
+    await syncReferences("news", newItem.id, newItem.content);
+  }
   return newItem;
 }
 
@@ -47,19 +47,14 @@ export async function updateNews(
   item: Partial<Omit<NewNews, "slug">>,
 ): Promise<News | null> {
   let updateData: Partial<NewNews> = { ...item, updatedAt: new Date() };
-
   if (item.title) {
     updateData.slug = await generateNewsSlug(item.title, id);
   }
-
   const [updated] = await db.update(news).set(updateData).where(eq(news.id, id)).returning();
-
   if (!updated) return null;
-
   if (item.content) {
     await syncReferences("news", id, item.content);
   }
-
   return updated;
 }
 
@@ -81,14 +76,14 @@ export async function getAllNews(): Promise<News[]> {
 }
 
 export async function getPublishedNews(): Promise<News[]> {
-  const now = new Date();
-  return db.select().from(news).where(lte(news.publishedAt, now)).orderBy(desc(news.publishedAt));
+  return db
+    .select()
+    .from(news)
+    .where(eq(news.status, "published"))
+    .orderBy(desc(news.publishedAt));
 }
 
-// =============================================================================
 // Paginated queries with search
-// =============================================================================
-
 export interface PaginatedNews {
   items: News[];
   total: number;
@@ -100,45 +95,20 @@ export async function getPaginatedNews(
   searchQuery?: string,
   typeFilter?: NewsType,
 ): Promise<PaginatedNews> {
-  const now = new Date();
+  const conditions = [eq(news.status, "published")];
 
-  // Build conditions array
-  const conditions = [lte(news.publishedAt, now)];
-
-  // Add type filter if specified
   if (typeFilter) {
     conditions.push(eq(news.type, typeFilter));
   }
 
-  // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("news", searchQuery);
-
     if (matchingIds.length === 0) {
       return { items: [], total: 0 };
     }
-
     conditions.push(inArray(news.id, matchingIds));
-
-    // Filter to only published articles that match search and type
-    const items = await db
-      .select()
-      .from(news)
-      .where(and(...conditions))
-      .orderBy(desc(news.publishedAt))
-      .limit(limit)
-      .offset(offset);
-
-    // Count total matching published articles
-    const [{ total }] = await db
-      .select({ total: count() })
-      .from(news)
-      .where(and(...conditions));
-
-    return { items, total };
   }
 
-  // No search - get total count and paginated items (published only)
   const [{ total }] = await db
     .select({ total: count() })
     .from(news)
