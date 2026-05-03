@@ -60,44 +60,123 @@ export default function NewsDetail() {
   return (
     <div className="max-w-[60ch] mx-auto p-4 py-8">
       <article className="flex flex-col gap-6">
-        {article.coverImage && (
-          <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
-            <img
-              src={`/images/${article.coverImage}`}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-harbour-700">{article.title}</h1>
-            {isAdmin && (
-              <Link
-                to={`/manage/news/${article.id}`}
-                className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
-                title="Edit"
+        {article.type === "link" ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold text-harbour-700">{article.title}</h1>
+                {isAdmin && (
+                  <Link
+                    to={`/manage/news/${article.id}`}
+                    className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                    title="Edit"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </Link>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-harbour-500">
+                {article.sourceName && <span className="font-medium">{article.sourceName}</span>}
+                {article.publishedAt && (
+                  <span>{format(article.publishedAt, "MMMM d, yyyy")}</span>
+                )}
+              </div>
+            </div>
+            {article.excerpt && (
+              <p className="text-harbour-600 text-lg">{article.excerpt}</p>
+            )}
+            {article.content &&
+              article.content !== article.excerpt &&
+              article.content.length > 0 && (
+                <div className="prose">
+                  <RichMarkdown content={article.content} resolvedRefs={resolvedRefs} />
+                </div>
+              )}
+            {article.externalUrl && (
+              <a
+                href={article.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                Read on {article.sourceName || "source"}
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                   />
                 </svg>
-              </Link>
+              </a>
             )}
           </div>
-          {article.publishedAt && (
-            <p className="text-harbour-500">{format(article.publishedAt, "MMMM d, yyyy")}</p>
-          )}
-        </div>
+        ) : (
+          <>
+            {article.coverImage && (
+              <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+                <img
+                  src={`/images/${article.coverImage}`}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              </div>
+            )}
 
-        <div className="prose">
-          <RichMarkdown content={article.content} resolvedRefs={resolvedRefs} />
-        </div>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <h1 className="text-3xl font-bold text-harbour-700">{article.title}</h1>
+                {isAdmin && (
+                  <Link
+                    to={`/manage/news/${article.id}`}
+                    className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                    title="Edit"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </Link>
+                )}
+              </div>
+              {article.publishedAt && (
+                <p className="text-harbour-500">
+                  {format(article.publishedAt, "MMMM d, yyyy")}
+                </p>
+              )}
+            </div>
+
+            <div className="prose">
+              <RichMarkdown content={article.content} resolvedRefs={resolvedRefs} />
+            </div>
+          </>
+        )}
 
         <ReferencedBy backlinks={backlinks} />
 

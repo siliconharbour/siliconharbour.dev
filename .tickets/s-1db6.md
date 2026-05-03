@@ -1,12 +1,12 @@
 ---
-id: s-b83b
+id: s-1db6
 status: closed
 deps: []
 links: []
-created: 2026-05-03T21:22:02Z
+created: 2026-05-03T21:31:52Z
 type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Commit changes
+# Task 7b: Create news/links.tsx
 

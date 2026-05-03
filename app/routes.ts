@@ -128,10 +128,8 @@ export default [
     // News (realtime content, separate from directory)
     layout("routes/news/layout.tsx", [
       route("news", "routes/news/all.tsx", { id: "news-index" }),
-      route("news/announcements", "routes/news/announcements.tsx"),
-      route("news/general", "routes/news/general.tsx"),
-      route("news/editorial", "routes/news/editorial.tsx"),
-      route("news/updates", "routes/news/updates.tsx"),
+      route("news/links", "routes/news/links.tsx"),
+      route("news/articles", "routes/news/articles.tsx"),
     ]),
 
     // News detail pages (outside layout for full-width content)

@@ -1,12 +1,12 @@
 ---
-id: s-b83b
+id: s-f42d
 status: closed
 deps: []
 links: []
-created: 2026-05-03T21:22:02Z
+created: 2026-05-03T21:31:51Z
 type: task
 priority: 2
 assignee: Jack Arthur Harrhy
 ---
-# Commit changes
+# Task 7a: Update news layout.tsx
 

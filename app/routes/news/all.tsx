@@ -23,8 +23,8 @@ export default function NewsAll() {
     <NewsListing
       data={data}
       searchPlaceholder="Search news..."
-      emptyNoSearch="No news articles yet."
-      emptyWithSearch="No news articles match your search."
+      emptyNoSearch="No news yet."
+      emptyWithSearch="No news matches your search."
       headlineMode
       showTypeBadge
     />

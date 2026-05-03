@@ -1,26 +1,26 @@
-import type { Route } from "./+types/updates";
+import type { Route } from "./+types/articles";
 import { useLoaderData } from "react-router";
 import { NewsListing } from "~/components/news/NewsListing";
 import { loadNewsListingData } from "~/lib/news-listing.server";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Site Updates - News - siliconharbour.dev" }];
+  return [{ title: "Articles - News - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  return loadNewsListingData(request, "meta");
+  return loadNewsListingData(request, "article");
 }
 
-export default function NewsUpdates() {
+export default function NewsArticles() {
   const data = useLoaderData<typeof loader>();
 
   return (
     <NewsListing
       data={data}
-      searchPlaceholder="Search site updates..."
-      emptyNoSearch="No site updates yet."
-      emptyWithSearch="No site updates match your search."
-      headlineMode={false}
+      searchPlaceholder="Search articles..."
+      emptyNoSearch="No articles yet."
+      emptyWithSearch="No articles match your search."
+      headlineMode
       showTypeBadge={false}
     />
   );

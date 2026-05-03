@@ -22,14 +22,10 @@ interface NewsListingProps {
 }
 
 function TypeBadge({ type }: { type: string }) {
-  if (type === "announcement") return null;
-
   const labels: Record<string, string> = {
-    general: "General",
-    editorial: "Editorial",
-    meta: "Site Update",
+    link: "Link",
+    article: "Article",
   };
-
   return (
     <span className="text-xs uppercase tracking-wide text-harbour-500 font-medium">
       {labels[type] || type}
@@ -37,9 +33,20 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBadge: boolean }) {
+function SourceBadge({ sourceName }: { sourceName: string | null }) {
+  if (!sourceName) return null;
   return (
-    <a href={`/news/${article.slug}`} className="group lg:col-span-2 flex flex-col gap-4">
+    <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-500">{sourceName}</span>
+  );
+}
+
+function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBadge: boolean }) {
+  const isLink = !!article.externalUrl;
+  const href = isLink ? article.externalUrl! : `/news/${article.slug}`;
+  const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
+
+  return (
+    <a href={href} {...linkProps} className="group lg:col-span-2 flex flex-col gap-4">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -50,15 +57,29 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
         </div>
       )}
       <div className="flex flex-col gap-2">
-        {showTypeBadge ? <TypeBadge type={article.type} /> : null}
+        <div className="flex items-center gap-2">
+          {showTypeBadge ? <TypeBadge type={article.type} /> : null}
+          <SourceBadge sourceName={article.sourceName} />
+        </div>
         <h2 className="link-title text-2xl lg:text-3xl font-bold text-harbour-700 group-hover:text-harbour-600 leading-tight">
           {article.title}
         </h2>
-        {article.publishedAt && (
-          <p className="text-sm text-harbour-400">
-            {format(article.publishedAt, "EEEE, MMMM d, yyyy")}
-          </p>
-        )}
+        <div className="flex items-center gap-2">
+          {article.publishedAt && (
+            <p className="text-sm text-harbour-400">
+              {format(article.publishedAt, "EEEE, MMMM d, yyyy")}
+            </p>
+          )}
+          {isLink && (
+            <a
+              href={`/news/${article.slug}`}
+              className="text-xs text-harbour-400 hover:text-harbour-600"
+              onClick={(e) => e.stopPropagation()}
+            >
+              permalink
+            </a>
+          )}
+        </div>
         {article.excerpt && <p className="text-harbour-600 line-clamp-3">{article.excerpt}</p>}
       </div>
     </a>
@@ -66,9 +87,14 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
 }
 
 function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeBadge: boolean }) {
+  const isLink = !!article.externalUrl;
+  const href = isLink ? article.externalUrl! : `/news/${article.slug}`;
+  const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
+
   return (
     <a
-      href={`/news/${article.slug}`}
+      href={href}
+      {...linkProps}
       className="group flex gap-3 pb-4 border-b border-harbour-100 last:border-b-0 last:pb-0"
     >
       {article.coverImage && (
@@ -81,21 +107,41 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
         </div>
       )}
       <div className="flex flex-col gap-1 flex-1 min-w-0">
-        {showTypeBadge ? <TypeBadge type={article.type} /> : null}
+        <div className="flex items-center gap-2">
+          {showTypeBadge ? <TypeBadge type={article.type} /> : null}
+          <SourceBadge sourceName={article.sourceName} />
+        </div>
         <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
           {article.title}
         </h3>
-        {article.publishedAt && (
-          <p className="text-xs text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
-        )}
+        <div className="flex items-center gap-2">
+          {article.publishedAt && (
+            <p className="text-xs text-harbour-400">
+              {format(article.publishedAt, "MMM d, yyyy")}
+            </p>
+          )}
+          {isLink && (
+            <a
+              href={`/news/${article.slug}`}
+              className="text-xs text-harbour-400 hover:text-harbour-600"
+              onClick={(e) => e.stopPropagation()}
+            >
+              permalink
+            </a>
+          )}
+        </div>
       </div>
     </a>
   );
 }
 
 function ArticleCard({ article, showTypeBadge }: { article: News; showTypeBadge: boolean }) {
+  const isLink = !!article.externalUrl;
+  const href = isLink ? article.externalUrl! : `/news/${article.slug}`;
+  const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
+
   return (
-    <a href={`/news/${article.slug}`} className="group flex flex-col gap-3">
+    <a href={href} {...linkProps} className="group flex flex-col gap-3">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -106,13 +152,29 @@ function ArticleCard({ article, showTypeBadge }: { article: News; showTypeBadge:
         </div>
       )}
       <div className="flex flex-col gap-1">
-        {showTypeBadge ? <TypeBadge type={article.type} /> : null}
+        <div className="flex items-center gap-2">
+          {showTypeBadge ? <TypeBadge type={article.type} /> : null}
+          <SourceBadge sourceName={article.sourceName} />
+        </div>
         <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
           {article.title}
         </h3>
-        {article.publishedAt && (
-          <p className="text-xs text-harbour-400">{format(article.publishedAt, "MMM d, yyyy")}</p>
-        )}
+        <div className="flex items-center gap-2">
+          {article.publishedAt && (
+            <p className="text-xs text-harbour-400">
+              {format(article.publishedAt, "MMM d, yyyy")}
+            </p>
+          )}
+          {isLink && (
+            <a
+              href={`/news/${article.slug}`}
+              className="text-xs text-harbour-400 hover:text-harbour-600"
+              onClick={(e) => e.stopPropagation()}
+            >
+              permalink
+            </a>
+          )}
+        </div>
         {article.excerpt && (
           <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>
         )}
@@ -143,7 +205,7 @@ export function NewsListing({
           <SearchInput placeholder={searchPlaceholder} />
           {searchQuery && (
             <p className="text-sm text-harbour-500">
-              {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
+              {total} result{total !== 1 ? "s" : ""} for &quot;{searchQuery}&quot;
             </p>
           )}
         </div>
