@@ -277,8 +277,10 @@ export default function ManageImportJobs() {
                         {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
                           source.sourceType}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-harbour-400">
-                        {source.sourceIdentifier}
+                      <td className="px-4 py-3 text-sm font-mono text-harbour-400" title={source.sourceIdentifier}>
+                        {source.sourceIdentifier.length > 13
+                          ? source.sourceIdentifier.slice(0, 10) + "..."
+                          : source.sourceIdentifier}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700 font-medium">
