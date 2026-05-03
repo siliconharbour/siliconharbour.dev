@@ -488,6 +488,7 @@ export function prepareNewsOGData(article: {
   title: string;
   publishedAt?: Date | null;
   type?: string | null;
+  sourceName?: string | null;
   coverImage?: string | null;
 }): OGImageData {
   const dateStr = article.publishedAt
@@ -499,9 +500,8 @@ export function prepareNewsOGData(article: {
       }).format(new Date(article.publishedAt))
     : undefined;
 
-  const typeLabel = article.type
-    ? article.type.charAt(0).toUpperCase() + article.type.slice(1)
-    : undefined;
+  const typeLabel =
+    article.type === "link" ? article.sourceName || "Link" : "Article";
 
   return {
     title: article.title,

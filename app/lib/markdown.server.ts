@@ -282,7 +282,10 @@ export function newsToMarkdown(article: News): string {
     url: `${SITE_URL}/news/${article.slug}`,
     api_url: `${SITE_URL}/api/news/${article.slug}`,
     news_type: article.type,
+    external_url: article.externalUrl,
+    source_name: article.sourceName,
     excerpt: article.excerpt,
+    status: article.status,
     published_at: article.publishedAt,
     updated_at: article.updatedAt,
   });
