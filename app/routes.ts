@@ -223,6 +223,8 @@ export default [
       route("events", "routes/manage/import/events.tsx"),
       route("events/new", "routes/manage/import/events.new.tsx"),
       route("events/:sourceId", "routes/manage/import/events.$sourceId.tsx"),
+      route("news", "routes/manage/import/news.tsx"),
+      route("news/new", "routes/manage/import/news.new.tsx"),
     ]),
     route("export", "routes/manage/export.tsx"),
     ...prefix("discord", [

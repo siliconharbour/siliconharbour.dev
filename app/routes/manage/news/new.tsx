@@ -1,5 +1,6 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
+import { useState } from "react";
 import { z } from "zod";
 import { requireAuth } from "~/lib/session.server";
 import { createNews } from "~/lib/news.server";
@@ -12,10 +13,8 @@ import { createImageFromFormData } from "~/lib/admin/image-fields";
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 const typeLabels: Record<NewsType, string> = {
-  announcement: "Announcement",
-  general: "General",
-  editorial: "Editorial",
-  meta: "Site Update",
+  link: "Link Post",
+  article: "Article",
 };
 
 export function meta({}: Route.MetaArgs) {
@@ -31,31 +30,50 @@ export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
-  const schema = z.object({
+  const itemType = (formData.get("type") as string) || "article";
+
+  const baseSchema = {
     title: zRequiredString("Title"),
-    content: zRequiredString("Content"),
-    excerpt: zOptionalNullableString,
     type: z.enum(newsTypes),
-    publishNow: z.preprocess((value) => value === "1", z.boolean()),
-  });
+    excerpt: zOptionalNullableString,
+    status: z.enum(["draft", "published"]).default("draft"),
+  };
+
+  const schema =
+    itemType === "link"
+      ? z.object({
+          ...baseSchema,
+          externalUrl: zRequiredString("URL"),
+          sourceName: zOptionalNullableString,
+          content: zOptionalNullableString,
+        })
+      : z.object({
+          ...baseSchema,
+          content: zRequiredString("Content"),
+          externalUrl: zOptionalNullableString,
+          sourceName: zOptionalNullableString,
+        });
+
   const parsed = parseFormData(formData, schema);
   if (!parsed.success) {
     return actionError(parsed.error);
   }
 
-  const coverImage = await createImageFromFormData(
-    formData,
-    "coverImageData",
-    processAndSaveCoverImage,
-  );
+  const coverImage =
+    itemType === "article"
+      ? await createImageFromFormData(formData, "coverImageData", processAndSaveCoverImage)
+      : undefined;
 
   await createNews({
     title: parsed.data.title,
-    content: parsed.data.content,
+    content: parsed.data.content || "",
     excerpt: parsed.data.excerpt,
     type: parsed.data.type as NewsType,
+    externalUrl: parsed.data.externalUrl,
+    sourceName: parsed.data.sourceName,
+    status: parsed.data.status,
     coverImage,
-    publishedAt: parsed.data.publishNow ? new Date() : null,
+    publishedAt: parsed.data.status === "published" ? new Date() : null,
   });
 
   return redirect("/manage/news");
@@ -63,6 +81,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function NewNews() {
   const actionData = useActionData<typeof action>();
+  const [selectedType, setSelectedType] = useState<NewsType>("article");
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -78,13 +97,31 @@ export default function NewNews() {
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-6">
-          <ImageUpload
-            label="Cover Image"
-            name="coverImageData"
-            aspect={16 / 9}
-            previewStyle="cover"
-            helpText="Upload cover (16:9)"
-          />
+          <ManageField label="Type" htmlFor="type">
+            <select
+              id="type"
+              name="type"
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value as NewsType)}
+              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            >
+              {newsTypes.map((t) => (
+                <option key={t} value={t}>
+                  {typeLabels[t]}
+                </option>
+              ))}
+            </select>
+          </ManageField>
+
+          {selectedType === "article" && (
+            <ImageUpload
+              label="Cover Image"
+              name="coverImageData"
+              aspect={16 / 9}
+              previewStyle="cover"
+              helpText="Upload cover (16:9)"
+            />
+          )}
 
           <ManageField label="Title *" htmlFor="title">
             <input
@@ -96,20 +133,34 @@ export default function NewNews() {
             />
           </ManageField>
 
-          <ManageField label="Type" htmlFor="type">
-            <select
-              id="type"
-              name="type"
-              defaultValue="announcement"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            >
-              {newsTypes.map((t) => (
-                <option key={t} value={t}>
-                  {typeLabels[t]}
-                </option>
-              ))}
-            </select>
-          </ManageField>
+          {selectedType === "link" && (
+            <>
+              <ManageField label="URL *" htmlFor="externalUrl">
+                <input
+                  type="url"
+                  id="externalUrl"
+                  name="externalUrl"
+                  required
+                  placeholder="https://example.com/article"
+                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                />
+              </ManageField>
+
+              <ManageField
+                label="Source Name"
+                htmlFor="sourceName"
+                hint="e.g. CBC News, TechCrunch. Leave empty to auto-detect from domain."
+              >
+                <input
+                  type="text"
+                  id="sourceName"
+                  name="sourceName"
+                  placeholder="example.com"
+                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                />
+              </ManageField>
+            </>
+          )}
 
           <ManageField label="Excerpt (for RSS/previews)" htmlFor="excerpt">
             <textarea
@@ -120,30 +171,38 @@ export default function NewNews() {
             />
           </ManageField>
 
-          <ManageField label="Content * (Markdown)" htmlFor="content">
+          <ManageField
+            label={
+              selectedType === "link"
+                ? "Commentary (optional, Markdown)"
+                : "Content * (Markdown)"
+            }
+            htmlFor="content"
+          >
             <textarea
               id="content"
               name="content"
-              required
-              rows={12}
+              required={selectedType === "article"}
+              rows={selectedType === "article" ? 12 : 4}
               className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </ManageField>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="publishNow"
-              name="publishNow"
-              value="1"
-              className="w-4 h-4"
-            />
-            <label htmlFor="publishNow" className="text-harbour-700">
-              Publish immediately
-            </label>
-          </div>
+          <ManageField label="Status" htmlFor="status">
+            <select
+              id="status"
+              name="status"
+              defaultValue="draft"
+              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+          </ManageField>
 
-          <ManageSubmitButton>Create Article</ManageSubmitButton>
+          <ManageSubmitButton>
+            {selectedType === "link" ? "Create Link Post" : "Create Article"}
+          </ManageSubmitButton>
         </Form>
       </div>
     </div>

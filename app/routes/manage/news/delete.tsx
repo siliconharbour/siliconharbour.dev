@@ -34,13 +34,15 @@ export async function action({ request, params }: Route.ActionArgs) {
 export default function DeleteNews() {
   const { article } = useLoaderData<typeof loader>();
 
+  const typeLabel = article.type === "link" ? "link post" : "article";
+
   return (
     <DeleteConfirmationCard
-      title="Delete Article"
+      title={`Delete ${article.type === "link" ? "Link Post" : "Article"}`}
       message={
         <>
-          Are you sure you want to delete <strong>{article.title}</strong>? This action cannot be
-          undone.
+          Are you sure you want to delete the {typeLabel}{" "}
+          <strong>{article.title}</strong>? This action cannot be undone.
         </>
       }
     >
