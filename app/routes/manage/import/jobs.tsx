@@ -1,7 +1,15 @@
 import type { Route } from "./+types/jobs";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllImportSources, syncJobs } from "~/lib/job-importers/sync.server";
+import {
+  getAllImportSources,
+  syncJobs,
+  getAllPendingJobs,
+  hideAllPendingJobs,
+  approveJob,
+  approveJobAsNonTechnical,
+  hideImportedJob,
+} from "~/lib/job-importers/sync.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
@@ -12,7 +20,11 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
 
-  const [sources, companies] = await Promise.all([getAllImportSources(), getAllCompanies(true)]);
+  const [sources, companies, pendingJobs] = await Promise.all([
+    getAllImportSources(),
+    getAllCompanies(true),
+    getAllPendingJobs(),
+  ]);
 
   // Create a map of company id to company for easy lookup
   const companyMap = new Map(companies.map((c) => [c.id, c]));
@@ -23,7 +35,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     company: companyMap.get(source.companyId),
   }));
 
-  return { sources: enrichedSources };
+  return { sources: enrichedSources, pendingJobs };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -81,6 +93,26 @@ export async function action({ request }: Route.ActionArgs) {
     };
   }
 
+  if (intent === "review-job") {
+    const jobId = Number(formData.get("jobId"));
+    const reviewAction = formData.get("action") as string;
+    if (!jobId) return { success: false, error: "Job ID required" };
+
+    if (reviewAction === "approve") {
+      await approveJob(jobId);
+    } else if (reviewAction === "approve-non-technical") {
+      await approveJobAsNonTechnical(jobId);
+    } else if (reviewAction === "hide") {
+      await hideImportedJob(jobId);
+    }
+    return { intent: "review-job", success: true };
+  }
+
+  if (intent === "hide-all-pending") {
+    const count = await hideAllPendingJobs();
+    return { intent: "hide-all-pending", success: true, hidden: count };
+  }
+
   return { success: false, error: "Unknown action" };
 }
 
@@ -110,8 +142,91 @@ function StatusBadge({ status }: { status: string | null }) {
   );
 }
 
+function PendingJobRow({
+  job,
+}: {
+  job: {
+    id: number;
+    title: string;
+    location: string | null;
+    workplaceType: string | null;
+    url: string | null;
+    companyName: string | null;
+    sourceType: string | null;
+  };
+}) {
+  const fetcher = useFetcher();
+  const isActing = fetcher.state !== "idle";
+
+  return (
+    <div className={`flex items-center gap-3 p-3 border border-harbour-200 bg-white ${isActing ? "opacity-50" : ""}`}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-harbour-700 truncate">{job.title}</span>
+          {job.sourceType && (
+            <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-500">
+              {sourceTypeLabels[job.sourceType as keyof typeof sourceTypeLabels] || job.sourceType}
+            </span>
+          )}
+        </div>
+        <p className="text-sm text-harbour-400 truncate">
+          {[job.companyName, job.location, job.workplaceType].filter(Boolean).join(" \u2022 ")}
+        </p>
+      </div>
+      <div className="flex items-center gap-1 shrink-0">
+        {job.url && (
+          <a
+            href={job.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+          >
+            View
+          </a>
+        )}
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="review-job" />
+          <input type="hidden" name="jobId" value={job.id} />
+          <input type="hidden" name="action" value="approve" />
+          <button
+            type="submit"
+            disabled={isActing}
+            className="px-2 py-1 text-xs text-green-700 hover:bg-green-50 border border-green-200 hover:border-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Approve
+          </button>
+        </fetcher.Form>
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="review-job" />
+          <input type="hidden" name="jobId" value={job.id} />
+          <input type="hidden" name="action" value="approve-non-technical" />
+          <button
+            type="submit"
+            disabled={isActing}
+            className="px-2 py-1 text-xs text-amber-700 hover:bg-amber-50 border border-amber-200 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Non-Tech
+          </button>
+        </fetcher.Form>
+        <fetcher.Form method="post">
+          <input type="hidden" name="intent" value="review-job" />
+          <input type="hidden" name="jobId" value={job.id} />
+          <input type="hidden" name="action" value="hide" />
+          <button
+            type="submit"
+            disabled={isActing}
+            className="px-2 py-1 text-xs text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Hide
+          </button>
+        </fetcher.Form>
+      </div>
+    </div>
+  );
+}
+
 export default function ManageImportJobs() {
-  const { sources } = useLoaderData<typeof loader>();
+  const { sources, pendingJobs } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
   const isLoading = fetcher.state !== "idle";
@@ -210,6 +325,39 @@ export default function ManageImportJobs() {
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Pending job triage */}
+        {pendingJobs.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-harbour-700">
+                Pending Review ({pendingJobs.length})
+              </h2>
+              <fetcher.Form
+                method="post"
+                onSubmit={(e) => {
+                  if (!confirm(`Hide all ${pendingJobs.length} pending jobs?`)) {
+                    e.preventDefault();
+                  }
+                }}
+              >
+                <input type="hidden" name="intent" value="hide-all-pending" />
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Hide All Remaining
+                </button>
+              </fetcher.Form>
+            </div>
+            <div className="flex flex-col gap-1">
+              {pendingJobs.map((job) => (
+                <PendingJobRow key={job.id} job={job} />
+              ))}
+            </div>
           </div>
         )}
 

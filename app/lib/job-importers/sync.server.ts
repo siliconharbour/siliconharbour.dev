@@ -4,7 +4,7 @@
  */
 
 import { db } from "~/db";
-import { jobImportSources, jobs } from "~/db/schema";
+import { jobImportSources, jobs, companies } from "~/db/schema";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import type { SyncResult, ImportSourceConfig, JobSourceType, FetchedJob } from "./types";
 import { getImporter } from "./index";
@@ -516,4 +516,37 @@ export async function markJobNonTechnical(jobId: number) {
  */
 export async function markJobTechnical(jobId: number) {
   await db.update(jobs).set({ isTechnical: true, updatedAt: new Date() }).where(eq(jobs.id, jobId));
+}
+
+/**
+ * Get all pending_review jobs with company name, for triage UI.
+ */
+export async function getAllPendingJobs() {
+  return db
+    .select({
+      id: jobs.id,
+      title: jobs.title,
+      location: jobs.location,
+      workplaceType: jobs.workplaceType,
+      url: jobs.url,
+      companyName: companies.name,
+      sourceType: jobImportSources.sourceType,
+      postedAt: jobs.postedAt,
+    })
+    .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
+    .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
+    .where(eq(jobs.status, "pending_review"))
+    .orderBy(desc(jobs.createdAt));
+}
+
+/**
+ * Hide all remaining pending_review jobs in one shot.
+ */
+export async function hideAllPendingJobs(): Promise<number> {
+  const result = await db
+    .update(jobs)
+    .set({ status: "hidden", updatedAt: new Date() })
+    .where(eq(jobs.status, "pending_review"));
+  return result.changes;
 }
