@@ -668,3 +668,72 @@ export function buildExecuteFunctions(): HostFunctions {
     },
   };
 }
+
+// ---- News ----
+
+export async function submitNewsLink(url: string, title?: string, excerpt?: string, sourceName?: string) {
+  // If title not provided, fetch the page and extract metadata
+  if (!title) {
+    const response = await fetch(url, { headers: { "User-Agent": "siliconharbour.dev" } });
+    const html = await response.text();
+    // Extract <title> tag
+    const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
+    title = titleMatch ? titleMatch[1].trim() : new URL(url).hostname;
+    // Extract meta description
+    if (!excerpt) {
+      const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html);
+      excerpt = descMatch ? descMatch[1].trim() : undefined;
+    }
+  }
+  if (!sourceName) {
+    sourceName = new URL(url).hostname.replace(/^www\./, "");
+  }
+
+  const { createNews } = await import("~/lib/news.server");
+  const article = await createNews({
+    type: "link",
+    title,
+    externalUrl: url,
+    sourceName,
+    content: excerpt || "",
+    excerpt: excerpt || null,
+    status: "published",
+    publishedAt: new Date(),
+  });
+  return { id: article.id, slug: article.slug, title: article.title };
+}
+
+export async function createNewsArticle(
+  title: string,
+  content: string,
+  excerpt?: string,
+  publish?: boolean,
+) {
+  const { createNews } = await import("~/lib/news.server");
+  const article = await createNews({
+    type: "article",
+    title,
+    content,
+    excerpt: excerpt || null,
+    status: publish ? "published" : "draft",
+    publishedAt: publish ? new Date() : null,
+  });
+  return { id: article.id, slug: article.slug, title: article.title };
+}
+
+export async function pendingNews() {
+  const { getAllPendingNews } = await import("~/lib/news-importers/sync.server");
+  return getAllPendingNews();
+}
+
+export async function approveNews(id: number) {
+  const { approveNewsItem } = await import("~/lib/news-importers/sync.server");
+  await approveNewsItem(id);
+  return { success: true };
+}
+
+export async function hideNews(id: number) {
+  const { hideNewsItem } = await import("~/lib/news-importers/sync.server");
+  await hideNewsItem(id);
+  return { success: true };
+}

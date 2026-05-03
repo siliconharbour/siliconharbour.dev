@@ -3,7 +3,15 @@ import { z } from "zod";
 import { searchSpec } from "./search.js";
 import { runInSandbox } from "./sandbox.js";
 import type { HostFunctions } from "./sandbox.js";
-import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
+import {
+  buildReadFunctions,
+  buildExecuteFunctions,
+  submitNewsLink,
+  createNewsArticle,
+  pendingNews,
+  approveNews,
+  hideNews,
+} from "./bridge.js";
 
 // ── Shared sandbox result handler ──────────────────────────────────────
 
@@ -141,6 +149,100 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
       },
       async ({ code }) => runSandboxTool(code, buildExecuteFunctions(), 60_000),
     );
+
+  // ── News tools (authenticated only) ────────────────────────────────
+  if (authenticated) {
+    server.registerTool(
+      "submitNewsLink",
+      {
+        title: "Submit a news link",
+        description:
+          "Submit a link post from an external URL. Auto-extracts title and excerpt if not provided.",
+        inputSchema: {
+          url: z.string().url(),
+          title: z.string().optional(),
+          excerpt: z.string().optional(),
+          sourceName: z.string().optional(),
+        },
+      },
+      async ({ url, title, excerpt, sourceName }) => ({
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(await submitNewsLink(url, title, excerpt, sourceName), null, 2),
+          },
+        ],
+      }),
+    );
+
+    server.registerTool(
+      "createNewsArticle",
+      {
+        title: "Create a news article",
+        description: "Create an original news article (draft by default).",
+        inputSchema: {
+          title: z.string(),
+          content: z.string(),
+          excerpt: z.string().optional(),
+          publish: z.boolean().optional(),
+        },
+      },
+      async ({ title, content, excerpt, publish }) => ({
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              await createNewsArticle(title, content, excerpt, publish),
+              null,
+              2,
+            ),
+          },
+        ],
+      }),
+    );
+
+    server.registerTool(
+      "pendingNews",
+      {
+        title: "List pending news",
+        description: "List all news items pending review.",
+        inputSchema: {},
+      },
+      async () => ({
+        content: [
+          { type: "text" as const, text: JSON.stringify(await pendingNews(), null, 2) },
+        ],
+      }),
+    );
+
+    server.registerTool(
+      "approveNews",
+      {
+        title: "Approve a news item",
+        description: "Approve a pending news item (publish it).",
+        inputSchema: { id: z.number() },
+      },
+      async ({ id }) => ({
+        content: [
+          { type: "text" as const, text: JSON.stringify(await approveNews(id), null, 2) },
+        ],
+      }),
+    );
+
+    server.registerTool(
+      "hideNews",
+      {
+        title: "Hide a news item",
+        description: "Hide a news item.",
+        inputSchema: { id: z.number() },
+      },
+      async ({ id }) => ({
+        content: [
+          { type: "text" as const, text: JSON.stringify(await hideNews(id), null, 2) },
+        ],
+      }),
+    );
+  }
 
   return server;
 }
