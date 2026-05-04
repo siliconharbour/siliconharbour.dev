@@ -48,7 +48,7 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a href={href} {...linkProps} className="group lg:col-span-2 flex flex-col gap-3">
+    <a href={href} {...linkProps} className="group flex flex-col gap-3">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -76,13 +76,9 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a
-      href={href}
-      {...linkProps}
-      className="group flex gap-3 pb-4 border-b border-harbour-100 last:border-b-0 last:pb-0"
-    >
+    <a href={href} {...linkProps} className="group flex flex-col gap-2">
       {article.coverImage && (
-        <div className="img-tint w-24 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+        <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -90,12 +86,15 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
           />
         </div>
       )}
-      <div className="flex flex-col gap-1 flex-1 min-w-0">
+      <div className="flex flex-col gap-1">
         {showTypeBadge && article.type === "article" && <ArticleBadge />}
-        <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
+        <h3 className="link-title text-lg font-semibold text-harbour-700 group-hover:text-harbour-600 leading-tight">
           {article.title}
         </h3>
         <MetaLine article={article} />
+        {article.excerpt && (
+          <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>
+        )}
       </div>
     </a>
   );
@@ -170,12 +169,12 @@ export function NewsListing({
         <p className="text-harbour-400">{searchQuery ? emptyWithSearch : emptyNoSearch}</p>
       ) : (
         <>
-          {/* Featured section: large headline + 2 secondaries */}
+          {/* Featured section: headline on top, 2 secondaries below in 50/50 */}
           {showHeadline && headline && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="flex flex-col gap-6">
               <HeadlineArticle article={headline} showTypeBadge={showTypeBadge} />
               {secondaryArticles.length > 0 && (
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {secondaryArticles.map((article) => (
                     <SecondaryArticle
                       key={article.id}
