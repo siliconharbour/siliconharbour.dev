@@ -142,6 +142,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const keywords = (formData.get("keywords") as string)?.trim() || null;
     const useGlobalKeywords = formData.has("useGlobalKeywords");
     const excerptMode = (formData.get("excerptMode") as ExcerptMode) || "description";
+    const entityUrl = (formData.get("entityUrl") as string)?.trim() || null;
     const enabled = formData.has("enabled");
 
     if (!name) return { intent: "edit-source", error: "Name is required" };
@@ -154,6 +155,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       keywords,
       useGlobalKeywords,
       excerptMode,
+      entityUrl,
       enabled,
     });
     return { intent: "edit-source", success: true };
@@ -347,6 +349,15 @@ export default function NewsImportSourceDetail() {
                   <option key={mode} value={mode}>{excerptModeLabels[mode]}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="text-sm text-harbour-500" htmlFor="entityUrl">Entity Page</label>
+              <input
+                id="entityUrl" name="entityUrl" type="text"
+                defaultValue={source.entityUrl ?? ""}
+                placeholder="/directory/companies/technl"
+                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+              />
             </div>
             <div className="flex items-end pb-1">
               <label className="flex items-center gap-2 text-sm text-harbour-700">

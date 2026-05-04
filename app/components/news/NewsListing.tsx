@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { Link } from "react-router";
 import type { News } from "~/db/schema";
 import { Pagination } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
@@ -35,7 +36,17 @@ function MetaLine({ article }: { article: News }) {
       {article.sourceName && (
         <>
           {article.publishedAt && <span>&middot;</span>}
-          <span>{article.sourceName}</span>
+          {article.sourceEntityUrl ? (
+            <Link
+              to={article.sourceEntityUrl}
+              className="hover:text-harbour-600"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {article.sourceName}
+            </Link>
+          ) : (
+            <span>{article.sourceName}</span>
+          )}
         </>
       )}
     </p>

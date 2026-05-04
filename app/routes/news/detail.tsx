@@ -88,7 +88,15 @@ export default function NewsDetail() {
                 )}
               </div>
               <div className="flex items-center gap-2 text-harbour-500">
-                {article.sourceName && <span className="font-medium">{article.sourceName}</span>}
+                {article.sourceName && (
+                  article.sourceEntityUrl ? (
+                    <Link to={article.sourceEntityUrl} className="font-medium hover:text-harbour-700">
+                      {article.sourceName}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">{article.sourceName}</span>
+                  )
+                )}
                 {article.publishedAt && (
                   <span>{format(article.publishedAt, "MMMM d, yyyy")}</span>
                 )}

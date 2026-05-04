@@ -37,6 +37,10 @@ const formSchema = z.object({
   ),
   useGlobalKeywords: z.preprocess((v) => v === "on", z.boolean()),
   excerptMode: z.enum(excerptModes),
+  entityUrl: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
+    z.string().nullable(),
+  ),
   enabled: z.preprocess((v) => v === "on", z.boolean()),
 });
 
@@ -140,6 +144,7 @@ export async function action({ request }: Route.ActionArgs) {
       keywords: parsed.data.keywords,
       useGlobalKeywords: parsed.data.useGlobalKeywords,
       excerptMode: parsed.data.excerptMode,
+      entityUrl: parsed.data.entityUrl,
       enabled: parsed.data.enabled,
     });
 
@@ -286,6 +291,22 @@ export default function NewNewsImportSource() {
           <p className="mt-1 text-xs text-harbour-400">
             Where to pull the excerpt from. WordPress feeds often have junk in description — try
             &quot;Use content:encoded&quot; instead. Use &quot;Test Feed&quot; to preview.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="entityUrl" className="block text-sm font-medium text-harbour-700 mb-1">
+            Entity Page (optional)
+          </label>
+          <input
+            type="text"
+            id="entityUrl"
+            name="entityUrl"
+            placeholder="/directory/companies/technl"
+            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+          />
+          <p className="mt-1 text-xs text-harbour-400">
+            Path to the entity page in the directory. Source name will link here in listings.
           </p>
         </div>
 

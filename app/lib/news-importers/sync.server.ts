@@ -34,6 +34,7 @@ export async function createNewsImportSource(data: {
   keywords?: string | null;
   useGlobalKeywords?: boolean;
   excerptMode?: ExcerptMode;
+  entityUrl?: string | null;
   enabled?: boolean;
 }) {
   const now = new Date();
@@ -59,6 +60,7 @@ export async function updateNewsImportSource(
     keywords: string | null;
     useGlobalKeywords: boolean;
     excerptMode: ExcerptMode;
+    entityUrl: string | null;
     enabled: boolean;
   }>,
 ) {
@@ -220,6 +222,7 @@ export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> 
           title: item.title,
           externalUrl: item.url,
           sourceName: source.name,
+          sourceEntityUrl: source.entityUrl || null,
           content: item.excerpt || "",
           excerpt: item.excerpt || null,
           publishedAt: item.publishedAt || now,

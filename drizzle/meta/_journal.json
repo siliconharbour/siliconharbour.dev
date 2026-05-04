@@ -351,6 +351,13 @@
       "when": 1768734000000,
       "tag": "0049_news_global_keywords",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "6",
+      "when": 1768735000000,
+      "tag": "0050_news_entity_url",
+      "breakpoints": true
     }
   ]
 }
