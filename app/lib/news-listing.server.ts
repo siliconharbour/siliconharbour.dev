@@ -7,9 +7,9 @@ export async function loadNewsListingData(request: Request, type?: NewsType) {
   const url = new URL(request.url);
   const { limit, offset, searchQuery } = parsePublicListParams(url);
   const { items: articles, total } = await getPaginatedNews(limit, offset, searchQuery, type);
-  const oneWeekAgo = subDays(new Date(), 7);
+  const twoWeeksAgo = subDays(new Date(), 14);
   const hasRecentHeadline =
-    articles.length > 0 && articles[0].publishedAt && isAfter(articles[0].publishedAt, oneWeekAgo);
+    articles.length > 0 && articles[0].publishedAt && isAfter(articles[0].publishedAt, twoWeeksAgo);
 
   return { articles, total, limit, offset, searchQuery, hasRecentHeadline };
 }

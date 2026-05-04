@@ -21,22 +21,24 @@ interface NewsListingProps {
   showTypeBadge: boolean;
 }
 
-function TypeBadge({ type }: { type: string }) {
-  const labels: Record<string, string> = {
-    link: "Link",
-    article: "Article",
-  };
+/** Only shown for articles -- links don't need a badge since they're the default */
+function ArticleBadge() {
   return (
-    <span className="text-xs uppercase tracking-wide text-harbour-500 font-medium">
-      {labels[type] || type}
-    </span>
+    <span className="text-xs uppercase tracking-wide text-harbour-500 font-medium">Article</span>
   );
 }
 
-function SourceBadge({ sourceName }: { sourceName: string | null }) {
-  if (!sourceName) return null;
+function MetaLine({ article }: { article: News }) {
   return (
-    <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-500">{sourceName}</span>
+    <p className="text-sm text-harbour-400 flex items-center gap-1.5">
+      {article.publishedAt && <span>{format(article.publishedAt, "MMM d, yyyy")}</span>}
+      {article.sourceName && (
+        <>
+          {article.publishedAt && <span>&middot;</span>}
+          <span>{article.sourceName}</span>
+        </>
+      )}
+    </p>
   );
 }
 
@@ -46,7 +48,7 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a href={href} {...linkProps} className="group lg:col-span-2 flex flex-col gap-4">
+    <a href={href} {...linkProps} className="group lg:col-span-2 flex flex-col gap-3">
       {article.coverImage && (
         <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
           <img
@@ -56,30 +58,12 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
           />
         </div>
       )}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          {showTypeBadge ? <TypeBadge type={article.type} /> : null}
-          <SourceBadge sourceName={article.sourceName} />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        {showTypeBadge && article.type === "article" && <ArticleBadge />}
         <h2 className="link-title text-2xl lg:text-3xl font-bold text-harbour-700 group-hover:text-harbour-600 leading-tight">
           {article.title}
         </h2>
-        <div className="flex items-center gap-2">
-          {article.publishedAt && (
-            <p className="text-sm text-harbour-400">
-              {format(article.publishedAt, "EEEE, MMMM d, yyyy")}
-            </p>
-          )}
-          {isLink && (
-            <a
-              href={`/news/${article.slug}`}
-              className="text-xs text-harbour-400 hover:text-harbour-600"
-              onClick={(e) => e.stopPropagation()}
-            >
-              permalink
-            </a>
-          )}
-        </div>
+        <MetaLine article={article} />
         {article.excerpt && <p className="text-harbour-600 line-clamp-3">{article.excerpt}</p>}
       </div>
     </a>
@@ -107,43 +91,30 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
         </div>
       )}
       <div className="flex flex-col gap-1 flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          {showTypeBadge ? <TypeBadge type={article.type} /> : null}
-          <SourceBadge sourceName={article.sourceName} />
-        </div>
+        {showTypeBadge && article.type === "article" && <ArticleBadge />}
         <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
           {article.title}
         </h3>
-        <div className="flex items-center gap-2">
-          {article.publishedAt && (
-            <p className="text-xs text-harbour-400">
-              {format(article.publishedAt, "MMM d, yyyy")}
-            </p>
-          )}
-          {isLink && (
-            <a
-              href={`/news/${article.slug}`}
-              className="text-xs text-harbour-400 hover:text-harbour-600"
-              onClick={(e) => e.stopPropagation()}
-            >
-              permalink
-            </a>
-          )}
-        </div>
+        <MetaLine article={article} />
       </div>
     </a>
   );
 }
 
-function ArticleCard({ article, showTypeBadge }: { article: News; showTypeBadge: boolean }) {
+/** Linear list item -- used for the main body of items below the featured section */
+function ListItem({ article, showTypeBadge }: { article: News; showTypeBadge: boolean }) {
   const isLink = !!article.externalUrl;
   const href = isLink ? article.externalUrl! : `/news/${article.slug}`;
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a href={href} {...linkProps} className="group flex flex-col gap-3">
+    <a
+      href={href}
+      {...linkProps}
+      className="group flex gap-4 py-4 border-b border-harbour-100 last:border-b-0"
+    >
       {article.coverImage && (
-        <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+        <div className="img-tint w-28 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0 hidden sm:block">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -151,30 +122,14 @@ function ArticleCard({ article, showTypeBadge }: { article: News; showTypeBadge:
           />
         </div>
       )}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {showTypeBadge ? <TypeBadge type={article.type} /> : null}
-          <SourceBadge sourceName={article.sourceName} />
+          {showTypeBadge && article.type === "article" && <ArticleBadge />}
+          <MetaLine article={article} />
         </div>
-        <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 line-clamp-2 leading-tight">
+        <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 leading-tight">
           {article.title}
         </h3>
-        <div className="flex items-center gap-2">
-          {article.publishedAt && (
-            <p className="text-xs text-harbour-400">
-              {format(article.publishedAt, "MMM d, yyyy")}
-            </p>
-          )}
-          {isLink && (
-            <a
-              href={`/news/${article.slug}`}
-              className="text-xs text-harbour-400 hover:text-harbour-600"
-              onClick={(e) => e.stopPropagation()}
-            >
-              permalink
-            </a>
-          )}
-        </div>
         {article.excerpt && (
           <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>
         )}
@@ -215,6 +170,7 @@ export function NewsListing({
         <p className="text-harbour-400">{searchQuery ? emptyWithSearch : emptyNoSearch}</p>
       ) : (
         <>
+          {/* Featured section: large headline + 2 secondaries */}
           {showHeadline && headline && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <HeadlineArticle article={headline} showTypeBadge={showTypeBadge} />
@@ -232,12 +188,11 @@ export function NewsListing({
             </div>
           )}
 
+          {/* Linear list for remaining items */}
           {remainingArticles.length > 0 && (
-            <div
-              className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${showHeadline ? "mt-6" : ""}`}
-            >
+            <div className={showHeadline ? "mt-2 border-t border-harbour-200 pt-4" : ""}>
               {remainingArticles.map((article) => (
-                <ArticleCard key={article.id} article={article} showTypeBadge={showTypeBadge} />
+                <ListItem key={article.id} article={article} showTypeBadge={showTypeBadge} />
               ))}
             </div>
           )}
