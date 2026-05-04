@@ -1,0 +1,1 @@
+ALTER TABLE `news_import_sources` ADD `use_global_keywords` integer NOT NULL DEFAULT 0;

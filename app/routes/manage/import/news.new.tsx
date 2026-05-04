@@ -35,6 +35,7 @@ const formSchema = z.object({
     (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
     z.string().nullable(),
   ),
+  useGlobalKeywords: z.preprocess((v) => v === "on", z.boolean()),
   excerptMode: z.enum(excerptModes),
   enabled: z.preprocess((v) => v === "on", z.boolean()),
 });
@@ -120,6 +121,9 @@ export async function action({ request }: Route.ActionArgs) {
   if (!formData.has("enabled")) {
     values.enabled = "" as FormDataEntryValue;
   }
+  if (!formData.has("useGlobalKeywords")) {
+    values.useGlobalKeywords = "" as FormDataEntryValue;
+  }
 
   const parsed = formSchema.safeParse(values);
   if (!parsed.success) {
@@ -134,6 +138,7 @@ export async function action({ request }: Route.ActionArgs) {
       sourceUrl: parsed.data.sourceUrl,
       sourceIdentifier: parsed.data.sourceIdentifier,
       keywords: parsed.data.keywords,
+      useGlobalKeywords: parsed.data.useGlobalKeywords,
       excerptMode: parsed.data.excerptMode,
       enabled: parsed.data.enabled,
     });
@@ -237,9 +242,19 @@ export default function NewNewsImportSource() {
         </div>
 
         <div>
-          <label htmlFor="keywords" className="block text-sm font-medium text-harbour-700 mb-1">
-            Keywords (optional)
-          </label>
+          <div className="flex items-center justify-between mb-1">
+            <label htmlFor="keywords" className="block text-sm font-medium text-harbour-700">
+              Keywords (optional)
+            </label>
+            <label className="flex items-center gap-1.5 text-xs text-harbour-500">
+              <input
+                type="checkbox"
+                name="useGlobalKeywords"
+                className="w-3 h-3"
+              />
+              Use global keywords
+            </label>
+          </div>
           <input
             type="text"
             id="keywords"
@@ -249,6 +264,7 @@ export default function NewNewsImportSource() {
           />
           <p className="mt-1 text-xs text-harbour-400">
             Comma-separated keywords for filtering. Leave empty to import all items.
+            Global keywords are configured in Settings.
           </p>
         </div>
 

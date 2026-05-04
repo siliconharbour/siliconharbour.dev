@@ -9,6 +9,7 @@ import { eq, desc, count } from "drizzle-orm";
 import type { NewsSyncResult, NewsImportSourceConfig, NewsSourceType, FetchedNewsItem, ExcerptMode } from "./types";
 import { getNewsImporter } from "./index";
 import { generateNewsSlug } from "~/lib/news.server";
+import { getNewsGlobalKeywords } from "~/lib/config.server";
 
 // ---- Source CRUD ----
 
@@ -31,6 +32,7 @@ export async function createNewsImportSource(data: {
   sourceUrl: string;
   sourceIdentifier?: string | null;
   keywords?: string | null;
+  useGlobalKeywords?: boolean;
   excerptMode?: ExcerptMode;
   enabled?: boolean;
 }) {
@@ -55,6 +57,7 @@ export async function updateNewsImportSource(
     sourceUrl: string;
     sourceIdentifier: string | null;
     keywords: string | null;
+    useGlobalKeywords: boolean;
     excerptMode: ExcerptMode;
     enabled: boolean;
   }>,
@@ -175,12 +178,19 @@ export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> 
 
     const fetchedItems = await importer.fetchItems(config);
 
+    // Resolve keywords: use global keywords if enabled, otherwise per-source
+    let effectiveKeywords = source.keywords;
+    if (source.useGlobalKeywords) {
+      const globalKeywords = await getNewsGlobalKeywords();
+      effectiveKeywords = globalKeywords || null;
+    }
+
     // Apply keyword filtering
     let filtered = 0;
     let itemsToProcess: FetchedNewsItem[];
-    if (source.keywords) {
+    if (effectiveKeywords) {
       itemsToProcess = fetchedItems.filter((item) => {
-        if (matchesKeywords(item, source.keywords!)) return true;
+        if (matchesKeywords(item, effectiveKeywords!)) return true;
         filtered++;
         return false;
       });

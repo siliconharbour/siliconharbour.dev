@@ -140,6 +140,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
     const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim() || null;
     const keywords = (formData.get("keywords") as string)?.trim() || null;
+    const useGlobalKeywords = formData.has("useGlobalKeywords");
     const excerptMode = (formData.get("excerptMode") as ExcerptMode) || "description";
     const enabled = formData.has("enabled");
 
@@ -151,6 +152,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       sourceUrl,
       sourceIdentifier,
       keywords,
+      useGlobalKeywords,
       excerptMode,
       enabled,
     });
@@ -316,7 +318,17 @@ export default function NewsImportSourceDetail() {
               />
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="keywords">Keywords</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-harbour-500" htmlFor="keywords">Keywords</label>
+                <label className="flex items-center gap-1.5 text-xs text-harbour-500">
+                  <input
+                    type="checkbox" name="useGlobalKeywords"
+                    defaultChecked={source.useGlobalKeywords}
+                    className="w-3 h-3"
+                  />
+                  Use global
+                </label>
+              </div>
               <input
                 id="keywords" name="keywords" type="text"
                 defaultValue={source.keywords ?? ""}

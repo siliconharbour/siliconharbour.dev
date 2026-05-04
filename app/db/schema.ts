@@ -284,6 +284,7 @@ export const newsImportSources = sqliteTable("news_import_sources", {
   sourceUrl: text("source_url").notNull(),
   sourceIdentifier: text("source_identifier"),
   keywords: text("keywords"),
+  useGlobalKeywords: integer("use_global_keywords", { mode: "boolean" }).notNull().default(false),
   excerptMode: text("excerpt_mode", { enum: excerptModes }).notNull().default("description"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   lastSyncAt: integer("last_sync_at", { mode: "timestamp" }),

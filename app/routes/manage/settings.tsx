@@ -8,6 +8,8 @@ import {
   updateCommentVisibility,
   getDiscordConfig,
   updateDiscordConfig,
+  getNewsGlobalKeywords,
+  setNewsGlobalKeywords,
   type SectionVisibility,
   type CommentVisibility,
 } from "~/lib/config.server";
@@ -19,12 +21,13 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const [visibility, commentVisibility, discordConfig] = await Promise.all([
+  const [visibility, commentVisibility, discordConfig, newsGlobalKeywords] = await Promise.all([
     getSectionVisibility(),
     getCommentVisibility(),
     getDiscordConfig(),
+    getNewsGlobalKeywords(),
   ]);
-  return { visibility, commentVisibility, discordConfig };
+  return { visibility, commentVisibility, discordConfig, newsGlobalKeywords };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -64,10 +67,13 @@ export async function action({ request }: Route.ActionArgs) {
   if (typeof eventsChannelId === "string") discordUpdates.eventsChannelId = eventsChannelId;
   if (typeof jobsChannelId === "string") discordUpdates.jobsChannelId = jobsChannelId;
 
+  const newsKeywords = formData.get("news_global_keywords");
+
   await Promise.all([
     updateSectionVisibility(sectionUpdates),
     updateCommentVisibility(commentUpdates),
     updateDiscordConfig(discordUpdates),
+    typeof newsKeywords === "string" ? setNewsGlobalKeywords(newsKeywords.trim()) : Promise.resolve(),
   ]);
   return { success: true };
 }
@@ -115,7 +121,7 @@ const commentableDescriptions: Record<CommentableKey, string> = {
 };
 
 export default function Settings() {
-  const { visibility, commentVisibility, discordConfig } = useLoaderData<typeof loader>();
+  const { visibility, commentVisibility, discordConfig, newsGlobalKeywords } = useLoaderData<typeof loader>();
   const testFetcher = useFetcher();
   const discordTestResult = (testFetcher.data as any)?.discordTest;
 
@@ -190,6 +196,30 @@ export default function Settings() {
                   </div>
                 </label>
               ))}
+            </div>
+          </div>
+
+          <div className="bg-white border border-harbour-200 p-6">
+            <h2 className="text-lg font-semibold text-harbour-700 mb-4">News Import</h2>
+            <p className="text-sm text-harbour-400 mb-4">
+              Global keywords for filtering news import sources. Sources with &quot;Use global
+              keywords&quot; enabled will use this list instead of per-source keywords.
+            </p>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="news_global_keywords" className="font-medium text-harbour-700 text-sm">
+                Global Keywords
+              </label>
+              <input
+                type="text"
+                id="news_global_keywords"
+                name="news_global_keywords"
+                defaultValue={newsGlobalKeywords}
+                placeholder="tech, startup, innovation, AI, software, digital, venture, funding, TechNL, Genesis, Bounce"
+                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500 text-sm"
+              />
+              <p className="text-xs text-harbour-400">
+                Comma-separated. Applied to title and excerpt (case-insensitive).
+              </p>
             </div>
           </div>
 

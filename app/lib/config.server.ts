@@ -145,6 +145,33 @@ export async function updateCommentVisibility(updates: Partial<CommentVisibility
 }
 
 // =============================================================================
+// News global keywords
+// =============================================================================
+
+const NEWS_KEYWORDS_KEY = "news_global_keywords";
+
+/**
+ * Get the global keywords used for filtering news import sources.
+ */
+export async function getNewsGlobalKeywords(): Promise<string> {
+  const result = await db.select().from(siteConfig).where(eq(siteConfig.key, NEWS_KEYWORDS_KEY)).get();
+  return result?.value ?? "";
+}
+
+/**
+ * Set the global keywords for news import filtering.
+ */
+export async function setNewsGlobalKeywords(keywords: string): Promise<void> {
+  await db
+    .insert(siteConfig)
+    .values({ key: NEWS_KEYWORDS_KEY, value: keywords })
+    .onConflictDoUpdate({
+      target: siteConfig.key,
+      set: { value: keywords, updatedAt: new Date() },
+    });
+}
+
+// =============================================================================
 // Discord configuration
 // =============================================================================
 
