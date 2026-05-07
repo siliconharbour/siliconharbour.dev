@@ -567,8 +567,6 @@ export async function getPaginatedEvents(
     }
   }
 
-  const total = filteredEventIds.length;
-
   // Fetch full event data with dates for all matching events in batch.
   // Sorting requires date data, so we fetch first and slice after.
   const eventRows = await db
@@ -609,6 +607,9 @@ export async function getPaginatedEvents(
     .filter((e): e is EventWithDates => e !== null)
     .filter((e) => e.importStatus === null || e.importStatus === "published");
 
+  // Recompute total after filtering out non-published events
+  const actualTotal = items.length;
+
   // Sort by next date
   items.sort((a, b) => {
     if (filter === "past") {
@@ -638,7 +639,7 @@ export async function getPaginatedEvents(
   // Paginate after sorting
   const paginatedItems = items.slice(offset, offset + limit);
 
-  return { items: paginatedItems, total };
+  return { items: paginatedItems, total: actualTotal };
 }
 
 // =============================================================================
