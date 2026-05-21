@@ -11,8 +11,8 @@ import { Calendar } from "~/components/Calendar";
 import { EventCard } from "~/components/EventCard";
 import { format } from "date-fns";
 import type { ResolvedRef } from "~/components/RichMarkdown";
-import type { SectionKey } from "~/db/schema";
 import { Footer } from "~/components/Footer";
+import { Header } from "~/components/Header";
 import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
@@ -60,18 +60,6 @@ export async function loader({}: Route.LoaderArgs) {
   };
 }
 
-// Main nav items (matching the header nav)
-const navItems: { href: string; label: string; keys: SectionKey[] }[] = [
-  { href: "/events", label: "Events", keys: ["events"] },
-  {
-    href: "/directory",
-    label: "Directory",
-    keys: ["companies", "groups", "people", "products", "projects", "education"],
-  },
-  { href: "/news", label: "News", keys: ["news"] },
-  { href: "/jobs", label: "Jobs", keys: ["jobs"] },
-];
-
 export default function Home() {
   const {
     thisWeek,
@@ -87,39 +75,9 @@ export default function Home() {
 
   const hasEvents = allEvents.length > 0;
 
-  // Filter nav items based on visibility
-  const visibleNavItems = navItems.filter((item) => {
-    return item.keys.some((key) => visibility[key]);
-  });
-
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero Header */}
-      <header className="h-[40vh] min-h-[320px] flex flex-col items-center justify-center p-4">
-        <img
-          src="/siliconharbour.svg"
-          alt="Silicon Harbour"
-          className="h-32 md:h-40 lg:h-48 w-auto"
-        />
-        <p className="text-2xl md:text-3xl lg:text-3xl font-bold text-harbour-600 tracking-wide pt-4">
-          siliconharbour.dev
-        </p>
-      </header>
-
-      {/* Navigation Buttons */}
-      <nav className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex flex-wrap justify-center gap-3">
-          {visibleNavItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className="px-6 py-3 text-lg font-medium text-harbour-600 ring-1 ring-harbour-200 hover:ring-harbour-400 hover:text-harbour-700 transition-all"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </nav>
+      <Header visibility={visibility} />
 
       {/* Main Content */}
       <main className="flex-1">
