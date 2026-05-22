@@ -125,37 +125,53 @@ export async function getUnpostedJobs() {
 // Create post records
 // ============================================================================
 
+export interface DestinationRef {
+  guildId: string;
+  channelId: string;
+}
+
 /**
- * Create a discord post record and its items after successfully sending to Discord.
+ * Record a successful post to one Discord destination.
+ *
+ * When posting to multiple destinations in a single fan-out, pass the same
+ * batchId to every call. The first call (i.e. the one that links the
+ * discord_post_items rows) should pass attachItems: true; subsequent calls in
+ * the same batch should pass attachItems: false so items aren't duplicated.
  */
 export async function createDiscordPost(params: {
   channelType: DiscordChannelType;
   discordMessageId: string | null;
-  discordChannelId: string;
+  destination: DestinationRef;
+  batchId: string;
   introText: string | null;
   itemIds: number[];
   itemType: "event" | "job";
+  attachItems: boolean;
 }) {
   const post = await db
     .insert(discordPosts)
     .values({
       channelType: params.channelType,
       discordMessageId: params.discordMessageId,
-      discordChannelId: params.discordChannelId,
+      discordChannelId: params.destination.channelId,
+      discordGuildId: params.destination.guildId,
+      batchId: params.batchId,
       introText: params.introText,
       postedAt: new Date(),
     })
     .returning()
     .get();
 
-  for (const itemId of params.itemIds) {
-    await db.insert(discordPostItems).values({
-      discordPostId: post.id,
-      itemType: params.itemType,
-      eventId: params.itemType === "event" ? itemId : null,
-      jobId: params.itemType === "job" ? itemId : null,
-      skipped: false,
-    });
+  if (params.attachItems) {
+    for (const itemId of params.itemIds) {
+      await db.insert(discordPostItems).values({
+        discordPostId: post.id,
+        itemType: params.itemType,
+        eventId: params.itemType === "event" ? itemId : null,
+        jobId: params.itemType === "job" ? itemId : null,
+        skipped: false,
+      });
+    }
   }
 
   return post;
@@ -163,10 +179,13 @@ export async function createDiscordPost(params: {
 
 /**
  * Skip items -- mark them as dealt with without posting to Discord.
+ *
+ * Records a single discord_posts row with discord_message_id = null, tied to
+ * a synthetic destination (defaults to a sentinel channel id of "skipped" so
+ * the schema's NOT NULL constraint is satisfied without claiming a real channel).
  */
 export async function skipItems(params: {
   channelType: DiscordChannelType;
-  discordChannelId: string;
   itemIds: number[];
   itemType: "event" | "job";
 }) {
@@ -175,7 +194,9 @@ export async function skipItems(params: {
     .values({
       channelType: params.channelType,
       discordMessageId: null,
-      discordChannelId: params.discordChannelId,
+      discordChannelId: "skipped",
+      discordGuildId: null,
+      batchId: null,
       introText: null,
       postedAt: new Date(),
     })
@@ -202,60 +223,109 @@ export async function skipItems(params: {
 /**
  * Undo a discord post — deletes the post record (and cascades to items),
  * which makes the events/jobs reappear in the unposted queue.
+ *
+ * NOTE: for batches (fan-outs to multiple destinations), only the row that
+ * owns the discord_post_items will requeue items when deleted. Sibling rows
+ * in the same batch can be deleted without requeuing. Use undoDiscordBatch
+ * to undo the whole fan-out at once.
+ *
  * Does NOT delete the actual Discord message from the channel.
  */
 export async function undoDiscordPost(postId: number) {
   return db.delete(discordPosts).where(eq(discordPosts.id, postId));
 }
 
+/**
+ * Undo every discord_posts row that shares a batch_id. Cascades items.
+ */
+export async function undoDiscordBatch(batchId: string) {
+  return db.delete(discordPosts).where(eq(discordPosts.batchId, batchId));
+}
+
 // ============================================================================
 // History
 // ============================================================================
 
-export interface DiscordPostWithItems {
-  id: number;
+export interface DiscordPostBatch {
+  /** batch_id when fan-out posted, otherwise null for a singleton (e.g. skip) */
+  batchId: string | null;
   channelType: string;
-  discordMessageId: string | null;
   introText: string | null;
   postedAt: Date;
+  /** Number of items posted (deduped across destinations in the batch) */
   itemCount: number;
   skippedCount: number;
+  /** All post rows in this batch, one per destination */
+  destinations: Array<{
+    id: number;
+    discordMessageId: string | null;
+    discordGuildId: string | null;
+    discordChannelId: string;
+  }>;
 }
 
 /**
- * Get recent post history for a channel type.
+ * Get recent post history for a channel type, grouped by batch.
+ *
+ * Skipped posts (batch_id = null) appear as singleton batches.
  */
 export async function getPostHistory(
   channelType: DiscordChannelType,
   limit = 10,
-): Promise<DiscordPostWithItems[]> {
+): Promise<DiscordPostBatch[]> {
+  // Pull a larger window than `limit` because batches collapse multiple rows.
   const posts = await db
     .select()
     .from(discordPosts)
     .where(eq(discordPosts.channelType, channelType))
     .orderBy(desc(discordPosts.postedAt))
-    .limit(limit);
+    .limit(limit * 4);
 
-  const result: DiscordPostWithItems[] = [];
+  // Group by batchId; null batchId is its own singleton group keyed by post.id.
+  const groups = new Map<string, typeof posts>();
   for (const post of posts) {
-    const items = await db
-      .select()
-      .from(discordPostItems)
-      .where(eq(discordPostItems.discordPostId, post.id));
+    const key = post.batchId ?? `__single_${post.id}`;
+    const arr = groups.get(key);
+    if (arr) arr.push(post);
+    else groups.set(key, [post]);
+  }
 
-    const skippedCount = items.filter((i) => i.skipped).length;
-    const postedCount = items.filter((i) => !i.skipped).length;
+  const batches: DiscordPostBatch[] = [];
+  for (const group of groups.values()) {
+    // Use the earliest posted_at in the batch for sorting
+    const earliest = group.reduce((a, b) => (a.postedAt < b.postedAt ? a : b));
 
-    result.push({
-      id: post.id,
-      channelType: post.channelType,
-      discordMessageId: post.discordMessageId,
-      introText: post.introText,
-      postedAt: post.postedAt,
-      itemCount: postedCount,
+    // Items are attached to (at most) one row in the batch; pick whichever has them.
+    let itemCount = 0;
+    let skippedCount = 0;
+    for (const post of group) {
+      const items = await db
+        .select()
+        .from(discordPostItems)
+        .where(eq(discordPostItems.discordPostId, post.id));
+      if (items.length > 0) {
+        skippedCount = items.filter((i) => i.skipped).length;
+        itemCount = items.filter((i) => !i.skipped).length;
+        break;
+      }
+    }
+
+    batches.push({
+      batchId: earliest.batchId,
+      channelType: earliest.channelType,
+      introText: earliest.introText,
+      postedAt: earliest.postedAt,
+      itemCount,
       skippedCount,
+      destinations: group.map((p) => ({
+        id: p.id,
+        discordMessageId: p.discordMessageId,
+        discordGuildId: p.discordGuildId,
+        discordChannelId: p.discordChannelId,
+      })),
     });
   }
 
-  return result;
+  batches.sort((a, b) => b.postedAt.getTime() - a.postedAt.getTime());
+  return batches.slice(0, limit);
 }

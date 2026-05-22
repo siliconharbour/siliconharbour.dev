@@ -2,12 +2,14 @@ import type { Route } from "./+types/events";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getDiscordConfig } from "~/lib/config.server";
+import { listDestinations } from "~/lib/discord-destinations.server";
 import {
   getUnpostedEvents,
   createDiscordPost,
   skipItems,
   getPostHistory,
   undoDiscordPost,
+  undoDiscordBatch,
 } from "~/lib/discord-posts.server";
 import { buildEventsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
@@ -21,8 +23,9 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const [config, unpostedEvents, history] = await Promise.all([
+  const [config, destinations, unpostedEvents, history] = await Promise.all([
     getDiscordConfig(),
+    listDestinations("events"),
     getUnpostedEvents(),
     getPostHistory("events"),
   ]);
@@ -50,7 +53,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   });
 
   return {
-    configured: Boolean(config.botToken && config.eventsChannelId),
+    configured: Boolean(config.botToken && destinations.length > 0),
+    destinations,
     events: eventsWithDates,
     history,
   };
@@ -62,10 +66,8 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent");
   const config = await getDiscordConfig();
 
-  if (!config.botToken || !config.eventsChannelId) {
-    return {
-      error: "Discord is not configured. Please set bot token and events channel ID in Settings.",
-    };
+  if (!config.botToken) {
+    return { error: "Discord is not configured. Set the bot token in Settings." };
   }
 
   if (intent === "skip") {
@@ -74,7 +76,6 @@ export async function action({ request }: Route.ActionArgs) {
 
     await skipItems({
       channelType: "events",
-      discordChannelId: config.eventsChannelId,
       itemIds: [eventId],
       itemType: "event",
     });
@@ -82,6 +83,13 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "post") {
+    const destinations = await listDestinations("events");
+    if (destinations.length === 0) {
+      return {
+        error: "No event destinations configured. Add one in Settings.",
+      };
+    }
+
     const selectedIds = formData.getAll("selectedEvents").map(Number).filter(Boolean);
     if (selectedIds.length === 0) {
       return { error: "No events selected" };
@@ -113,22 +121,55 @@ export async function action({ request }: Route.ActionArgs) {
     });
 
     const components = buildEventsMessage(eventsForMessage, introText || undefined);
-    const result = await postMessage(config.eventsChannelId, components, config.botToken);
 
-    if (!result.success) {
-      return { error: `Failed to post to Discord: ${result.error}` };
+    // Fan-out: post to each destination, record one discord_posts row per
+    // destination, all sharing a batch_id.
+    const batchId = crypto.randomUUID();
+    const successes: Array<{ destination: typeof destinations[number]; messageId: string | null }> = [];
+    const failures: Array<{ destination: typeof destinations[number]; error: string }> = [];
+
+    for (const destination of destinations) {
+      const result = await postMessage(destination.channelId, components, config.botToken);
+      if (result.success) {
+        successes.push({ destination, messageId: result.messageId ?? null });
+      } else {
+        failures.push({ destination, error: result.error ?? "Unknown error" });
+      }
     }
 
-    await createDiscordPost({
-      channelType: "events",
-      discordMessageId: result.messageId || null,
-      discordChannelId: config.eventsChannelId,
-      introText,
-      itemIds: selectedIds,
-      itemType: "event",
-    });
+    if (successes.length === 0) {
+      return {
+        error: `Failed to post to any destination: ${failures
+          .map((f) => `#${f.destination.channelName} (${f.error})`)
+          .join("; ")}`,
+      };
+    }
 
-    return { success: true, posted: selectedEvents.length };
+    // Attach items to the first successful row; siblings reference the same batch.
+    for (let i = 0; i < successes.length; i++) {
+      const { destination, messageId } = successes[i];
+      await createDiscordPost({
+        channelType: "events",
+        discordMessageId: messageId,
+        destination: { guildId: destination.guildId, channelId: destination.channelId },
+        batchId,
+        introText,
+        itemIds: selectedIds,
+        itemType: "event",
+        attachItems: i === 0,
+      });
+    }
+
+    return {
+      success: true,
+      posted: selectedEvents.length,
+      destinations: successes.length,
+      failures: failures.map((f) => ({
+        channelName: f.destination.channelName,
+        guildName: f.destination.guildName,
+        error: f.error,
+      })),
+    };
   }
 
   if (intent === "undo") {
@@ -139,15 +180,26 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true, undone: true };
   }
 
+  if (intent === "undo-batch") {
+    const batchId = formData.get("batchId");
+    if (typeof batchId !== "string" || !batchId) return { error: "Invalid batch ID" };
+
+    await undoDiscordBatch(batchId);
+    return { success: true, undone: true };
+  }
+
   return { error: "Unknown action" };
 }
 
 export default function DiscordEvents() {
-  const { configured, events, history } = useLoaderData<typeof loader>();
+  const { configured, destinations, events, history } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isPosting =
     navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
+
+  const hasFailures =
+    actionData && "failures" in actionData && Array.isArray(actionData.failures) && actionData.failures.length > 0;
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -176,7 +228,27 @@ export default function DiscordEvents() {
             <Link to="/manage/settings" className="underline hover:text-amber-900">
               Go to Settings
             </Link>{" "}
-            to set your bot token and events channel ID.
+            to set your bot token and add at least one events destination.
+          </div>
+        )}
+
+        {configured && destinations.length > 0 && (
+          <div className="bg-white border border-harbour-200 p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-harbour-700">
+                Posting to {destinations.length} channel{destinations.length !== 1 ? "s" : ""}:
+              </span>
+              <Link to="/manage/settings" className="text-xs text-harbour-400 hover:text-harbour-600">
+                Edit
+              </Link>
+            </div>
+            <ul className="mt-2 flex flex-col gap-1 text-harbour-400">
+              {destinations.map((d) => (
+                <li key={d.id}>
+                  {d.guildName} <span className="text-harbour-700">#{d.channelName}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -188,8 +260,13 @@ export default function DiscordEvents() {
 
         {actionData && "posted" in actionData && actionData.posted && (
           <div className="p-4 bg-green-50 border border-green-200 text-green-700 text-sm">
-            Posted {actionData.posted} event
-            {actionData.posted !== 1 ? "s" : ""} to Discord.
+            Posted {actionData.posted} event{actionData.posted !== 1 ? "s" : ""} to{" "}
+            {actionData.destinations} channel{actionData.destinations !== 1 ? "s" : ""}.
+            {hasFailures && (
+              <div className="mt-2 text-red-700">
+                Failed to post to: {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
+              </div>
+            )}
           </div>
         )}
 
@@ -292,42 +369,56 @@ export default function DiscordEvents() {
           <div className="bg-white border border-harbour-200 p-6">
             <h2 className="text-lg font-semibold text-harbour-700 mb-4">Recent Posts</h2>
             <div className="flex flex-col divide-y divide-harbour-100">
-              {history.map((post) => (
-                <div key={post.id} className="py-3 flex items-center justify-between text-sm">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-harbour-700">
-                      {post.discordMessageId
-                        ? `Posted ${post.itemCount} event${post.itemCount !== 1 ? "s" : ""}`
-                        : `Skipped ${post.skippedCount} event${post.skippedCount !== 1 ? "s" : ""}`}
-                    </span>
-                    {post.introText && (
-                      <span className="text-harbour-400 text-xs truncate max-w-sm">
-                        {post.introText}
+              {history.map((batch) => {
+                const key = batch.batchId ?? `single-${batch.destinations[0]?.id}`;
+                const isSkip = batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
+                const channelCount = batch.destinations.length;
+                return (
+                  <div key={key} className="py-3 flex items-start justify-between text-sm gap-3">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <span className="text-harbour-700">
+                        {isSkip
+                          ? `Skipped ${batch.skippedCount} event${batch.skippedCount !== 1 ? "s" : ""}`
+                          : `Posted ${batch.itemCount} event${batch.itemCount !== 1 ? "s" : ""} to ${channelCount} channel${channelCount !== 1 ? "s" : ""}`}
                       </span>
-                    )}
+                      {batch.introText && (
+                        <span className="text-harbour-400 text-xs truncate">
+                          {batch.introText}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-harbour-400 text-xs">
+                        {format(new Date(batch.postedAt), "MMM d, yyyy 'at' h:mm a")}
+                      </span>
+                      <Form method="post">
+                        {batch.batchId ? (
+                          <>
+                            <input type="hidden" name="intent" value="undo-batch" />
+                            <input type="hidden" name="batchId" value={batch.batchId} />
+                          </>
+                        ) : (
+                          <>
+                            <input type="hidden" name="intent" value="undo" />
+                            <input type="hidden" name="postId" value={batch.destinations[0]?.id ?? ""} />
+                          </>
+                        )}
+                        <button
+                          type="submit"
+                          className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
+                          onClick={(e) => {
+                            if (!confirm("Undo this post? Events will be requeued for posting.")) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
+                          Undo
+                        </button>
+                      </Form>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-harbour-400 text-xs">
-                      {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
-                    </span>
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="undo" />
-                      <input type="hidden" name="postId" value={post.id} />
-                      <button
-                        type="submit"
-                        className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
-                        onClick={(e) => {
-                          if (!confirm("Undo this post? Events will be requeued for posting.")) {
-                            e.preventDefault();
-                          }
-                        }}
-                      >
-                        Undo
-                      </button>
-                    </Form>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

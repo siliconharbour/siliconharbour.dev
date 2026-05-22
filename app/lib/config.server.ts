@@ -176,47 +176,36 @@ export async function setNewsGlobalKeywords(keywords: string): Promise<void> {
 // =============================================================================
 
 const DISCORD_PREFIX = "discord_";
+const DISCORD_BOT_TOKEN_KEY = `${DISCORD_PREFIX}bot_token`;
 
 export interface DiscordConfig {
+  /** Bot token used to authenticate against the Discord REST API. */
   botToken: string;
-  eventsChannelId: string;
-  jobsChannelId: string;
 }
 
 /**
- * Get Discord configuration
+ * Get Discord configuration. Destination channels are stored separately in the
+ * discord_destinations table; see app/lib/discord-destinations.server.ts.
  */
 export async function getDiscordConfig(): Promise<DiscordConfig> {
-  const results = await db.select().from(siteConfig).all();
-  const configMap = new Map(results.map((r) => [r.key, r.value]));
-
-  return {
-    botToken: configMap.get(`${DISCORD_PREFIX}bot_token`) ?? "",
-    eventsChannelId: configMap.get(`${DISCORD_PREFIX}events_channel_id`) ?? "",
-    jobsChannelId: configMap.get(`${DISCORD_PREFIX}jobs_channel_id`) ?? "",
-  };
+  const row = await db
+    .select()
+    .from(siteConfig)
+    .where(eq(siteConfig.key, DISCORD_BOT_TOKEN_KEY))
+    .get();
+  return { botToken: row?.value ?? "" };
 }
 
 /**
- * Update Discord configuration
+ * Update Discord configuration (currently only the bot token).
  */
 export async function updateDiscordConfig(config: Partial<DiscordConfig>): Promise<void> {
-  const keyMap: Record<string, string> = {
-    botToken: "bot_token",
-    eventsChannelId: "events_channel_id",
-    jobsChannelId: "jobs_channel_id",
-  };
-
-  for (const [prop, value] of Object.entries(config)) {
-    const dbKey = keyMap[prop];
-    if (!dbKey) continue;
-    const key = `${DISCORD_PREFIX}${dbKey}`;
-    await db
-      .insert(siteConfig)
-      .values({ key, value: value as string })
-      .onConflictDoUpdate({
-        target: siteConfig.key,
-        set: { value: value as string, updatedAt: new Date() },
-      });
-  }
+  if (typeof config.botToken !== "string") return;
+  await db
+    .insert(siteConfig)
+    .values({ key: DISCORD_BOT_TOKEN_KEY, value: config.botToken })
+    .onConflictDoUpdate({
+      target: siteConfig.key,
+      set: { value: config.botToken, updatedAt: new Date() },
+    });
 }

@@ -824,17 +824,47 @@ export type DiscordChannelType = (typeof discordChannelTypes)[number];
 export const discordPostItemTypes = ["event", "job"] as const;
 export type DiscordPostItemType = (typeof discordPostItemTypes)[number];
 
-export const discordPosts = sqliteTable("discord_posts", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  channelType: text("channel_type", { enum: discordChannelTypes }).notNull(),
-  discordMessageId: text("discord_message_id"),
-  discordChannelId: text("discord_channel_id").notNull(),
-  introText: text("intro_text"),
-  postedAt: integer("posted_at", { mode: "timestamp" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
+export const discordDestinations = sqliteTable(
+  "discord_destinations",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    channelType: text("channel_type", { enum: discordChannelTypes }).notNull(),
+    guildId: text("guild_id").notNull(),
+    guildName: text("guild_name").notNull(),
+    channelId: text("channel_id").notNull(),
+    channelName: text("channel_name").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    typeChannelUnique: uniqueIndex("discord_destinations_type_channel_unique").on(
+      table.channelType,
+      table.channelId,
+    ),
+    typeIdx: index("discord_destinations_type_idx").on(table.channelType),
+  }),
+);
+
+export const discordPosts = sqliteTable(
+  "discord_posts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    channelType: text("channel_type", { enum: discordChannelTypes }).notNull(),
+    discordMessageId: text("discord_message_id"),
+    discordGuildId: text("discord_guild_id"),
+    discordChannelId: text("discord_channel_id").notNull(),
+    batchId: text("batch_id"),
+    introText: text("intro_text"),
+    postedAt: integer("posted_at", { mode: "timestamp" }).notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    batchIdIdx: index("discord_posts_batch_id_idx").on(table.batchId),
+  }),
+);
 
 export const discordPostItems = sqliteTable(
   "discord_post_items",
@@ -861,6 +891,8 @@ export type DiscordPost = typeof discordPosts.$inferSelect;
 export type NewDiscordPost = typeof discordPosts.$inferInsert;
 export type DiscordPostItem = typeof discordPostItems.$inferSelect;
 export type NewDiscordPostItem = typeof discordPostItems.$inferInsert;
+export type DiscordDestination = typeof discordDestinations.$inferSelect;
+export type NewDiscordDestination = typeof discordDestinations.$inferInsert;
 
 // =============================================================================
 // Type exports

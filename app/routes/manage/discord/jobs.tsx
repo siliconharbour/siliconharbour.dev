@@ -2,12 +2,14 @@ import type { Route } from "./+types/jobs";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getDiscordConfig } from "~/lib/config.server";
+import { listDestinations } from "~/lib/discord-destinations.server";
 import {
   getUnpostedJobs,
   createDiscordPost,
   skipItems,
   getPostHistory,
   undoDiscordPost,
+  undoDiscordBatch,
 } from "~/lib/discord-posts.server";
 import { buildJobsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
@@ -19,14 +21,16 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const [config, unpostedJobs, history] = await Promise.all([
+  const [config, destinations, unpostedJobs, history] = await Promise.all([
     getDiscordConfig(),
+    listDestinations("jobs"),
     getUnpostedJobs(),
     getPostHistory("jobs"),
   ]);
 
   return {
-    configured: Boolean(config.botToken && config.jobsChannelId),
+    configured: Boolean(config.botToken && destinations.length > 0),
+    destinations,
     jobs: unpostedJobs,
     history,
   };
@@ -38,10 +42,8 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent");
   const config = await getDiscordConfig();
 
-  if (!config.botToken || !config.jobsChannelId) {
-    return {
-      error: "Discord is not configured. Please set bot token and jobs channel ID in Settings.",
-    };
+  if (!config.botToken) {
+    return { error: "Discord is not configured. Set the bot token in Settings." };
   }
 
   if (intent === "skip-old") {
@@ -58,7 +60,6 @@ export async function action({ request }: Route.ActionArgs) {
 
     await skipItems({
       channelType: "jobs",
-      discordChannelId: config.jobsChannelId,
       itemIds: oldJobs.map((j) => j.id),
       itemType: "job",
     });
@@ -71,7 +72,6 @@ export async function action({ request }: Route.ActionArgs) {
 
     await skipItems({
       channelType: "jobs",
-      discordChannelId: config.jobsChannelId,
       itemIds: [jobId],
       itemType: "job",
     });
@@ -79,6 +79,13 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "post") {
+    const destinations = await listDestinations("jobs");
+    if (destinations.length === 0) {
+      return {
+        error: "No job destinations configured. Add one in Settings.",
+      };
+    }
+
     const selectedIds = formData.getAll("selectedJobs").map(Number).filter(Boolean);
     if (selectedIds.length === 0) {
       return { error: "No jobs selected" };
@@ -105,29 +112,67 @@ export async function action({ request }: Route.ActionArgs) {
 
     const messages = buildJobsMessage(jobsForMessage, introText || undefined);
 
-    // Send each message chunk (multiple when jobs exceed Discord's 40-component container limit)
-    const messageIds: string[] = [];
-    for (const components of messages) {
-      const result = await postMessage(config.jobsChannelId, components, config.botToken);
-      if (!result.success) {
-        return {
-          error: `Failed to post to Discord: ${result.error}${messageIds.length > 0 ? ` (${messageIds.length} message(s) already sent)` : ""}`,
-        };
+    // Fan-out per destination. For each destination, send all chunks; on any
+    // chunk failure, mark the destination as failed and continue to the next.
+    const batchId = crypto.randomUUID();
+    const successes: Array<{
+      destination: typeof destinations[number];
+      firstMessageId: string | null;
+    }> = [];
+    const failures: Array<{ destination: typeof destinations[number]; error: string }> = [];
+
+    for (const destination of destinations) {
+      const messageIds: string[] = [];
+      let chunkError: string | null = null;
+      for (const components of messages) {
+        const result = await postMessage(destination.channelId, components, config.botToken);
+        if (!result.success) {
+          chunkError = `${result.error}${messageIds.length > 0 ? ` (${messageIds.length} message(s) already sent)` : ""}`;
+          break;
+        }
+        if (result.messageId) messageIds.push(result.messageId);
       }
-      if (result.messageId) messageIds.push(result.messageId);
+
+      if (chunkError) {
+        failures.push({ destination, error: chunkError });
+      } else {
+        successes.push({ destination, firstMessageId: messageIds[0] ?? null });
+      }
     }
 
-    // Track all jobs under a single discord post record (using first message ID)
-    await createDiscordPost({
-      channelType: "jobs",
-      discordMessageId: messageIds[0] || null,
-      discordChannelId: config.jobsChannelId,
-      introText,
-      itemIds: selectedIds,
-      itemType: "job",
-    });
+    if (successes.length === 0) {
+      return {
+        error: `Failed to post to any destination: ${failures
+          .map((f) => `#${f.destination.channelName} (${f.error})`)
+          .join("; ")}`,
+      };
+    }
 
-    return { success: true, posted: selectedJobs.length };
+    // Attach items to the first successful row only; siblings share batch_id.
+    for (let i = 0; i < successes.length; i++) {
+      const { destination, firstMessageId } = successes[i];
+      await createDiscordPost({
+        channelType: "jobs",
+        discordMessageId: firstMessageId,
+        destination: { guildId: destination.guildId, channelId: destination.channelId },
+        batchId,
+        introText,
+        itemIds: selectedIds,
+        itemType: "job",
+        attachItems: i === 0,
+      });
+    }
+
+    return {
+      success: true,
+      posted: selectedJobs.length,
+      destinations: successes.length,
+      failures: failures.map((f) => ({
+        channelName: f.destination.channelName,
+        guildName: f.destination.guildName,
+        error: f.error,
+      })),
+    };
   }
 
   if (intent === "undo") {
@@ -135,6 +180,14 @@ export async function action({ request }: Route.ActionArgs) {
     if (!postId) return { error: "Invalid post ID" };
 
     await undoDiscordPost(postId);
+    return { success: true, undone: true };
+  }
+
+  if (intent === "undo-batch") {
+    const batchId = formData.get("batchId");
+    if (typeof batchId !== "string" || !batchId) return { error: "Invalid batch ID" };
+
+    await undoDiscordBatch(batchId);
     return { success: true, undone: true };
   }
 
@@ -192,7 +245,7 @@ function JobRow({
 }
 
 export default function DiscordJobs() {
-  const { configured, jobs, history } = useLoaderData<typeof loader>();
+  const { configured, destinations, jobs, history } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isPosting =
@@ -208,6 +261,9 @@ export default function DiscordJobs() {
 
   const technicalJobs = jobs.filter((j) => j.isTechnical);
   const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
+
+  const hasFailures =
+    actionData && "failures" in actionData && Array.isArray(actionData.failures) && actionData.failures.length > 0;
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -236,7 +292,27 @@ export default function DiscordJobs() {
             <Link to="/manage/settings" className="underline hover:text-amber-900">
               Go to Settings
             </Link>{" "}
-            to set your bot token and jobs channel ID.
+            to set your bot token and add at least one jobs destination.
+          </div>
+        )}
+
+        {configured && destinations.length > 0 && (
+          <div className="bg-white border border-harbour-200 p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-harbour-700">
+                Posting to {destinations.length} channel{destinations.length !== 1 ? "s" : ""}:
+              </span>
+              <Link to="/manage/settings" className="text-xs text-harbour-400 hover:text-harbour-600">
+                Edit
+              </Link>
+            </div>
+            <ul className="mt-2 flex flex-col gap-1 text-harbour-400">
+              {destinations.map((d) => (
+                <li key={d.id}>
+                  {d.guildName} <span className="text-harbour-700">#{d.channelName}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -248,8 +324,13 @@ export default function DiscordJobs() {
 
         {actionData && "posted" in actionData && actionData.posted && (
           <div className="p-4 bg-green-50 border border-green-200 text-green-700 text-sm">
-            Posted {actionData.posted} job
-            {actionData.posted !== 1 ? "s" : ""} to Discord.
+            Posted {actionData.posted} job{actionData.posted !== 1 ? "s" : ""} to{" "}
+            {actionData.destinations} channel{actionData.destinations !== 1 ? "s" : ""}.
+            {hasFailures && (
+              <div className="mt-2 text-red-700">
+                Failed to post to: {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
+              </div>
+            )}
           </div>
         )}
 
@@ -359,42 +440,61 @@ export default function DiscordJobs() {
           <div className="bg-white border border-harbour-200 p-6">
             <h2 className="text-lg font-semibold text-harbour-700 mb-4">Recent Posts</h2>
             <div className="flex flex-col divide-y divide-harbour-100">
-              {history.map((post) => (
-                <div key={post.id} className="py-3 flex items-center justify-between text-sm">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-harbour-700">
-                      {post.discordMessageId
-                        ? `Posted ${post.itemCount} job${post.itemCount !== 1 ? "s" : ""}`
-                        : `Skipped ${post.skippedCount} job${post.skippedCount !== 1 ? "s" : ""}`}
-                    </span>
-                    {post.introText && (
-                      <span className="text-harbour-400 text-xs truncate max-w-sm">
-                        {post.introText}
+              {history.map((batch) => {
+                const key = batch.batchId ?? `single-${batch.destinations[0]?.id}`;
+                const isSkip =
+                  batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
+                const channelCount = batch.destinations.length;
+                return (
+                  <div key={key} className="py-3 flex items-start justify-between text-sm gap-3">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <span className="text-harbour-700">
+                        {isSkip
+                          ? `Skipped ${batch.skippedCount} job${batch.skippedCount !== 1 ? "s" : ""}`
+                          : `Posted ${batch.itemCount} job${batch.itemCount !== 1 ? "s" : ""} to ${channelCount} channel${channelCount !== 1 ? "s" : ""}`}
                       </span>
-                    )}
+                      {batch.introText && (
+                        <span className="text-harbour-400 text-xs truncate">
+                          {batch.introText}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-harbour-400 text-xs">
+                        {format(new Date(batch.postedAt), "MMM d, yyyy 'at' h:mm a")}
+                      </span>
+                      <Form method="post">
+                        {batch.batchId ? (
+                          <>
+                            <input type="hidden" name="intent" value="undo-batch" />
+                            <input type="hidden" name="batchId" value={batch.batchId} />
+                          </>
+                        ) : (
+                          <>
+                            <input type="hidden" name="intent" value="undo" />
+                            <input
+                              type="hidden"
+                              name="postId"
+                              value={batch.destinations[0]?.id ?? ""}
+                            />
+                          </>
+                        )}
+                        <button
+                          type="submit"
+                          className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
+                          onClick={(e) => {
+                            if (!confirm("Undo this post? Jobs will be requeued for posting.")) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
+                          Undo
+                        </button>
+                      </Form>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-harbour-400 text-xs">
-                      {format(new Date(post.postedAt), "MMM d, yyyy 'at' h:mm a")}
-                    </span>
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="undo" />
-                      <input type="hidden" name="postId" value={post.id} />
-                      <button
-                        type="submit"
-                        className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
-                        onClick={(e) => {
-                          if (!confirm("Undo this post? Jobs will be requeued for posting.")) {
-                            e.preventDefault();
-                          }
-                        }}
-                      >
-                        Undo
-                      </button>
-                    </Form>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
