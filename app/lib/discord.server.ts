@@ -66,10 +66,25 @@ export interface VerifyResult {
 export async function verifyBotToken(token: string): Promise<VerifyResult> {
   try {
     const user = (await makeRest(token).get(Routes.user())) as APIUser;
+    // Stash the user id in the long-lived id cache so getBotMember doesn't
+    // have to make a second round-trip.
+    botUserIdCache.set(token, user.id);
     return { valid: true, username: user.username, userId: user.id };
   } catch (error) {
     return { valid: false, error: formatError(error) };
   }
+}
+
+// Bot user ids never change for a given token, so we cache them for the
+// lifetime of the process. Unlike the TTL cache below, this is a plain map.
+const botUserIdCache = new Map<string, string>();
+
+async function getBotUserId(token: string): Promise<string> {
+  const cached = botUserIdCache.get(token);
+  if (cached) return cached;
+  const user = (await makeRest(token).get(Routes.user())) as APIUser;
+  botUserIdCache.set(token, user.id);
+  return user.id;
 }
 
 // =============================================================================
@@ -148,6 +163,7 @@ async function cached<T>(token: string, parts: string[], fn: () => Promise<T>): 
 /** Clear the in-memory Discord cache. Call after writes that affect listings. */
 export function clearDiscordCache(): void {
   cache.clear();
+  botUserIdCache.clear();
 }
 
 // ----- Endpoint wrappers -----
@@ -213,9 +229,11 @@ export interface GetBotMemberResult {
  * Get the bot's member object in a guild. Used to compute its roles for the
  * channel permission calculation.
  *
- * Note: Discord supports GET /guilds/{guild.id}/members/@me but the
- * @discordjs/rest Routes helper requires an explicit user id. "@me" works on
- * the URL just fine, so we pass it through.
+ * Note: Discord's REST routes treat `/guilds/{id}/members/@me` as a separate
+ * dedicated endpoint, distinct from `/guilds/{id}/members/{user.id}`. The
+ * parameterised member route rejects "@me" with NUMBER_TYPE_COERCE because
+ * the snowflake validator runs before path matching. We resolve the bot's
+ * actual user id (once per token, cached forever) and pass that instead.
  */
 export async function getBotMember(
   guildId: string,
@@ -223,8 +241,9 @@ export async function getBotMember(
 ): Promise<GetBotMemberResult> {
   return cached(token, ["guild", guildId, "me"], async () => {
     try {
+      const botUserId = await getBotUserId(token);
       const member = (await makeRest(token).get(
-        Routes.guildMember(guildId, "@me"),
+        Routes.guildMember(guildId, botUserId),
       )) as RESTGetAPIGuildMemberResult;
       return { ok: true, member };
     } catch (error) {
