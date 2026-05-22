@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
-  computeBotChannelPermissions,
-  PERMISSION_BITS,
-  type DiscordChannel,
-  type DiscordGuildMember,
-  type DiscordRole,
-} from "~/lib/discord.server";
+  PermissionFlagsBits,
+  OverwriteType,
+  type APIGuildChannel,
+  type APIGuildMember,
+  type APIRole,
+  type ChannelType,
+} from "discord-api-types/v10";
+import { computeBotChannelPermissions } from "~/lib/discord.server";
 
 // =============================================================================
 // Helpers
@@ -13,22 +15,43 @@ import {
 
 const GUILD_ID = "100";
 const BOT_USER_ID = "999";
+const VIEW_AND_SEND = PermissionFlagsBits.ViewChannel | PermissionFlagsBits.SendMessages;
 
-function role(id: string, perms: bigint, position = 0, name = `role-${id}`): DiscordRole {
-  return { id, name, position, permissions: perms.toString() };
+function role(id: string, perms: bigint, position = 0, name = `role-${id}`): APIRole {
+  return {
+    id,
+    name,
+    position,
+    permissions: perms.toString(),
+    color: 0,
+    hoist: false,
+    managed: false,
+    mentionable: false,
+  };
 }
 
-function member(roles: string[]): DiscordGuildMember {
-  return { user: { id: BOT_USER_ID }, roles };
+function member(roles: string[]): APIGuildMember {
+  return {
+    user: {
+      id: BOT_USER_ID,
+      username: "bot",
+      discriminator: "0000",
+      avatar: null,
+      global_name: null,
+    },
+    roles,
+    joined_at: "2024-01-01T00:00:00.000Z",
+    deaf: false,
+    mute: false,
+    flags: 0,
+  };
 }
 
 function channel(
-  overwrites: NonNullable<DiscordChannel["permission_overwrites"]> = [],
-): Pick<DiscordChannel, "permission_overwrites"> {
+  overwrites: NonNullable<APIGuildChannel<ChannelType>["permission_overwrites"]> = [],
+): Pick<APIGuildChannel<ChannelType>, "permission_overwrites"> {
   return { permission_overwrites: overwrites };
 }
-
-const VIEW_AND_SEND = PERMISSION_BITS.VIEW_CHANNEL | PERMISSION_BITS.SEND_MESSAGES;
 
 // =============================================================================
 // Tests
@@ -37,12 +60,12 @@ const VIEW_AND_SEND = PERMISSION_BITS.VIEW_CHANNEL | PERMISSION_BITS.SEND_MESSAG
 describe("computeBotChannelPermissions", () => {
   it("admin bot can post anywhere regardless of overwrites", () => {
     const everyone = role(GUILD_ID, 0n);
-    const adminRole = role("200", PERMISSION_BITS.ADMINISTRATOR);
+    const adminRole = role("200", PermissionFlagsBits.Administrator);
 
     // even with explicit deny overwrites
     const ch = channel([
-      { id: GUILD_ID, type: 0, allow: "0", deny: VIEW_AND_SEND.toString() },
-      { id: BOT_USER_ID, type: 1, allow: "0", deny: VIEW_AND_SEND.toString() },
+      { id: GUILD_ID, type: OverwriteType.Role, allow: "0", deny: VIEW_AND_SEND.toString() },
+      { id: BOT_USER_ID, type: OverwriteType.Member, allow: "0", deny: VIEW_AND_SEND.toString() },
     ]);
 
     const result = computeBotChannelPermissions(
@@ -71,9 +94,9 @@ describe("computeBotChannelPermissions", () => {
     const ch = channel([
       {
         id: GUILD_ID,
-        type: 0,
+        type: OverwriteType.Role,
         allow: "0",
-        deny: PERMISSION_BITS.SEND_MESSAGES.toString(),
+        deny: PermissionFlagsBits.SendMessages.toString(),
       },
     ]);
 
@@ -89,9 +112,9 @@ describe("computeBotChannelPermissions", () => {
     const ch = channel([
       {
         id: GUILD_ID,
-        type: 0,
+        type: OverwriteType.Role,
         allow: "0",
-        deny: PERMISSION_BITS.VIEW_CHANNEL.toString(),
+        deny: PermissionFlagsBits.ViewChannel.toString(),
       },
     ]);
 
@@ -108,14 +131,14 @@ describe("computeBotChannelPermissions", () => {
     const ch = channel([
       {
         id: GUILD_ID,
-        type: 0,
+        type: OverwriteType.Role,
         allow: "0",
-        deny: PERMISSION_BITS.SEND_MESSAGES.toString(),
+        deny: PermissionFlagsBits.SendMessages.toString(),
       },
       {
         id: "200",
-        type: 0,
-        allow: PERMISSION_BITS.SEND_MESSAGES.toString(),
+        type: OverwriteType.Role,
+        allow: PermissionFlagsBits.SendMessages.toString(),
         deny: "0",
       },
     ]);
@@ -137,15 +160,15 @@ describe("computeBotChannelPermissions", () => {
     const ch = channel([
       {
         id: "200",
-        type: 0,
-        allow: PERMISSION_BITS.SEND_MESSAGES.toString(),
+        type: OverwriteType.Role,
+        allow: PermissionFlagsBits.SendMessages.toString(),
         deny: "0",
       },
       {
         id: BOT_USER_ID,
-        type: 1,
+        type: OverwriteType.Member,
         allow: "0",
-        deny: PERMISSION_BITS.SEND_MESSAGES.toString(),
+        deny: PermissionFlagsBits.SendMessages.toString(),
       },
     ]);
 
