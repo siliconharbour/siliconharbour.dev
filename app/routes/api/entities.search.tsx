@@ -1,7 +1,7 @@
 import type { Route } from "./+types/entities.search";
 import { db } from "~/db";
 import { companies, groups, people, education } from "~/db/schema";
-import { like } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 
 export type EntitySearchResult = {
   id: number;
@@ -32,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs): Promise<Response> {
     const rows = await db
       .select({ id: companies.id, name: companies.name, slug: companies.slug })
       .from(companies)
-      .where(like(companies.name, pattern))
+      .where(and(like(companies.name, pattern), eq(companies.visible, true)))
       .limit(10);
     results.push(...rows.map((r) => ({ ...r, type: "company" as const })));
   }
@@ -41,7 +41,7 @@ export async function loader({ request }: Route.LoaderArgs): Promise<Response> {
     const rows = await db
       .select({ id: groups.id, name: groups.name, slug: groups.slug })
       .from(groups)
-      .where(like(groups.name, pattern))
+      .where(and(like(groups.name, pattern), eq(groups.visible, true)))
       .limit(10);
     results.push(...rows.map((r) => ({ ...r, type: "group" as const })));
   }
@@ -50,7 +50,7 @@ export async function loader({ request }: Route.LoaderArgs): Promise<Response> {
     const rows = await db
       .select({ id: people.id, name: people.name, slug: people.slug })
       .from(people)
-      .where(like(people.name, pattern))
+      .where(and(like(people.name, pattern), eq(people.visible, true)))
       .limit(10);
     results.push(...rows.map((r) => ({ ...r, type: "person" as const })));
   }
@@ -59,7 +59,7 @@ export async function loader({ request }: Route.LoaderArgs): Promise<Response> {
     const rows = await db
       .select({ id: education.id, name: education.name, slug: education.slug })
       .from(education)
-      .where(like(education.name, pattern))
+      .where(and(like(education.name, pattern), eq(education.visible, true)))
       .limit(10);
     results.push(...rows.map((r) => ({ ...r, type: "education" as const })));
   }

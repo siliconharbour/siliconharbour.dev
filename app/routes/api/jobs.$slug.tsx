@@ -1,7 +1,7 @@
 import type { Route } from "./+types/jobs.$slug";
 import { db } from "~/db";
 import { jobs, companies } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 
@@ -40,7 +40,7 @@ export const loader = createDetailApiLoader({
       })
       .from(jobs)
       .leftJoin(companies, eq(jobs.companyId, companies.id))
-      .where(eq(jobs.slug, slug));
+      .where(and(eq(jobs.slug, slug), eq(jobs.status, "active")));
     return result ?? null;
   },
   mapEntity: mapJob,

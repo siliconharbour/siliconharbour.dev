@@ -1,7 +1,7 @@
 import type { Route } from "./+types/products";
 import { db } from "~/db";
 import { products, companies } from "~/db/schema";
-import { asc, count } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createPaginatedApiLoader } from "~/lib/api-route.server";
 
@@ -49,9 +49,12 @@ export const loader = createPaginatedApiLoader({
     ];
     const companyMap = new Map<number, { id: number; slug: string; name: string }>();
     if (companyIds.length > 0) {
+      // Only include publicly visible companies so we don't leak hidden
+      // companies through their child products.
       const companyRows = await db
         .select({ id: companies.id, slug: companies.slug, name: companies.name })
-        .from(companies);
+        .from(companies)
+        .where(eq(companies.visible, true));
       for (const company of companyRows) {
         companyMap.set(company.id, company);
       }

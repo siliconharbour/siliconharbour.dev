@@ -1,16 +1,24 @@
 import type { Route } from "./+types/events";
 import { db } from "~/db";
 import { events, eventDates } from "~/db/schema";
-import { asc, count } from "drizzle-orm";
+import { asc, count, eq, isNull, or } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createPaginatedApiLoader } from "~/lib/api-route.server";
 
+// Public-safe filter: manual events (importStatus IS NULL) or published imports.
+// Excludes imports awaiting review, hidden, or otherwise non-public.
+const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
+
 export const loader = createPaginatedApiLoader({
   loadPage: async ({ limit, offset }) => {
-    const [{ total }] = await db.select({ total: count() }).from(events);
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(events)
+      .where(isPubliclyVisible);
     const eventsPage = await db
       .select()
       .from(events)
+      .where(isPubliclyVisible)
       .orderBy(asc(events.title))
       .limit(limit)
       .offset(offset);

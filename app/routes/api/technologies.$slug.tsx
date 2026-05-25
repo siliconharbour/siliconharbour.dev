@@ -79,7 +79,10 @@ const mapTechnology = async (technology: typeof technologies.$inferSelect) => {
 export const loader = createDetailApiLoader({
   entityName: "Technology",
   loadBySlug: async (slug) => {
-    const [technology] = await db.select().from(technologies).where(eq(technologies.slug, slug));
+    const [technology] = await db
+      .select()
+      .from(technologies)
+      .where(and(eq(technologies.slug, slug), eq(technologies.visible, true)));
     return technology ?? null;
   },
   mapEntity: mapTechnology,

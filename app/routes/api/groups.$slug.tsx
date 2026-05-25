@@ -1,7 +1,7 @@
 import type { Route } from "./+types/groups.$slug";
 import { db } from "~/db";
 import { groups } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 
@@ -22,7 +22,10 @@ const mapGroup = (group: typeof groups.$inferSelect) => ({
 export const loader = createDetailApiLoader({
   entityName: "Group",
   loadBySlug: async (slug) => {
-    const [group] = await db.select().from(groups).where(eq(groups.slug, slug));
+    const [group] = await db
+      .select()
+      .from(groups)
+      .where(and(eq(groups.slug, slug), eq(groups.visible, true)));
     return group ?? null;
   },
   mapEntity: mapGroup,

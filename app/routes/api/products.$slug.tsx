@@ -1,17 +1,18 @@
 import type { Route } from "./+types/products.$slug";
 import { db } from "~/db";
 import { products, companies } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 
 const mapProduct = async (product: typeof products.$inferSelect) => {
   let company = null;
   if (product.companyId) {
+    // Only expose the parent company if it is publicly visible.
     const [c] = await db
       .select({ id: companies.id, slug: companies.slug, name: companies.name })
       .from(companies)
-      .where(eq(companies.id, product.companyId));
+      .where(and(eq(companies.id, product.companyId), eq(companies.visible, true)));
     if (c) {
       company = {
         id: c.id,

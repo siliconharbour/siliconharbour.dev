@@ -1,7 +1,7 @@
 import type { Route } from "./+types/news.$slug";
 import { db } from "~/db";
 import { news } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 
@@ -25,7 +25,10 @@ const mapArticle = (article: typeof news.$inferSelect) => ({
 export const loader = createDetailApiLoader({
   entityName: "Article",
   loadBySlug: async (slug) => {
-    const [article] = await db.select().from(news).where(eq(news.slug, slug));
+    const [article] = await db
+      .select()
+      .from(news)
+      .where(and(eq(news.slug, slug), eq(news.status, "published")));
     return article ?? null;
   },
   mapEntity: mapArticle,

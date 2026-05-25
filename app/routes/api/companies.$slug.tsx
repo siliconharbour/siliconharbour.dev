@@ -1,7 +1,7 @@
 import type { Route } from "./+types/companies.$slug";
 import { db } from "~/db";
 import { companies } from "~/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 
@@ -24,7 +24,10 @@ const mapCompany = (company: typeof companies.$inferSelect) => ({
 export const loader = createDetailApiLoader({
   entityName: "Company",
   loadBySlug: async (slug) => {
-    const [company] = await db.select().from(companies).where(eq(companies.slug, slug));
+    const [company] = await db
+      .select()
+      .from(companies)
+      .where(and(eq(companies.slug, slug), eq(companies.visible, true)));
     return company ?? null;
   },
   mapEntity: mapCompany,
