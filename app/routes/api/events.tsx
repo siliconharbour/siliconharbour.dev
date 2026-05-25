@@ -4,6 +4,7 @@ import { events, eventDates } from "~/db/schema";
 import { asc, count, eq, isNull, or } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createPaginatedApiLoader } from "~/lib/api-route.server";
+import { eventRecurrence } from "~/lib/events-api.server";
 
 // Public-safe filter: manual events (importStatus IS NULL) or published imports.
 // Excludes imports awaiting review, hidden, or otherwise non-public.
@@ -51,6 +52,7 @@ export const loader = createPaginatedApiLoader({
         startDate: date.startDate.toISOString(),
         endDate: date.endDate?.toISOString() || null,
       })),
+      recurrence: eventRecurrence(event),
       url: contentUrl("events", event.slug),
       createdAt: event.createdAt.toISOString(),
       updatedAt: event.updatedAt.toISOString(),

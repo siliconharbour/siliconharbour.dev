@@ -4,6 +4,7 @@ import { events, eventDates } from "~/db/schema";
 import { and, eq, asc, or, isNull } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
+import { eventRecurrence } from "~/lib/events-api.server";
 
 const mapEvent = async (event: typeof events.$inferSelect) => {
   const dates = await db
@@ -25,6 +26,7 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
       startDate: d.startDate.toISOString(),
       endDate: d.endDate?.toISOString() || null,
     })),
+    recurrence: eventRecurrence(event),
     url: contentUrl("events", event.slug),
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
