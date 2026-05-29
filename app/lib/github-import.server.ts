@@ -24,7 +24,7 @@ import {
   updateCompany,
 } from "./companies.server";
 import { processAndSaveIconImageWithPadding } from "./images.server";
-import { isBlocked } from "./import-blocklist.server";
+import { isBlocked, blockItem } from "./import-blocklist.server";
 import type { ImportProgress, ImportJobStatus } from "./github.types";
 
 // Re-export for convenience
@@ -33,6 +33,85 @@ export type { ImportProgress };
 const GITHUB_IMPORT_JOB_ID = "github-newfoundland";
 const USERS_PER_PAGE = 30;
 const BATCH_SIZE = 5; // Process 5 users per action call to stay responsive
+
+/**
+ * Defensive post-fetch check that a profile's location string actually looks
+ * like Newfoundland & Labrador. GitHub's `location:` qualifier is a substring
+ * match with no country scoping, so a search for "Corner Brook" could in
+ * theory return "Corner Brook bridge in NYC". Even our best terms occasionally
+ * leak (e.g. the rare St. John's, New Brunswick user).
+ *
+ * Returns `false` when the location is clearly non-NL so the importer can
+ * skip it without polluting the review queue.
+ *
+ * If the location is null, empty, or ambiguous (just "Canada"), we let it
+ * through - it was returned by a NL location query, so the false-positive
+ * cost is low and a human will review it (visible: false on creation).
+ */
+export function locationLooksLikeNewfoundland(location: string | null): boolean {
+  if (!location) return true; // No location, trust the search hit
+  const loc = location.toLowerCase();
+
+  // Obvious positive signals - allow.
+  const positives = [
+    "newfoundland",
+    "labrador",
+    "nl,",
+    "nl ",
+    ", nl",
+    " nl",
+    "corner brook",
+    "mount pearl",
+    "gander",
+    "carbonear",
+    "bonavista",
+    "conception bay",
+    "paradise, nl",
+    "clarenville",
+    "torbay",
+    "st. john's",
+    "st johns",
+    "st. johns",
+    "st.john's",
+  ];
+  if (positives.some((p) => loc.includes(p))) return true;
+
+  // Known false-positive signals - reject. These all came up in live
+  // sampling of the search terms we use.
+  const negatives = [
+    "amsterdam",
+    "rotterdam",
+    "hague",
+    "utrecht",
+    "eindhoven",
+    "netherlands",
+    "holland",
+    ", tx",
+    "texas",
+    ", or",
+    "oregon",
+    ", fl",
+    "florida",
+    ", az",
+    "arizona",
+    ", mi",
+    "michigan",
+    "hong kong",
+    "kazakhstan",
+    "beijing",
+    "tuen mun",
+    "india",
+    "lucknow",
+    "antigua",
+    "new brunswick",
+    ", nb",
+    "isle of man",
+  ];
+  if (negatives.some((n) => loc.includes(n))) return false;
+
+  // No strong signal either way - let it through and let the human review.
+  return true;
+}
 
 /**
  * Get current import job status
@@ -391,6 +470,20 @@ async function importSingleUser(
   // Check if blocked from import
   const blocked = await isBlocked("github", githubUrl);
   if (blocked) {
+    return { name: displayName, action: "blocked" };
+  }
+
+  // Defensive location check - GitHub search is substring-based and noisy,
+  // so even with curated location terms we can pick up the occasional
+  // false-positive (Netherlands, Texas, Hong Kong, etc.). Auto-block these
+  // so subsequent runs don't waste an API call re-fetching the same user.
+  if (!locationLooksLikeNewfoundland(user.location)) {
+    await blockItem(
+      "github",
+      githubUrl,
+      displayName,
+      `Auto-blocked: location "${user.location}" does not look like Newfoundland & Labrador`,
+    );
     return { name: displayName, action: "blocked" };
   }
 

@@ -206,57 +206,60 @@ export async function getUserProfiles(
 
 /**
  * Location search terms for Newfoundland & Labrador.
- * These cover the various ways people write their location on GitHub.
- * Note: GitHub search is case-insensitive and does partial matching.
+ * GitHub's `location:` qualifier is a case-insensitive substring match against
+ * the entire profile location string. There is no way to scope by country.
  *
- * Known location variations found on GitHub profiles:
- *   St. John's, NL (18)
- *   Newfoundland, Canada (13)
- *   St. John's, Newfoundland (8)
- *   St. John's, Newfoundland, Canada (5)
- *   St. John's, NL, Canada (5)
- *   NL, Canada (5)
- *   St. John's Newfoundland (4)
- *   Newfoundland (4)
- *   St. John's (4)
- *   St. John's, Newfoundland and Labrador (3)
- *   Newfoundland and Labrador (2)
- *   St. John's NL (2)
- *   Newfoundland & Labrador (1)
- *   Newfoundland Time Zone (1)
- *   newfoundland (1)
- *   Newfoundland and Labrador, Canada (1)
- *   St.John's, NL, Canada (1)
- *   St. John's, Newfoundland & Labrador (1)
- *   St. John's, Canada (1)
- *   St. John's, Newfoundland & Labrador, Canada (1)
- *   St. John's NL, Canada (1)
- *   St. Johns, NL (1)
- *   St.John's NL (1)
- *   St.John's, Newfoundland, Canada (1)
- *   st john's,NL (1)
- *   St John's Newfoundland and Labrador (1)
- *   GFW, Newfoundland & Labrador, Canada (1)
- *   st. john's, nl (1)
- *   st. john's, nl, canada (1)
- *   Newfoundland Canada (1)
- *   Clarenville, NL (1)
- *   St. john's, Newfoundland & Labrador (1)
- *   Upper Island Cove, Newfoundland Canada (1)
+ * Important: bare "NL" was previously included and produced 5000+ Netherlands
+ * users (Amsterdam, The Hague, Rotterdam all write their location as
+ * "..., NL"). Quoting did not help because the quotes only affect tokenisation.
+ * That term has been removed - the long-form "Newfoundland" / "Labrador" terms
+ * already cover virtually every St. John's user whose location string also
+ * includes the province name.
+ *
+ * Terms are ordered by signal strength (highest first) so useful results
+ * surface early if we hit rate limits mid-import. Each term has been live
+ * sampled against the GitHub search API:
+ *
+ *   "St. John's"     ~860 - virtually all NL (apostrophe filters out
+ *                    St. Johns, FL/AZ/MI/NB and St. John's, Antigua)
+ *   "Newfoundland"   ~580 - all NL
+ *   "Corner Brook"   ~20  - all NL
+ *   "Gander"         ~13  - all NL
+ *   "Paradise, NL"   ~13  - all NL (bare "Paradise" would match Paradise, CA)
+ *   "Mount Pearl"    ~9   - all NL
+ *   "Labrador"       ~135 - all NL (Labrador City / Happy Valley-Goose Bay)
+ *   "Conception Bay" ~6   - all NL
+ *   "Carbonear"      ~2   - all NL
+ *   "Bonavista"      ~1   - all NL
+ *
+ * Deliberately NOT included (verified high noise):
+ *   "Stephenville"   - dominated by Stephenville, TX
+ *   "MUN"            - dominated by Tuen Mun, Hong Kong
+ *   "Happy Valley"   - dominated by Happy Valley, OR
+ *   "Memorial Univ." - dominated by Indian universities
+ *   "St. Johns"      - dominated by St. Johns, FL / AZ / MI
+ *   "NL" / NL alone  - dominated by Netherlands
+ *
+ * Results from all terms are deduplicated by user ID, so overlap between
+ * "St. John's" and "Newfoundland" is harmless.
  */
 const NEWFOUNDLAND_LOCATION_TERMS = [
-  // Primary - catches most variations like "Newfoundland, Canada", "St. John's, Newfoundland", etc.
+  '"St. John\'s"',
   "Newfoundland",
-  // NL abbreviation - catches "St. John's, NL", "NL, Canada", etc.
-  '"NL"', // Quoted to avoid matching "NL" as part of other words
-  // Labrador specifically
   "Labrador",
+  '"Corner Brook"',
+  '"Mount Pearl"',
+  "Gander",
+  '"Paradise, NL"',
+  '"Conception Bay"',
+  "Carbonear",
+  "Bonavista",
 ];
 
 // Cache for combined search results to avoid re-fetching on pagination
 let cachedNewfoundlandUsers: GitHubUserBasic[] | null = null;
 let cachedNewfoundlandUsersTimestamp: number = 0;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes - long enough to step away during an import without throwing away the search results
 
 /**
  * Fetch ALL Newfoundland users by running separate searches for each location term.
