@@ -1,6 +1,6 @@
 ---
 id: s-fa82
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-05-29T00:23:00Z
