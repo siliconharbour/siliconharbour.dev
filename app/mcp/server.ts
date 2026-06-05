@@ -33,7 +33,7 @@ const EXECUTE_DESCRIPTION = [
   "Additional imports from 'siliconharbour':",
   "- eventImportSources(), jobImportSources(), pendingEvents(), pendingJobs()",
   "- syncEventSource(id), syncAllEventSources(), syncJobSource(id), syncAllJobSources()",
-  "- startSyncAllEventSources(), startSyncAllJobSources(), startSyncAllSources(), getSyncRun(runId), listSyncRuns()",
+  "- asyncSyncAllEventSources(), asyncSyncAllJobSources(), asyncSyncAllSources(), getAsyncSync(runId), listAsyncSyncs()",
   "- createCompany({ name, website?, description?, location?, email? })",
   "- getCompanyByName(name)",
   "- updateCompany({ id, name?, website?, description?, location?, email?, linkedin?, github?, wikipedia?, careersUrl?, founded?, visible?, technl?, genesis?, bounce? })",
@@ -75,7 +75,7 @@ const EXECUTE_DESCRIPTION = [
   "When uncertain, lean toward 'approve-non-technical' over 'hide'.",
   "",
   "All functions call the real database on-demand.",
-  "Timeout: 60 seconds. For long full imports, prefer startSyncAllSources() and poll getSyncRun(runId) until status is completed/failed.",
+  "Timeout: 60 seconds. For long full imports, prefer asyncSyncAllSources() and poll getAsyncSync(runId) until status is completed/failed.",
 ].join("\n");
 
 // ── Server factory ─────────────────────────────────────────────────────
