@@ -61,7 +61,7 @@ const CreateCompanySchema = z.object({
 });
 
 const UpdateCompanySchema = z.object({
-  id: z.number({ required_error: "id is required" }),
+  id: z.number("id is required"),
   name: z.string().optional(),
   website: z.string().optional(),
   description: z.string().optional(),
@@ -79,7 +79,7 @@ const UpdateCompanySchema = z.object({
 });
 
 const CreateJobSourceSchema = z.object({
-  companyId: z.number({ required_error: "companyId is required" }),
+  companyId: z.number("companyId is required"),
   sourceType: z.string().min(1, "sourceType is required"),
   sourceIdentifier: z.string().min(1, "sourceIdentifier is required"),
   sourceUrl: z.string().optional(),
@@ -87,7 +87,7 @@ const CreateJobSourceSchema = z.object({
 });
 
 const UpdateJobSourceSchema = z.object({
-  sourceId: z.number({ required_error: "sourceId is required" }),
+  sourceId: z.number("sourceId is required"),
   sourceType: z.string().optional(),
   sourceIdentifier: z.string().optional(),
   sourceUrl: z.string().optional(),
@@ -102,10 +102,11 @@ const CreateEventSourceSchema = z.object({
 });
 
 const ReviewJobSchema = z.object({
-  jobId: z.number({ required_error: "jobId is required" }),
-  action: z.enum(["approve", "approve-non-technical", "hide"], {
-    required_error: "action is required (approve, approve-non-technical, hide)",
-  }),
+  jobId: z.number("jobId is required"),
+  action: z.enum(
+    ["approve", "approve-non-technical", "hide"],
+    "action is required (approve, approve-non-technical, hide)",
+  ),
 });
 
 const CreateJobSchema = z.object({
@@ -122,14 +123,12 @@ const CreateJobSchema = z.object({
 });
 
 const DeactivateJobSchema = z.object({
-  jobId: z.number({ required_error: "jobId is required" }),
-  reason: z.enum(["removed", "filled", "expired"], {
-    required_error: "reason is required (removed, filled, expired)",
-  }),
+  jobId: z.number("jobId is required"),
+  reason: z.enum(["removed", "filled", "expired"], "reason is required (removed, filled, expired)"),
 });
 
 const UpdateJobSchema = z.object({
-  id: z.number({ required_error: "id is required" }),
+  id: z.number("id is required"),
   title: z.string().optional(),
   description: z.string().optional(),
   url: z.string().optional(),
@@ -144,6 +143,20 @@ const SearchJobsSchema = z.object({
   location: z.string().default("St. John's, NL"),
   limit: z.number().default(25),
   hoursOld: z.number().optional(),
+});
+
+const SubmitNewsLinkSchema = z.object({
+  url: z.string().url(),
+  title: z.string().optional(),
+  excerpt: z.string().optional(),
+  sourceName: z.string().optional(),
+});
+
+const CreateNewsArticleSchema = z.object({
+  title: z.string().min(1, "title is required"),
+  content: z.string().min(1, "content is required"),
+  excerpt: z.string().optional(),
+  publish: z.boolean().optional(),
 });
 
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
@@ -544,7 +557,7 @@ export function buildExecuteFunctions(): HostFunctions {
         created: true,
         sourceId: source.id,
         message: `Event import source "${o.name}" created (id: ${source.id}). Use syncEventSource(${source.id}) to run first sync.`,
-        eventCount: validation.eventCount,
+        eventCount: "eventCount" in validation ? validation.eventCount : undefined,
       };
     },
 
@@ -666,12 +679,35 @@ export function buildExecuteFunctions(): HostFunctions {
       const o = SearchJobsSchema.parse(opts ?? {});
       return searchLinkedIn(o);
     },
+
+    async submitNewsLink(opts: unknown) {
+      const o = SubmitNewsLinkSchema.parse(opts ?? {});
+      return submitNewsLink(o);
+    },
+
+    async createNewsArticle(opts: unknown) {
+      const o = CreateNewsArticleSchema.parse(opts ?? {});
+      return createNewsArticle(o);
+    },
+
+    async pendingNews() {
+      return pendingNews();
+    },
+
+    async approveNews(id: unknown) {
+      return approveNews(Number(id));
+    },
+
+    async hideNews(id: unknown) {
+      return hideNews(Number(id));
+    },
   };
 }
 
 // ---- News ----
 
-export async function submitNewsLink(url: string, title?: string, excerpt?: string, sourceName?: string) {
+export async function submitNewsLink(opts: z.infer<typeof SubmitNewsLinkSchema>) {
+  let { url, title, excerpt, sourceName } = opts;
   // If title not provided, fetch the page and extract metadata
   if (!title) {
     const response = await fetch(url, { headers: { "User-Agent": "siliconharbour.dev" } });
@@ -703,12 +739,8 @@ export async function submitNewsLink(url: string, title?: string, excerpt?: stri
   return { id: article.id, slug: article.slug, title: article.title };
 }
 
-export async function createNewsArticle(
-  title: string,
-  content: string,
-  excerpt?: string,
-  publish?: boolean,
-) {
+export async function createNewsArticle(opts: z.infer<typeof CreateNewsArticleSchema>) {
+  const { title, content, excerpt, publish } = opts;
   const { createNews } = await import("~/lib/news.server");
   const article = await createNews({
     type: "article",
