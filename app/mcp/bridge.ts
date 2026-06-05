@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import type { HostFunctions } from "./sandbox.js";
+import { getSyncRun, listSyncRuns, startSyncRun } from "./sync-runs.js";
 import { getUpcomingEvents, getPaginatedEvents } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getPaginatedCompanies } from "~/lib/companies.server";
@@ -375,6 +376,63 @@ export function buildExecuteFunctions(): HostFunctions {
         results.push({ sourceId: source.id, name: source.sourceIdentifier, ...result });
       }
       return toPlain(results);
+    },
+
+    async startSyncAllEventSources() {
+      const sources = await getAllEventImportSources();
+      return toPlain(
+        startSyncRun(
+          sources.map((source) => ({
+            type: "event" as const,
+            sourceId: source.id,
+            name: source.name,
+            run: () => syncEvents(source.id),
+          })),
+        ),
+      );
+    },
+
+    async startSyncAllJobSources() {
+      const sources = await getAllImportSources();
+      return toPlain(
+        startSyncRun(
+          sources.map((source) => ({
+            type: "job" as const,
+            sourceId: source.id,
+            name: source.sourceIdentifier,
+            run: () => syncJobs(source.id),
+          })),
+        ),
+      );
+    },
+
+    async startSyncAllSources() {
+      const [eventSources, jobSources] = await Promise.all([getAllEventImportSources(), getAllImportSources()]);
+      return toPlain(
+        startSyncRun([
+          ...eventSources.map((source) => ({
+            type: "event" as const,
+            sourceId: source.id,
+            name: source.name,
+            run: () => syncEvents(source.id),
+          })),
+          ...jobSources.map((source) => ({
+            type: "job" as const,
+            sourceId: source.id,
+            name: source.sourceIdentifier,
+            run: () => syncJobs(source.id),
+          })),
+        ]),
+      );
+    },
+
+    async getSyncRun(runId: unknown) {
+      if (!runId || typeof runId !== "string") throw new Error("runId is required (string)");
+      return toPlain(getSyncRun(runId) ?? { found: false, runId });
+    },
+
+    async listSyncRuns() {
+      return toPlain(listSyncRuns());
     },
 
     // ── Entity creation ──────────────────────────────────────────────
