@@ -1,20 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { formatSandboxError } from "./sandbox.js";
 
-type SyncRunStatus = "running" | "completed" | "failed";
+type AsyncSyncStatus = "running" | "completed" | "failed";
 
-export type SyncRunTask = {
+export type AsyncSyncTask = {
   type: "event" | "job";
   sourceId: number;
   name: string;
   run: () => Promise<unknown>;
 };
 
-type SyncRunStep = {
+type AsyncSyncStep = {
   type: "event" | "job";
   sourceId: number;
   name: string;
-  status: SyncRunStatus;
+  status: AsyncSyncStatus;
   startedAt: string;
   finishedAt?: string;
   durationMs?: number;
@@ -22,9 +22,9 @@ type SyncRunStep = {
   error?: string;
 };
 
-type SyncRun = {
+type AsyncSync = {
   id: string;
-  status: SyncRunStatus;
+  status: AsyncSyncStatus;
   startedAt: string;
   finishedAt?: string;
   durationMs?: number;
@@ -32,34 +32,34 @@ type SyncRun = {
   completed: number;
   failed: number;
   current?: { type: "event" | "job"; sourceId: number; name: string };
-  steps: SyncRunStep[];
+  steps: AsyncSyncStep[];
 };
 
-const syncRuns = new Map<string, SyncRun>();
-const MAX_STORED_RUNS = 20;
+const asyncSyncs = new Map<string, AsyncSync>();
+const MAX_STORED_ASYNC_SYNCS = 20;
 
 function nowIso() {
   return new Date().toISOString();
 }
 
 function trimStoredRuns() {
-  const overflow = syncRuns.size - MAX_STORED_RUNS;
+  const overflow = asyncSyncs.size - MAX_STORED_ASYNC_SYNCS;
   if (overflow <= 0) return;
 
-  const removable = [...syncRuns.values()]
+  const removable = [...asyncSyncs.values()]
     .filter((run) => run.status !== "running")
     .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
     .slice(0, overflow);
 
-  for (const run of removable) syncRuns.delete(run.id);
+  for (const run of removable) asyncSyncs.delete(run.id);
 }
 
-async function runTasks(run: SyncRun, tasks: SyncRunTask[]) {
+async function runTasks(run: AsyncSync, tasks: AsyncSyncTask[]) {
   for (const task of tasks) {
     run.current = { type: task.type, sourceId: task.sourceId, name: task.name };
     const stepStartedAt = nowIso();
     const stepStartMs = Date.now();
-    const step: SyncRunStep = {
+    const step: AsyncSyncStep = {
       type: task.type,
       sourceId: task.sourceId,
       name: task.name,
@@ -89,9 +89,9 @@ async function runTasks(run: SyncRun, tasks: SyncRunTask[]) {
   trimStoredRuns();
 }
 
-export function startSyncRun(tasks: SyncRunTask[]) {
+export function startAsyncSync(tasks: AsyncSyncTask[]) {
   const id = randomUUID();
-  const run: SyncRun = {
+  const run: AsyncSync = {
     id,
     status: "running",
     startedAt: nowIso(),
@@ -100,7 +100,7 @@ export function startSyncRun(tasks: SyncRunTask[]) {
     failed: 0,
     steps: [],
   };
-  syncRuns.set(id, run);
+  asyncSyncs.set(id, run);
 
   void runTasks(run, tasks).catch((error) => {
     run.status = "failed";
@@ -111,7 +111,7 @@ export function startSyncRun(tasks: SyncRunTask[]) {
     run.steps.push({
       type: "job",
       sourceId: 0,
-      name: "sync run",
+      name: "async sync",
       status: "failed",
       startedAt: run.startedAt,
       finishedAt: run.finishedAt,
@@ -121,21 +121,21 @@ export function startSyncRun(tasks: SyncRunTask[]) {
     trimStoredRuns();
   });
 
-  return summarizeSyncRun(run);
+  return summarizeAsyncSync(run);
 }
 
-export function getSyncRun(runId: string) {
-  const run = syncRuns.get(runId);
-  return run ? summarizeSyncRun(run) : null;
+export function getAsyncSync(runId: string) {
+  const run = asyncSyncs.get(runId);
+  return run ? summarizeAsyncSync(run) : null;
 }
 
-export function listSyncRuns() {
-  return [...syncRuns.values()]
+export function listAsyncSyncs() {
+  return [...asyncSyncs.values()]
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
-    .map(summarizeSyncRun);
+    .map(summarizeAsyncSync);
 }
 
-export function summarizeSyncRun(run: SyncRun) {
+export function summarizeAsyncSync(run: AsyncSync) {
   return {
     id: run.id,
     status: run.status,

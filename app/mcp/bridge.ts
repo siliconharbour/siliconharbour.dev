@@ -5,7 +5,7 @@
 
 import { z } from "zod";
 import type { HostFunctions } from "./sandbox.js";
-import { getSyncRun, listSyncRuns, startSyncRun } from "./sync-runs.js";
+import { getAsyncSync, listAsyncSyncs, startAsyncSync } from "./async-syncs.js";
 import { getUpcomingEvents, getPaginatedEvents } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getPaginatedCompanies } from "~/lib/companies.server";
@@ -378,10 +378,10 @@ export function buildExecuteFunctions(): HostFunctions {
       return toPlain(results);
     },
 
-    async startSyncAllEventSources() {
+    async asyncSyncAllEventSources() {
       const sources = await getAllEventImportSources();
       return toPlain(
-        startSyncRun(
+        startAsyncSync(
           sources.map((source) => ({
             type: "event" as const,
             sourceId: source.id,
@@ -392,10 +392,10 @@ export function buildExecuteFunctions(): HostFunctions {
       );
     },
 
-    async startSyncAllJobSources() {
+    async asyncSyncAllJobSources() {
       const sources = await getAllImportSources();
       return toPlain(
-        startSyncRun(
+        startAsyncSync(
           sources.map((source) => ({
             type: "job" as const,
             sourceId: source.id,
@@ -406,10 +406,10 @@ export function buildExecuteFunctions(): HostFunctions {
       );
     },
 
-    async startSyncAllSources() {
+    async asyncSyncAllSources() {
       const [eventSources, jobSources] = await Promise.all([getAllEventImportSources(), getAllImportSources()]);
       return toPlain(
-        startSyncRun([
+        startAsyncSync([
           ...eventSources.map((source) => ({
             type: "event" as const,
             sourceId: source.id,
@@ -426,13 +426,13 @@ export function buildExecuteFunctions(): HostFunctions {
       );
     },
 
-    async getSyncRun(runId: unknown) {
+    async getAsyncSync(runId: unknown) {
       if (!runId || typeof runId !== "string") throw new Error("runId is required (string)");
-      return toPlain(getSyncRun(runId) ?? { found: false, runId });
+      return toPlain(getAsyncSync(runId) ?? { found: false, runId });
     },
 
-    async listSyncRuns() {
-      return toPlain(listSyncRuns());
+    async listAsyncSyncs() {
+      return toPlain(listAsyncSyncs());
     },
 
     // ── Entity creation ──────────────────────────────────────────────
