@@ -14,6 +14,39 @@ const { runSandboxed } = await loadAsyncQuickJs(
 export type HostFunctions = Record<string, (...args: unknown[]) => Promise<unknown>>;
 
 /**
+ * Convert arbitrary thrown/reported values into useful MCP error text.
+ *
+ * QuickJS can surface structured objects instead of native Error instances;
+ * String(object) turns those into the unhelpful "[object Object]". Keep as much
+ * detail as possible so MCP clients show the real failure.
+ */
+export function formatSandboxError(err: unknown): string {
+  if (err instanceof Error) return err.stack || err.message;
+  if (typeof err === "string") return err;
+  if (err == null) return "Unknown error";
+
+  if (typeof err === "object") {
+    const record = err as Record<string, unknown>;
+    const parts = [record.name, record.message, record.stack, record.code]
+      .filter((value): value is string | number =>
+        typeof value === "string" || typeof value === "number",
+      )
+      .map(String)
+      .filter(Boolean);
+    if (parts.length > 0) return parts.join("\n");
+
+    try {
+      const json = JSON.stringify(err, null, 2);
+      if (json && json !== "{}") return json;
+    } catch {
+      // Fall through to the final conversion.
+    }
+  }
+
+  return String(err);
+}
+
+/**
  * Runs user-supplied JS code in a QuickJS async WASM sandbox.
  *
  * Host functions are exposed via the `expose()` bridge as globalThis.siliconharbour —
@@ -71,8 +104,8 @@ export async function runInSandbox(
     if (result.ok) {
       return { ok: true, data: result.data };
     }
-    return { ok: false, error: String((result as { error: unknown }).error ?? "Unknown error") };
+    return { ok: false, error: formatSandboxError((result as { error: unknown }).error) };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    return { ok: false, error: formatSandboxError(err) };
   }
 }
