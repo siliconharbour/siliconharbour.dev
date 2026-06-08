@@ -40,6 +40,24 @@ app.post("/mcp", async (req, res) => {
       return;
     }
 
+    // Per the MCP Streamable HTTP spec, if a client sends a non-initialize
+    // request with an Mcp-Session-Id that we don't know about (e.g. because
+    // the server restarted and the in-memory `transports` map was reset), we
+    // MUST respond with HTTP 404. Spec-compliant clients treat 404 as the
+    // signal to drop the stale session ID and re-initialize transparently.
+    //
+    // Returning 400 here (the previous behaviour) leaves the client stuck
+    // with an unrecoverable transport and forces a manual reconnect after
+    // every redeploy.
+    if (sessionId && !transports.has(sessionId)) {
+      res.status(404).json({
+        jsonrpc: "2.0",
+        error: { code: -32001, message: "Session not found" },
+        id: req.body?.id ?? null,
+      });
+      return;
+    }
+
     if (!isInitializeRequest(req.body)) {
       res.status(400).json({
         jsonrpc: "2.0",
@@ -83,10 +101,18 @@ app.post("/mcp", async (req, res) => {
 
 app.get("/mcp", async (req, res) => {
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId || !transports.has(sessionId)) {
+  if (!sessionId) {
     res.status(400).json({
       jsonrpc: "2.0",
-      error: { code: -32600, message: "Invalid or missing session ID" },
+      error: { code: -32600, message: "Missing session ID" },
+    });
+    return;
+  }
+  if (!transports.has(sessionId)) {
+    // Stale/unknown session — signal the client to re-initialize.
+    res.status(404).json({
+      jsonrpc: "2.0",
+      error: { code: -32001, message: "Session not found" },
     });
     return;
   }
@@ -95,10 +121,17 @@ app.get("/mcp", async (req, res) => {
 
 app.delete("/mcp", async (req, res) => {
   const sessionId = req.headers["mcp-session-id"] as string | undefined;
-  if (!sessionId || !transports.has(sessionId)) {
+  if (!sessionId) {
     res.status(400).json({
       jsonrpc: "2.0",
-      error: { code: -32600, message: "Invalid or missing session ID" },
+      error: { code: -32600, message: "Missing session ID" },
+    });
+    return;
+  }
+  if (!transports.has(sessionId)) {
+    res.status(404).json({
+      jsonrpc: "2.0",
+      error: { code: -32001, message: "Session not found" },
     });
     return;
   }
