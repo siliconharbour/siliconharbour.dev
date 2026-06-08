@@ -219,6 +219,7 @@ export default [
       route("jobs/search", "routes/manage/import/jobs.search.tsx"),
       route("jobs/importers", "routes/manage/import/jobs.importers.tsx"),
       route("jobs/new", "routes/manage/import/jobs.new.tsx"),
+      route("jobs/technl", "routes/manage/import/jobs.technl.tsx"),
       route("jobs/:sourceId", "routes/manage/import/jobs.$sourceId.tsx"),
       route("events", "routes/manage/import/events.tsx"),
       route("events/new", "routes/manage/import/events.new.tsx"),

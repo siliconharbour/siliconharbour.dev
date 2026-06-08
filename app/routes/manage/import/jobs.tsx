@@ -249,6 +249,12 @@ export default function ManageImportJobs() {
           <h1 className="text-2xl font-semibold text-harbour-700">Job Import Sources</h1>
           <div className="flex items-center gap-2">
             <Link
+              to="/manage/import/jobs/technl"
+              className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors"
+            >
+              TechNL Board
+            </Link>
+            <Link
               to="/manage/import/jobs/importers"
               className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors"
             >

@@ -40,6 +40,7 @@ import {
 } from "~/lib/companies.server";
 import { createJob as createJobRecord, updateJob as updateJobRecord } from "~/lib/jobs.server";
 import { searchIndeed, searchLinkedIn } from "~/lib/job-search.server";
+import { fetchTechNLJobsWithMatches } from "~/lib/technl-jobs.server";
 import { db } from "~/db";
 import { events, jobs, companies, eventImportSources, jobImportSources } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -736,6 +737,43 @@ export function buildExecuteFunctions(): HostFunctions {
     async searchLinkedInJobs(opts: unknown) {
       const o = SearchJobsSchema.parse(opts ?? {});
       return searchLinkedIn(o);
+    },
+
+    async listTechNLJobs() {
+      const result = await fetchTechNLJobsWithMatches();
+      // Trim heavy fields by default — descriptionHtml is large and
+      // descriptionText is the useful summary. Callers wanting the full
+      // HTML can fetch the individual posting via the link.
+      return toPlain(
+        result.jobs.map((j) => ({
+          title: j.title,
+          company: j.company,
+          location: j.location,
+          jobType: j.jobType,
+          salary: j.salary,
+          link: j.link,
+          postedAt: j.postedAt,
+          descriptionSnippet:
+            j.descriptionText.length > 600
+              ? `${j.descriptionText.slice(0, 600)}...`
+              : j.descriptionText,
+          match: j.match,
+        })),
+      );
+    },
+
+    async getTechNLJob(link: unknown) {
+      const target = typeof link === "string" ? link : String(link ?? "");
+      if (!target) return { found: false, message: "link is required" } as const;
+      const result = await fetchTechNLJobsWithMatches();
+      const job = result.jobs.find((j) => j.link === target);
+      if (!job) {
+        return {
+          found: false,
+          message: `No TechNL job with link "${target}". It may have been removed from the feed.`,
+        } as const;
+      }
+      return toPlain({ found: true, job });
     },
 
     async submitNewsLink(opts: unknown) {
