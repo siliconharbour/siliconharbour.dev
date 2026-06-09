@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { EntityPicker } from "~/components/EntityPicker";
 import { Form } from "react-router";
 import { DayPicker } from "react-day-picker";
-import "react-day-picker/dist/style.css";
+import "react-day-picker/style.css";
 import { ImageCropper } from "./ImageCropper";
 import type { Event, EventDate } from "~/db/schema";
 import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/timezone";

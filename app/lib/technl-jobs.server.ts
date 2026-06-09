@@ -15,7 +15,7 @@
 
 import { DOMParser } from "linkedom";
 import { db } from "~/db";
-import { companies, jobs } from "~/db/schema";
+import { companies, jobs, jobImportSources } from "~/db/schema";
 import { htmlToText } from "~/lib/job-importers/text.server";
 
 const FEED_URL = "https://technl.ca/?feed=job_feed";
@@ -145,7 +145,6 @@ export async function fetchTechNLJobsWithMatches(): Promise<{
 
   // For company-level dedup signal, mark companies that already have any
   // job_import_sources row.
-  const { jobImportSources } = await import("~/db/schema");
   const companyIdsWithSources = new Set<number>();
   if (allCompanies.length) {
     const rows = await db
