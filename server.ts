@@ -145,7 +145,15 @@ app.delete("/mcp", async (req, res) => {
 const viteDevServer =
   process.env.NODE_ENV === "production"
     ? undefined
-    : await import("vite").then((vite) => vite.createServer({ server: { middlewareMode: true } }));
+    : await import("vite").then((vite) =>
+        vite.createServer({
+          server: {
+            host: "127.0.0.1",
+            middlewareMode: true,
+            hmr: { host: "127.0.0.1" },
+          },
+        }),
+      );
 
 if (viteDevServer) {
   app.use(viteDevServer.middlewares);
@@ -164,7 +172,8 @@ app.all(
 );
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+const HOST = process.env.HOST || "127.0.0.1";
+app.listen(Number(PORT), HOST, () => {
+  console.log(`Server listening on http://${HOST}:${PORT}`);
   console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
 });
