@@ -7,8 +7,7 @@ import { createMcpServer } from "./app/mcp/server.js";
 
 const app = express();
 
-// ── MCP endpoint ─────────────────────────────────────────────────────
-// Must be registered BEFORE the React Router catch-all.
+// MCP endpoint, must be registered BEFORE the React Router catch-all.
 // JSON body parsing scoped to /mcp only — React Router handles its own.
 
 app.use("/mcp", express.json());
@@ -140,7 +139,7 @@ app.delete("/mcp", async (req, res) => {
   transports.delete(sessionId);
 });
 
-// ── React Router catch-all ────────────────────────────────────────────
+// React Router catch-all
 
 const viteDevServer =
   process.env.NODE_ENV === "production"
@@ -172,7 +171,13 @@ app.all(
 );
 
 const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || "127.0.0.1";
+// In production we default to 0.0.0.0 so that a containerized deploy is
+// reachable from outside the container's network namespace (Traefik /
+// reverse proxies hit us through the Docker bridge, not over loopback).
+// In development we default to 127.0.0.1 to keep `pnpm dev` off the LAN
+// unless the developer explicitly opts in by setting HOST.
+const HOST =
+  process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
 app.listen(Number(PORT), HOST, () => {
   console.log(`Server listening on http://${HOST}:${PORT}`);
   console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
