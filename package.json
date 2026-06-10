@@ -2,6 +2,7 @@
   "name": "siliconharbour.dev",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.18.3",
   "scripts": {
     "build": "react-router build",
     "dev": "tsx watch server.ts",

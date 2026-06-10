@@ -1,5 +1,5 @@
 FROM node:25-alpine AS pnpm-base
-RUN npm install -g pnpm@9
+RUN npm install -g pnpm@10
 
 FROM pnpm-base AS development-dependencies-env
 WORKDIR /app
