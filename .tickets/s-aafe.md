@@ -1,6 +1,6 @@
 ---
 id: s-aafe
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-06-10T16:05:22Z

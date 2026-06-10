@@ -781,6 +781,10 @@ export function buildExecuteFunctions(): HostFunctions {
           iconImage: null,
           coverImageUrl: null,
           requiresSignup: o.requiresSignup ?? false,
+          // Hidden from public listings until an admin uploads a cover/icon
+          // image and publishes via /manage/events/{id}/edit. The visibility
+          // filter used everywhere is `importStatus IS NULL OR = 'published'`.
+          importStatus: "pending_review",
         },
         [{ startDate, endDate }],
       );
@@ -789,12 +793,15 @@ export function buildExecuteFunctions(): HostFunctions {
         created: true,
         eventId: event.id,
         slug: event.slug,
-        message: `Event "${o.title}" created (manual). View at /manage/events/${event.id}`,
+        importStatus: "pending_review",
+        message: `Event "${o.title}" created (pending review, hidden from public). Add cover/icon images and publish at /manage/events/${event.id}/edit`,
       });
     },
 
     async getManualEvents() {
       // Manual events are those not tied to an import source.
+      // Includes both published events and ones still pending review
+      // (i.e. awaiting cover/icon images before going public).
       const rows = await db
         .select({
           eventId: events.id,
@@ -803,6 +810,9 @@ export function buildExecuteFunctions(): HostFunctions {
           link: events.link,
           location: events.location,
           organizer: events.organizer,
+          importStatus: events.importStatus,
+          coverImage: events.coverImage,
+          iconImage: events.iconImage,
           createdAt: events.createdAt,
         })
         .from(events)
