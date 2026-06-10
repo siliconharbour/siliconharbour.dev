@@ -6,7 +6,11 @@
 import { z } from "zod";
 import type { HostFunctions } from "./sandbox.js";
 import { getAsyncSync, listAsyncSyncs, startAsyncSync } from "./async-syncs.js";
-import { getUpcomingEvents, getPaginatedEvents } from "~/lib/events.server";
+import {
+  getUpcomingEvents,
+  getPaginatedEvents,
+  createEvent as createEventRecord,
+} from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getPaginatedCompanies } from "~/lib/companies.server";
 import { getPaginatedGroups } from "~/lib/groups.server";
@@ -18,6 +22,7 @@ import {
   syncEvents,
   createEventImportSource,
   validateEventImportSourceConfig,
+  localDateTimeToUTC,
 } from "~/lib/event-importers/sync.server";
 import {
   getAllImportSources,
@@ -43,7 +48,7 @@ import { searchIndeed, searchLinkedIn } from "~/lib/job-search.server";
 import { fetchTechNLJobsWithMatches } from "~/lib/technl-jobs.server";
 import { db } from "~/db";
 import { events, jobs, companies, eventImportSources, jobImportSources } from "~/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 
 // ── Zod schemas ────────────────────────────────────────────────────────
 
@@ -127,6 +132,30 @@ const CreateJobSchema = z.object({
 const DeactivateJobSchema = z.object({
   jobId: z.number("jobId is required"),
   reason: z.enum(["removed", "filled", "expired"], "reason is required (removed, filled, expired)"),
+});
+
+const CreateEventSchema = z.object({
+  title: z.string().min(1, "title is required"),
+  description: z.string().min(1, "description is required"),
+  link: z.string().min(1, "link is required (external URL such as the LinkedIn event URL)"),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "endDate must be YYYY-MM-DD")
+    .optional(),
+  startTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "startTime must be HH:mm (24h, local time in America/St_Johns)")
+    .optional(),
+  endTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/, "endTime must be HH:mm (24h, local time in America/St_Johns)")
+    .optional(),
+  location: z.string().optional(),
+  organizer: z.string().optional(),
+  requiresSignup: z.boolean().optional(),
 });
 
 const UpdateJobSchema = z.object({
@@ -727,6 +756,58 @@ export function buildExecuteFunctions(): HostFunctions {
         reason: o.reason,
         message: `"${job.title}" marked as ${o.reason}`,
       };
+    },
+
+    async createEvent(opts: unknown) {
+      const o = CreateEventSchema.parse(opts ?? {});
+
+      // All manual events are anchored to America/St_Johns local time.
+      // If endDate omitted, treat as same-day event.
+      const tz = "America/St_Johns";
+      const startDate = localDateTimeToUTC(o.startDate, o.startTime ?? null, tz);
+      const endDate =
+        o.endDate || o.endTime
+          ? localDateTimeToUTC(o.endDate ?? o.startDate, o.endTime ?? o.startTime ?? null, tz)
+          : null;
+
+      const event = await createEventRecord(
+        {
+          title: o.title.trim(),
+          description: o.description.trim(),
+          link: o.link.trim(),
+          location: o.location?.trim() || null,
+          organizer: o.organizer?.trim() || null,
+          coverImage: null,
+          iconImage: null,
+          coverImageUrl: null,
+          requiresSignup: o.requiresSignup ?? false,
+        },
+        [{ startDate, endDate }],
+      );
+
+      return toPlain({
+        created: true,
+        eventId: event.id,
+        slug: event.slug,
+        message: `Event "${o.title}" created (manual). View at /manage/events/${event.id}`,
+      });
+    },
+
+    async getManualEvents() {
+      // Manual events are those not tied to an import source.
+      const rows = await db
+        .select({
+          eventId: events.id,
+          title: events.title,
+          slug: events.slug,
+          link: events.link,
+          location: events.location,
+          organizer: events.organizer,
+          createdAt: events.createdAt,
+        })
+        .from(events)
+        .where(isNull(events.importSourceId));
+      return toPlain(rows);
     },
 
     async searchIndeedJobs(opts: unknown) {

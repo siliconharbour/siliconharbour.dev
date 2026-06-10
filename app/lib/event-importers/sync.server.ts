@@ -30,7 +30,7 @@ import { getEventImporter } from "./index";
  * For date-only events (no time), we anchor to noon local time so the stored
  * timestamp never drifts to the wrong calendar day due to timezone offsets.
  */
-function localDateTimeToUTC(
+export function localDateTimeToUTC(
   dateStr: string,
   timeStr: string | null,
   timezone: string | null,
