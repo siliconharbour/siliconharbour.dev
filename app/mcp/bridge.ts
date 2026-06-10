@@ -65,6 +65,107 @@ import {
 } from "~/db/schema";
 import { eq, and, isNull, count } from "drizzle-orm";
 
+// ── Host function documentation helper ─────────────────────────────────
+// Wraps every host function exposed to the QuickJS sandbox with metadata
+// stashed on the function itself. Consumed by:
+//   - /api docs page (auto-generated tool listing per MCP tool)
+//   - searchSpec()  ("siliconharbour module: ..." hints)
+//   - server.ts     (renders the `execute` tool description prompt)
+//
+// Co-locating with the implementation means a new bridge function CANNOT
+// drift — its docs travel with it, and getHostFunctionDocs() reads them
+// straight off the live function references.
+
+export type HostFnCategory =
+  | "read"
+  | "sources"
+  | "pending"
+  | "sync"
+  | "async-sync"
+  | "creation"
+  | "lookup"
+  | "search"
+  | "lifecycle";
+
+export interface HostFnDoc {
+  signature: string;
+  description: string;
+  category: HostFnCategory;
+}
+
+type HostFn = (...args: unknown[]) => Promise<unknown>;
+type DocumentedHostFn = HostFn & { __doc: HostFnDoc };
+
+/**
+ * Tag a host function with documentation. Returns the original function
+ * unchanged (apart from a non-enumerable __doc property) so existing
+ * call sites continue to work.
+ */
+function host<F extends HostFn>(
+  signature: string,
+  description: string,
+  category: HostFnCategory,
+  fn: F,
+): F {
+  Object.defineProperty(fn, "__doc", {
+    value: { signature, description, category } satisfies HostFnDoc,
+    enumerable: false,
+    writable: false,
+  });
+  return fn;
+}
+
+/** Read the documentation off a host function, or null if untagged. */
+export function getHostFnDoc(fn: unknown): HostFnDoc | null {
+  if (typeof fn !== "function") return null;
+  const doc = (fn as DocumentedHostFn).__doc;
+  return doc ?? null;
+}
+
+export interface HostFunctionDocsEntry extends HostFnDoc {
+  name: string;
+  status: "documented" | "undocumented";
+}
+
+export interface HostFunctionDocs {
+  /** Functions available via the public `query` MCP tool. */
+  read: HostFunctionDocsEntry[];
+  /** Functions available via the authenticated `execute` MCP tool (superset of read). */
+  execute: HostFunctionDocsEntry[];
+}
+
+function entriesFor(fns: HostFunctions): HostFunctionDocsEntry[] {
+  return Object.entries(fns)
+    .map(([name, fn]) => {
+      const doc = getHostFnDoc(fn);
+      if (doc) {
+        return { name, status: "documented" as const, ...doc };
+      }
+      return {
+        name,
+        status: "undocumented" as const,
+        signature: `${name}(...)`,
+        description:
+          "(undocumented — wrap this function with host('signature', 'description', category, fn) in app/mcp/bridge.ts)",
+        category: "read" as HostFnCategory,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Walks the live host-function bindings and pulls __doc off each entry.
+ * Used by the /api docs page, the searchSpec module hints, and server.ts
+ * to build the `execute` tool description prompt — so there is exactly
+ * one source of truth (the call site in this file).
+ */
+export function getHostFunctionDocs(): HostFunctionDocs {
+  return {
+    read: entriesFor(buildReadFunctions()),
+    execute: entriesFor(buildExecuteFunctions()),
+  };
+}
+
 // ── Zod schemas ────────────────────────────────────────────────────────
 
 const PaginationSchema = z.object({
@@ -230,62 +331,102 @@ function toPlain<T>(val: T): T {
 /** Read-only host functions — safe to expose without auth */
 export function buildReadFunctions(): HostFunctions {
   return {
-    async events(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const limit = o.limit ?? 20;
-      const offset = o.offset ?? 0;
-      if (o.upcoming) {
-        const all = await getUpcomingEvents();
-        return toPlain(all.slice(offset, offset + limit));
-      }
-      const result = await getPaginatedEvents(limit, offset);
-      return toPlain((result as { events?: unknown[] }).events ?? result);
-    },
+    events: host(
+      "events({ upcoming?, limit?, offset?, query? })",
+      "List events. Pass upcoming:true to limit to future events. Defaults to limit 20.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const limit = o.limit ?? 20;
+        const offset = o.offset ?? 0;
+        if (o.upcoming) {
+          const all = await getUpcomingEvents();
+          return toPlain(all.slice(offset, offset + limit));
+        }
+        const result = await getPaginatedEvents(limit, offset);
+        return toPlain((result as { events?: unknown[] }).events ?? result);
+      },
+    ),
 
-    async jobs(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, {
-        includeNonTechnical: true,
-      });
-      return toPlain(result.items);
-    },
+    jobs: host(
+      "jobs({ query?, limit?, offset? })",
+      "List active jobs (includes both technical and non-technical postings). Optional text query searches indexed content.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, {
+          includeNonTechnical: true,
+        });
+        return toPlain(result.items);
+      },
+    ),
 
-    async companies(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const result = await getPaginatedCompanies(o.limit ?? 20, o.offset ?? 0, o.query);
-      return toPlain(result.items);
-    },
+    companies: host(
+      "companies({ query?, limit?, offset? })",
+      "List visible companies. Optional query filters by name and description.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const result = await getPaginatedCompanies(o.limit ?? 20, o.offset ?? 0, o.query);
+        return toPlain(result.items);
+      },
+    ),
 
-    async groups(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const result = await getPaginatedGroups(o.limit ?? 20, o.offset ?? 0);
-      return toPlain(result.items);
-    },
+    groups: host(
+      "groups({ limit?, offset? })",
+      "List community groups.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const result = await getPaginatedGroups(o.limit ?? 20, o.offset ?? 0);
+        return toPlain(result.items);
+      },
+    ),
 
-    async people(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const result = await getPaginatedPeople(o.limit ?? 20, o.offset ?? 0, o.query);
-      return toPlain(result.items);
-    },
+    people: host(
+      "people({ query?, limit?, offset? })",
+      "List visible people from the directory.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const result = await getPaginatedPeople(o.limit ?? 20, o.offset ?? 0, o.query);
+        return toPlain(result.items);
+      },
+    ),
 
-    async technologies(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const all = await getAllTechnologies();
-      const offset = o.offset ?? 0;
-      return toPlain(all.slice(offset, offset + (o.limit ?? 20)));
-    },
+    technologies: host(
+      "technologies({ limit?, offset? })",
+      "List technologies referenced across the directory.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const all = await getAllTechnologies();
+        const offset = o.offset ?? 0;
+        return toPlain(all.slice(offset, offset + (o.limit ?? 20)));
+      },
+    ),
 
-    async education(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const result = await getPaginatedEducation(o.limit ?? 20, o.offset ?? 0);
-      return toPlain(result.items);
-    },
+    education: host(
+      "education({ limit?, offset? })",
+      "List educational institutions and programs.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const result = await getPaginatedEducation(o.limit ?? 20, o.offset ?? 0);
+        return toPlain(result.items);
+      },
+    ),
 
-    async news(opts: unknown) {
-      const o = PaginationSchema.parse(opts ?? {});
-      const result = await getPaginatedNews(o.limit ?? 20, o.offset ?? 0, o.query);
-      return toPlain(result.items);
-    },
+    news: host(
+      "news({ query?, limit?, offset? })",
+      "List published news items. Optional query filters by indexed content.",
+      "read",
+      async (opts: unknown) => {
+        const o = PaginationSchema.parse(opts ?? {});
+        const result = await getPaginatedNews(o.limit ?? 20, o.offset ?? 0, o.query);
+        return toPlain(result.items);
+      },
+    ),
   };
 }
 
@@ -294,109 +435,138 @@ export function buildExecuteFunctions(): HostFunctions {
   return {
     ...buildReadFunctions(),
 
-    async eventImportSources() {
-      const sources = await getAllEventImportSources();
-      return toPlain(
-        sources.map((s) => ({
-          id: s.id,
-          name: s.name,
-          sourceType: s.sourceType,
-          lastFetchedAt: s.lastFetchedAt,
-          fetchStatus: s.fetchStatus,
-          pendingCount: s.pendingCount,
-        })),
-      );
-    },
-
-    async jobImportSources() {
-      const sources = await getAllImportSources();
-      return toPlain(
-        sources.map((s) => ({
-          id: s.id,
-          name: s.sourceIdentifier,
-          sourceType: s.sourceType,
-          lastFetchedAt: s.lastFetchedAt,
-          fetchStatus: s.fetchStatus,
-        })),
-      );
-    },
-
-    async newsImportSources() {
-      const sources = await getAllNewsImportSources();
-      // Enrich with pendingCount (news.status = 'pending_review' per source).
-      // This mirrors the way eventImportSources is shaped on its caller side.
-      const enriched = await Promise.all(
-        sources.map(async (s) => {
-          const [row] = await db
-            .select({ pending: count() })
-            .from(news)
-            .where(and(eq(news.sourceId, s.id), eq(news.status, "pending_review")));
-          return {
+    eventImportSources: host(
+      "eventImportSources()",
+      "List all event import sources with id, sourceType, fetchStatus, lastFetchedAt, and pendingCount.",
+      "sources",
+      async () => {
+        const sources = await getAllEventImportSources();
+        return toPlain(
+          sources.map((s) => ({
             id: s.id,
             name: s.name,
             sourceType: s.sourceType,
-            sourceUrl: s.sourceUrl,
-            enabled: s.enabled,
-            lastSyncAt: s.lastSyncAt,
-            lastSyncStatus: s.lastSyncStatus,
-            lastSyncError: s.lastSyncError,
-            useGlobalKeywords: s.useGlobalKeywords,
-            keywords: s.keywords,
-            excerptMode: s.excerptMode,
-            entityUrl: s.entityUrl,
-            pendingCount: row?.pending ?? 0,
-          };
-        }),
-      );
-      return toPlain(enriched);
-    },
+            lastFetchedAt: s.lastFetchedAt,
+            fetchStatus: s.fetchStatus,
+            pendingCount: s.pendingCount,
+          })),
+        );
+      },
+    ),
 
-    async pendingEvents() {
-      const rows = await db
-        .select({
-          sourceId: eventImportSources.id,
-          sourceName: eventImportSources.name,
-          eventId: events.id,
-          title: events.title,
-          firstSeenAt: events.firstSeenAt,
-        })
-        .from(events)
-        .innerJoin(eventImportSources, eq(events.importSourceId, eventImportSources.id))
-        .where(eq(events.importStatus, "pending_review"))
-        .limit(200);
-      return toPlain(rows);
-    },
+    jobImportSources: host(
+      "jobImportSources()",
+      "List all job import sources with id, sourceType, fetchStatus, and lastFetchedAt.",
+      "sources",
+      async () => {
+        const sources = await getAllImportSources();
+        return toPlain(
+          sources.map((s) => ({
+            id: s.id,
+            name: s.sourceIdentifier,
+            sourceType: s.sourceType,
+            lastFetchedAt: s.lastFetchedAt,
+            fetchStatus: s.fetchStatus,
+          })),
+        );
+      },
+    ),
 
-    async pendingJobs() {
-      const rows = await db
-        .select({
-          jobId: jobs.id,
-          title: jobs.title,
-          companyName: companies.name,
-          location: jobs.location,
-          workplaceType: jobs.workplaceType,
-          url: jobs.url,
-          descriptionText: jobs.descriptionText,
-          sourceType: jobImportSources.sourceType,
-        })
-        .from(jobs)
-        .leftJoin(companies, eq(jobs.companyId, companies.id))
-        .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
-        .where(eq(jobs.status, "pending_review"))
-        .limit(200);
+    newsImportSources: host(
+      "newsImportSources()",
+      "List all news import sources (RSS feeds and custom) with enabled flag, lastSyncStatus, and pendingCount.",
+      "sources",
+      async () => {
+        const sources = await getAllNewsImportSources();
+        // Enrich with pendingCount (news.status = 'pending_review' per source).
+        // This mirrors the way eventImportSources is shaped on its caller side.
+        const enriched = await Promise.all(
+          sources.map(async (s) => {
+            const [row] = await db
+              .select({ pending: count() })
+              .from(news)
+              .where(and(eq(news.sourceId, s.id), eq(news.status, "pending_review")));
+            return {
+              id: s.id,
+              name: s.name,
+              sourceType: s.sourceType,
+              sourceUrl: s.sourceUrl,
+              enabled: s.enabled,
+              lastSyncAt: s.lastSyncAt,
+              lastSyncStatus: s.lastSyncStatus,
+              lastSyncError: s.lastSyncError,
+              useGlobalKeywords: s.useGlobalKeywords,
+              keywords: s.keywords,
+              excerptMode: s.excerptMode,
+              entityUrl: s.entityUrl,
+              pendingCount: row?.pending ?? 0,
+            };
+          }),
+        );
+        return toPlain(enriched);
+      },
+    ),
 
-      return toPlain(
-        rows.map((r) => ({
-          ...r,
-          descriptionSnippet: r.descriptionText
-            ? r.descriptionText.slice(0, 500) + (r.descriptionText.length > 500 ? "..." : "")
-            : null,
-          descriptionText: undefined,
-        })),
-      );
-    },
+    pendingEvents: host(
+      "pendingEvents()",
+      "List events with importStatus='pending_review' — i.e. waiting on admin approval. Returns sourceId, sourceName, eventId, title, firstSeenAt.",
+      "pending",
+      async () => {
+        const rows = await db
+          .select({
+            sourceId: eventImportSources.id,
+            sourceName: eventImportSources.name,
+            eventId: events.id,
+            title: events.title,
+            firstSeenAt: events.firstSeenAt,
+          })
+          .from(events)
+          .innerJoin(eventImportSources, eq(events.importSourceId, eventImportSources.id))
+          .where(eq(events.importStatus, "pending_review"))
+          .limit(200);
+        return toPlain(rows);
+      },
+    ),
 
-    async getJobDetail(jobId: unknown) {
+    pendingJobs: host(
+      "pendingJobs()",
+      "List jobs with status='pending_review'. Returns title, company, location, workplaceType, descriptionSnippet, URL.",
+      "pending",
+      async () => {
+        const rows = await db
+          .select({
+            jobId: jobs.id,
+            title: jobs.title,
+            companyName: companies.name,
+            location: jobs.location,
+            workplaceType: jobs.workplaceType,
+            url: jobs.url,
+            descriptionText: jobs.descriptionText,
+            sourceType: jobImportSources.sourceType,
+          })
+          .from(jobs)
+          .leftJoin(companies, eq(jobs.companyId, companies.id))
+          .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
+          .where(eq(jobs.status, "pending_review"))
+          .limit(200);
+
+        return toPlain(
+          rows.map((r) => ({
+            ...r,
+            descriptionSnippet: r.descriptionText
+              ? r.descriptionText.slice(0, 500) + (r.descriptionText.length > 500 ? "..." : "")
+              : null,
+            descriptionText: undefined,
+          })),
+        );
+      },
+    ),
+
+    getJobDetail: host(
+      "getJobDetail(jobId)",
+      "Full job record including descriptionText. Use this when pendingJobs() snippet isn't enough to decide.",
+      "lookup",
+      async (jobId: unknown) => {
       const job = await getImportedJobById(Number(jobId));
       if (!job) return { found: false, message: `Job ${jobId} not found` };
       const [company] = job.companyId
@@ -406,327 +576,368 @@ export function buildExecuteFunctions(): HostFunctions {
             .where(eq(companies.id, job.companyId))
             .limit(1)
         : [];
-      return toPlain({
-        found: true,
-        job: {
-          id: job.id,
-          title: job.title,
-          companyName: company?.name ?? null,
-          location: job.location,
-          workplaceType: job.workplaceType,
-          department: job.department,
-          status: job.status,
-          isTechnical: job.isTechnical,
-          url: job.url,
-          descriptionText: job.descriptionText,
-          postedAt: job.postedAt,
-        },
-      });
-    },
+        return toPlain({
+          found: true,
+          job: {
+            id: job.id,
+            title: job.title,
+            companyName: company?.name ?? null,
+            location: job.location,
+            workplaceType: job.workplaceType,
+            department: job.department,
+            status: job.status,
+            isTechnical: job.isTechnical,
+            url: job.url,
+            descriptionText: job.descriptionText,
+            postedAt: job.postedAt,
+          },
+        });
+      },
+    ),
 
-    async getNewsDetail(id: unknown) {
-      const item = await getNewsById(Number(id));
-      if (!item) return { found: false, message: `News ${id} not found` };
-      // Resolve the source name if this came from an import source.
-      const source = item.sourceId ? await getNewsSourceById(item.sourceId) : null;
-      return toPlain({
-        found: true,
-        news: {
-          id: item.id,
-          slug: item.slug,
-          type: item.type,
-          title: item.title,
-          externalUrl: item.externalUrl,
-          sourceName: item.sourceName,
-          sourceEntityUrl: item.sourceEntityUrl,
-          sourceType: source?.sourceType ?? null,
-          sourceUrl: source?.sourceUrl ?? null,
-          excerpt: item.excerpt,
-          content: item.content,
-          coverImage: item.coverImage,
-          status: item.status,
-          publishedAt: item.publishedAt,
-          createdAt: item.createdAt,
-        },
-      });
-    },
+    getNewsDetail: host(
+      "getNewsDetail(id)",
+      "Full news record including content body and resolved source info. Use after pendingNews() to read before approving.",
+      "lookup",
+      async (id: unknown) => {
+        const item = await getNewsById(Number(id));
+        if (!item) return { found: false, message: `News ${id} not found` };
+        // Resolve the source name if this came from an import source.
+        const source = item.sourceId ? await getNewsSourceById(item.sourceId) : null;
+        return toPlain({
+          found: true,
+          news: {
+            id: item.id,
+            slug: item.slug,
+            type: item.type,
+            title: item.title,
+            externalUrl: item.externalUrl,
+            sourceName: item.sourceName,
+            sourceEntityUrl: item.sourceEntityUrl,
+            sourceType: source?.sourceType ?? null,
+            sourceUrl: source?.sourceUrl ?? null,
+            excerpt: item.excerpt,
+            content: item.content,
+            coverImage: item.coverImage,
+            status: item.status,
+            publishedAt: item.publishedAt,
+            createdAt: item.createdAt,
+          },
+        });
+      },
+    ),
 
-    async reviewJob(opts: unknown) {
-      const o = ReviewJobSchema.parse(opts ?? {});
+    reviewJob: host(
+      "reviewJob({ jobId, action }) where action is 'approve' | 'approve-non-technical' | 'hide'",
+      "Move a pending_review job to its final state. 'approve' = technical+published, 'approve-non-technical' = published but deprioritized, 'hide' = remove from public.",
+      "lifecycle",
+      async (opts: unknown) => {
+        const o = ReviewJobSchema.parse(opts ?? {});
 
-      const job = await getImportedJobById(o.jobId);
-      if (!job) throw new Error(`Job ${o.jobId} not found`);
+        const job = await getImportedJobById(o.jobId);
+        if (!job) throw new Error(`Job ${o.jobId} not found`);
 
-      switch (o.action) {
-        case "approve":
-          await approveJob(o.jobId);
-          return { jobId: o.jobId, action: "approve", message: `"${job.title}" approved as technical` };
-        case "approve-non-technical":
-          await approveJobAsNonTechnical(o.jobId);
-          return { jobId: o.jobId, action: "approve-non-technical", message: `"${job.title}" approved as non-technical` };
-        case "hide":
-          await hideImportedJob(o.jobId);
-          return { jobId: o.jobId, action: "hide", message: `"${job.title}" hidden` };
-      }
-    },
+        switch (o.action) {
+          case "approve":
+            await approveJob(o.jobId);
+            return { jobId: o.jobId, action: "approve", message: `"${job.title}" approved as technical` };
+          case "approve-non-technical":
+            await approveJobAsNonTechnical(o.jobId);
+            return { jobId: o.jobId, action: "approve-non-technical", message: `"${job.title}" approved as non-technical` };
+          case "hide":
+            await hideImportedJob(o.jobId);
+            return { jobId: o.jobId, action: "hide", message: `"${job.title}" hidden` };
+        }
+      },
+    ),
 
-    async syncEventSource(sourceId: unknown) {
-      return toPlain(await syncEvents(Number(sourceId)));
-    },
+    syncEventSource: host(
+      "syncEventSource(sourceId)",
+      "Run a sync for a single event import source.",
+      "sync",
+      async (sourceId: unknown) => {
+        return toPlain(await syncEvents(Number(sourceId)));
+      },
+    ),
 
-    async syncAllEventSources() {
-      const sources = await getAllEventImportSources();
-      const results = [];
-      for (const source of sources) {
-        const result = await syncEvents(source.id);
-        results.push({ sourceId: source.id, name: source.name, ...result });
-      }
-      return toPlain(results);
-    },
+    syncAllEventSources: host(
+      "syncAllEventSources()",
+      "Synchronously sync all event sources sequentially. Returns per-source results.",
+      "sync",
+      async () => {
+        const sources = await getAllEventImportSources();
+        const results = [];
+        for (const source of sources) {
+          const result = await syncEvents(source.id);
+          results.push({ sourceId: source.id, name: source.name, ...result });
+        }
+        return toPlain(results);
+      },
+    ),
 
-    async syncJobSource(sourceId: unknown) {
-      return toPlain(await syncJobs(Number(sourceId)));
-    },
+    syncJobSource: host(
+      "syncJobSource(sourceId)",
+      "Run a sync for a single job import source.",
+      "sync",
+      async (sourceId: unknown) => {
+        return toPlain(await syncJobs(Number(sourceId)));
+      },
+    ),
 
-    async syncAllJobSources() {
-      const sources = await getAllImportSources();
-      const results = [];
-      for (const source of sources) {
-        const result = await syncJobs(source.id);
-        results.push({ sourceId: source.id, name: source.sourceIdentifier, ...result });
-      }
-      return toPlain(results);
-    },
+    syncAllJobSources: host(
+      "syncAllJobSources()",
+      "Synchronously sync all job sources sequentially.",
+      "sync",
+      async () => {
+        const sources = await getAllImportSources();
+        const results = [];
+        for (const source of sources) {
+          const result = await syncJobs(source.id);
+          results.push({ sourceId: source.id, name: source.sourceIdentifier, ...result });
+        }
+        return toPlain(results);
+      },
+    ),
 
-    async syncNewsSource(sourceId: unknown) {
-      return toPlain(await syncNewsSourceRecord(Number(sourceId)));
-    },
+    syncNewsSource: host(
+      "syncNewsSource(sourceId)",
+      "Run a sync for a single news import source.",
+      "sync",
+      async (sourceId: unknown) => {
+        return toPlain(await syncNewsSourceRecord(Number(sourceId)));
+      },
+    ),
 
-    async syncAllNewsSources() {
-      // Mirrors syncAllJobSources shape so callers can iterate per-source results
-      // (the underlying syncAllNewsSources() returns aggregate totals only).
-      const sources = await getAllNewsImportSources();
-      const results = [];
-      for (const source of sources) {
-        if (!source.enabled) continue;
-        const result = await syncNewsSourceRecord(source.id);
-        results.push({ sourceId: source.id, name: source.name, ...result });
-      }
-      return toPlain(results);
-    },
+    syncAllNewsSources: host(
+      "syncAllNewsSources()",
+      "Synchronously sync all enabled news sources sequentially. Returns per-source results.",
+      "sync",
+      async () => {
+        // Mirrors syncAllJobSources shape so callers can iterate per-source results
+        // (the underlying syncAllNewsSources() returns aggregate totals only).
+        const sources = await getAllNewsImportSources();
+        const results = [];
+        for (const source of sources) {
+          if (!source.enabled) continue;
+          const result = await syncNewsSourceRecord(source.id);
+          results.push({ sourceId: source.id, name: source.name, ...result });
+        }
+        return toPlain(results);
+      },
+    ),
 
-    async asyncSyncAllEventSources() {
-      const sources = await getAllEventImportSources();
-      return toPlain(
-        startAsyncSync(
-          sources.map((source) => ({
-            type: "event" as const,
-            sourceId: source.id,
-            name: source.name,
-            run: () => syncEvents(source.id),
-          })),
-        ),
-      );
-    },
-
-    async asyncSyncAllJobSources() {
-      const sources = await getAllImportSources();
-      return toPlain(
-        startAsyncSync(
-          sources.map((source) => ({
-            type: "job" as const,
-            sourceId: source.id,
-            name: source.sourceIdentifier,
-            run: () => syncJobs(source.id),
-          })),
-        ),
-      );
-    },
-
-    async asyncSyncAllNewsSources() {
-      const sources = await getAllNewsImportSources();
-      return toPlain(
-        startAsyncSync(
-          sources
-            .filter((source) => source.enabled)
-            .map((source) => ({
-              type: "news" as const,
+    asyncSyncAllEventSources: host(
+      "asyncSyncAllEventSources()",
+      "Start a background sync of all event sources and return immediately with a runId. Poll via getAsyncSync(runId).",
+      "async-sync",
+      async () => {
+        const sources = await getAllEventImportSources();
+        return toPlain(
+          startAsyncSync(
+            sources.map((source) => ({
+              type: "event" as const,
               sourceId: source.id,
               name: source.name,
-              run: () => syncNewsSourceRecord(source.id),
+              run: () => syncEvents(source.id),
             })),
-        ),
-      );
-    },
+          ),
+        );
+      },
+    ),
 
-    async asyncSyncAllSources() {
-      const [eventSources, jobSources, newsSources] = await Promise.all([
-        getAllEventImportSources(),
-        getAllImportSources(),
-        getAllNewsImportSources(),
-      ]);
-      return toPlain(
-        startAsyncSync([
-          ...eventSources.map((source) => ({
-            type: "event" as const,
-            sourceId: source.id,
-            name: source.name,
-            run: () => syncEvents(source.id),
-          })),
-          ...jobSources.map((source) => ({
-            type: "job" as const,
-            sourceId: source.id,
-            name: source.sourceIdentifier,
-            run: () => syncJobs(source.id),
-          })),
-          ...newsSources
-            .filter((source) => source.enabled)
-            .map((source) => ({
-              type: "news" as const,
+    asyncSyncAllJobSources: host(
+      "asyncSyncAllJobSources()",
+      "Start a background sync of all job sources. Returns a runId.",
+      "async-sync",
+      async () => {
+        const sources = await getAllImportSources();
+        return toPlain(
+          startAsyncSync(
+            sources.map((source) => ({
+              type: "job" as const,
+              sourceId: source.id,
+              name: source.sourceIdentifier,
+              run: () => syncJobs(source.id),
+            })),
+          ),
+        );
+      },
+    ),
+
+    asyncSyncAllNewsSources: host(
+      "asyncSyncAllNewsSources()",
+      "Start a background sync of all enabled news sources. Returns a runId.",
+      "async-sync",
+      async () => {
+        const sources = await getAllNewsImportSources();
+        return toPlain(
+          startAsyncSync(
+            sources
+              .filter((source) => source.enabled)
+              .map((source) => ({
+                type: "news" as const,
+                sourceId: source.id,
+                name: source.name,
+                run: () => syncNewsSourceRecord(source.id),
+              })),
+          ),
+        );
+      },
+    ),
+
+    asyncSyncAllSources: host(
+      "asyncSyncAllSources()",
+      "Start a background sync of every event, job, and news source in one run. Returns a runId.",
+      "async-sync",
+      async () => {
+        const [eventSources, jobSources, newsSources] = await Promise.all([
+          getAllEventImportSources(),
+          getAllImportSources(),
+          getAllNewsImportSources(),
+        ]);
+        return toPlain(
+          startAsyncSync([
+            ...eventSources.map((source) => ({
+              type: "event" as const,
               sourceId: source.id,
               name: source.name,
-              run: () => syncNewsSourceRecord(source.id),
+              run: () => syncEvents(source.id),
             })),
-        ]),
-      );
-    },
+            ...jobSources.map((source) => ({
+              type: "job" as const,
+              sourceId: source.id,
+              name: source.sourceIdentifier,
+              run: () => syncJobs(source.id),
+            })),
+            ...newsSources
+              .filter((source) => source.enabled)
+              .map((source) => ({
+                type: "news" as const,
+                sourceId: source.id,
+                name: source.name,
+                run: () => syncNewsSourceRecord(source.id),
+              })),
+          ]),
+        );
+      },
+    ),
 
-    async getAsyncSync(runId: unknown) {
-      if (!runId || typeof runId !== "string") throw new Error("runId is required (string)");
-      return toPlain(getAsyncSync(runId) ?? { found: false, runId });
-    },
+    getAsyncSync: host(
+      "getAsyncSync(runId)",
+      "Get the live status of a background sync run: { status, completed, failed, current, steps[] }.",
+      "async-sync",
+      async (runId: unknown) => {
+        if (!runId || typeof runId !== "string") throw new Error("runId is required (string)");
+        return toPlain(getAsyncSync(runId) ?? { found: false, runId });
+      },
+    ),
 
-    async listAsyncSyncs() {
-      return toPlain(listAsyncSyncs());
-    },
+    listAsyncSyncs: host(
+      "listAsyncSyncs()",
+      "List recent background sync runs (most recent first, max 20 stored).",
+      "async-sync",
+      async () => {
+        return toPlain(listAsyncSyncs());
+      },
+    ),
 
     // ── Entity creation ──────────────────────────────────────────────
 
-    async createCompany(opts: unknown) {
-      const o = CreateCompanySchema.parse(opts ?? {});
-      const existing = await getCompanyByNameRecord(o.name.trim());
-      if (existing) {
-        return toPlain({
-          created: false,
-          message: `Company "${existing.name}" already exists (id: ${existing.id})`,
-          company: { id: existing.id, name: existing.name, slug: existing.slug },
-        });
-      }
-      const company = await createCompanyRecord({
-        name: o.name.trim(),
-        description: o.description?.trim() || "",
-        website: o.website?.trim() || null,
-        location: o.location?.trim() || null,
-        email: o.email?.trim() || null,
-        logo: null,
-        visible: false,
-      });
-      return toPlain({
-        created: true,
-        message: `Company "${company.name}" created (hidden, pending review)`,
-        company: { id: company.id, name: company.name, slug: company.slug },
-      });
-    },
-
-    async getCompanyByName(name: unknown) {
-      if (!name || typeof name !== "string") throw new Error("name is required (string)");
-      const company = await getCompanyByNameRecord(name.trim());
-      if (!company) return { found: false, message: `No company found matching "${name}"` };
-      return toPlain({
-        found: true,
-        company: {
-          id: company.id,
-          name: company.name,
-          slug: company.slug,
-          website: company.website,
-          visible: company.visible,
-        },
-      });
-    },
-
-    async updateCompany(opts: unknown) {
-      const { id, ...fields } = UpdateCompanySchema.parse(opts ?? {});
-      const existing = await getCompanyByIdRecord(id);
-      if (!existing) throw new Error(`Company with id ${id} not found`);
-
-      // Trim strings, convert empty to null (except description which stays "")
-      const updates: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(fields)) {
-        if (value === undefined) continue;
-        if (typeof value === "string") {
-          updates[key] = value.trim() || null;
-        } else {
-          updates[key] = value;
-        }
-      }
-      if ("description" in updates && updates.description === null) {
-        updates.description = "";
-      }
-
-      if (Object.keys(updates).length === 0) {
-        return { updated: false, message: "No fields to update" };
-      }
-
-      await updateCompanyRecord(id, updates);
-      return toPlain({
-        updated: true,
-        message: `Company "${existing.name}" updated (${Object.keys(updates).join(", ")})`,
-      });
-    },
-
-    async createJobSource(opts: unknown) {
-      const o = CreateJobSourceSchema.parse(opts ?? {});
-
-      // Validate the source type is supported
-      try {
-        getImporter(o.sourceType as JobSourceType);
-      } catch {
-        throw new Error(
-          `Unsupported sourceType "${o.sourceType}". Use listImporterTypes() to see available types.`,
-        );
-      }
-
-      let jobCount: number | undefined;
-
-      if (!o.skipValidation) {
-        // Validate the config actually works
-        const importer = getImporter(o.sourceType as JobSourceType);
-        const validation = await importer.validateConfig({
-          companyId: o.companyId,
-          sourceType: o.sourceType as JobSourceType,
-          sourceIdentifier: o.sourceIdentifier.trim(),
-          sourceUrl: o.sourceUrl?.trim() || null,
-        });
-        if (!validation.valid) {
-          return {
+    createCompany: host(
+      "createCompany({ name, website?, description?, location?, email? })",
+      "Create a new company. Created hidden (visible=false) so an admin can review before publishing.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateCompanySchema.parse(opts ?? {});
+        const existing = await getCompanyByNameRecord(o.name.trim());
+        if (existing) {
+          return toPlain({
             created: false,
-            message: `Validation failed: ${validation.error}. Use skipValidation: true to create anyway.`,
-          };
+            message: `Company "${existing.name}" already exists (id: ${existing.id})`,
+            company: { id: existing.id, name: existing.name, slug: existing.slug },
+          });
         }
-        jobCount = validation.jobCount;
-      }
+        const company = await createCompanyRecord({
+          name: o.name.trim(),
+          description: o.description?.trim() || "",
+          website: o.website?.trim() || null,
+          location: o.location?.trim() || null,
+          email: o.email?.trim() || null,
+          logo: null,
+          visible: false,
+        });
+        return toPlain({
+          created: true,
+          message: `Company "${company.name}" created (hidden, pending review)`,
+          company: { id: company.id, name: company.name, slug: company.slug },
+        });
+      },
+    ),
 
-      const sourceId = await createJobImportSource({
-        companyId: o.companyId,
-        sourceType: o.sourceType as JobSourceType,
-        sourceIdentifier: o.sourceIdentifier.trim(),
-        sourceUrl: o.sourceUrl?.trim() || null,
-      });
-      return {
-        created: true,
-        sourceId,
-        message: `Job import source created (id: ${sourceId})${o.skipValidation ? " (validation skipped)" : ""}. Use syncJobSource(${sourceId}) to run first sync.`,
-        jobCount,
-      };
-    },
+    getCompanyByName: host(
+      "getCompanyByName(name)",
+      "Look up a company by name (exact match). Used to resolve companyId before createJob.",
+      "lookup",
+      async (name: unknown) => {
+        if (!name || typeof name !== "string") throw new Error("name is required (string)");
+        const company = await getCompanyByNameRecord(name.trim());
+        if (!company) return { found: false, message: `No company found matching "${name}"` };
+        return toPlain({
+          found: true,
+          company: {
+            id: company.id,
+            name: company.name,
+            slug: company.slug,
+            website: company.website,
+            visible: company.visible,
+          },
+        });
+      },
+    ),
 
-    async updateJobSource(opts: unknown) {
-      const o = UpdateJobSourceSchema.parse(opts ?? {});
-      const existing = await getSourceById(o.sourceId);
-      if (!existing) throw new Error(`Job import source ${o.sourceId} not found`);
+    updateCompany: host(
+      "updateCompany({ id, name?, website?, description?, location?, email?, linkedin?, github?, wikipedia?, careersUrl?, founded?, visible?, technl?, genesis?, bounce? })",
+      "Patch fields on an existing company.",
+      "creation",
+      async (opts: unknown) => {
+        const { id, ...fields } = UpdateCompanySchema.parse(opts ?? {});
+        const existing = await getCompanyByIdRecord(id);
+        if (!existing) throw new Error(`Company with id ${id} not found`);
 
-      // Validate new sourceType if changing
-      if (o.sourceType) {
+        // Trim strings, convert empty to null (except description which stays "")
+        const updates: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(fields)) {
+          if (value === undefined) continue;
+          if (typeof value === "string") {
+            updates[key] = value.trim() || null;
+          } else {
+            updates[key] = value;
+          }
+        }
+        if ("description" in updates && updates.description === null) {
+          updates.description = "";
+        }
+
+        if (Object.keys(updates).length === 0) {
+          return { updated: false, message: "No fields to update" };
+        }
+
+        await updateCompanyRecord(id, updates);
+        return toPlain({
+          updated: true,
+          message: `Company "${existing.name}" updated (${Object.keys(updates).join(", ")})`,
+        });
+      },
+    ),
+
+    createJobSource: host(
+      "createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl?, skipValidation? })",
+      "Register a new job import source (greenhouse, ashby, workday, lever, custom, etc.). Validates the config before saving unless skipValidation is true.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateJobSourceSchema.parse(opts ?? {});
+
+        // Validate the source type is supported
         try {
           getImporter(o.sourceType as JobSourceType);
         } catch {
@@ -734,317 +945,462 @@ export function buildExecuteFunctions(): HostFunctions {
             `Unsupported sourceType "${o.sourceType}". Use listImporterTypes() to see available types.`,
           );
         }
-      }
 
-      const updates: { sourceType?: string; sourceIdentifier?: string; sourceUrl?: string | null } = {};
-      if (o.sourceType) updates.sourceType = o.sourceType;
-      if (o.sourceIdentifier) updates.sourceIdentifier = o.sourceIdentifier.trim();
-      if (o.sourceUrl !== undefined) updates.sourceUrl = o.sourceUrl?.trim() || null;
+        let jobCount: number | undefined;
 
-      if (Object.keys(updates).length === 0) {
-        return { updated: false, message: "No fields to update" };
-      }
+        if (!o.skipValidation) {
+          // Validate the config actually works
+          const importer = getImporter(o.sourceType as JobSourceType);
+          const validation = await importer.validateConfig({
+            companyId: o.companyId,
+            sourceType: o.sourceType as JobSourceType,
+            sourceIdentifier: o.sourceIdentifier.trim(),
+            sourceUrl: o.sourceUrl?.trim() || null,
+          });
+          if (!validation.valid) {
+            return {
+              created: false,
+              message: `Validation failed: ${validation.error}. Use skipValidation: true to create anyway.`,
+            };
+          }
+          jobCount = validation.jobCount;
+        }
 
-      await updateJobImportSource(o.sourceId, updates);
-      return {
-        updated: true,
-        message: `Job import source ${o.sourceId} updated (${Object.keys(updates).join(", ")})`,
-      };
-    },
-
-    async createEventSource(opts: unknown) {
-      const o = CreateEventSourceSchema.parse(opts ?? {});
-
-      // Validate the config actually works
-      const validation = await validateEventImportSourceConfig({
-        organizer: o.organizer?.trim() || null,
-        sourceType: o.sourceType,
-        sourceIdentifier: o.sourceIdentifier.trim(),
-        sourceUrl: o.sourceUrl.trim(),
-      });
-      if (!validation.valid) {
+        const sourceId = await createJobImportSource({
+          companyId: o.companyId,
+          sourceType: o.sourceType as JobSourceType,
+          sourceIdentifier: o.sourceIdentifier.trim(),
+          sourceUrl: o.sourceUrl?.trim() || null,
+        });
         return {
-          created: false,
-          message: `Validation failed: ${validation.error}`,
+          created: true,
+          sourceId,
+          message: `Job import source created (id: ${sourceId})${o.skipValidation ? " (validation skipped)" : ""}. Use syncJobSource(${sourceId}) to run first sync.`,
+          jobCount,
         };
-      }
+      },
+    ),
 
-      const source = await createEventImportSource({
-        name: o.name.trim(),
-        organizer: o.organizer?.trim() || null,
-        sourceType: o.sourceType,
-        sourceIdentifier: o.sourceIdentifier.trim(),
-        sourceUrl: o.sourceUrl.trim(),
-      });
-      return {
-        created: true,
-        sourceId: source.id,
-        message: `Event import source "${o.name}" created (id: ${source.id}). Use syncEventSource(${source.id}) to run first sync.`,
-        eventCount: "eventCount" in validation ? validation.eventCount : undefined,
-      };
-    },
+    updateJobSource: host(
+      "updateJobSource({ sourceId, sourceType?, sourceIdentifier?, sourceUrl? })",
+      "Patch an existing job import source.",
+      "creation",
+      async (opts: unknown) => {
+        const o = UpdateJobSourceSchema.parse(opts ?? {});
+        const existing = await getSourceById(o.sourceId);
+        if (!existing) throw new Error(`Job import source ${o.sourceId} not found`);
 
-    async createNewsSource(opts: unknown) {
-      const o = CreateNewsSourceSchema.parse(opts ?? {});
+        // Validate new sourceType if changing
+        if (o.sourceType) {
+          try {
+            getImporter(o.sourceType as JobSourceType);
+          } catch {
+            throw new Error(
+              `Unsupported sourceType "${o.sourceType}". Use listImporterTypes() to see available types.`,
+            );
+          }
+        }
 
-      const source = await createNewsImportSource({
-        name: o.name.trim(),
-        sourceType: o.sourceType as NewsSourceType,
-        sourceUrl: o.sourceUrl.trim(),
-        sourceIdentifier: o.sourceIdentifier?.trim() || null,
-        keywords: o.keywords?.trim() || null,
-        useGlobalKeywords: o.useGlobalKeywords ?? false,
-        excerptMode: (o.excerptMode as ExcerptMode | undefined) ?? "description",
-        entityUrl: o.entityUrl?.trim() || null,
-        enabled: o.enabled ?? true,
-      });
+        const updates: { sourceType?: string; sourceIdentifier?: string; sourceUrl?: string | null } = {};
+        if (o.sourceType) updates.sourceType = o.sourceType;
+        if (o.sourceIdentifier) updates.sourceIdentifier = o.sourceIdentifier.trim();
+        if (o.sourceUrl !== undefined) updates.sourceUrl = o.sourceUrl?.trim() || null;
 
-      return toPlain({
-        created: true,
-        sourceId: source.id,
-        message: `News import source "${o.name}" created (id: ${source.id}). Use syncNewsSource(${source.id}) to run first sync.`,
-      });
-    },
+        if (Object.keys(updates).length === 0) {
+          return { updated: false, message: "No fields to update" };
+        }
 
-    async listImporterTypes() {
-      return getAllImporterMeta();
-    },
+        await updateJobImportSource(o.sourceId, updates);
+        return {
+          updated: true,
+          message: `Job import source ${o.sourceId} updated (${Object.keys(updates).join(", ")})`,
+        };
+      },
+    ),
 
-    async createJob(opts: unknown) {
-      const o = CreateJobSchema.parse(opts ?? {});
+    createEventSource: host(
+      "createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? })",
+      "Register a new event import source (luma-user, luma-calendar, technl, eventbrite, bevy, meetup, netbenefit). Validates the config before saving.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateEventSourceSchema.parse(opts ?? {});
 
-      // Resolve company by name if companyName provided instead of companyId
-      let companyId = o.companyId ?? null;
-      if (!companyId && o.companyName) {
-        const company = await getCompanyByNameRecord(o.companyName);
-        if (company) {
-          companyId = company.id;
-        } else {
+        // Validate the config actually works
+        const validation = await validateEventImportSourceConfig({
+          organizer: o.organizer?.trim() || null,
+          sourceType: o.sourceType,
+          sourceIdentifier: o.sourceIdentifier.trim(),
+          sourceUrl: o.sourceUrl.trim(),
+        });
+        if (!validation.valid) {
           return {
             created: false,
-            message: `Company "${o.companyName}" not found. Use getCompanyByName() to check, or createCompany() first.`,
+            message: `Validation failed: ${validation.error}`,
           };
         }
-      }
 
-      const job = await createJobRecord({
-        title: o.title.trim(),
-        description: o.description.trim(),
-        url: o.url.trim(),
-        companyId,
-        location: o.location?.trim() || null,
-        department: o.department?.trim() || null,
-        workplaceType: o.workplaceType || null,
-        salaryRange: o.salaryRange?.trim() || null,
-      });
+        const source = await createEventImportSource({
+          name: o.name.trim(),
+          organizer: o.organizer?.trim() || null,
+          sourceType: o.sourceType,
+          sourceIdentifier: o.sourceIdentifier.trim(),
+          sourceUrl: o.sourceUrl.trim(),
+        });
+        return {
+          created: true,
+          sourceId: source.id,
+          message: `Event import source "${o.name}" created (id: ${source.id}). Use syncEventSource(${source.id}) to run first sync.`,
+          eventCount: "eventCount" in validation ? validation.eventCount : undefined,
+        };
+      },
+    ),
 
-      // If isTechnical is explicitly set to false, mark as non-technical
-      if (o.isTechnical === false) {
-        await db
-          .update(jobs)
-          .set({ isTechnical: false })
-          .where(eq(jobs.id, job.id));
-      }
+    createNewsSource: host(
+      "createNewsSource({ name, sourceType, sourceUrl, sourceIdentifier?, keywords?, useGlobalKeywords?, excerptMode?, entityUrl?, enabled? })",
+      "Register a new news import source (sourceType: 'rss' or 'custom'). For RSS, sourceUrl is the feed URL.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateNewsSourceSchema.parse(opts ?? {});
 
-      return toPlain({
-        created: true,
-        jobId: job.id,
-        slug: job.slug,
-        message: `Job "${o.title}" created (active, manual). View at /manage/jobs/${job.id}`,
-      });
-    },
+        const source = await createNewsImportSource({
+          name: o.name.trim(),
+          sourceType: o.sourceType as NewsSourceType,
+          sourceUrl: o.sourceUrl.trim(),
+          sourceIdentifier: o.sourceIdentifier?.trim() || null,
+          keywords: o.keywords?.trim() || null,
+          useGlobalKeywords: o.useGlobalKeywords ?? false,
+          excerptMode: (o.excerptMode as ExcerptMode | undefined) ?? "description",
+          entityUrl: o.entityUrl?.trim() || null,
+          enabled: o.enabled ?? true,
+        });
 
-    async getManualJobs() {
-      const rows = await db
-        .select({
-          jobId: jobs.id,
-          title: jobs.title,
-          companyName: companies.name,
-          location: jobs.location,
-          workplaceType: jobs.workplaceType,
-          url: jobs.url,
-          createdAt: jobs.createdAt,
-        })
-        .from(jobs)
-        .leftJoin(companies, eq(jobs.companyId, companies.id))
-        .where(and(eq(jobs.sourceType, "manual"), eq(jobs.status, "active")));
-      return toPlain(rows);
-    },
+        return toPlain({
+          created: true,
+          sourceId: source.id,
+          message: `News import source "${o.name}" created (id: ${source.id}). Use syncNewsSource(${source.id}) to run first sync.`,
+        });
+      },
+    ),
 
-    async updateJob(opts: unknown) {
-      const { id, ...fields } = UpdateJobSchema.parse(opts ?? {});
-      const job = await getImportedJobById(id);
-      if (!job) throw new Error(`Job ${id} not found`);
+    listImporterTypes: host(
+      "listImporterTypes()",
+      "Return metadata for every job importer type (greenhouse, ashby, workday, bamboohr, lever, custom, etc.) — name, approach, reliability, quirks.",
+      "sources",
+      async () => {
+        return getAllImporterMeta();
+      },
+    ),
 
-      const updates: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(fields)) {
-        if (value === undefined) continue;
-        if (typeof value === "string") {
-          updates[key] = value.trim() || null;
-        } else {
-          updates[key] = value;
+    createJob: host(
+      "createJob({ title, description, url, companyName?, companyId?, location?, department?, workplaceType?, salaryRange?, isTechnical? })",
+      "Create a manual job posting (active immediately). Pass companyName to auto-resolve the company id.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateJobSchema.parse(opts ?? {});
+
+        // Resolve company by name if companyName provided instead of companyId
+        let companyId = o.companyId ?? null;
+        if (!companyId && o.companyName) {
+          const company = await getCompanyByNameRecord(o.companyName);
+          if (company) {
+            companyId = company.id;
+          } else {
+            return {
+              created: false,
+              message: `Company "${o.companyName}" not found. Use getCompanyByName() to check, or createCompany() first.`,
+            };
+          }
         }
-      }
 
-      if (Object.keys(updates).length === 0) {
-        return { updated: false, message: "No fields to update" };
-      }
-
-      await updateJobRecord(id, updates);
-      return {
-        updated: true,
-        message: `Job "${job.title}" updated (${Object.keys(updates).join(", ")})`,
-      };
-    },
-
-    async deactivateJob(opts: unknown) {
-      const o = DeactivateJobSchema.parse(opts ?? {});
-      const job = await getImportedJobById(o.jobId);
-      if (!job) throw new Error(`Job ${o.jobId} not found`);
-
-      const now = new Date();
-      await db
-        .update(jobs)
-        .set({ status: o.reason, removedAt: now, updatedAt: now })
-        .where(eq(jobs.id, o.jobId));
-
-      return {
-        jobId: o.jobId,
-        reason: o.reason,
-        message: `"${job.title}" marked as ${o.reason}`,
-      };
-    },
-
-    async createEvent(opts: unknown) {
-      const o = CreateEventSchema.parse(opts ?? {});
-
-      // All manual events are anchored to America/St_Johns local time.
-      // If endDate omitted, treat as same-day event.
-      const tz = "America/St_Johns";
-      const startDate = localDateTimeToUTC(o.startDate, o.startTime ?? null, tz);
-      const endDate =
-        o.endDate || o.endTime
-          ? localDateTimeToUTC(o.endDate ?? o.startDate, o.endTime ?? o.startTime ?? null, tz)
-          : null;
-
-      const event = await createEventRecord(
-        {
+        const job = await createJobRecord({
           title: o.title.trim(),
           description: o.description.trim(),
-          link: o.link.trim(),
+          url: o.url.trim(),
+          companyId,
           location: o.location?.trim() || null,
-          organizer: o.organizer?.trim() || null,
-          coverImage: null,
-          iconImage: null,
-          coverImageUrl: null,
-          requiresSignup: o.requiresSignup ?? false,
-          // Hidden from public listings until an admin uploads a cover/icon
-          // image and publishes via /manage/events/{id}/edit. The visibility
-          // filter used everywhere is `importStatus IS NULL OR = 'published'`.
-          importStatus: "pending_review",
-        },
-        [{ startDate, endDate }],
-      );
+          department: o.department?.trim() || null,
+          workplaceType: o.workplaceType || null,
+          salaryRange: o.salaryRange?.trim() || null,
+        });
 
-      return toPlain({
-        created: true,
-        eventId: event.id,
-        slug: event.slug,
-        importStatus: "pending_review",
-        message: `Event "${o.title}" created (pending review, hidden from public). Add cover/icon images and publish at /manage/events/${event.id}/edit`,
-      });
-    },
+        // If isTechnical is explicitly set to false, mark as non-technical
+        if (o.isTechnical === false) {
+          await db
+            .update(jobs)
+            .set({ isTechnical: false })
+            .where(eq(jobs.id, job.id));
+        }
 
-    async getManualEvents() {
-      // Manual events are those not tied to an import source.
-      // Includes both published events and ones still pending review
-      // (i.e. awaiting cover/icon images before going public).
-      const rows = await db
-        .select({
-          eventId: events.id,
-          title: events.title,
-          slug: events.slug,
-          link: events.link,
-          location: events.location,
-          organizer: events.organizer,
-          importStatus: events.importStatus,
-          coverImage: events.coverImage,
-          iconImage: events.iconImage,
-          createdAt: events.createdAt,
-        })
-        .from(events)
-        .where(isNull(events.importSourceId));
-      return toPlain(rows);
-    },
+        return toPlain({
+          created: true,
+          jobId: job.id,
+          slug: job.slug,
+          message: `Job "${o.title}" created (active, manual). View at /manage/jobs/${job.id}`,
+        });
+      },
+    ),
 
-    async searchIndeedJobs(opts: unknown) {
-      const o = SearchJobsSchema.parse(opts ?? {});
-      return searchIndeed(o);
-    },
+    getManualJobs: host(
+      "getManualJobs()",
+      "All active manually-created jobs (sourceType='manual') with URLs — useful for periodic liveness checks.",
+      "lookup",
+      async () => {
+        const rows = await db
+          .select({
+            jobId: jobs.id,
+            title: jobs.title,
+            companyName: companies.name,
+            location: jobs.location,
+            workplaceType: jobs.workplaceType,
+            url: jobs.url,
+            createdAt: jobs.createdAt,
+          })
+          .from(jobs)
+          .leftJoin(companies, eq(jobs.companyId, companies.id))
+          .where(and(eq(jobs.sourceType, "manual"), eq(jobs.status, "active")));
+        return toPlain(rows);
+      },
+    ),
 
-    async searchLinkedInJobs(opts: unknown) {
-      const o = SearchJobsSchema.parse(opts ?? {});
-      return searchLinkedIn(o);
-    },
+    updateJob: host(
+      "updateJob({ id, title?, description?, url?, location?, department?, workplaceType?, salaryRange? })",
+      "Patch fields on a job. Trims string fields; empty string clears the field.",
+      "creation",
+      async (opts: unknown) => {
+        const { id, ...fields } = UpdateJobSchema.parse(opts ?? {});
+        const job = await getImportedJobById(id);
+        if (!job) throw new Error(`Job ${id} not found`);
 
-    async listTechNLJobs() {
-      const result = await fetchTechNLJobsWithMatches();
-      // Trim heavy fields by default — descriptionHtml is large and
-      // descriptionText is the useful summary. Callers wanting the full
-      // HTML can fetch the individual posting via the link.
-      return toPlain(
-        result.jobs.map((j) => ({
-          title: j.title,
-          company: j.company,
-          location: j.location,
-          jobType: j.jobType,
-          salary: j.salary,
-          link: j.link,
-          postedAt: j.postedAt,
-          descriptionSnippet:
-            j.descriptionText.length > 600
-              ? `${j.descriptionText.slice(0, 600)}...`
-              : j.descriptionText,
-          match: j.match,
-        })),
-      );
-    },
+        const updates: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(fields)) {
+          if (value === undefined) continue;
+          if (typeof value === "string") {
+            updates[key] = value.trim() || null;
+          } else {
+            updates[key] = value;
+          }
+        }
 
-    async getTechNLJob(link: unknown) {
-      const target = typeof link === "string" ? link : String(link ?? "");
-      if (!target) return { found: false, message: "link is required" } as const;
-      const result = await fetchTechNLJobsWithMatches();
-      const job = result.jobs.find((j) => j.link === target);
-      if (!job) {
+        if (Object.keys(updates).length === 0) {
+          return { updated: false, message: "No fields to update" };
+        }
+
+        await updateJobRecord(id, updates);
         return {
-          found: false,
-          message: `No TechNL job with link "${target}". It may have been removed from the feed.`,
-        } as const;
-      }
-      return toPlain({ found: true, job });
-    },
+          updated: true,
+          message: `Job "${job.title}" updated (${Object.keys(updates).join(", ")})`,
+        };
+      },
+    ),
 
-    async submitNewsLink(opts: unknown) {
-      const o = SubmitNewsLinkSchema.parse(opts ?? {});
-      return submitNewsLink(o);
-    },
+    deactivateJob: host(
+      "deactivateJob({ jobId, reason }) where reason is 'removed' | 'filled' | 'expired'",
+      "Mark a job inactive. Use for manual jobs whose links have gone dead, or when filled.",
+      "lifecycle",
+      async (opts: unknown) => {
+        const o = DeactivateJobSchema.parse(opts ?? {});
+        const job = await getImportedJobById(o.jobId);
+        if (!job) throw new Error(`Job ${o.jobId} not found`);
 
-    async createNewsArticle(opts: unknown) {
-      const o = CreateNewsArticleSchema.parse(opts ?? {});
-      return createNewsArticle(o);
-    },
+        const now = new Date();
+        await db
+          .update(jobs)
+          .set({ status: o.reason, removedAt: now, updatedAt: now })
+          .where(eq(jobs.id, o.jobId));
 
-    async pendingNews() {
-      return pendingNews();
-    },
+        return {
+          jobId: o.jobId,
+          reason: o.reason,
+          message: `"${job.title}" marked as ${o.reason}`,
+        };
+      },
+    ),
 
-    async approveNews(id: unknown) {
-      return approveNews(Number(id));
-    },
+    createEvent: host(
+      "createEvent({ title, description, link, startDate, endDate?, startTime?, endTime?, location?, organizer?, requiresSignup? })",
+      "Create a one-time event. Dates are YYYY-MM-DD, times are HH:mm (America/St_Johns). Events land in pending_review (hidden) so you can add cover/icon images via /manage/events/{id}/edit before publishing.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateEventSchema.parse(opts ?? {});
 
-    async hideNews(id: unknown) {
-      return hideNews(Number(id));
-    },
+        // All manual events are anchored to America/St_Johns local time.
+        // If endDate omitted, treat as same-day event.
+        const tz = "America/St_Johns";
+        const startDate = localDateTimeToUTC(o.startDate, o.startTime ?? null, tz);
+        const endDate =
+          o.endDate || o.endTime
+            ? localDateTimeToUTC(o.endDate ?? o.startDate, o.endTime ?? o.startTime ?? null, tz)
+            : null;
+
+        const event = await createEventRecord(
+          {
+            title: o.title.trim(),
+            description: o.description.trim(),
+            link: o.link.trim(),
+            location: o.location?.trim() || null,
+            organizer: o.organizer?.trim() || null,
+            coverImage: null,
+            iconImage: null,
+            coverImageUrl: null,
+            requiresSignup: o.requiresSignup ?? false,
+            // Hidden from public listings until an admin uploads a cover/icon
+            // image and publishes via /manage/events/{id}/edit. The visibility
+            // filter used everywhere is `importStatus IS NULL OR = 'published'`.
+            importStatus: "pending_review",
+          },
+          [{ startDate, endDate }],
+        );
+
+        return toPlain({
+          created: true,
+          eventId: event.id,
+          slug: event.slug,
+          importStatus: "pending_review",
+          message: `Event "${o.title}" created (pending review, hidden from public). Add cover/icon images and publish at /manage/events/${event.id}/edit`,
+        });
+      },
+    ),
+
+    getManualEvents: host(
+      "getManualEvents()",
+      "All events not tied to an import source (created via createEvent or the admin UI). Returns importStatus, coverImage, and iconImage so you can spot ones still needing artwork.",
+      "lookup",
+      async () => {
+        // Manual events are those not tied to an import source.
+        // Includes both published events and ones still pending review
+        // (i.e. awaiting cover/icon images before going public).
+        const rows = await db
+          .select({
+            eventId: events.id,
+            title: events.title,
+            slug: events.slug,
+            link: events.link,
+            location: events.location,
+            organizer: events.organizer,
+            importStatus: events.importStatus,
+            coverImage: events.coverImage,
+            iconImage: events.iconImage,
+            createdAt: events.createdAt,
+          })
+          .from(events)
+          .where(isNull(events.importSourceId));
+        return toPlain(rows);
+      },
+    ),
+
+    searchIndeedJobs: host(
+      "searchIndeedJobs({ query?, location?, limit?, hoursOld? })",
+      "Search Indeed via their mobile GraphQL API. Returns id, title, company, location, description, salary, datePosted. Default location: \"St. John's, NL\".",
+      "search",
+      async (opts: unknown) => {
+        const o = SearchJobsSchema.parse(opts ?? {});
+        return searchIndeed(o);
+      },
+    ),
+
+    searchLinkedInJobs: host(
+      "searchLinkedInJobs({ query?, location?, limit? })",
+      "Search LinkedIn via the public jobs-guest endpoint. No authentication required. Returns id, title, company, location, url, datePosted, salary.",
+      "search",
+      async (opts: unknown) => {
+        const o = SearchJobsSchema.parse(opts ?? {});
+        return searchLinkedIn(o);
+      },
+    ),
+
+    listTechNLJobs: host(
+      "listTechNLJobs()",
+      "Live technl.ca job board with company-match info so you can spot which postings we already have via createJob or an importer.",
+      "search",
+      async () => {
+        const result = await fetchTechNLJobsWithMatches();
+        // Trim heavy fields by default — descriptionHtml is large and
+        // descriptionText is the useful summary. Callers wanting the full
+        // HTML can fetch the individual posting via the link.
+        return toPlain(
+          result.jobs.map((j) => ({
+            title: j.title,
+            company: j.company,
+            location: j.location,
+            jobType: j.jobType,
+            salary: j.salary,
+            link: j.link,
+            postedAt: j.postedAt,
+            descriptionSnippet:
+              j.descriptionText.length > 600
+                ? `${j.descriptionText.slice(0, 600)}...`
+                : j.descriptionText,
+            match: j.match,
+          })),
+        );
+      },
+    ),
+
+    getTechNLJob: host(
+      "getTechNLJob(link)",
+      "Full HTML/text description for one TechNL posting by its link.",
+      "search",
+      async (link: unknown) => {
+        const target = typeof link === "string" ? link : String(link ?? "");
+        if (!target) return { found: false, message: "link is required" } as const;
+        const result = await fetchTechNLJobsWithMatches();
+        const job = result.jobs.find((j) => j.link === target);
+        if (!job) {
+          return {
+            found: false,
+            message: `No TechNL job with link "${target}". It may have been removed from the feed.`,
+          } as const;
+        }
+        return toPlain({ found: true, job });
+      },
+    ),
+
+    submitNewsLink: host(
+      "submitNewsLink({ url, title?, excerpt?, sourceName? })",
+      "Submit an external link as a news item (type='link'). Auto-extracts title and description from the page if not provided.",
+      "creation",
+      async (opts: unknown) => {
+        const o = SubmitNewsLinkSchema.parse(opts ?? {});
+        return submitNewsLink(o);
+      },
+    ),
+
+    createNewsArticle: host(
+      "createNewsArticle({ title, content, excerpt?, publish? })",
+      "Create a news article directly (type='article'). publish=true marks it published immediately, else draft.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateNewsArticleSchema.parse(opts ?? {});
+        return createNewsArticle(o);
+      },
+    ),
+
+    pendingNews: host(
+      "pendingNews()",
+      "List news items with status='pending_review' (newly synced from RSS feeds). Returns title, externalUrl, sourceName, excerpt, publishedAt.",
+      "pending",
+      async () => {
+        return pendingNews();
+      },
+    ),
+
+    approveNews: host(
+      "approveNews(id)",
+      "Move a pending_review news item to published.",
+      "lifecycle",
+      async (id: unknown) => {
+        return approveNews(Number(id));
+      },
+    ),
+
+    hideNews: host(
+      "hideNews(id)",
+      "Hide a news item from public listings.",
+      "lifecycle",
+      async (id: unknown) => {
+        return hideNews(Number(id));
+      },
+    ),
   };
 }
 

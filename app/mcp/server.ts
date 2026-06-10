@@ -3,7 +3,13 @@ import { z } from "zod";
 import { searchSpec } from "./search.js";
 import { formatSandboxError, runInSandbox } from "./sandbox.js";
 import type { HostFunctions } from "./sandbox.js";
-import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
+import {
+  buildReadFunctions,
+  buildExecuteFunctions,
+  getHostFunctionDocs,
+  type HostFnCategory,
+  type HostFunctionDocsEntry,
+} from "./bridge.js";
 
 // ── Shared sandbox result handler ──────────────────────────────────────
 
@@ -26,73 +32,88 @@ async function runSandboxTool(code: string, fns: HostFunctions, timeout: number)
 
 // ── Tool descriptions ──────────────────────────────────────────────────
 
-const EXECUTE_DESCRIPTION = [
-  "Like 'query' but also exposes sync, creation, review, and pending functions.",
-  "Requires apiToken.",
-  "",
-  "Additional imports from 'siliconharbour':",
-  "- eventImportSources(), jobImportSources(), newsImportSources(), pendingEvents(), pendingJobs(), pendingNews()",
-  "- syncEventSource(id), syncAllEventSources(), syncJobSource(id), syncAllJobSources(), syncNewsSource(id), syncAllNewsSources()",
-  "- asyncSyncAllEventSources(), asyncSyncAllJobSources(), asyncSyncAllNewsSources(), asyncSyncAllSources(), getAsyncSync(runId), listAsyncSyncs()",
-  "- createCompany({ name, website?, description?, location?, email? })",
-  "- getCompanyByName(name)",
-  "- updateCompany({ id, name?, website?, description?, location?, email?, linkedin?, github?, wikipedia?, careersUrl?, founded?, visible?, technl?, genesis?, bounce? })",
-  "- createJobSource({ companyId, sourceType, sourceIdentifier, sourceUrl? })",
-  "- updateJobSource({ sourceId, sourceType?, sourceIdentifier?, sourceUrl? })",
-  "- createEventSource({ name, sourceType, sourceIdentifier, sourceUrl, organizer? })",
-  "- listImporterTypes()",
-  "- getJobDetail(jobId)",
-  "- reviewJob({ jobId, action })",
-  "- createJob({ title, description, url, companyName?, companyId?, location?, department?, workplaceType?, salaryRange?, isTechnical? })",
-  "- updateJob({ id, title?, description?, url?, location?, department?, workplaceType?, salaryRange? })",
-  "- getManualJobs()",
-  "- deactivateJob({ jobId, reason }) where reason is 'removed', 'filled', or 'expired'",
-  "- createEvent({ title, description, link, startDate, endDate?, startTime?, endTime?, location?, organizer?, requiresSignup? })",
-  "- getManualEvents()",
-  "- searchIndeedJobs({ query?, location?, limit?, hoursOld? })",
-  "- searchLinkedInJobs({ query?, location?, limit? })",
-  "- listTechNLJobs()",
-  "- getTechNLJob(link)",
-  "- submitNewsLink({ url, title?, excerpt?, sourceName? })",
-  "- createNewsArticle({ title, content, excerpt?, publish? })",
-  "- createNewsSource({ name, sourceType, sourceUrl, sourceIdentifier?, keywords?, useGlobalKeywords?, excerptMode?, entityUrl?, enabled? })",
-  "- getNewsDetail(id)",
-  "- approveNews(id)",
-  "- hideNews(id)",
-  "",
-  "createCompany creates hidden companies (pending review).",
-  "createJob creates a manual job posting (active immediately). Pass companyName to auto-resolve the company ID.",
-  "getManualJobs() returns all active manually-created jobs with their URLs for liveness checking.",
-  "deactivateJob marks a job as removed/filled/expired (use for manual jobs whose links have gone dead).",
-  "createEvent creates a one-time event tied to a single external link (use this for LinkedIn event URLs or other sources we can't scrape — pair with a browser tool to read the event page first). Dates are YYYY-MM-DD, times are HH:mm local time in America/St_Johns. Omit endDate for same-day events. Events are created with importStatus='pending_review' so they are hidden from public listings until an admin uploads a cover/icon image and publishes via /manage/events/{id}/edit.",
-  "getManualEvents() returns all events not tied to an import source (i.e. created via createEvent or the admin /manage/events UI), including their importStatus and image fields so you can spot which still need cover/icon images.",
-  "",
-  "News workflow: newsImportSources() lists active RSS feeds (technl, BetaKit, VOCM, MUN Gazette, etc.). syncNewsSource(id) refreshes one feed, syncAllNewsSources() refreshes them all. New items land in pending_review and surface via pendingNews(); call getNewsDetail(id) for the full body. approveNews(id) publishes, hideNews(id) drops. Use createNewsSource() to register a new RSS feed (sourceType='rss', sourceUrl=feed URL).",
-  "createJobSource/createEventSource validate the config before saving.",
-  "pendingJobs() returns title, company, location, workplaceType, descriptionSnippet, URL.",
-  "getJobDetail(jobId) returns full description text for deeper analysis.",
-  "",
-  "listTechNLJobs() returns the live technl.ca job board (https://technl.ca/job-seekers/) with",
-  "company match info. Use this to discover postings from NL companies that don't yet have a",
-  "direct ATS scraper. Each entry includes a `match` object showing whether the company exists,",
-  "whether it already has any job_import_sources, and whether the exact URL is already in our jobs",
-  "table — so you can spot duplicates before calling createJob. getTechNLJob(link) returns the full",
-  "HTML/text description for one posting.",
-  "",
-  "reviewJob actions: 'approve' (technical job, published),",
-  "'approve-non-technical' (non-technical job, published but deprioritized),",
-  "'hide' (not relevant, hidden from public).",
-  "",
-  "JOB REVIEW CRITERIA:",
-  "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",
-  "- 'approve-non-technical' if: non-technical role (sales, marketing, HR, operations, finance, admin) BUT in St. John's NL or remote. Also use for remote technical roles that are clearly not NL-connected.",
-  "- 'hide' if: not in St. John's/NL and not remote, OR completely irrelevant to the NL tech community.",
-  "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech.",
-  "When uncertain, lean toward 'approve-non-technical' over 'hide'.",
-  "",
-  "All functions call the real database on-demand.",
-  "Timeout: 60 seconds. For long full imports, prefer asyncSyncAllSources() and poll getAsyncSync(runId) until status is completed/failed.",
-].join("\n");
+// Render order for categories in the auto-generated tool descriptions.
+const CATEGORY_ORDER: HostFnCategory[] = [
+  "read",
+  "sources",
+  "pending",
+  "sync",
+  "async-sync",
+  "creation",
+  "lookup",
+  "search",
+  "lifecycle",
+];
+
+const CATEGORY_LABELS: Record<HostFnCategory, string> = {
+  read: "Read",
+  sources: "Import sources",
+  pending: "Pending review queues",
+  sync: "Synchronous sync",
+  "async-sync": "Background sync",
+  creation: "Creation",
+  lookup: "Lookup / detail",
+  search: "External search",
+  lifecycle: "Lifecycle / review",
+};
+
+function groupByCategory(entries: HostFunctionDocsEntry[]) {
+  const byCat = new Map<HostFnCategory, HostFunctionDocsEntry[]>();
+  for (const entry of entries) {
+    const arr = byCat.get(entry.category) ?? [];
+    arr.push(entry);
+    byCat.set(entry.category, arr);
+  }
+  return byCat;
+}
+
+function describeEntries(entries: HostFunctionDocsEntry[]): string {
+  const byCat = groupByCategory(entries);
+  return CATEGORY_ORDER.filter((cat) => byCat.has(cat))
+    .map((cat) => {
+      const items = byCat.get(cat) ?? [];
+      const lines = items.map((e) => `- ${e.signature}\n  ${e.description}`).join("\n");
+      return `${CATEGORY_LABELS[cat]}:\n${lines}`;
+    })
+    .join("\n\n");
+}
+
+function buildQueryDescription(): string {
+  const docs = getHostFunctionDocs();
+  return [
+    "Execute JavaScript in a secure QuickJS sandbox to query SiliconHarbour community data.",
+    "Each function calls the real database on-demand — no pre-fetching.",
+    "Your code must export a default value. Use 'search' first to discover available fields.",
+    "Example: import { events } from 'siliconharbour'; export default await events({ upcoming: true, limit: 5 })",
+    "Timeout: 10 seconds.",
+    "",
+    "Imports from 'siliconharbour':",
+    "",
+    describeEntries(docs.read),
+  ].join("\n");
+}
+
+function buildExecuteDescription(): string {
+  const docs = getHostFunctionDocs();
+  return [
+    "Like 'query' but also exposes sync, creation, review, and pending functions.",
+    "Requires apiToken.",
+    "",
+    "Imports from 'siliconharbour':",
+    "",
+    describeEntries(docs.execute),
+    "",
+    "JOB REVIEW CRITERIA:",
+    "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",
+    "- 'approve-non-technical' if: non-technical role (sales, marketing, HR, operations, finance, admin) BUT in St. John's NL or remote. Also use for remote technical roles that are clearly not NL-connected.",
+    "- 'hide' if: not in St. John's/NL and not remote, OR completely irrelevant to the NL tech community.",
+    "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech.",
+    "When uncertain, lean toward 'approve-non-technical' over 'hide'.",
+    "",
+    "All functions call the real database on-demand.",
+    "Timeout: 60 seconds. For long full imports, prefer asyncSyncAllSources() and poll getAsyncSync(runId) until status is completed/failed.",
+  ].join("\n");
+}
 
 // ── Server factory ─────────────────────────────────────────────────────
 
@@ -125,15 +146,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
     "query",
     {
       title: "Query SiliconHarbour data",
-      description:
-        "Execute JavaScript in a secure QuickJS sandbox to query SiliconHarbour community data. " +
-        "Import from 'siliconharbour': events({ upcoming?, limit?, offset? }), jobs({ query?, limit?, offset? }), " +
-        "companies({ query?, limit?, offset? }), groups({ limit?, offset? }), people({ query?, limit?, offset? }), " +
-        "technologies({ limit?, offset? }), education({ limit?, offset? }). " +
-        "Each function calls the real database on-demand — no pre-fetching. " +
-        "Your code must export a default value. Use 'search' first to discover available fields. " +
-        "Example: import { events } from 'siliconharbour'; export default await events({ upcoming: true, limit: 5 }) " +
-        "Timeout: 10 seconds.",
+      description: buildQueryDescription(),
       inputSchema: {
         code: z
           .string()
@@ -152,7 +165,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
       "execute",
       {
         title: "Execute authenticated SiliconHarbour actions",
-        description: EXECUTE_DESCRIPTION,
+        description: buildExecuteDescription(),
         inputSchema: {
           code: z
             .string()

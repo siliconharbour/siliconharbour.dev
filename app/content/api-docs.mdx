@@ -3,7 +3,7 @@ title: API
 description: Public JSON API for accessing St. John's tech community data
 ---
 
-import { Code, CodeBlock, ApiTable } from "../components/content";
+import { Code, CodeBlock, ApiTable, MCPTools } from "../components/content";
 
 # API
 
@@ -57,11 +57,10 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server is ava
 
 ### Tools
 
-| Tool      | Description                                                              | Auth required |
-| --------- | ------------------------------------------------------------------------ | ------------- |
-| `search`  | Search the API schema to discover available data types and field shapes  | No            |
-| `query`   | Execute JavaScript in a secure sandbox to query community data on-demand | No            |
-| `execute` | Like `query` but also exposes sync and pending-review actions            | Yes           |
+Three MCP tools are exposed. Expand any tool to see the functions it makes available — this listing is auto-generated from the bridge implementation so it always reflects the live server.
+
+<MCPTools />
+
 
 ### Setup (Claude Desktop / OpenCode)
 

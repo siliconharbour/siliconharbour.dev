@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getHostFunctionDocs } from "./bridge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const openapiPath = join(__dirname, "../../public/openapi.json");
@@ -34,18 +35,39 @@ function endpointToText(path: string, methods: PathMethods): string {
     .join("\n");
 }
 
-const MODULE_HINTS: Record<string, string> = {
-  event: "siliconharbour module: events({ limit?, offset?, upcoming? })",
-  job: "siliconharbour module: jobs({ limit?, offset?, query? })",
-  company: "siliconharbour module: companies({ limit?, offset?, query? })",
-  group: "siliconharbour module: groups({ limit?, offset? })",
-  person: "siliconharbour module: people({ limit?, offset?, query? })",
-  people: "siliconharbour module: people({ limit?, offset?, query? })",
-  education: "siliconharbour module: education({ limit?, offset? })",
-  technology: "siliconharbour module: technologies({ limit?, offset? })",
-  product: "siliconharbour module: (no dedicated function — query companies instead)",
-  project: "siliconharbour module: (no dedicated function — query companies instead)",
+/**
+ * Map a search noun → host function name. Mostly the noun pluralised,
+ * but some entities (person/people) need an alias and some have no
+ * dedicated function. Resolved against the live host-function docs so
+ * signatures stay correct as the bridge evolves.
+ */
+const HOST_FN_NAME_FOR_ENTITY: Record<string, string | null> = {
+  event: "events",
+  job: "jobs",
+  company: "companies",
+  group: "groups",
+  person: "people",
+  people: "people",
+  education: "education",
+  technology: "technologies",
+  news: "news",
+  product: null, // no dedicated function — query companies instead
+  project: null, // no dedicated function — query companies instead
 };
+
+function formatModuleHint(query: string): string | null {
+  const docs = getHostFunctionDocs();
+  const readByName = new Map(docs.read.map((d) => [d.name, d]));
+  const matched = Object.entries(HOST_FN_NAME_FOR_ENTITY).find(([k]) => query.includes(k));
+  if (!matched) return null;
+  const [, fnName] = matched;
+  if (fnName === null) {
+    return "siliconharbour module: (no dedicated function — query companies instead)";
+  }
+  const doc = readByName.get(fnName);
+  if (!doc) return null; // function removed from bridge
+  return `siliconharbour module: ${doc.signature}\n  ${doc.description}`;
+}
 
 export function searchSpec(query: string): string {
   const q = query.toLowerCase();
@@ -67,6 +89,22 @@ export function searchSpec(query: string): string {
     }
   }
 
+  // Search the host-function docs themselves. Lets agents ask
+  // "siliconharbour module" or function-name queries.
+  const fnDocs = getHostFunctionDocs();
+  const matchingFns = fnDocs.execute.filter(
+    (d) => d.name.toLowerCase().includes(q) || d.description.toLowerCase().includes(q),
+  );
+  if (matchingFns.length > 0) {
+    results.push(
+      "### siliconharbour module functions\n" +
+        matchingFns
+          .slice(0, 12)
+          .map((d) => `  ${d.signature}\n    — ${d.description}`)
+          .join("\n"),
+    );
+  }
+
   if (results.length === 0) {
     return [
       `No matches for "${query}".`,
@@ -75,7 +113,7 @@ export function searchSpec(query: string): string {
     ].join("\n");
   }
 
-  const hint = Object.entries(MODULE_HINTS).find(([k]) => q.includes(k))?.[1];
+  const hint = formatModuleHint(q);
 
   const parts = [results.slice(0, 6).join("\n\n")];
   if (hint)
