@@ -1,6 +1,6 @@
 ---
 id: s-c09b
-status: open
+status: closed
 deps: []
 links: []
 created: 2026-06-10T19:10:01Z
