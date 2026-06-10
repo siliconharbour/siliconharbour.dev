@@ -5,7 +5,7 @@ import { getEventById, updateEvent } from "~/lib/events.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
 import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
-import { resolveUpdatedImage } from "~/lib/admin/image-fields";
+import { resolveGeneratedCoverImage, resolveUpdatedImage } from "~/lib/admin/image-fields";
 import { actionError } from "~/lib/admin/action-result";
 import {
   parseEventBaseForm,
@@ -54,13 +54,6 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // Check if this is a recurring event
   const isRecurring = parsedBase.data.eventType === "recurring";
-  const coverImage = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "coverImageData",
-    existingImageField: "existingCoverImage",
-    currentImage: existingEvent.coverImage,
-    processor: processAndSaveCoverImage,
-  });
   const iconImage = await resolveUpdatedImage({
     formData,
     uploadedImageField: "iconImageData",
@@ -68,6 +61,23 @@ export async function action({ request, params }: Route.ActionArgs) {
     currentImage: existingEvent.iconImage,
     processor: processAndSaveIconImage,
   });
+  // If "Generate cover from icon" was ticked, synthesize from the icon
+  // (freshly uploaded, the new saved icon, or the previous one — in that
+  // order). Otherwise fall back to the regular cover upload pipeline.
+  const generatedCover = await resolveGeneratedCoverImage(
+    formData,
+    existingEvent.coverImage,
+    iconImage ?? existingEvent.iconImage,
+  );
+  const coverImage =
+    generatedCover ??
+    (await resolveUpdatedImage({
+      formData,
+      uploadedImageField: "coverImageData",
+      existingImageField: "existingCoverImage",
+      currentImage: existingEvent.coverImage,
+      processor: processAndSaveCoverImage,
+    }));
 
   if (isRecurring) {
     const parsedRecurring = parseEventRecurringForm(formData);

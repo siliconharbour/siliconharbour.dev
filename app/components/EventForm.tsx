@@ -149,6 +149,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
 
   const [coverImageData, setCoverImageData] = useState<string | null>(null);
   const [iconImageData, setIconImageData] = useState<string | null>(null);
+  const [generateCoverFromIcon, setGenerateCoverFromIcon] = useState(false);
 
   const [activeDatePicker, setActiveDatePicker] = useState<string | null>(null);
 
@@ -318,7 +319,17 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
           {/* Cover Image */}
           <div>
             <label className="block text-sm font-medium mb-2 text-harbour-700">Cover Image</label>
-            {coverImagePreview ? (
+            {generateCoverFromIcon ? (
+              <div className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 bg-harbour-50 px-4 text-center">
+                <span className="text-sm text-harbour-600 font-medium">
+                  Will generate on save
+                </span>
+                <span className="mt-1 text-xs text-harbour-400">
+                  A diagonal gradient from the icon's dominant colors will be
+                  used as the cover image.
+                </span>
+              </div>
+            ) : coverImagePreview ? (
               <div className="relative">
                 <img
                   src={coverImagePreview}
@@ -367,6 +378,18 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                 />
               </label>
             )}
+            <label
+              className={`mt-2 flex items-center gap-2 text-xs ${iconImagePreview ? "text-harbour-600 cursor-pointer" : "text-harbour-300 cursor-not-allowed"}`}
+            >
+              <input
+                type="checkbox"
+                checked={generateCoverFromIcon}
+                disabled={!iconImagePreview}
+                onChange={(e) => setGenerateCoverFromIcon(e.target.checked)}
+              />
+              Generate cover from icon
+              {!iconImagePreview && " (add an icon first)"}
+            </label>
           </div>
 
           {/* Icon Image */}
@@ -421,9 +444,14 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
         </div>
 
         {/* Hidden inputs for image data */}
-        {coverImageData && <input type="hidden" name="coverImageData" value={coverImageData} />}
+        {generateCoverFromIcon && (
+          <input type="hidden" name="generateCoverFromIcon" value="true" />
+        )}
+        {!generateCoverFromIcon && coverImageData && (
+          <input type="hidden" name="coverImageData" value={coverImageData} />
+        )}
         {iconImageData && <input type="hidden" name="iconImageData" value={iconImageData} />}
-        {event?.coverImage && !coverImageData && coverImagePreview && (
+        {!generateCoverFromIcon && event?.coverImage && !coverImageData && coverImagePreview && (
           <input type="hidden" name="existingCoverImage" value={event.coverImage} />
         )}
         {event?.iconImage && !iconImageData && iconImagePreview && (

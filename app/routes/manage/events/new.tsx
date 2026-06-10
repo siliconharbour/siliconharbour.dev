@@ -5,7 +5,10 @@ import { createEvent } from "~/lib/events.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
 import { actionError } from "~/lib/admin/action-result";
-import { createImageFromFormData } from "~/lib/admin/image-fields";
+import {
+  createImageFromFormData,
+  resolveGeneratedCoverImage,
+} from "~/lib/admin/image-fields";
 import {
   parseEventBaseForm,
   parseEventRecurringForm,
@@ -30,16 +33,17 @@ export async function action({ request }: Route.ActionArgs) {
     return actionError(parsedBase.error);
   }
 
-  const coverImage = await createImageFromFormData(
-    formData,
-    "coverImageData",
-    processAndSaveCoverImage,
-  );
   const iconImage = await createImageFromFormData(
     formData,
     "iconImageData",
     processAndSaveIconImage,
   );
+  // If "Generate cover from icon" was requested, synthesize it from the
+  // icon palette; otherwise honor the regular upload field.
+  const generatedCover = await resolveGeneratedCoverImage(formData, null, null);
+  const coverImage =
+    generatedCover ??
+    (await createImageFromFormData(formData, "coverImageData", processAndSaveCoverImage));
 
   // Check if this is a recurring event
   const isRecurring = parsedBase.data.eventType === "recurring";
