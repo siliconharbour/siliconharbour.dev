@@ -14,7 +14,11 @@ import {
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getPaginatedNews, getNewsById } from "~/lib/news.server";
 import { getPaginatedCompanies } from "~/lib/companies.server";
-import { getPaginatedGroups } from "~/lib/groups.server";
+import {
+  getPaginatedGroups,
+  createGroup as createGroupRecord,
+  getGroupBySlug as getGroupBySlugRecord,
+} from "~/lib/groups.server";
 import { getPaginatedPeople } from "~/lib/people.server";
 import { getAllTechnologies } from "~/lib/technologies.server";
 import { getPaginatedEducation } from "~/lib/education.server";
@@ -181,6 +185,14 @@ const CreateCompanySchema = z.object({
   description: z.string().optional(),
   location: z.string().optional(),
   email: z.string().optional(),
+});
+
+const CreateGroupSchema = z.object({
+  name: z.string().min(1, "name is required"),
+  description: z.string().min(1, "description is required"),
+  website: z.string().optional(),
+  meetingFrequency: z.string().optional(),
+  visible: z.boolean().optional(),
 });
 
 const UpdateCompanySchema = z.object({
@@ -890,6 +902,51 @@ export function buildExecuteFunctions(): HostFunctions {
             slug: company.slug,
             website: company.website,
             visible: company.visible,
+          },
+        });
+      },
+    ),
+
+    createGroup: host(
+      "createGroup({ name, description, website?, meetingFrequency?, visible? })",
+      "Create a new community group. Created hidden (visible=false) by default so an admin can review and add a logo/cover before publishing — pass visible=true to publish immediately.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateGroupSchema.parse(opts ?? {});
+        const group = await createGroupRecord({
+          name: o.name.trim(),
+          description: o.description.trim(),
+          website: o.website?.trim() || null,
+          meetingFrequency: o.meetingFrequency?.trim() || null,
+          logo: null,
+          coverImage: null,
+          visible: o.visible ?? false,
+        });
+        return toPlain({
+          created: true,
+          message: `Group "${group.name}" created${group.visible ? "" : " (hidden, pending review)"}. View at /manage/groups/${group.id}`,
+          group: { id: group.id, name: group.name, slug: group.slug, visible: group.visible },
+        });
+      },
+    ),
+
+    getGroupBySlug: host(
+      "getGroupBySlug(slug)",
+      "Look up a community group by slug. Returns id, name, slug, website, meetingFrequency, visible.",
+      "lookup",
+      async (slug: unknown) => {
+        if (!slug || typeof slug !== "string") throw new Error("slug is required (string)");
+        const group = await getGroupBySlugRecord(slug.trim());
+        if (!group) return { found: false, message: `No group found with slug "${slug}"` };
+        return toPlain({
+          found: true,
+          group: {
+            id: group.id,
+            name: group.name,
+            slug: group.slug,
+            website: group.website,
+            meetingFrequency: group.meetingFrequency,
+            visible: group.visible,
           },
         });
       },
