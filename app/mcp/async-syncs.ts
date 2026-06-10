@@ -3,15 +3,17 @@ import { formatSandboxError } from "./sandbox.js";
 
 type AsyncSyncStatus = "running" | "completed" | "failed";
 
+export type AsyncSyncTaskType = "event" | "job" | "news";
+
 export type AsyncSyncTask = {
-  type: "event" | "job";
+  type: AsyncSyncTaskType;
   sourceId: number;
   name: string;
   run: () => Promise<unknown>;
 };
 
 type AsyncSyncStep = {
-  type: "event" | "job";
+  type: AsyncSyncTaskType;
   sourceId: number;
   name: string;
   status: AsyncSyncStatus;
@@ -31,7 +33,7 @@ type AsyncSync = {
   total: number;
   completed: number;
   failed: number;
-  current?: { type: "event" | "job"; sourceId: number; name: string };
+  current?: { type: AsyncSyncTaskType; sourceId: number; name: string };
   steps: AsyncSyncStep[];
 };
 

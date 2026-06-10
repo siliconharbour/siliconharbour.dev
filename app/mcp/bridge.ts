@@ -12,6 +12,7 @@ import {
   createEvent as createEventRecord,
 } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
+import { getPaginatedNews, getNewsById } from "~/lib/news.server";
 import { getPaginatedCompanies } from "~/lib/companies.server";
 import { getPaginatedGroups } from "~/lib/groups.server";
 import { getPaginatedPeople } from "~/lib/people.server";
@@ -45,10 +46,24 @@ import {
 } from "~/lib/companies.server";
 import { createJob as createJobRecord, updateJob as updateJobRecord } from "~/lib/jobs.server";
 import { searchIndeed, searchLinkedIn } from "~/lib/job-search.server";
+import {
+  getAllNewsImportSources,
+  getNewsSourceById,
+  syncNewsSource as syncNewsSourceRecord,
+  createNewsImportSource,
+} from "~/lib/news-importers/sync.server";
+import type { NewsSourceType, ExcerptMode } from "~/lib/news-importers/types";
 import { fetchTechNLJobsWithMatches } from "~/lib/technl-jobs.server";
 import { db } from "~/db";
-import { events, jobs, companies, eventImportSources, jobImportSources } from "~/db/schema";
-import { eq, and, isNull } from "drizzle-orm";
+import {
+  events,
+  jobs,
+  companies,
+  eventImportSources,
+  jobImportSources,
+  news,
+} from "~/db/schema";
+import { eq, and, isNull, count } from "drizzle-orm";
 
 // ── Zod schemas ────────────────────────────────────────────────────────
 
@@ -190,6 +205,18 @@ const CreateNewsArticleSchema = z.object({
   publish: z.boolean().optional(),
 });
 
+const CreateNewsSourceSchema = z.object({
+  name: z.string().min(1, "name is required"),
+  sourceType: z.enum(["rss", "custom"], "sourceType must be rss or custom"),
+  sourceUrl: z.string().url("sourceUrl must be a valid URL"),
+  sourceIdentifier: z.string().optional(),
+  keywords: z.string().optional(),
+  useGlobalKeywords: z.boolean().optional(),
+  excerptMode: z.enum(["description", "content", "none"]).optional(),
+  entityUrl: z.string().optional(),
+  enabled: z.boolean().optional(),
+});
+
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
 function toPlain<T>(val: T): T {
   return JSON.parse(
@@ -253,6 +280,12 @@ export function buildReadFunctions(): HostFunctions {
       const result = await getPaginatedEducation(o.limit ?? 20, o.offset ?? 0);
       return toPlain(result.items);
     },
+
+    async news(opts: unknown) {
+      const o = PaginationSchema.parse(opts ?? {});
+      const result = await getPaginatedNews(o.limit ?? 20, o.offset ?? 0, o.query);
+      return toPlain(result.items);
+    },
   };
 }
 
@@ -286,6 +319,36 @@ export function buildExecuteFunctions(): HostFunctions {
           fetchStatus: s.fetchStatus,
         })),
       );
+    },
+
+    async newsImportSources() {
+      const sources = await getAllNewsImportSources();
+      // Enrich with pendingCount (news.status = 'pending_review' per source).
+      // This mirrors the way eventImportSources is shaped on its caller side.
+      const enriched = await Promise.all(
+        sources.map(async (s) => {
+          const [row] = await db
+            .select({ pending: count() })
+            .from(news)
+            .where(and(eq(news.sourceId, s.id), eq(news.status, "pending_review")));
+          return {
+            id: s.id,
+            name: s.name,
+            sourceType: s.sourceType,
+            sourceUrl: s.sourceUrl,
+            enabled: s.enabled,
+            lastSyncAt: s.lastSyncAt,
+            lastSyncStatus: s.lastSyncStatus,
+            lastSyncError: s.lastSyncError,
+            useGlobalKeywords: s.useGlobalKeywords,
+            keywords: s.keywords,
+            excerptMode: s.excerptMode,
+            entityUrl: s.entityUrl,
+            pendingCount: row?.pending ?? 0,
+          };
+        }),
+      );
+      return toPlain(enriched);
     },
 
     async pendingEvents() {
@@ -361,6 +424,33 @@ export function buildExecuteFunctions(): HostFunctions {
       });
     },
 
+    async getNewsDetail(id: unknown) {
+      const item = await getNewsById(Number(id));
+      if (!item) return { found: false, message: `News ${id} not found` };
+      // Resolve the source name if this came from an import source.
+      const source = item.sourceId ? await getNewsSourceById(item.sourceId) : null;
+      return toPlain({
+        found: true,
+        news: {
+          id: item.id,
+          slug: item.slug,
+          type: item.type,
+          title: item.title,
+          externalUrl: item.externalUrl,
+          sourceName: item.sourceName,
+          sourceEntityUrl: item.sourceEntityUrl,
+          sourceType: source?.sourceType ?? null,
+          sourceUrl: source?.sourceUrl ?? null,
+          excerpt: item.excerpt,
+          content: item.content,
+          coverImage: item.coverImage,
+          status: item.status,
+          publishedAt: item.publishedAt,
+          createdAt: item.createdAt,
+        },
+      });
+    },
+
     async reviewJob(opts: unknown) {
       const o = ReviewJobSchema.parse(opts ?? {});
 
@@ -408,6 +498,23 @@ export function buildExecuteFunctions(): HostFunctions {
       return toPlain(results);
     },
 
+    async syncNewsSource(sourceId: unknown) {
+      return toPlain(await syncNewsSourceRecord(Number(sourceId)));
+    },
+
+    async syncAllNewsSources() {
+      // Mirrors syncAllJobSources shape so callers can iterate per-source results
+      // (the underlying syncAllNewsSources() returns aggregate totals only).
+      const sources = await getAllNewsImportSources();
+      const results = [];
+      for (const source of sources) {
+        if (!source.enabled) continue;
+        const result = await syncNewsSourceRecord(source.id);
+        results.push({ sourceId: source.id, name: source.name, ...result });
+      }
+      return toPlain(results);
+    },
+
     async asyncSyncAllEventSources() {
       const sources = await getAllEventImportSources();
       return toPlain(
@@ -436,8 +543,28 @@ export function buildExecuteFunctions(): HostFunctions {
       );
     },
 
+    async asyncSyncAllNewsSources() {
+      const sources = await getAllNewsImportSources();
+      return toPlain(
+        startAsyncSync(
+          sources
+            .filter((source) => source.enabled)
+            .map((source) => ({
+              type: "news" as const,
+              sourceId: source.id,
+              name: source.name,
+              run: () => syncNewsSourceRecord(source.id),
+            })),
+        ),
+      );
+    },
+
     async asyncSyncAllSources() {
-      const [eventSources, jobSources] = await Promise.all([getAllEventImportSources(), getAllImportSources()]);
+      const [eventSources, jobSources, newsSources] = await Promise.all([
+        getAllEventImportSources(),
+        getAllImportSources(),
+        getAllNewsImportSources(),
+      ]);
       return toPlain(
         startAsyncSync([
           ...eventSources.map((source) => ({
@@ -452,6 +579,14 @@ export function buildExecuteFunctions(): HostFunctions {
             name: source.sourceIdentifier,
             run: () => syncJobs(source.id),
           })),
+          ...newsSources
+            .filter((source) => source.enabled)
+            .map((source) => ({
+              type: "news" as const,
+              sourceId: source.id,
+              name: source.name,
+              run: () => syncNewsSourceRecord(source.id),
+            })),
         ]),
       );
     },
@@ -647,6 +782,28 @@ export function buildExecuteFunctions(): HostFunctions {
         message: `Event import source "${o.name}" created (id: ${source.id}). Use syncEventSource(${source.id}) to run first sync.`,
         eventCount: "eventCount" in validation ? validation.eventCount : undefined,
       };
+    },
+
+    async createNewsSource(opts: unknown) {
+      const o = CreateNewsSourceSchema.parse(opts ?? {});
+
+      const source = await createNewsImportSource({
+        name: o.name.trim(),
+        sourceType: o.sourceType as NewsSourceType,
+        sourceUrl: o.sourceUrl.trim(),
+        sourceIdentifier: o.sourceIdentifier?.trim() || null,
+        keywords: o.keywords?.trim() || null,
+        useGlobalKeywords: o.useGlobalKeywords ?? false,
+        excerptMode: (o.excerptMode as ExcerptMode | undefined) ?? "description",
+        entityUrl: o.entityUrl?.trim() || null,
+        enabled: o.enabled ?? true,
+      });
+
+      return toPlain({
+        created: true,
+        sourceId: source.id,
+        message: `News import source "${o.name}" created (id: ${source.id}). Use syncNewsSource(${source.id}) to run first sync.`,
+      });
     },
 
     async listImporterTypes() {
