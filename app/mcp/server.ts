@@ -36,7 +36,6 @@ async function runSandboxTool(code: string, fns: HostFunctions, timeout: number)
 const CATEGORY_ORDER: HostFnCategory[] = [
   "read",
   "sources",
-  "pending",
   "sync",
   "async-sync",
   "creation",
@@ -48,7 +47,6 @@ const CATEGORY_ORDER: HostFnCategory[] = [
 const CATEGORY_LABELS: Record<HostFnCategory, string> = {
   read: "Read",
   sources: "Import sources",
-  pending: "Pending review queues",
   sync: "Synchronous sync",
   "async-sync": "Background sync",
   creation: "Creation",
@@ -119,10 +117,9 @@ function buildQueryDescription(): string {
 function buildExecuteDescription(): string {
   const docs = getHostFunctionDocs();
   return [
-    "Like 'query' but also exposes sync, creation, review, and pending functions.",
-    "Requires apiToken.",
+    "Like 'query' but also exposes sync, creation, review functions. Requires apiToken.",
     "",
-    "Available imports from 'siliconharbour' (call search('functionName') for full signatures):",
+    "Imports from 'siliconharbour' (call search('fnName') for signatures):",
     "",
     describeEntriesTerse(docs.execute),
     "",
@@ -133,8 +130,7 @@ function buildExecuteDescription(): string {
     "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech.",
     "When uncertain, lean toward 'approve-non-technical' over 'hide'.",
     "",
-    "All functions call the real database on-demand.",
-    "Timeout: 60 seconds. For long full imports, prefer asyncSyncAllSources() and poll getAsyncSync(runId) until status is completed/failed.",
+    "All functions hit the real DB on-demand. Timeout: 60s. For long imports prefer asyncSyncAllSources() and poll getAsyncSync(runId).",
   ].join("\n");
 }
 

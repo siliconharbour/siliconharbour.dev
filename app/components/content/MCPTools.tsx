@@ -52,7 +52,6 @@ const TOOLS: ToolMeta[] = [
 const CATEGORY_ORDER: HostFnCategory[] = [
   "read",
   "sources",
-  "pending",
   "sync",
   "async-sync",
   "creation",
@@ -64,7 +63,6 @@ const CATEGORY_ORDER: HostFnCategory[] = [
 const CATEGORY_LABELS: Record<HostFnCategory, string> = {
   read: "Read",
   sources: "Import sources",
-  pending: "Pending review",
   sync: "Synchronous sync",
   "async-sync": "Background sync",
   creation: "Creation",
