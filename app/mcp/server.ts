@@ -67,7 +67,12 @@ function groupByCategory(entries: HostFunctionDocsEntry[]) {
   return byCat;
 }
 
-function describeEntries(entries: HostFunctionDocsEntry[]): string {
+/**
+ * Verbose renderer — emits signature + description per function. Used
+ * for the `query` tool which only exposes the small read surface, so
+ * the prompt cost stays bounded.
+ */
+function describeEntriesVerbose(entries: HostFunctionDocsEntry[]): string {
   const byCat = groupByCategory(entries);
   return CATEGORY_ORDER.filter((cat) => byCat.has(cat))
     .map((cat) => {
@@ -76,6 +81,24 @@ function describeEntries(entries: HostFunctionDocsEntry[]): string {
       return `${CATEGORY_LABELS[cat]}:\n${lines}`;
     })
     .join("\n\n");
+}
+
+/**
+ * Terse renderer — emits category-grouped name-only lists. Used for the
+ * `execute` tool which exposes 50+ functions; the agent gets a fast
+ * inventory of what's available, and can call the `search` tool with a
+ * function name to retrieve the full signature and description on
+ * demand (searchSpec already cross-references getHostFunctionDocs()).
+ */
+function describeEntriesTerse(entries: HostFunctionDocsEntry[]): string {
+  const byCat = groupByCategory(entries);
+  return CATEGORY_ORDER.filter((cat) => byCat.has(cat))
+    .map((cat) => {
+      const items = byCat.get(cat) ?? [];
+      const names = items.map((e) => e.name).join(", ");
+      return `${CATEGORY_LABELS[cat]}: ${names}`;
+    })
+    .join("\n");
 }
 
 function buildQueryDescription(): string {
@@ -89,7 +112,7 @@ function buildQueryDescription(): string {
     "",
     "Imports from 'siliconharbour':",
     "",
-    describeEntries(docs.read),
+    describeEntriesVerbose(docs.read),
   ].join("\n");
 }
 
@@ -99,9 +122,9 @@ function buildExecuteDescription(): string {
     "Like 'query' but also exposes sync, creation, review, and pending functions.",
     "Requires apiToken.",
     "",
-    "Imports from 'siliconharbour':",
+    "Available imports from 'siliconharbour' (call search('functionName') for full signatures):",
     "",
-    describeEntries(docs.execute),
+    describeEntriesTerse(docs.execute),
     "",
     "JOB REVIEW CRITERIA:",
     "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",

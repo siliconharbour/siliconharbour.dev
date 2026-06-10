@@ -19,9 +19,39 @@ import {
   createGroup as createGroupRecord,
   getGroupBySlug as getGroupBySlugRecord,
 } from "~/lib/groups.server";
-import { getPaginatedPeople } from "~/lib/people.server";
-import { getAllTechnologies } from "~/lib/technologies.server";
-import { getPaginatedEducation } from "~/lib/education.server";
+import {
+  getPaginatedPeople,
+  createPerson as createPersonRecord,
+  updatePerson as updatePersonRecord,
+  deletePerson as deletePersonRecord,
+  getPersonBySlug as getPersonBySlugRecord,
+} from "~/lib/people.server";
+import {
+  getAllTechnologies,
+  createTechnology as createTechnologyRecord,
+  updateTechnology as updateTechnologyRecord,
+  deleteTechnology as deleteTechnologyRecord,
+  getTechnologyBySlug as getTechnologyBySlugRecord,
+} from "~/lib/technologies.server";
+import {
+  getPaginatedEducation,
+  createEducation as createEducationRecord,
+  updateEducation as updateEducationRecord,
+  deleteEducation as deleteEducationRecord,
+  getEducationBySlug as getEducationBySlugRecord,
+} from "~/lib/education.server";
+import {
+  createProduct as createProductRecord,
+  updateProduct as updateProductRecord,
+  deleteProduct as deleteProductRecord,
+  getProductBySlug as getProductBySlugRecord,
+} from "~/lib/products.server";
+import {
+  createProject as createProjectRecord,
+  updateProject as updateProjectRecord,
+  deleteProject as deleteProjectRecord,
+  getProjectBySlug as getProjectBySlugRecord,
+} from "~/lib/projects.server";
 import {
   getAllEventImportSources,
   syncEvents,
@@ -193,6 +223,136 @@ const CreateGroupSchema = z.object({
   website: z.string().optional(),
   meetingFrequency: z.string().optional(),
   visible: z.boolean().optional(),
+});
+
+// ── Union CRUD for entities with uniform shape ─────────────────────────
+//
+// Five entities (person, education, product, project, technology) share
+// the same pattern: slug auto-generated from name, optional logo/cover,
+// boolean visibility. Rather than expose 15 distinct host functions, we
+// dispatch through createEntity / updateEntity / deleteEntity / getEntityBySlug
+// keyed on a `type` discriminator. Bespoke functions stay for entities
+// whose shape genuinely differs (events, jobs, news).
+
+const ENTITY_TYPES = ["person", "education", "product", "project", "technology"] as const;
+
+const PersonCreateSchema = z.object({
+  type: z.literal("person"),
+  name: z.string().min(1, "name is required"),
+  bio: z.string().min(1, "bio is required"),
+  website: z.string().optional(),
+  github: z.string().optional(),
+  visible: z.boolean().optional(),
+});
+
+const EducationCreateSchema = z.object({
+  type: z.literal("education"),
+  name: z.string().min(1, "name is required"),
+  description: z.string().min(1, "description is required"),
+  educationType: z.enum(["university", "college", "bootcamp", "online", "other"]).optional(),
+  website: z.string().optional(),
+  technl: z.boolean().optional(),
+  genesis: z.boolean().optional(),
+  bounce: z.boolean().optional(),
+  visible: z.boolean().optional(),
+});
+
+const ProductCreateSchema = z.object({
+  type: z.literal("product"),
+  name: z.string().min(1, "name is required"),
+  description: z.string().min(1, "description is required"),
+  productType: z.enum(["saas", "mobile", "physical", "service", "other"]).optional(),
+  website: z.string().optional(),
+  companyId: z.number().optional(),
+});
+
+const ProjectCreateSchema = z.object({
+  type: z.literal("project"),
+  name: z.string().min(1, "name is required"),
+  description: z.string().min(1, "description is required"),
+  projectType: z.enum(["game", "webapp", "library", "tool", "hardware", "other"]).optional(),
+  status: z.enum(["active", "completed", "archived", "on-hold"]).optional(),
+});
+
+const TechnologyCreateSchema = z.object({
+  type: z.literal("technology"),
+  name: z.string().min(1, "name is required"),
+  category: z.enum([
+    "language",
+    "frontend",
+    "backend",
+    "cloud",
+    "database",
+    "games-and-graphics",
+    "mobile",
+    "data-science",
+    "llm",
+    "platform",
+    "specialized",
+  ]),
+  description: z.string().optional(),
+  website: z.string().optional(),
+  visible: z.boolean().optional(),
+});
+
+const CreateEntitySchema = z.discriminatedUnion("type", [
+  PersonCreateSchema,
+  EducationCreateSchema,
+  ProductCreateSchema,
+  ProjectCreateSchema,
+  TechnologyCreateSchema,
+]);
+
+// Update schemas: same fields as create, but all optional + an id.
+// Each entity update accepts a Partial of its create shape.
+const UpdateEntitySchema = z.discriminatedUnion("type", [
+  PersonCreateSchema.partial({
+    name: true,
+    bio: true,
+    website: true,
+    github: true,
+    visible: true,
+  }).extend({ type: z.literal("person"), id: z.number("id is required") }),
+  EducationCreateSchema.partial({
+    name: true,
+    description: true,
+    educationType: true,
+    website: true,
+    technl: true,
+    genesis: true,
+    bounce: true,
+    visible: true,
+  }).extend({ type: z.literal("education"), id: z.number("id is required") }),
+  ProductCreateSchema.partial({
+    name: true,
+    description: true,
+    productType: true,
+    website: true,
+    companyId: true,
+  }).extend({ type: z.literal("product"), id: z.number("id is required") }),
+  ProjectCreateSchema.partial({
+    name: true,
+    description: true,
+    projectType: true,
+    status: true,
+  }).extend({ type: z.literal("project"), id: z.number("id is required") }),
+  TechnologyCreateSchema.partial({
+    name: true,
+    category: true,
+    description: true,
+    website: true,
+    visible: true,
+  }).extend({ type: z.literal("technology"), id: z.number("id is required") }),
+]);
+
+const DeleteEntitySchema = z.object({
+  type: z.enum(ENTITY_TYPES),
+  id: z.number("id is required"),
+});
+
+const GetEntityBySlugSchema = z.object({
+  type: z.enum(ENTITY_TYPES),
+  slug: z.string().min(1, "slug is required"),
 });
 
 const UpdateCompanySchema = z.object({
@@ -1145,6 +1305,229 @@ export function buildExecuteFunctions(): HostFunctions {
       "sources",
       async () => {
         return getAllImporterMeta();
+      },
+    ),
+
+    createEntity: host(
+      "createEntity({ type: 'person'|'education'|'product'|'project'|'technology', ...fields })",
+      "Create a directory entity. Dispatches by `type` to the matching lib createX(). Slug is auto-generated from name. Default visible=false where applicable so an admin can review and add a logo/cover before publishing — pass visible=true to publish immediately. Use search('createEntity person') (or any entity name) to see the per-type field requirements.",
+      "creation",
+      async (opts: unknown) => {
+        const o = CreateEntitySchema.parse(opts ?? {});
+
+        switch (o.type) {
+          case "person": {
+            const person = await createPersonRecord({
+              name: o.name.trim(),
+              bio: o.bio.trim(),
+              website: o.website?.trim() || null,
+              github: o.github?.trim() || null,
+              avatar: null,
+              socialLinks: null,
+              visible: o.visible ?? false,
+            });
+            return toPlain({
+              created: true,
+              type: "person",
+              message: `Person "${person.name}" created${person.visible ? "" : " (hidden, pending review)"}. View at /manage/people/${person.id}`,
+              entity: { id: person.id, name: person.name, slug: person.slug, visible: person.visible },
+            });
+          }
+          case "education": {
+            const item = await createEducationRecord({
+              name: o.name.trim(),
+              description: o.description.trim(),
+              type: o.educationType ?? "other",
+              website: o.website?.trim() || null,
+              logo: null,
+              coverImage: null,
+              technl: o.technl ?? false,
+              genesis: o.genesis ?? false,
+              bounce: o.bounce ?? false,
+              visible: o.visible ?? false,
+            });
+            return toPlain({
+              created: true,
+              type: "education",
+              message: `Education "${item.name}" created${item.visible ? "" : " (hidden, pending review)"}. View at /manage/education/${item.id}`,
+              entity: { id: item.id, name: item.name, slug: item.slug, visible: item.visible },
+            });
+          }
+          case "product": {
+            const product = await createProductRecord({
+              name: o.name.trim(),
+              description: o.description.trim(),
+              type: o.productType ?? "other",
+              website: o.website?.trim() || null,
+              companyId: o.companyId ?? null,
+              logo: null,
+              coverImage: null,
+            });
+            return toPlain({
+              created: true,
+              type: "product",
+              message: `Product "${product.name}" created. View at /manage/products/${product.id}`,
+              entity: { id: product.id, name: product.name, slug: product.slug },
+            });
+          }
+          case "project": {
+            const project = await createProjectRecord({
+              name: o.name.trim(),
+              description: o.description.trim(),
+              type: o.projectType ?? "other",
+              status: o.status ?? "active",
+              logo: null,
+              coverImage: null,
+              links: null,
+            });
+            return toPlain({
+              created: true,
+              type: "project",
+              message: `Project "${project.name}" created. View at /manage/projects/${project.id}`,
+              entity: { id: project.id, name: project.name, slug: project.slug },
+            });
+          }
+          case "technology": {
+            const tech = await createTechnologyRecord({
+              name: o.name.trim(),
+              category: o.category,
+              description: o.description?.trim() || null,
+              website: o.website?.trim() || null,
+              icon: null,
+              visible: o.visible ?? false,
+            });
+            return toPlain({
+              created: true,
+              type: "technology",
+              message: `Technology "${tech.name}" created${tech.visible ? "" : " (hidden, pending review)"}. View at /manage/technologies/${tech.id}`,
+              entity: { id: tech.id, name: tech.name, slug: tech.slug, visible: tech.visible },
+            });
+          }
+        }
+      },
+    ),
+
+    updateEntity: host(
+      "updateEntity({ type, id, ...fields })",
+      "Patch fields on a directory entity. Same `type` discriminator as createEntity. All fields except `type` and `id` are optional — only supplied fields are updated. Use search('updateEntity') for the per-type field list.",
+      "creation",
+      async (opts: unknown) => {
+        const o = UpdateEntitySchema.parse(opts ?? {});
+
+        // Each branch trims strings and converts empty to null (matching the
+        // updateCompany convention). The lib updateX functions take a Partial,
+        // so undefined fields are skipped naturally.
+        const trim = (v: string | undefined): string | null | undefined =>
+          v === undefined ? undefined : v.trim() || null;
+
+        switch (o.type) {
+          case "person": {
+            const updated = await updatePersonRecord(o.id, {
+              ...(o.name !== undefined && { name: o.name.trim() }),
+              ...(o.bio !== undefined && { bio: o.bio.trim() }),
+              ...(o.website !== undefined && { website: trim(o.website) }),
+              ...(o.github !== undefined && { github: trim(o.github) }),
+              ...(o.visible !== undefined && { visible: o.visible }),
+            });
+            if (!updated) throw new Error(`Person ${o.id} not found`);
+            return toPlain({ updated: true, type: "person", message: `Person "${updated.name}" updated` });
+          }
+          case "education": {
+            const updated = await updateEducationRecord(o.id, {
+              ...(o.name !== undefined && { name: o.name.trim() }),
+              ...(o.description !== undefined && { description: o.description.trim() }),
+              ...(o.educationType !== undefined && { type: o.educationType }),
+              ...(o.website !== undefined && { website: trim(o.website) }),
+              ...(o.technl !== undefined && { technl: o.technl }),
+              ...(o.genesis !== undefined && { genesis: o.genesis }),
+              ...(o.bounce !== undefined && { bounce: o.bounce }),
+              ...(o.visible !== undefined && { visible: o.visible }),
+            });
+            if (!updated) throw new Error(`Education ${o.id} not found`);
+            return toPlain({ updated: true, type: "education", message: `Education "${updated.name}" updated` });
+          }
+          case "product": {
+            const updated = await updateProductRecord(o.id, {
+              ...(o.name !== undefined && { name: o.name.trim() }),
+              ...(o.description !== undefined && { description: o.description.trim() }),
+              ...(o.productType !== undefined && { type: o.productType }),
+              ...(o.website !== undefined && { website: trim(o.website) }),
+              ...(o.companyId !== undefined && { companyId: o.companyId }),
+            });
+            if (!updated) throw new Error(`Product ${o.id} not found`);
+            return toPlain({ updated: true, type: "product", message: `Product "${updated.name}" updated` });
+          }
+          case "project": {
+            const updated = await updateProjectRecord(o.id, {
+              ...(o.name !== undefined && { name: o.name.trim() }),
+              ...(o.description !== undefined && { description: o.description.trim() }),
+              ...(o.projectType !== undefined && { type: o.projectType }),
+              ...(o.status !== undefined && { status: o.status }),
+            });
+            if (!updated) throw new Error(`Project ${o.id} not found`);
+            return toPlain({ updated: true, type: "project", message: `Project "${updated.name}" updated` });
+          }
+          case "technology": {
+            const updated = await updateTechnologyRecord(o.id, {
+              ...(o.name !== undefined && { name: o.name.trim() }),
+              ...(o.category !== undefined && { category: o.category }),
+              ...(o.description !== undefined && { description: trim(o.description) }),
+              ...(o.website !== undefined && { website: trim(o.website) }),
+              ...(o.visible !== undefined && { visible: o.visible }),
+            });
+            if (!updated) throw new Error(`Technology ${o.id} not found`);
+            return toPlain({ updated: true, type: "technology", message: `Technology "${updated.name}" updated` });
+          }
+        }
+      },
+    ),
+
+    deleteEntity: host(
+      "deleteEntity({ type, id })",
+      "Delete a directory entity by id. Same `type` discriminator as createEntity. Use with care — there is no undo.",
+      "creation",
+      async (opts: unknown) => {
+        const o = DeleteEntitySchema.parse(opts ?? {});
+        const ok = await (async () => {
+          switch (o.type) {
+            case "person":
+              return deletePersonRecord(o.id);
+            case "education":
+              return deleteEducationRecord(o.id);
+            case "product":
+              return deleteProductRecord(o.id);
+            case "project":
+              return deleteProjectRecord(o.id);
+            case "technology":
+              return deleteTechnologyRecord(o.id);
+          }
+        })();
+        return { deleted: ok, type: o.type, id: o.id };
+      },
+    ),
+
+    getEntityBySlug: host(
+      "getEntityBySlug({ type, slug })",
+      "Look up a directory entity by slug. Same `type` discriminator as createEntity. Returns { found: true, entity: {...} } or { found: false }.",
+      "lookup",
+      async (opts: unknown) => {
+        const o = GetEntityBySlugSchema.parse(opts ?? {});
+        const entity = await (async () => {
+          switch (o.type) {
+            case "person":
+              return getPersonBySlugRecord(o.slug);
+            case "education":
+              return getEducationBySlugRecord(o.slug);
+            case "product":
+              return getProductBySlugRecord(o.slug);
+            case "project":
+              return getProjectBySlugRecord(o.slug);
+            case "technology":
+              return getTechnologyBySlugRecord(o.slug);
+          }
+        })();
+        if (!entity) return { found: false, type: o.type, message: `No ${o.type} found with slug "${o.slug}"` };
+        return toPlain({ found: true, type: o.type, entity });
       },
     ),
 

@@ -106,6 +106,25 @@ export function searchSpec(query: string): string {
   }
 
   if (results.length === 0) {
+    // Special-case: agent searches for createPerson / updateProject / etc.
+    // when the actual interface is the union createEntity({ type: 'person' }).
+    // Point them at the union helper rather than leaving them stuck.
+    const unionEntities = ["person", "education", "product", "project", "technology"];
+    const unionVerbs = ["create", "update", "delete"];
+    const unionHint = unionEntities.find((e) => q.includes(e));
+    const verbHint = unionVerbs.find((v) => q.includes(v));
+    if (unionHint && verbHint) {
+      const fnName = `${verbHint}Entity`;
+      const doc = getHostFunctionDocs().execute.find((d) => d.name === fnName);
+      if (doc) {
+        return [
+          `No direct match for "${query}".`,
+          `${unionHint} is created/updated/deleted via the union helper ${doc.signature}`,
+          doc.description,
+        ].join("\n\n");
+      }
+    }
+
     return [
       `No matches for "${query}".`,
       "Available entities: event, job, company, group, person, education, technology, product, project, news",
