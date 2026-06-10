@@ -6,6 +6,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "tsx watch server.ts",
+    "dev:preview": "bash scripts/dev-preview.sh",
     "start": "NODE_ENV=production tsx server.ts",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
