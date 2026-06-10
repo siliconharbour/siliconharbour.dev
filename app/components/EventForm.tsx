@@ -11,6 +11,7 @@ type EventFormProps = {
   event?: Event & { dates: EventDate[] };
   error?: string;
   showPublish?: boolean;
+  showUnpublish?: boolean;
 };
 
 type DateEntry = {
@@ -80,7 +81,7 @@ function parseRecurrenceRule(rule: string | null): {
   return { frequency: freq, dayOfWeek, monthlyPosition };
 }
 
-export function EventForm({ event, error, showPublish }: EventFormProps) {
+export function EventForm({ event, error, showPublish, showUnpublish }: EventFormProps) {
   // Determine if this is a recurring event
   const isExistingRecurring = !!event?.recurrenceRule;
 
@@ -878,6 +879,16 @@ export function EventForm({ event, error, showPublish }: EventFormProps) {
               className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 text-sm font-medium"
             >
               Save &amp; Publish
+            </button>
+          )}
+          {showUnpublish && (
+            <button
+              type="submit"
+              name="intent"
+              value="save-and-unpublish"
+              className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 text-sm font-medium"
+            >
+              Save &amp; Unpublish
             </button>
           )}
         </div>

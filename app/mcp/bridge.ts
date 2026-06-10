@@ -1218,7 +1218,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     createEvent: host(
       "createEvent({ title, description, link, startDate, endDate?, startTime?, endTime?, location?, organizer?, requiresSignup? })",
-      "Create a one-time event. Dates are YYYY-MM-DD, times are HH:mm (America/St_Johns). Events land in pending_review (hidden) so you can add cover/icon images via /manage/events/{id}/edit before publishing.",
+      "Create a one-time event. Dates are YYYY-MM-DD, times are HH:mm (America/St_Johns). Events land in pending_review (hidden) so you can add cover/icon images and publish via /manage/events/{id}.",
       "creation",
       async (opts: unknown) => {
         const o = CreateEventSchema.parse(opts ?? {});
@@ -1244,8 +1244,9 @@ export function buildExecuteFunctions(): HostFunctions {
             coverImageUrl: null,
             requiresSignup: o.requiresSignup ?? false,
             // Hidden from public listings until an admin uploads a cover/icon
-            // image and publishes via /manage/events/{id}/edit. The visibility
-            // filter used everywhere is `importStatus IS NULL OR = 'published'`.
+            // image and clicks Save & Publish at /manage/events/{id}. The
+            // visibility filter used everywhere is
+            // `importStatus IS NULL OR = 'published'`.
             importStatus: "pending_review",
           },
           [{ startDate, endDate }],
@@ -1256,7 +1257,7 @@ export function buildExecuteFunctions(): HostFunctions {
           eventId: event.id,
           slug: event.slug,
           importStatus: "pending_review",
-          message: `Event "${o.title}" created (pending review, hidden from public). Add cover/icon images and publish at /manage/events/${event.id}/edit`,
+          message: `Event "${o.title}" created (pending review, hidden from public). Add cover/icon images and click Save & Publish at /manage/events/${event.id}`,
         });
       },
     ),

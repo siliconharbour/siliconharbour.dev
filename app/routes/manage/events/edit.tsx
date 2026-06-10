@@ -126,7 +126,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     );
   }
 
-  // Publish imported event if requested
+  // Toggle publish state if requested. Visibility rule everywhere is
+  // `importStatus IS NULL OR = 'published'`, so 'hidden' takes the event
+  // out of public listings while preserving the original importStatus
+  // history isn't necessary for manual events.
   if (intent === "save-and-publish") {
     await db
       .update(eventsTable)
@@ -136,6 +139,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (existingEvent.importSourceId) {
       return redirect(`/manage/import/events/${existingEvent.importSourceId}`);
     }
+  } else if (intent === "save-and-unpublish") {
+    await db
+      .update(eventsTable)
+      .set({ importStatus: "hidden", updatedAt: new Date() })
+      .where(eq(eventsTable.id, id));
   }
 
   return redirect("/manage/events");
@@ -145,7 +153,13 @@ export default function EditEvent() {
   const { event } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const isRecurring = !!event.recurrenceRule;
-  const isApprovedImport = event.importStatus === "approved";
+  // Visibility rule: importStatus IS NULL OR = 'published'. Anything else
+  // is hidden from public listings (pending_review, approved, hidden,
+  // removed). Show the publish button for any of those. Show the unpublish
+  // counterpart when published.
+  const isPublished = event.importStatus === "published";
+  const isHiddenFromPublic =
+    event.importStatus !== null && event.importStatus !== "published";
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -175,14 +189,20 @@ export default function EditEvent() {
           )}
         </div>
 
-        {isApprovedImport && (
+        {isHiddenFromPublic && (
           <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            This event was imported and is not yet public. Use <strong>Save &amp; Publish</strong>{" "}
-            when ready to make it live.
+            This event is <strong>not public</strong> (status:{" "}
+            <code>{event.importStatus}</code>). Use <strong>Save &amp; Publish</strong> when ready
+            to make it live.
           </div>
         )}
 
-        <EventForm event={event} error={actionData?.error} showPublish={isApprovedImport} />
+        <EventForm
+          event={event}
+          error={actionData?.error}
+          showPublish={isHiddenFromPublic}
+          showUnpublish={isPublished}
+        />
       </div>
     </div>
   );
