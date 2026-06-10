@@ -10,6 +10,7 @@ import {
   getUpcomingEvents,
   getPaginatedEvents,
   createEvent as createEventRecord,
+  deleteEvent as deleteEventRecord,
 } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import { getPaginatedNews, getNewsById, getNewsBySlug } from "~/lib/news.server";
@@ -17,6 +18,7 @@ import { getPaginatedCompanies } from "~/lib/companies.server";
 import {
   getPaginatedGroups,
   createGroup as createGroupRecord,
+  deleteGroup as deleteGroupRecord,
   getGroupBySlug as getGroupBySlugRecord,
 } from "~/lib/groups.server";
 import {
@@ -56,6 +58,7 @@ import {
   getAllEventImportSources,
   syncEvents,
   createEventImportSource,
+  deleteEventImportSource,
   validateEventImportSourceConfig,
   localDateTimeToUTC,
 } from "~/lib/event-importers/sync.server";
@@ -64,6 +67,7 @@ import {
   syncJobs,
   createImportSource as createJobImportSource,
   updateImportSource as updateJobImportSource,
+  deleteImportSource as deleteJobImportSource,
   getSourceById,
   getImportedJobById,
   approveJob,
@@ -76,16 +80,22 @@ import {
   createCompany as createCompanyRecord,
   getCompanyByName as getCompanyByNameRecord,
   updateCompany as updateCompanyRecord,
+  deleteCompany as deleteCompanyRecord,
   getCompanyById as getCompanyByIdRecord,
   getCompanyBySlug as getCompanyBySlugRecord,
 } from "~/lib/companies.server";
-import { createJob as createJobRecord, updateJob as updateJobRecord } from "~/lib/jobs.server";
+import {
+  createJob as createJobRecord,
+  updateJob as updateJobRecord,
+  deleteJob as deleteJobRecord,
+} from "~/lib/jobs.server";
 import { searchIndeed, searchLinkedIn } from "~/lib/job-search.server";
 import {
   getAllNewsImportSources,
   getNewsSourceById,
   syncNewsSource as syncNewsSourceRecord,
   createNewsImportSource,
+  deleteNewsImportSource,
   approveNewsItem,
   hideNewsItem,
 } from "~/lib/news-importers/sync.server";
@@ -493,6 +503,13 @@ const DELETABLE_ENTITY_TYPES = [
   "product",
   "project",
   "technology",
+  "company",
+  "group",
+  "event",
+  "job",
+  "event-source",
+  "job-source",
+  "news-source",
 ] as const;
 
 const DeleteEntitySchema = z.object({
@@ -571,6 +588,164 @@ const SearchJobsSchema = z.object({
   limit: z.number().default(25),
   hoursOld: z.number().optional(),
 });
+
+// ── Entity schema introspection ───────────────────────────────────────
+//
+// Walks the discriminated-union schemas (CreateEntitySchema,
+// UpdateEntitySchema, ReviewEntitySchema) and yields per-variant field
+// docs. Used by server.ts to pre-render type docs into the execute
+// prompt, and by search.ts to answer `search('createEntity person')`.
+// Single source of truth: the zod schemas themselves. Adding a new
+// variant or field updates both surfaces automatically.
+
+export interface EntityFieldDoc {
+  name: string;
+  type: string;
+}
+
+export interface EntityVariantDoc {
+  type: string;
+  required: EntityFieldDoc[];
+  optional: EntityFieldDoc[];
+}
+
+export interface UnionSchemaDoc {
+  unionName: string;
+  variants: EntityVariantDoc[];
+}
+
+/**
+ * Resolve a zod-4 schema node down past any z.optional wrapping and
+ * return both the unwrapped node and whether the outer was optional.
+ */
+function unwrapOptional(node: unknown): { inner: unknown; optional: boolean } {
+  let cur = node as { _def?: { type?: string; innerType?: unknown } };
+  let optional = false;
+  // Multiple .partial() applications can produce nested optionals — keep
+  // unwrapping until we hit a non-optional layer.
+  while (cur?._def?.type === "optional" && cur._def.innerType) {
+    optional = true;
+    cur = cur._def.innerType as typeof cur;
+  }
+  return { inner: cur, optional };
+}
+
+/**
+ * Render a zod-4 inner schema node as a human-readable type string.
+ * Covers the cases we actually use in this file (literal, enum, string,
+ * number, boolean, union of string|number). Falls back to "any" for
+ * anything else.
+ */
+function renderFieldType(node: unknown): string {
+  const def = (node as {
+    _def?: {
+      type?: string;
+      values?: unknown[];
+      options?: unknown[];
+      entries?: Record<string, unknown>;
+    };
+  })?._def;
+  switch (def?.type) {
+    case "literal": {
+      // zod 4 stores literal values as an array (single-element for the common case).
+      const vs = def.values;
+      if (Array.isArray(vs)) {
+        return vs.length === 1 ? JSON.stringify(vs[0]) : vs.map((v) => JSON.stringify(v)).join(" | ");
+      }
+      return "literal";
+    }
+    case "enum": {
+      // zod 4 stores enum entries as an object: { "a": "a", "b": "b" }.
+      const entries = def.entries;
+      if (entries && typeof entries === "object") {
+        const keys = Object.keys(entries);
+        if (keys.length > 0) return keys.join(" | ");
+      }
+      return "enum";
+    }
+    case "string":
+      return "string";
+    case "number":
+      return "number";
+    case "boolean":
+      return "boolean";
+    case "union": {
+      const opts = def.options;
+      if (Array.isArray(opts)) {
+        return opts.map((o) => renderFieldType(o)).join(" | ");
+      }
+      return "union";
+    }
+    default:
+      return def?.type ?? "any";
+  }
+}
+
+/**
+ * Extract { type, required[], optional[] } from a single z.object schema.
+ * The `type` field (literal discriminator) is consumed to identify the
+ * variant and excluded from required/optional lists.
+ */
+function describeObjectSchema(schema: unknown): EntityVariantDoc | null {
+  const shape = (schema as { shape?: Record<string, unknown> })?.shape;
+  if (!shape) return null;
+
+  let variantName = "?";
+  const required: EntityFieldDoc[] = [];
+  const optional: EntityFieldDoc[] = [];
+
+  for (const [fieldName, fieldSchema] of Object.entries(shape)) {
+    const { inner, optional: isOptional } = unwrapOptional(fieldSchema);
+    const def = (inner as { _def?: { type?: string; values?: unknown[] } })?._def;
+
+    if (fieldName === "type" && def?.type === "literal") {
+      const vs = def.values;
+      if (Array.isArray(vs) && vs.length === 1) {
+        variantName = String(vs[0]);
+      }
+      continue;
+    }
+
+    const fieldDoc: EntityFieldDoc = { name: fieldName, type: renderFieldType(inner) };
+    if (isOptional) {
+      optional.push(fieldDoc);
+    } else {
+      required.push(fieldDoc);
+    }
+  }
+
+  return { type: variantName, required, optional };
+}
+
+/**
+ * Walks a discriminated-union schema and returns docs for each variant.
+ * Variants are sorted in the union's declaration order so output is
+ * deterministic across builds.
+ */
+function describeDiscriminatedUnion(unionName: string, schema: unknown): UnionSchemaDoc {
+  const def = (schema as { _def?: { options?: unknown[] } })?._def;
+  const opts = def?.options ?? [];
+  const variants: EntityVariantDoc[] = [];
+  for (const opt of opts) {
+    const variant = describeObjectSchema(opt);
+    if (variant) variants.push(variant);
+  }
+  return { unionName, variants };
+}
+
+/**
+ * The canonical list of union-typed host functions and the schemas that
+ * back them. Consumers (server.ts, search.ts) iterate this rather than
+ * touching the schemas directly, so new unions only need to be added
+ * here once.
+ */
+export function getEntitySchemaDocs(): UnionSchemaDoc[] {
+  return [
+    describeDiscriminatedUnion("createEntity", CreateEntitySchema),
+    describeDiscriminatedUnion("updateEntity", UpdateEntitySchema),
+    describeDiscriminatedUnion("reviewEntity", ReviewEntitySchema),
+  ];
+}
 
 /** Strip non-serialisable values (Dates → ISO strings, etc.) */
 function toPlain<T>(val: T): T {
@@ -945,7 +1120,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     createEntity: host(
       "createEntity({ type, ...fields })",
-      "Create an entity. `type` dispatches to the matching create flow: person, education, product, project, technology, company, group, event, job, event-source, job-source, news-source, news-article, news-link. Slug auto-generated where applicable; most entities default visible=false so an admin can review before publishing. Use search('createEntity <type>') for per-type field requirements.",
+      "Create an entity. `type` dispatches to the matching create flow: person, education, product, project, technology, company, group, event, job, event-source, job-source, news-source, news-article, news-link. Slug auto-generated where applicable; most entities default visible=false so an admin can review before publishing. Per-type field requirements are listed in the execute tool description; also discoverable via search('createEntity <type>').",
       "creation",
       async (opts: unknown) => {
         const o = CreateEntitySchema.parse(opts ?? {});
@@ -1447,7 +1622,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     deleteEntity: host(
       "deleteEntity({ type, id })",
-      "Delete a directory entity by id. Types: person, education, product, project, technology. Use with care — there is no undo.",
+      "Delete an entity by id. Types: person, education, product, project, technology, company, group, event, job, event-source, job-source, news-source. Use with care — there is no undo, and deleting an import source orphans any pending events/jobs/news that came from it.",
       "creation",
       async (opts: unknown) => {
         const o = DeleteEntitySchema.parse(opts ?? {});
@@ -1463,6 +1638,23 @@ export function buildExecuteFunctions(): HostFunctions {
               return deleteProjectRecord(o.id);
             case "technology":
               return deleteTechnologyRecord(o.id);
+            case "company":
+              return deleteCompanyRecord(o.id);
+            case "group":
+              return deleteGroupRecord(o.id);
+            case "event":
+              return deleteEventRecord(o.id);
+            case "job":
+              return deleteJobRecord(o.id);
+            case "event-source":
+              await deleteEventImportSource(o.id);
+              return true;
+            case "job-source":
+              await deleteJobImportSource(o.id);
+              return true;
+            case "news-source":
+              await deleteNewsImportSource(o.id);
+              return true;
           }
         })();
         return { deleted: ok, type: o.type, id: o.id };

@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { getHostFunctionDocs } from "./bridge.js";
+import {
+  getHostFunctionDocs,
+  getEntitySchemaDocs,
+  type EntityVariantDoc,
+  type UnionSchemaDoc,
+} from "./bridge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const openapiPath = join(__dirname, "../../public/openapi.json");
@@ -69,6 +74,61 @@ function formatModuleHint(query: string): string | null {
   return `siliconharbour module: ${doc.signature}\n  ${doc.description}`;
 }
 
+/**
+ * Render a single variant of a discriminated union (a `type:` of
+ * createEntity / updateEntity / reviewEntity) with its required and
+ * optional fields. Used when the agent searches for a variant by name.
+ */
+function renderVariant(unionName: string, v: EntityVariantDoc): string {
+  const lines = [`### ${unionName} type=${JSON.stringify(v.type)}`];
+  if (v.required.length) {
+    lines.push("required:");
+    for (const f of v.required) lines.push(`  ${f.name}: ${f.type}`);
+  }
+  if (v.optional.length) {
+    lines.push("optional:");
+    for (const f of v.optional) lines.push(`  ${f.name}: ${f.type}`);
+  }
+  if (!v.required.length && !v.optional.length) {
+    lines.push("  (no fields)");
+  }
+  return lines.join("\n");
+}
+
+/**
+ * Find every union variant whose `type` value matches the query. This
+ * lets the agent discover field requirements with queries like
+ * "createEntity person", "type:event", "event-source", "news-link", etc.
+ */
+function matchVariants(unions: UnionSchemaDoc[], q: string): string[] {
+  // Normalise: agents may ask "type:event", "createEntity person",
+  // "event-source", "person", etc. Pull out the candidate words.
+  const tokens = q
+    .toLowerCase()
+    .replace(/[:,]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  if (tokens.length === 0) return [];
+
+  const results: string[] = [];
+  for (const u of unions) {
+    const unionTokenMatch = tokens.includes(u.unionName.toLowerCase());
+    for (const v of u.variants) {
+      const variantType = v.type.toLowerCase();
+      // Direct match: the variant type appears as a token, OR the type
+      // appears as a substring of any token (handles "event-source",
+      // "news-article", "type-event" etc.).
+      const variantTokenMatch = tokens.some(
+        (t) => t === variantType || t.includes(variantType),
+      );
+      if (variantTokenMatch || (unionTokenMatch && tokens.length === 1)) {
+        results.push(renderVariant(u.unionName, v));
+      }
+    }
+  }
+  return results;
+}
+
 export function searchSpec(query: string): string {
   const q = query.toLowerCase();
   const results: string[] = [];
@@ -103,6 +163,14 @@ export function searchSpec(query: string): string {
           .map((d) => `  ${d.signature}\n    — ${d.description}`)
           .join("\n"),
     );
+  }
+
+  // Match union variants — answers "createEntity person", "type:event",
+  // "event-source", etc. with the variant's required/optional fields.
+  const unions = getEntitySchemaDocs();
+  const variantMatches = matchVariants(unions, q);
+  if (variantMatches.length > 0) {
+    results.push(...variantMatches.slice(0, 8));
   }
 
   if (results.length === 0) {

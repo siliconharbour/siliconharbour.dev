@@ -7,8 +7,10 @@ import {
   buildReadFunctions,
   buildExecuteFunctions,
   getHostFunctionDocs,
+  getEntitySchemaDocs,
   type HostFnCategory,
   type HostFunctionDocsEntry,
+  type UnionSchemaDoc,
 } from "./bridge.js";
 
 // ── Shared sandbox result handler ──────────────────────────────────────
@@ -99,6 +101,36 @@ function describeEntriesTerse(entries: HostFunctionDocsEntry[]): string {
     .join("\n");
 }
 
+/**
+ * Render the per-variant field docs for the discriminated-union host
+ * functions (createEntity, updateEntity, reviewEntity). Each variant
+ * gets one line listing required and optional fields with their types.
+ * Sourced from getEntitySchemaDocs() so the prompt and the search tool
+ * can never disagree on what fields a variant accepts.
+ */
+function describeEntitySchemas(unions: UnionSchemaDoc[]): string {
+  const renderField = (f: { name: string; type: string }) => {
+    // Quote string-literal enums for clarity; bare names for primitives.
+    return `${f.name}: ${f.type}`;
+  };
+
+  return unions
+    .map((u) => {
+      const lines = u.variants.map((v) => {
+        const req = v.required.length
+          ? `required ${v.required.map(renderField).join(", ")}`
+          : "";
+        const opt = v.optional.length
+          ? `optional ${v.optional.map(renderField).join(", ")}`
+          : "";
+        const parts = [req, opt].filter(Boolean).join("; ");
+        return `  - ${v.type}: ${parts || "no fields"}`;
+      });
+      return `${u.unionName} variants:\n${lines.join("\n")}`;
+    })
+    .join("\n\n");
+}
+
 function buildQueryDescription(): string {
   const docs = getHostFunctionDocs();
   return [
@@ -116,12 +148,15 @@ function buildQueryDescription(): string {
 
 function buildExecuteDescription(): string {
   const docs = getHostFunctionDocs();
+  const unions = getEntitySchemaDocs();
   return [
     "Like 'query' but also exposes sync, creation, review functions. Requires apiToken.",
     "",
     "Imports from 'siliconharbour' (call search('fnName') for signatures):",
     "",
     describeEntriesTerse(docs.execute),
+    "",
+    describeEntitySchemas(unions),
     "",
     "JOB REVIEW CRITERIA:",
     "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",
