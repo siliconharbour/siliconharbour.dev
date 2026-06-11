@@ -6,6 +6,9 @@
 /.react-router/
 /build/
 
+# Test coverage reports
+/coverage/
+
 # Database
 /data/
 local.db

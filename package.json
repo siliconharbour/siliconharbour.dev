@@ -24,7 +24,8 @@
     "migrate-prod": "tsx scripts/sync-prod.ts migrate",
     "push-prod-db": "tsx scripts/sync-prod.ts push",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -80,6 +81,7 @@
     "@types/node": "^25.9.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
+    "@vitest/coverage-v8": "^4.1.8",
     "drizzle-kit": "^0.31.10",
     "oxfmt": "^0.54.0",
     "oxlint": "^1.69.0",
