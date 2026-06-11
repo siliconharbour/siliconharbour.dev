@@ -1,11 +1,19 @@
 import asyncVariant from "@jitl/quickjs-ng-wasmfile-release-asyncify";
 import { loadAsyncQuickJs, expose } from "@sebastianwessel/quickjs";
 
-// Load QuickJS async WASM once at module init — resource intensive
-const { runSandboxed } = await loadAsyncQuickJs(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  asyncVariant as any,
-);
+// Create a fresh QuickJS runner per invocation.
+//
+// The sandbox runs user code inside a WASM VM, and the production MCP server
+// is long-lived. Reusing one module-scoped runtime can leave a poisoned state
+// behind after a bad execution or an upstream runtime quirk, so we pay the
+// setup cost to keep each call isolated and recoverable.
+async function createRunSandboxed() {
+  const { runSandboxed } = await loadAsyncQuickJs(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    asyncVariant as any,
+  );
+  return runSandboxed;
+}
 
 /**
  * Host functions exposed inside the sandbox as globalThis.siliconharbour.
@@ -83,6 +91,7 @@ export async function runInSandbox(
     .join("\n");
 
   try {
+    const runSandboxed = await createRunSandboxed();
     const result = await runSandboxed(
       async ({ ctx, evalCode }) => {
         // Inject host functions as globalThis.__sh__ via expose()
