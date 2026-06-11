@@ -131,6 +131,55 @@ describe("updateEntity dispatch", () => {
       fns().updateEntity({ type: "person", id: 999_999, bio: "noop" }),
     ).rejects.toThrow();
   });
+
+  it("patches a group (s-3e4a) — type previously unavailable", async () => {
+    const created = await call<{ entity: { id: number } }>(fns().createEntity, {
+      type: "group",
+      name: "Update Me Group",
+      description: "Initial description",
+      visible: true,
+    });
+
+    const updated = await call<{ updated: boolean }>(fns().updateEntity, {
+      type: "group",
+      id: created.entity.id,
+      website: "https://example.com",
+      meetingFrequency: "Monthly",
+    });
+    expect(updated.updated).toBe(true);
+
+    const after = await call<{ entity: { website: string; meetingFrequency: string } }>(
+      fns().getEntity,
+      { type: "group", by: "id", value: created.entity.id },
+    );
+    expect(after.entity.website).toBe("https://example.com");
+    expect(after.entity.meetingFrequency).toBe("Monthly");
+  });
+
+  it("patches an event (s-3e4a) — type previously unavailable", async () => {
+    const created = await call<{ entity: { id: number } }>(fns().createEntity, {
+      type: "event",
+      title: "Patchable Event",
+      description: "Initial",
+      link: "https://example.com",
+      startDate: "2026-12-31",
+    });
+
+    const updated = await call<{ updated: boolean }>(fns().updateEntity, {
+      type: "event",
+      id: created.entity.id,
+      location: "St. John's, NL",
+      organizer: "Sample Organizer",
+    });
+    expect(updated.updated).toBe(true);
+
+    const after = await call<{ entity: { location: string; organizer: string } }>(
+      fns().getEntity,
+      { type: "event", by: "id", value: created.entity.id },
+    );
+    expect(after.entity.location).toBe("St. John's, NL");
+    expect(after.entity.organizer).toBe("Sample Organizer");
+  });
 });
 
 describe("deleteEntity dispatch", () => {
@@ -217,6 +266,58 @@ describe("getEntity dispatch", () => {
     expect(r.found).toBe(false);
     expect(r.message).toContain("name");
   });
+
+  it("looks up an event by id and slug (s-3e4a)", async () => {
+    // Reproduces the gap discovered while wiring TechNest on prod: prior to
+    // this fix, getEntity rejected type:'event' with a zod discriminator error.
+    const created = await call<{ created: boolean; entity: { id: number; slug: string } }>(
+      fns().createEntity,
+      {
+        type: "event",
+        title: "Lookup Event",
+        description: "Sample event",
+        link: "https://example.com",
+        startDate: "2026-12-31",
+      },
+    );
+
+    const byId = await call<{ found: boolean; entity: { title: string } }>(fns().getEntity, {
+      type: "event",
+      by: "id",
+      value: created.entity.id,
+    });
+    expect(byId.found).toBe(true);
+    expect(byId.entity.title).toBe("Lookup Event");
+
+    const bySlug = await call<{ found: boolean; entity: { title: string } }>(fns().getEntity, {
+      type: "event",
+      by: "slug",
+      value: created.entity.slug,
+    });
+    expect(bySlug.found).toBe(true);
+    expect(bySlug.entity.title).toBe("Lookup Event");
+  });
+
+  it("returns found:false for source types missing the id", async () => {
+    for (const type of ["event-source", "job-source", "news-source"] as const) {
+      const r = await call<{ found: boolean }>(fns().getEntity, {
+        type,
+        by: "id",
+        value: 999_999,
+      });
+      expect(r.found, `${type} missing should return found:false`).toBe(false);
+    }
+  });
+
+  it("rejects by:'slug' on source types (id-only)", async () => {
+    const r = await call<{ found: boolean; message: string }>(fns().getEntity, {
+      type: "event-source",
+      by: "slug",
+      value: "anything",
+    });
+    expect(r.found).toBe(false);
+    expect(r.message).toContain("only support by:'id'");
+  });
 });
 
 describe("listEntities dispatch", () => {
@@ -229,6 +330,13 @@ describe("listEntities dispatch", () => {
     for (const type of ["job", "event", "news"] as const) {
       const r = await fns().listEntities({ type, filter: "pending" });
       expect(Array.isArray(r), `pending ${type}`).toBe(true);
+    }
+  });
+
+  it("returns an array for each source-type listing", async () => {
+    for (const type of ["event-source", "job-source", "news-source"] as const) {
+      const r = await fns().listEntities({ type, filter: "all" });
+      expect(Array.isArray(r), `${type} all`).toBe(true);
     }
   });
 });

@@ -10,14 +10,23 @@ import {
   getUpcomingEvents,
   getPaginatedEvents,
   createEvent as createEventRecord,
+  updateEvent as updateEventRecord,
   deleteEvent as deleteEventRecord,
+  getEventById as getEventByIdRecord,
+  getEventBySlug as getEventBySlugRecord,
 } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
-import { getPaginatedNews, getNewsById, getNewsBySlug } from "~/lib/news.server";
+import {
+  getPaginatedNews,
+  getNewsById,
+  getNewsBySlug,
+  updateNews as updateNewsRecord,
+} from "~/lib/news.server";
 import { getPaginatedCompanies } from "~/lib/companies.server";
 import {
   getPaginatedGroups,
   createGroup as createGroupRecord,
+  updateGroup as updateGroupRecord,
   deleteGroup as deleteGroupRecord,
   getGroupBySlug as getGroupBySlugRecord,
 } from "~/lib/groups.server";
@@ -56,8 +65,10 @@ import {
 } from "~/lib/projects.server";
 import {
   getAllEventImportSources,
+  getEventImportSourceById,
   syncEvents,
   createEventImportSource,
+  updateEventImportSource,
   deleteEventImportSource,
   validateEventImportSourceConfig,
   localDateTimeToUTC,
@@ -95,6 +106,7 @@ import {
   getNewsSourceById,
   syncNewsSource as syncNewsSourceRecord,
   createNewsImportSource,
+  updateNewsImportSource,
   deleteNewsImportSource,
   approveNewsItem,
   hideNewsItem,
@@ -493,6 +505,63 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     sourceIdentifier: z.string().optional(),
     sourceUrl: z.string().optional(),
   }),
+  // Event update: patches base fields. Date editing stays on the manage
+  // UI (the form bundles cropping + image + recurrence in one place).
+  z.object({
+    type: z.literal("event"),
+    id: z.number("id is required"),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    link: z.string().optional(),
+    location: z.string().optional(),
+    organizer: z.string().optional(),
+    requiresSignup: z.boolean().optional(),
+    importStatus: z
+      .enum(["pending_review", "approved", "published", "hidden", "removed"])
+      .optional(),
+  }),
+  // Group update.
+  z.object({
+    type: z.literal("group"),
+    id: z.number("id is required"),
+    name: z.string().optional(),
+    description: z.string().optional(),
+    website: z.string().optional(),
+    meetingFrequency: z.string().optional(),
+    visible: z.boolean().optional(),
+  }),
+  // News (the published item, not the source).
+  z.object({
+    type: z.literal("news"),
+    id: z.number("id is required"),
+    title: z.string().optional(),
+    content: z.string().optional(),
+    excerpt: z.string().optional(),
+    status: z.enum(["draft", "pending_review", "published", "hidden"]).optional(),
+  }),
+  // Event-source update.
+  z.object({
+    type: z.literal("event-source"),
+    id: z.number("id is required"),
+    name: z.string().optional(),
+    organizer: z.string().optional(),
+    sourceIdentifier: z.string().optional(),
+    sourceUrl: z.string().optional(),
+  }),
+  // News-source update — the same shape we accept for create, minus the type discriminator.
+  z.object({
+    type: z.literal("news-source"),
+    id: z.number("id is required"),
+    name: z.string().optional(),
+    sourceType: z.enum(["rss", "custom"]).optional(),
+    sourceUrl: z.string().optional(),
+    sourceIdentifier: z.string().optional(),
+    keywords: z.string().optional(),
+    useGlobalKeywords: z.boolean().optional(),
+    excerptMode: z.enum(["description", "content", "none"]).optional(),
+    entityUrl: z.string().optional(),
+    enabled: z.boolean().optional(),
+  }),
 ]);
 
 // ── deleteEntity ──────────────────────────────────────────────────────
@@ -529,6 +598,11 @@ const GET_ENTITY_TYPES = [
   "technology",
   "job",
   "news",
+  "event",
+  // Source types — by:id only, since they have no slug/name semantics.
+  "event-source",
+  "job-source",
+  "news-source",
 ] as const;
 
 const GetEntitySchema = z.object({
@@ -540,7 +614,21 @@ const GetEntitySchema = z.object({
 // ── listEntities ──────────────────────────────────────────────────────
 
 const ListEntitiesSchema = z.object({
-  type: z.enum(["job", "event", "news", "company", "group", "person", "education", "technology"]),
+  type: z.enum([
+    "job",
+    "event",
+    "news",
+    "company",
+    "group",
+    "person",
+    "education",
+    "technology",
+    // Source listings — agents previously had to call eventImportSources()
+    // etc. directly; surface them via listEntities for consistency.
+    "event-source",
+    "job-source",
+    "news-source",
+  ]),
   filter: z.enum(["manual", "pending", "all"]).optional(),
 });
 
@@ -1298,9 +1386,12 @@ export function buildExecuteFunctions(): HostFunctions {
             return toPlain({
               created: true,
               type: "event",
-              eventId: event.id,
-              slug: event.slug,
-              importStatus: "pending_review",
+              entity: {
+                id: event.id,
+                slug: event.slug,
+                title: event.title,
+                importStatus: "pending_review",
+              },
               message: `Event "${o.title}" created (pending review, hidden from public). Add cover/icon images and click Save & Publish at /manage/events/${event.id}`,
             });
           }
@@ -1338,8 +1429,7 @@ export function buildExecuteFunctions(): HostFunctions {
             return toPlain({
               created: true,
               type: "job",
-              jobId: job.id,
-              slug: job.slug,
+              entity: { id: job.id, slug: job.slug, title: job.title },
               message: `Job "${o.title}" created (active, manual). View at /manage/jobs/${job.id}`,
             });
           }
@@ -1367,7 +1457,7 @@ export function buildExecuteFunctions(): HostFunctions {
             return {
               created: true,
               type: "event-source",
-              sourceId: source.id,
+              entity: { id: source.id, name: source.name },
               message: `Event import source "${o.name}" created (id: ${source.id}). Use syncSource({ type:'event', sourceId:${source.id} }) to run first sync.`,
               eventCount: "eventCount" in validation ? validation.eventCount : undefined,
             };
@@ -1410,7 +1500,7 @@ export function buildExecuteFunctions(): HostFunctions {
             return {
               created: true,
               type: "job-source",
-              sourceId,
+              entity: { id: sourceId, sourceIdentifier: o.sourceIdentifier.trim() },
               message: `Job import source created (id: ${sourceId})${o.skipValidation ? " (validation skipped)" : ""}. Use syncSource({ type:'job', sourceId:${sourceId} }) to run first sync.`,
               jobCount,
             };
@@ -1430,17 +1520,25 @@ export function buildExecuteFunctions(): HostFunctions {
             return toPlain({
               created: true,
               type: "news-source",
-              sourceId: source.id,
+              entity: { id: source.id, name: source.name, sourceType: source.sourceType },
               message: `News import source "${o.name}" created (id: ${source.id}). Use syncSource({ type:'news', sourceId:${source.id} }) to run first sync.`,
             });
           }
           case "news-article": {
             const result = await createNewsArticleInternal(o);
-            return toPlain({ created: true, type: "news-article", ...result });
+            return toPlain({
+              created: true,
+              type: "news-article",
+              entity: { id: result.id, slug: result.slug, title: result.title },
+            });
           }
           case "news-link": {
             const result = await submitNewsLinkInternal(o);
-            return toPlain({ created: true, type: "news-link", ...result });
+            return toPlain({
+              created: true,
+              type: "news-link",
+              entity: { id: result.id, slug: result.slug, title: result.title },
+            });
           }
         }
       },
@@ -1448,7 +1546,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     updateEntity: host(
       "updateEntity({ type, id, ...fields })",
-      "Patch fields on an entity. `type` dispatches: person, education, product, project, technology, company, job, job-source. All fields except `type` and `id` are optional — only supplied fields are updated.",
+      "Patch fields on an entity. `type` dispatches: person, education, product, project, technology, company, group, event, job, news, event-source, job-source, news-source. All fields except `type` and `id` are optional — only supplied fields are updated.",
       "creation",
       async (opts: unknown) => {
         const o = UpdateEntitySchema.parse(opts ?? {});
@@ -1619,6 +1717,120 @@ export function buildExecuteFunctions(): HostFunctions {
               message: `Job import source ${o.id} updated (${Object.keys(updates).join(", ")})`,
             };
           }
+          case "event": {
+            // updateEvent matches the lib shape — Partial<Omit<NewEvent, "slug">>.
+            // Filter undefined out so we don't accidentally clear fields.
+            const updates: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(o)) {
+              if (key === "type" || key === "id") continue;
+              if (value === undefined) continue;
+              if (typeof value === "string") {
+                updates[key] = value.trim() || null;
+              } else {
+                updates[key] = value;
+              }
+            }
+            if (Object.keys(updates).length === 0) {
+              return { updated: false, type: "event", message: "No fields to update" };
+            }
+            const updated = await updateEventRecord(o.id, updates);
+            if (!updated) throw new Error(`Event ${o.id} not found`);
+            return {
+              updated: true,
+              type: "event",
+              message: `Event "${updated.title}" updated (${Object.keys(updates).join(", ")})`,
+            };
+          }
+          case "group": {
+            const updates: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(o)) {
+              if (key === "type" || key === "id") continue;
+              if (value === undefined) continue;
+              if (typeof value === "string") {
+                updates[key] = value.trim() || null;
+              } else {
+                updates[key] = value;
+              }
+            }
+            if (Object.keys(updates).length === 0) {
+              return { updated: false, type: "group", message: "No fields to update" };
+            }
+            const updated = await updateGroupRecord(o.id, updates);
+            if (!updated) throw new Error(`Group ${o.id} not found`);
+            return {
+              updated: true,
+              type: "group",
+              message: `Group "${updated.name}" updated (${Object.keys(updates).join(", ")})`,
+            };
+          }
+          case "news": {
+            const updates: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(o)) {
+              if (key === "type" || key === "id") continue;
+              if (value === undefined) continue;
+              if (typeof value === "string") {
+                updates[key] = value.trim() || null;
+              } else {
+                updates[key] = value;
+              }
+            }
+            if (Object.keys(updates).length === 0) {
+              return { updated: false, type: "news", message: "No fields to update" };
+            }
+            const updated = await updateNewsRecord(o.id, updates);
+            if (!updated) throw new Error(`News ${o.id} not found`);
+            return {
+              updated: true,
+              type: "news",
+              message: `News "${updated.title}" updated (${Object.keys(updates).join(", ")})`,
+            };
+          }
+          case "event-source": {
+            const updates: {
+              name?: string;
+              organizer?: string | null;
+              sourceIdentifier?: string;
+              sourceUrl?: string;
+            } = {};
+            if (o.name !== undefined) updates.name = o.name.trim();
+            if (o.organizer !== undefined) updates.organizer = o.organizer?.trim() || null;
+            if (o.sourceIdentifier !== undefined)
+              updates.sourceIdentifier = o.sourceIdentifier.trim();
+            if (o.sourceUrl !== undefined) updates.sourceUrl = o.sourceUrl.trim();
+            if (Object.keys(updates).length === 0) {
+              return { updated: false, type: "event-source", message: "No fields to update" };
+            }
+            await updateEventImportSource(o.id, updates);
+            return {
+              updated: true,
+              type: "event-source",
+              message: `Event import source ${o.id} updated (${Object.keys(updates).join(", ")})`,
+            };
+          }
+          case "news-source": {
+            const updates: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(o)) {
+              if (key === "type" || key === "id") continue;
+              if (value === undefined) continue;
+              if (typeof value === "string") {
+                updates[key] = value.trim() || null;
+              } else {
+                updates[key] = value;
+              }
+            }
+            if (Object.keys(updates).length === 0) {
+              return { updated: false, type: "news-source", message: "No fields to update" };
+            }
+            await updateNewsImportSource(
+              o.id,
+              updates as Parameters<typeof updateNewsImportSource>[1],
+            );
+            return {
+              updated: true,
+              type: "news-source",
+              message: `News import source ${o.id} updated (${Object.keys(updates).join(", ")})`,
+            };
+          }
         }
       },
     ),
@@ -1666,7 +1878,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     getEntity: host(
       "getEntity({ type, by, value }) where by is 'id'|'slug'|'name'",
-      "Look up an entity. `by:'name'` is only supported for type:'company'. Types: company, group, person, education, product, project, technology, job, news. Returns { found: true, type, entity } or { found: false }.",
+      "Look up an entity. `by:'name'` is only supported for type:'company'. Types: company, group, person, education, product, project, technology, job, news, event, event-source, job-source, news-source. Source types support by:'id' only. Returns { found: true, type, entity } or { found: false }.",
       "lookup",
       async (opts: unknown) => {
         const o = GetEntitySchema.parse(opts ?? {});
@@ -1676,6 +1888,19 @@ export function buildExecuteFunctions(): HostFunctions {
             found: false,
             type: o.type,
             message: `by:'name' is only supported for type:'company'. Use by:'slug' or by:'id' for ${o.type}.`,
+          };
+        }
+
+        // Source types have no slug or name semantics — they're keyed
+        // by numeric id only. Fail fast if the agent asks otherwise.
+        if (
+          (o.type === "event-source" || o.type === "job-source" || o.type === "news-source") &&
+          o.by !== "id"
+        ) {
+          return {
+            found: false,
+            type: o.type,
+            message: `Source types (${o.type}) only support by:'id'. Use eventImportSources()/jobImportSources()/newsImportSources() to list them.`,
           };
         }
 
@@ -1786,6 +2011,20 @@ export function buildExecuteFunctions(): HostFunctions {
               }
               return getNewsBySlug(sval);
             }
+            case "event": {
+              if (o.by === "id") return getEventByIdRecord(nval);
+              return getEventBySlugRecord(sval);
+            }
+            case "event-source": {
+              // by:id is enforced above; sources have no slug/name.
+              return getEventImportSourceById(nval);
+            }
+            case "job-source": {
+              return getSourceById(nval);
+            }
+            case "news-source": {
+              return getNewsSourceById(nval);
+            }
           }
         })();
 
@@ -1802,7 +2041,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     listEntities: host(
       "listEntities({ type, filter? }) where filter is 'manual'|'pending'|'all'",
-      "List entities by kind and filter. filter:'pending' (job, event, news) returns the pending_review queue. filter:'manual' (job, event) returns manually-created entries (sourceType='manual' for jobs, no importSourceId for events). filter:'all' (any type) returns the unfiltered set.",
+      "List entities by kind and filter. Types include the 8 directory entities (job, event, news, company, group, person, education, technology) and the 3 source types (event-source, job-source, news-source). filter:'pending' (job, event, news) returns the pending_review queue. filter:'manual' (job, event) returns manually-created entries (sourceType='manual' for jobs, no importSourceId for events). filter:'all' (the default for source types) returns the unfiltered set.",
       "lookup",
       async (opts: unknown) => {
         const o = ListEntitiesSchema.parse(opts ?? {});
@@ -1906,6 +2145,8 @@ export function buildExecuteFunctions(): HostFunctions {
         }
 
         // filter === "all" — delegate to the read functions where possible.
+        // Source types are listed directly from the source-listing helpers
+        // since they aren't paginated entities.
         const read = buildReadFunctions();
         switch (o.type) {
           case "job":
@@ -1924,6 +2165,45 @@ export function buildExecuteFunctions(): HostFunctions {
             return (read.education as HostFn)({});
           case "technology":
             return (read.technologies as HostFn)({});
+          case "event-source": {
+            const sources = await getAllEventImportSources();
+            return toPlain(
+              sources.map((s) => ({
+                id: s.id,
+                name: s.name,
+                sourceType: s.sourceType,
+                lastFetchedAt: s.lastFetchedAt,
+                fetchStatus: s.fetchStatus,
+                pendingCount: s.pendingCount,
+              })),
+            );
+          }
+          case "job-source": {
+            const sources = await getAllImportSources();
+            return toPlain(
+              sources.map((s) => ({
+                id: s.id,
+                name: s.sourceIdentifier,
+                sourceType: s.sourceType,
+                lastFetchedAt: s.lastFetchedAt,
+                fetchStatus: s.fetchStatus,
+              })),
+            );
+          }
+          case "news-source": {
+            const sources = await getAllNewsImportSources();
+            return toPlain(
+              sources.map((s) => ({
+                id: s.id,
+                name: s.name,
+                sourceType: s.sourceType,
+                sourceUrl: s.sourceUrl,
+                enabled: s.enabled,
+                lastSyncAt: s.lastSyncAt,
+                lastSyncStatus: s.lastSyncStatus,
+              })),
+            );
+          }
         }
       },
     ),

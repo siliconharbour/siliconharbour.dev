@@ -50,7 +50,7 @@ describe("getEntitySchemaDocs", () => {
     );
   });
 
-  it("updateEntity covers the 8 updateable types", () => {
+  it("updateEntity covers the 13 updateable types", () => {
     const docs = getEntitySchemaDocs();
     const update = docs.find((u) => u.unionName === "updateEntity");
     expect(update).toBeDefined();
@@ -59,8 +59,13 @@ describe("getEntitySchemaDocs", () => {
       [
         "company",
         "education",
+        "event",
+        "event-source",
+        "group",
         "job",
         "job-source",
+        "news",
+        "news-source",
         "person",
         "product",
         "project",

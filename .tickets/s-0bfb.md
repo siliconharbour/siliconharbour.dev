@@ -1,6 +1,6 @@
 ---
 id: s-0bfb
-status: in_progress
+status: closed
 deps: []
 links: []
 created: 2026-06-11T02:23:07Z
