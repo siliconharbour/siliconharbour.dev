@@ -772,8 +772,11 @@ export function buildReadFunctions(): HostFunctions {
           const all = await getUpcomingEvents();
           return toPlain(all.slice(offset, offset + limit));
         }
-        const result = await getPaginatedEvents(limit, offset);
-        return toPlain((result as { events?: unknown[] }).events ?? result);
+        // getPaginatedEvents returns { items, total }, matching the other
+        // read host functions. Always unwrap items so callers (and the
+        // listEntities filter:'all' branch) get an array.
+        const { items } = await getPaginatedEvents(limit, offset);
+        return toPlain(items);
       },
     ),
 
