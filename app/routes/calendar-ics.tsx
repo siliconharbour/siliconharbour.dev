@@ -13,6 +13,21 @@ function toDateArray(d: Date): [number, number, number, number, number] {
   ];
 }
 
+/**
+ * Date-only tuple (year, month, day) for all-day VEVENTs. The `ics`
+ * package emits DTSTART;VALUE=DATE when start/end are length-3 tuples,
+ * which is the correct iCal representation of an all-day occurrence.
+ *
+ * We anchor on the local NL date (not UTC) so a noon-anchored timestamp
+ * doesn't slip to the previous day in subscribers' clients.
+ */
+function toAllDayArray(d: Date): [number, number, number] {
+  // Use local NL date — startDate is stored anchored at noon site-time.
+  // Reading via getFullYear/getMonth would give server-local; instead,
+  // reuse the same UTC components since noon UTC ≈ morning NL ≈ same day.
+  return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()];
+}
+
 export async function loader({}: Route.LoaderArgs) {
   const events = await getUpcomingEvents();
 
@@ -139,23 +154,18 @@ export async function loader({}: Route.LoaderArgs) {
         icsEvents.push(overrideAttrs);
       }
     } else {
-      // --- One-time event: emit individual VEVENTs (unchanged) ---
+      // --- One-time event: emit individual VEVENTs ---
       for (const date of event.dates) {
         const startDate = date.startDate;
-        const endDate = date.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
 
-        const attrs: EventAttributes = {
+        const baseAttrs: EventAttributes = {
           ...calMeta,
           title: event.title,
           description: `https://siliconharbour.dev/events/${event.slug}\n\n${event.description}`,
           location: event.location || undefined,
           url: `https://siliconharbour.dev/events/${event.slug}`,
+          // start/end populated per-branch below
           start: toDateArray(startDate),
-          startInputType: "utc",
-          startOutputType: "utc",
-          end: toDateArray(endDate),
-          endInputType: "utc",
-          endOutputType: "utc",
           status: "CONFIRMED" as const,
           transp: "TRANSPARENT" as const,
           categories: ["Tech", "Community"],
@@ -163,6 +173,31 @@ export async function loader({}: Route.LoaderArgs) {
           lastModified: toDateArray(event.updatedAt),
           uid: `${event.id}-${date.id}@siliconharbour.dev`,
         };
+
+        let attrs: EventAttributes;
+        if (date.isAllDay) {
+          // RFC 5545 all-day VEVENT: DTSTART;VALUE=DATE
+          // DTEND is exclusive — for a single-day all-day event the end
+          // is the next day. Honor an explicit endDate when supplied.
+          const endDay = date.endDate ?? startDate;
+          const endNextDay = new Date(endDay.getTime() + 24 * 60 * 60 * 1000);
+          attrs = {
+            ...baseAttrs,
+            start: toAllDayArray(startDate),
+            end: toAllDayArray(endNextDay),
+          };
+        } else {
+          const endDate = date.endDate || new Date(startDate.getTime() + 60 * 60 * 1000);
+          attrs = {
+            ...baseAttrs,
+            start: toDateArray(startDate),
+            startInputType: "utc",
+            startOutputType: "utc",
+            end: toDateArray(endDate),
+            endInputType: "utc",
+            endOutputType: "utc",
+          };
+        }
 
         if (event.organizer) {
           attrs.organizer = {

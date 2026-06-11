@@ -99,6 +99,10 @@ export const eventDates = sqliteTable("event_dates", {
     .references(() => events.id, { onDelete: "cascade" }),
   startDate: integer("start_date", { mode: "timestamp" }).notNull(),
   endDate: integer("end_date", { mode: "timestamp" }),
+  // When true, renderers should omit the time component. The startDate
+  // timestamp still anchors the calendar day (use noon UTC to avoid
+  // timezone drift) but no clock time is shown.
+  isAllDay: integer("is_all_day", { mode: "boolean" }).notNull().default(false),
 });
 
 // Event occurrence overrides - for per-occurrence customization of recurring events

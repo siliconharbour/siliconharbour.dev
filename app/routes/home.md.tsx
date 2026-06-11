@@ -47,8 +47,11 @@ For complete site documentation and API info, see [/llms.txt](/llms.txt).
   if (thisWeek.length > 0) {
     content += `## This Week\n\n`;
     for (const event of thisWeek) {
-      const dateStr = event.dates[0]
-        ? formatInTimezone(event.dates[0].startDate, "EEEE, MMMM d 'at' h:mm a")
+      const first = event.dates[0];
+      const dateStr = first
+        ? first.isAllDay
+          ? formatInTimezone(first.startDate, "EEEE, MMMM d")
+          : formatInTimezone(first.startDate, "EEEE, MMMM d 'at' h:mm a")
         : "";
       content += `- [${event.title}](/events/${event.slug}.md)${dateStr ? `: ${dateStr}` : ""}\n`;
     }

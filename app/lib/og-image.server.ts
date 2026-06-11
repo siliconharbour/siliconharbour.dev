@@ -436,7 +436,7 @@ export function cleanupCache(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): number
  */
 export function prepareEventOGData(event: {
   title: string;
-  dates: { startDate: Date; endDate?: Date | null }[];
+  dates: { startDate: Date; endDate?: Date | null; isAllDay?: boolean }[];
   location?: string | null;
   coverImage?: string | null;
 }): OGImageData {
@@ -446,7 +446,9 @@ export function prepareEventOGData(event: {
   let dateStr: string | undefined;
 
   if (firstDate && lastDate) {
-    // Multiple dates: show the date range from earliest start to latest end
+    // Multiple dates: show the date range from earliest start to latest
+    // end. Date-only is already the format used here, so all-day vs
+    // timed is irrelevant for the range header.
     const allTimestamps = event.dates.flatMap((d) =>
       [d.startDate.getTime(), d.endDate?.getTime()].filter((t): t is number => t != null),
     );
@@ -462,14 +464,22 @@ export function prepareEventOGData(event: {
       dateStr = `${startWithYear} – ${formatInTimezone(rangeEnd, "MMMM d, yyyy")}`;
     }
   } else if (firstDate?.endDate) {
-    // Single date with end time: show day with time range
-    const dayStr = formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy");
-    const startTime = formatInTimezone(firstDate.startDate, "h:mm a");
-    const endTime = formatInTimezone(firstDate.endDate, "h:mm a");
-    dateStr = `${dayStr} · ${startTime} – ${endTime}`;
+    // Single date with end. All-day spans render as a date range.
+    if (firstDate.isAllDay) {
+      const startDay = formatInTimezone(firstDate.startDate, "MMMM d");
+      const endDay = formatInTimezone(firstDate.endDate, "MMMM d, yyyy");
+      dateStr = `${startDay} – ${endDay}`;
+    } else {
+      const dayStr = formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy");
+      const startTime = formatInTimezone(firstDate.startDate, "h:mm a");
+      const endTime = formatInTimezone(firstDate.endDate, "h:mm a");
+      dateStr = `${dayStr} · ${startTime} – ${endTime}`;
+    }
   } else if (firstDate) {
-    // Single date, no end time
-    dateStr = formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a");
+    // Single date, no end. All-day drops the time suffix.
+    dateStr = firstDate.isAllDay
+      ? formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy")
+      : formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a");
   }
 
   return {

@@ -343,6 +343,9 @@ const EventCreateSchema = z.object({
     .string()
     .regex(/^\d{2}:\d{2}$/, "endTime must be HH:mm (24h, local time in America/St_Johns)")
     .optional(),
+  // When true, startTime and endTime are ignored and the event renders
+  // as an all-day occurrence on startDate (through endDate when set).
+  isAllDay: z.boolean().optional(),
   location: z.string().optional(),
   organizer: z.string().optional(),
   requiresSignup: z.boolean().optional(),
@@ -518,6 +521,32 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     requiresSignup: z.boolean().optional(),
     importStatus: z
       .enum(["pending_review", "approved", "published", "hidden", "removed"])
+      .optional(),
+    // Optional dates replacement. When supplied, all existing event_dates
+    // rows are removed and the supplied rows are inserted in their place
+    // (matching updateEvent's lib semantics). Each entry mirrors the
+    // createEntity event shape.
+    dates: z
+      .array(
+        z.object({
+          startDate: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/, "dates[].startDate must be YYYY-MM-DD"),
+          endDate: z
+            .string()
+            .regex(/^\d{4}-\d{2}-\d{2}$/, "dates[].endDate must be YYYY-MM-DD")
+            .optional(),
+          startTime: z
+            .string()
+            .regex(/^\d{2}:\d{2}$/, "dates[].startTime must be HH:mm")
+            .optional(),
+          endTime: z
+            .string()
+            .regex(/^\d{2}:\d{2}$/, "dates[].endTime must be HH:mm")
+            .optional(),
+          isAllDay: z.boolean().optional(),
+        }),
+      )
       .optional(),
   }),
   // Group update.
@@ -1354,14 +1383,18 @@ export function buildExecuteFunctions(): HostFunctions {
           }
           case "event": {
             // All manual events are anchored to America/St_Johns local time.
-            // If endDate omitted, treat as same-day event.
+            // If endDate omitted, treat as same-day event. When isAllDay is
+            // true the times are ignored and we anchor to noon so the
+            // calendar day doesn't shift across timezones.
             const tz = "America/St_Johns";
-            const startDate = localDateTimeToUTC(o.startDate, o.startTime ?? null, tz);
+            const isAllDay = o.isAllDay ?? false;
+            const effectiveStartTime = isAllDay ? "12:00" : (o.startTime ?? null);
+            const startDate = localDateTimeToUTC(o.startDate, effectiveStartTime, tz);
             const endDate =
-              o.endDate || o.endTime
+              o.endDate || (!isAllDay && o.endTime)
                 ? localDateTimeToUTC(
                     o.endDate ?? o.startDate,
-                    o.endTime ?? o.startTime ?? null,
+                    isAllDay ? "12:00" : (o.endTime ?? o.startTime ?? null),
                     tz,
                   )
                 : null;
@@ -1381,7 +1414,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 // image and clicks Save & Publish at /manage/events/{id}.
                 importStatus: "pending_review",
               },
-              [{ startDate, endDate }],
+              [{ startDate, endDate, isAllDay }],
             );
             return toPlain({
               created: true,
@@ -1719,26 +1752,55 @@ export function buildExecuteFunctions(): HostFunctions {
           }
           case "event": {
             // updateEvent matches the lib shape — Partial<Omit<NewEvent, "slug">>.
-            // Filter undefined out so we don't accidentally clear fields.
+            // The dates array is converted out-of-band and passed as the
+            // second argument (the lib replaces the entire event_dates set
+            // when dates is non-null).
+            const tz = "America/St_Johns";
             const updates: Record<string, unknown> = {};
+            let parsedDates: { startDate: Date; endDate: Date | null; isAllDay: boolean }[] | undefined;
             for (const [key, value] of Object.entries(o)) {
               if (key === "type" || key === "id") continue;
               if (value === undefined) continue;
+              if (key === "dates") {
+                const arr = value as Array<{
+                  startDate: string;
+                  endDate?: string;
+                  startTime?: string;
+                  endTime?: string;
+                  isAllDay?: boolean;
+                }>;
+                parsedDates = arr.map((d) => {
+                  const allDay = d.isAllDay ?? false;
+                  const startTime = allDay ? "12:00" : (d.startTime ?? null);
+                  const startDate = localDateTimeToUTC(d.startDate, startTime, tz);
+                  const endDate =
+                    d.endDate || (!allDay && d.endTime)
+                      ? localDateTimeToUTC(
+                          d.endDate ?? d.startDate,
+                          allDay ? "12:00" : (d.endTime ?? d.startTime ?? null),
+                          tz,
+                        )
+                      : null;
+                  return { startDate, endDate, isAllDay: allDay };
+                });
+                continue;
+              }
               if (typeof value === "string") {
                 updates[key] = value.trim() || null;
               } else {
                 updates[key] = value;
               }
             }
-            if (Object.keys(updates).length === 0) {
+            if (Object.keys(updates).length === 0 && !parsedDates) {
               return { updated: false, type: "event", message: "No fields to update" };
             }
-            const updated = await updateEventRecord(o.id, updates);
+            const updated = await updateEventRecord(o.id, updates, parsedDates);
             if (!updated) throw new Error(`Event ${o.id} not found`);
+            const summary = [...Object.keys(updates), ...(parsedDates ? ["dates"] : [])].join(", ");
             return {
               updated: true,
               type: "event",
-              message: `Event "${updated.title}" updated (${Object.keys(updates).join(", ")})`,
+              message: `Event "${updated.title}" updated (${summary})`,
             };
           }
           case "group": {

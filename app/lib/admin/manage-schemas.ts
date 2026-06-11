@@ -51,35 +51,54 @@ export function parseEventRecurringForm(formData: FormData) {
 }
 
 export function parseOneTimeEventDates(formData: FormData):
-  | { success: true; data: { startDate: Date; endDate: Date | null }[] }
+  | {
+      success: true;
+      data: { startDate: Date; endDate: Date | null; isAllDay: boolean }[];
+    }
   | {
       success: false;
       error: string;
     } {
-  const dates: { startDate: Date; endDate: Date | null }[] = [];
+  const dates: { startDate: Date; endDate: Date | null; isAllDay: boolean }[] = [];
   let dateIndex = 0;
+
+  // All-day rows anchor the timestamp to noon site-time so a calendar
+  // day ("Jul 15") stays "Jul 15" regardless of the viewer's tz offset.
+  const NOON = "12:00";
 
   while (formData.has(`dates[${dateIndex}][startDate]`)) {
     const startDateStr = formData.get(`dates[${dateIndex}][startDate]`);
     const startTime = formData.get(`dates[${dateIndex}][startTime]`);
     const hasEnd = formData.get(`dates[${dateIndex}][hasEnd]`) === "1";
+    const isAllDay = formData.get(`dates[${dateIndex}][isAllDay]`) === "1";
 
-    if (typeof startDateStr !== "string" || typeof startTime !== "string") {
-      return { success: false, error: "Each date requires a valid start date and start time" };
+    if (typeof startDateStr !== "string") {
+      return { success: false, error: "Each date requires a valid start date" };
+    }
+    if (!isAllDay && (typeof startTime !== "string" || startTime === "")) {
+      return {
+        success: false,
+        error: "Each timed date requires a start time. Tick 'All day' if no specific time.",
+      };
     }
 
-    const startDate = parseAsTimezone(startDateStr, startTime);
+    const startDate = parseAsTimezone(startDateStr, isAllDay ? NOON : (startTime as string));
     let endDate: Date | null = null;
 
     if (hasEnd) {
       const endDateStr = formData.get(`dates[${dateIndex}][endDate]`);
       const endTime = formData.get(`dates[${dateIndex}][endTime]`);
-      if (typeof endDateStr === "string" && endDateStr && typeof endTime === "string" && endTime) {
-        endDate = parseAsTimezone(endDateStr, endTime);
+      if (typeof endDateStr === "string" && endDateStr) {
+        if (isAllDay) {
+          // All-day range: any end-day works, end-time is ignored.
+          endDate = parseAsTimezone(endDateStr, NOON);
+        } else if (typeof endTime === "string" && endTime) {
+          endDate = parseAsTimezone(endDateStr, endTime);
+        }
       }
     }
 
-    dates.push({ startDate, endDate });
+    dates.push({ startDate, endDate, isAllDay });
     dateIndex++;
   }
 

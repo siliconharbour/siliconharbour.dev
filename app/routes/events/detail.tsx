@@ -262,22 +262,37 @@ export default function EventDetail() {
                     <p className="text-harbour-400">No upcoming dates scheduled</p>
                   )
                 ) : (
-                  event.dates.map((date, i) => (
-                    <div key={i}>
-                      <time
-                        dateTime={date.startDate.toISOString()}
-                        className="font-semibold text-harbour-700"
-                      >
-                        {formatInTimezone(date.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")}
-                      </time>
-                      {date.endDate && (
-                        <span className="font-semibold text-harbour-700">
-                          {" - "}
-                          {formatInTimezone(date.endDate, "h:mm a")}
-                        </span>
-                      )}
-                    </div>
-                  ))
+                  event.dates.map((date, i) => {
+                    const startDay = formatInTimezone(date.startDate, "EEEE, MMMM d, yyyy");
+                    const endDay = date.endDate
+                      ? formatInTimezone(date.endDate, "EEEE, MMMM d, yyyy")
+                      : null;
+                    const sameDay = endDay !== null && startDay === endDay;
+                    return (
+                      <div key={i}>
+                        <time
+                          dateTime={date.startDate.toISOString()}
+                          className="font-semibold text-harbour-700"
+                        >
+                          {date.isAllDay
+                            ? startDay
+                            : formatInTimezone(date.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")}
+                        </time>
+                        {date.endDate && (
+                          <span className="font-semibold text-harbour-700">
+                            {" - "}
+                            {date.isAllDay
+                              ? sameDay
+                                ? null // single all-day with bogus endDate — show nothing extra
+                                : formatInTimezone(date.endDate, "EEEE, MMMM d, yyyy")
+                              : sameDay
+                                ? formatInTimezone(date.endDate, "h:mm a")
+                                : formatInTimezone(date.endDate, "EEEE, MMMM d 'at' h:mm a")}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>

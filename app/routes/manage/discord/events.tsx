@@ -302,7 +302,9 @@ export default function DiscordEvents() {
                   {events.map((event) => {
                     const nextDate = event.dates[0];
                     const dateLine = nextDate
-                      ? format(new Date(nextDate.startDate), "EEE, MMM d 'at' h:mm a")
+                      ? nextDate.isAllDay
+                        ? format(new Date(nextDate.startDate), "EEE, MMM d")
+                        : format(new Date(nextDate.startDate), "EEE, MMM d 'at' h:mm a")
                       : "Recurring";
                     return (
                       <div

@@ -29,7 +29,12 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
 
   events.forEach((event, index) => {
     const nextDate = event.dates[0];
-    let dateLine = nextDate ? format(nextDate.startDate, "EEE, MMM d 'at' h:mm a") : "Date TBD";
+    let dateLine = "Date TBD";
+    if (nextDate) {
+      dateLine = nextDate.isAllDay
+        ? format(nextDate.startDate, "EEE, MMM d")
+        : format(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
+    }
     if (event.recurrenceRule) {
       const parsed = parseRecurrenceRule(event.recurrenceRule);
       if (parsed) dateLine += ` (${describeRecurrenceRule(parsed)})`;

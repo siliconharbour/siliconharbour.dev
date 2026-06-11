@@ -139,13 +139,17 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                 {nextDate && (
                   <div className="flex items-center gap-2">
                     <time dateTime={nextDate.startDate.toISOString()}>
-                      {formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
+                      {nextDate.isAllDay
+                        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
+                        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
                     </time>
                     {nextDate.endDate && (
                       <>
                         <span className="text-harbour-300">-</span>
                         <time dateTime={nextDate.endDate.toISOString()}>
-                          {formatInTimezone(nextDate.endDate, "h:mm a")}
+                          {nextDate.isAllDay
+                            ? formatInTimezone(nextDate.endDate, "EEE, MMM d")
+                            : formatInTimezone(nextDate.endDate, "h:mm a")}
                         </time>
                       </>
                     )}
@@ -275,7 +279,9 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
             <div className="text-sm text-harbour-500">
               {nextDate && (
                 <time dateTime={nextDate.startDate.toISOString()}>
-                  {formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
+                  {nextDate.isAllDay
+                    ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
+                    : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
                 </time>
               )}
               {event.recurrenceRule ? (

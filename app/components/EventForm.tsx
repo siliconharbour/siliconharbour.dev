@@ -21,6 +21,7 @@ type DateEntry = {
   endDate: Date | null;
   endTime: string;
   isRange: boolean;
+  isAllDay: boolean;
 };
 
 type RecurrenceFrequency = "none" | "weekly" | "biweekly" | "monthly";
@@ -120,6 +121,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
         endDate: d.endDate,
         endTime: d.endDate ? getTimeInTimezone(d.endDate) : "",
         isRange: !!d.endDate,
+        isAllDay: d.isAllDay ?? false,
       }));
     }
     return [
@@ -130,6 +132,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
         endDate: null,
         endTime: "",
         isRange: false,
+        isAllDay: false,
       },
     ];
   });
@@ -200,6 +203,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
         endDate: null,
         endTime: "",
         isRange: false,
+        isAllDay: false,
       },
     ]);
   };
@@ -549,18 +553,40 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                       )}
                     </div>
 
-                    <div>
-                      <label className="block text-xs text-harbour-500 mb-1">Start Time</label>
-                      <input
-                        type="time"
-                        value={dateEntry.startTime}
-                        onChange={(e) => updateDate(dateEntry.id, { startTime: e.target.value })}
-                        className="w-full px-3 py-2 border border-harbour-200 bg-white"
-                      />
-                    </div>
+                    {!dateEntry.isAllDay && (
+                      <div>
+                        <label className="block text-xs text-harbour-500 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={dateEntry.startTime}
+                          onChange={(e) =>
+                            updateDate(dateEntry.id, { startTime: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-harbour-200 bg-white"
+                        />
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <label className="flex items-center gap-2 text-sm text-harbour-600">
+                      <input
+                        type="checkbox"
+                        checked={dateEntry.isAllDay}
+                        onChange={(e) =>
+                          updateDate(dateEntry.id, {
+                            isAllDay: e.target.checked,
+                            // Clearing times when toggling on keeps the
+                            // form state self-consistent so a later
+                            // toggle-off goes back to safe defaults.
+                            startTime: e.target.checked ? "" : dateEntry.startTime || "18:00",
+                            endTime: e.target.checked ? "" : dateEntry.endTime,
+                          })
+                        }
+                        className="accent-harbour-600"
+                      />
+                      All day (no specific time)
+                    </label>
                     <label className="flex items-center gap-2 text-sm text-harbour-600">
                       <input
                         type="checkbox"
@@ -573,7 +599,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         }
                         className="accent-harbour-600"
                       />
-                      Has end time
+                      {dateEntry.isAllDay ? "Spans multiple days" : "Has end time"}
                     </label>
                   </div>
 
@@ -586,7 +612,8 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                       const endIsBeforeStart =
                         endDateStr != null &&
                         (endDateStr < startDateStr ||
-                          (endDateStr === startDateStr &&
+                          (!dateEntry.isAllDay &&
+                            endDateStr === startDateStr &&
                             dateEntry.endTime !== "" &&
                             dateEntry.endTime < dateEntry.startTime));
 
@@ -629,23 +656,26 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                               )}
                             </div>
 
-                            <div>
-                              <label className="block text-xs text-harbour-500 mb-1">
-                                End Time
-                              </label>
-                              <input
-                                type="time"
-                                value={dateEntry.endTime}
-                                onChange={(e) =>
-                                  updateDate(dateEntry.id, { endTime: e.target.value })
-                                }
-                                className={`w-full px-3 py-2 border bg-white ${endIsBeforeStart ? "border-red-400" : "border-harbour-200"}`}
-                              />
-                            </div>
+                            {!dateEntry.isAllDay && (
+                              <div>
+                                <label className="block text-xs text-harbour-500 mb-1">
+                                  End Time
+                                </label>
+                                <input
+                                  type="time"
+                                  value={dateEntry.endTime}
+                                  onChange={(e) =>
+                                    updateDate(dateEntry.id, { endTime: e.target.value })
+                                  }
+                                  className={`w-full px-3 py-2 border bg-white ${endIsBeforeStart ? "border-red-400" : "border-harbour-200"}`}
+                                />
+                              </div>
+                            )}
                           </div>
                           {endIsBeforeStart && (
                             <p className="text-xs text-red-600 mt-1">
-                              End date/time is before the start date/time
+                              End date{dateEntry.isAllDay ? "" : "/time"} is before the start
+                              date{dateEntry.isAllDay ? "" : "/time"}
                             </p>
                           )}
                         </div>
@@ -661,12 +691,17 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                   <input
                     type="hidden"
                     name={`dates[${index}][startTime]`}
-                    value={dateEntry.startTime}
+                    value={dateEntry.isAllDay ? "" : dateEntry.startTime}
                   />
                   <input
                     type="hidden"
                     name={`dates[${index}][hasEnd]`}
                     value={dateEntry.isRange ? "1" : "0"}
+                  />
+                  <input
+                    type="hidden"
+                    name={`dates[${index}][isAllDay]`}
+                    value={dateEntry.isAllDay ? "1" : "0"}
                   />
                   {dateEntry.isRange && dateEntry.endDate && (
                     <>
@@ -678,7 +713,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                       <input
                         type="hidden"
                         name={`dates[${index}][endTime]`}
-                        value={dateEntry.endTime}
+                        value={dateEntry.isAllDay ? "" : dateEntry.endTime}
                       />
                     </>
                   )}
