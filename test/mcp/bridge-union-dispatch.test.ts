@@ -182,6 +182,60 @@ describe("updateEntity dispatch", () => {
   });
 });
 
+describe("reviewEntity dispatch", () => {
+  it("requeues a hidden imported job back to pending_review", async () => {
+    const company = await call<{ entity: { id: number } }>(fns().createEntity, {
+      type: "company",
+      name: "Queue Me Co",
+    });
+    // The bridge action works on imported jobs, so seed one directly via the existing helper.
+    const { db } = await import("~/db");
+    const { jobs, jobImportSources } = await import("~/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const now = new Date();
+    const [source] = await db
+      .insert(jobImportSources)
+      .values({
+        companyId: company.entity.id,
+        sourceType: "greenhouse",
+        sourceIdentifier: "queue-me",
+        sourceUrl: "https://example.com/jobs",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        companyId: company.entity.id,
+        sourceId: source.id,
+        sourceType: "imported",
+        externalId: "ext-queue-me",
+        slug: "queue-me-job",
+        title: "Queue Me Job",
+        status: "hidden",
+        removedAt: now,
+        firstSeenAt: now,
+        lastSeenAt: now,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+
+    const updated = await call<{ type: string; action: string }>(fns().reviewEntity, {
+      type: "job",
+      id: job.id,
+      action: "requeue",
+    });
+    expect(updated.type).toBe("job");
+    expect(updated.action).toBe("requeue");
+
+    const [after] = await db.select().from(jobs).where(eq(jobs.id, job.id));
+    expect(after.status).toBe("pending_review");
+    expect(after.removedAt).toBeNull();
+  });
+});
+
 describe("deleteEntity dispatch", () => {
   it("deletes a project and reports success", async () => {
     const created = await call<{ entity: { id: number } }>(fns().createEntity, {

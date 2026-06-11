@@ -477,6 +477,16 @@ export async function unhideImportedJob(jobId: number) {
 }
 
 /**
+ * Requeue an imported job back to pending review.
+ */
+export async function requeueImportedJob(jobId: number) {
+  await db
+    .update(jobs)
+    .set({ status: "pending_review", removedAt: null, updatedAt: new Date() })
+    .where(eq(jobs.id, jobId));
+}
+
+/**
  * Get an imported job by ID
  */
 export async function getImportedJobById(jobId: number) {

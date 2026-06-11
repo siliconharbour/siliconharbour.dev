@@ -84,6 +84,7 @@ import {
   approveJob,
   approveJobAsNonTechnical,
   hideImportedJob,
+  requeueImportedJob,
 } from "~/lib/job-importers/sync.server";
 import { getImporter, getAllImporterMeta } from "~/lib/job-importers/index";
 import type { JobSourceType } from "~/lib/job-importers/types";
@@ -672,6 +673,7 @@ const ReviewEntitySchema = z.discriminatedUnion("type", [
         "approve",
         "approve-non-technical",
         "hide",
+        "requeue",
         "deactivate-removed",
         "deactivate-filled",
         "deactivate-expired",
@@ -2274,7 +2276,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     reviewEntity: host(
       "reviewEntity({ type, id, action })",
-      "Move a pending entity to its final state. type:'job' actions: approve | approve-non-technical | hide | deactivate-removed | deactivate-filled | deactivate-expired. type:'news' actions: approve | hide.",
+      "Move a pending entity to its final state. type:'job' actions: approve | approve-non-technical | hide | requeue | deactivate-removed | deactivate-filled | deactivate-expired. type:'news' actions: approve | hide.",
       "lifecycle",
       async (opts: unknown) => {
         const o = ReviewEntitySchema.parse(opts ?? {});
@@ -2303,6 +2305,14 @@ export function buildExecuteFunctions(): HostFunctions {
             case "hide":
               await hideImportedJob(o.id);
               return { type: "job", id: o.id, action: o.action, message: `"${job.title}" hidden` };
+            case "requeue":
+              await requeueImportedJob(o.id);
+              return {
+                type: "job",
+                id: o.id,
+                action: o.action,
+                message: `"${job.title}" requeued for review`,
+              };
             case "deactivate-removed":
             case "deactivate-filled":
             case "deactivate-expired": {

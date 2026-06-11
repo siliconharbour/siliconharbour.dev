@@ -6,6 +6,7 @@ import {
   approveJob,
   hideImportedJob,
   unhideImportedJob,
+  requeueImportedJob,
   markJobNonTechnical,
   markJobTechnical,
   deleteImportSource,
@@ -122,6 +123,22 @@ describe("unhideImportedJob", () => {
 
     const [updated] = await db.select().from(jobs).where(eq(jobs.id, job.id));
     expect(updated.status).toBe("active");
+  });
+});
+
+describe("requeueImportedJob", () => {
+  it("sets status back to pending_review and clears removedAt", async () => {
+    const company = await seedCompany();
+    const sourceId = await seedSource(company.id);
+    const job = await seedJob(company.id, sourceId, "hidden", "ext-1", {
+      removedAt: new Date("2026-01-01T00:00:00Z"),
+    });
+
+    await requeueImportedJob(job.id);
+
+    const [updated] = await db.select().from(jobs).where(eq(jobs.id, job.id));
+    expect(updated.status).toBe("pending_review");
+    expect(updated.removedAt).toBeNull();
   });
 });
 
