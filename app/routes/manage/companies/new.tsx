@@ -195,6 +195,24 @@ export default function NewCompany() {
             </div>
           </div>
 
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-harbour-700">News Filtering</span>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="newsFilterInclude"
+                className="border border-harbour-300"
+              />
+              <span className="text-sm text-harbour-600">
+                Include name in news import keyword filter
+              </span>
+            </label>
+            <p className="text-xs text-harbour-400">
+              When a news source enables the company name filter, articles mentioning this
+              company&rsquo;s name will be imported. Only enable for companies with distinctive names.
+            </p>
+          </div>
+
           <button
             type="submit"
             className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"

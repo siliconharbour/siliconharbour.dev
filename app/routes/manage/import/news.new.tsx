@@ -36,6 +36,7 @@ const formSchema = z.object({
     z.string().nullable(),
   ),
   useGlobalKeywords: z.preprocess((v) => v === "on", z.boolean()),
+  useCompanyNameFilter: z.preprocess((v) => v === "on", z.boolean()),
   excerptMode: z.enum(excerptModes),
   entityUrl: z.preprocess(
     (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
@@ -128,6 +129,9 @@ export async function action({ request }: Route.ActionArgs) {
   if (!formData.has("useGlobalKeywords")) {
     values.useGlobalKeywords = "" as FormDataEntryValue;
   }
+  if (!formData.has("useCompanyNameFilter")) {
+    values.useCompanyNameFilter = "" as FormDataEntryValue;
+  }
 
   const parsed = formSchema.safeParse(values);
   if (!parsed.success) {
@@ -143,6 +147,7 @@ export async function action({ request }: Route.ActionArgs) {
       sourceIdentifier: parsed.data.sourceIdentifier,
       keywords: parsed.data.keywords,
       useGlobalKeywords: parsed.data.useGlobalKeywords,
+      useCompanyNameFilter: parsed.data.useCompanyNameFilter,
       excerptMode: parsed.data.excerptMode,
       entityUrl: parsed.data.entityUrl,
       enabled: parsed.data.enabled,
@@ -251,14 +256,24 @@ export default function NewNewsImportSource() {
             <label htmlFor="keywords" className="block text-sm font-medium text-harbour-700">
               Keywords (optional)
             </label>
-            <label className="flex items-center gap-1.5 text-xs text-harbour-500">
-              <input
-                type="checkbox"
-                name="useGlobalKeywords"
-                className="w-3 h-3"
-              />
-              Use global keywords
-            </label>
+            <div className="flex items-center gap-4 text-xs text-harbour-500">
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  name="useGlobalKeywords"
+                  className="w-3 h-3"
+                />
+                Use global keywords
+              </label>
+              <label className="flex items-center gap-1.5">
+                <input
+                  type="checkbox"
+                  name="useCompanyNameFilter"
+                  className="w-3 h-3"
+                />
+                Use company name filter
+              </label>
+            </div>
           </div>
           <input
             type="text"
@@ -269,7 +284,8 @@ export default function NewNewsImportSource() {
           />
           <p className="mt-1 text-xs text-harbour-400">
             Comma-separated keywords for filtering. Leave empty to import all items.
-            Global keywords are configured in Settings.
+            Global keywords are configured in Settings. Company name filter uses names of
+            companies flagged &quot;include in news filter&quot;.
           </p>
         </div>
 

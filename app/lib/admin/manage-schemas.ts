@@ -18,6 +18,7 @@ export const companyFormSchema = z.object({
   founded: zOptionalNullableString,
   technl: zCheckboxBoolean,
   genesis: zCheckboxBoolean,
+  newsFilterInclude: zCheckboxBoolean,
 });
 
 export const eventBaseSchema = z.object({

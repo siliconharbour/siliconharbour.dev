@@ -595,6 +595,26 @@ export default function EditCompany() {
             </div>
           </div>
 
+          <div className="flex flex-col gap-2">
+            <span className="font-medium text-harbour-700">News Filtering</span>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="newsFilterInclude"
+                defaultChecked={company.newsFilterInclude ?? false}
+                className="border border-harbour-300"
+              />
+              <span className="text-sm text-harbour-600">
+                Include name in news import keyword filter
+              </span>
+            </label>
+            <p className="text-xs text-harbour-400">
+              When a news source enables the company name filter, articles mentioning this
+              company&rsquo;s name will be imported. Only enable for companies with distinctive names
+              to avoid false positives.
+            </p>
+          </div>
+
           <TechnologySelect technologies={allTechnologies} selectedIds={selectedTechnologyIds} />
 
           {companyTechnologies.length > 0 && (

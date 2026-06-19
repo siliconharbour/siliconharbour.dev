@@ -4,7 +4,7 @@
  */
 
 import { db } from "~/db";
-import { newsImportSources, news } from "~/db/schema";
+import { newsImportSources, news, companies } from "~/db/schema";
 import { eq, desc, count } from "drizzle-orm";
 import type { NewsSyncResult, NewsImportSourceConfig, NewsSourceType, FetchedNewsItem, ExcerptMode } from "./types";
 import { getNewsImporter } from "./index";
@@ -33,6 +33,7 @@ export async function createNewsImportSource(data: {
   sourceIdentifier?: string | null;
   keywords?: string | null;
   useGlobalKeywords?: boolean;
+  useCompanyNameFilter?: boolean;
   excerptMode?: ExcerptMode;
   entityUrl?: string | null;
   enabled?: boolean;
@@ -59,6 +60,7 @@ export async function updateNewsImportSource(
     sourceIdentifier: string | null;
     keywords: string | null;
     useGlobalKeywords: boolean;
+    useCompanyNameFilter: boolean;
     excerptMode: ExcerptMode;
     entityUrl: string | null;
     enabled: boolean;
@@ -118,6 +120,26 @@ export async function unhideNewsItem(newsId: number) {
 }
 
 // ---- Keyword filtering ----
+
+/**
+ * Get the names of companies flagged for inclusion in the news name filter.
+ */
+async function getNewsFilterCompanyNames(): Promise<string[]> {
+  const rows = await db
+    .select({ name: companies.name })
+    .from(companies)
+    .where(eq(companies.newsFilterInclude, true));
+  return rows.map((r) => r.name).filter((n): n is string => Boolean(n));
+}
+
+/**
+ * Merge keyword lists into a single comma-separated string.
+ */
+function mergeKeywords(...lists: (string | null | undefined)[]): string | null {
+  const all = lists
+    .flatMap((list) => (list ? list.split(",").map((k) => k.trim()).filter(Boolean) : []));
+  return all.length > 0 ? all.join(", ") : null;
+}
 
 /**
  * Check if a news item matches any of the configured keywords.
@@ -185,6 +207,12 @@ export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> 
     if (source.useGlobalKeywords) {
       const globalKeywords = await getNewsGlobalKeywords();
       effectiveKeywords = globalKeywords || null;
+    }
+
+    // Merge flagged company names when the source opts in
+    if (source.useCompanyNameFilter) {
+      const companyNames = await getNewsFilterCompanyNames();
+      effectiveKeywords = mergeKeywords(effectiveKeywords, companyNames.join(", "));
     }
 
     // Apply keyword filtering

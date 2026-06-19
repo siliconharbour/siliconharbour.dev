@@ -141,6 +141,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim() || null;
     const keywords = (formData.get("keywords") as string)?.trim() || null;
     const useGlobalKeywords = formData.has("useGlobalKeywords");
+    const useCompanyNameFilter = formData.has("useCompanyNameFilter");
     const excerptMode = (formData.get("excerptMode") as ExcerptMode) || "description";
     const entityUrl = (formData.get("entityUrl") as string)?.trim() || null;
     const enabled = formData.has("enabled");
@@ -154,6 +155,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       sourceIdentifier,
       keywords,
       useGlobalKeywords,
+      useCompanyNameFilter,
       excerptMode,
       entityUrl,
       enabled,
@@ -322,14 +324,24 @@ export default function NewsImportSourceDetail() {
             <div>
               <div className="flex items-center justify-between">
                 <label className="text-sm text-harbour-500" htmlFor="keywords">Keywords</label>
-                <label className="flex items-center gap-1.5 text-xs text-harbour-500">
-                  <input
-                    type="checkbox" name="useGlobalKeywords"
-                    defaultChecked={source.useGlobalKeywords}
-                    className="w-3 h-3"
-                  />
-                  Use global
-                </label>
+                <div className="flex items-center gap-4 text-xs text-harbour-500">
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox" name="useGlobalKeywords"
+                      defaultChecked={source.useGlobalKeywords}
+                      className="w-3 h-3"
+                    />
+                    Use global
+                  </label>
+                  <label className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox" name="useCompanyNameFilter"
+                      defaultChecked={source.useCompanyNameFilter}
+                      className="w-3 h-3"
+                    />
+                    Company names
+                  </label>
+                </div>
               </div>
               <input
                 id="keywords" name="keywords" type="text"

@@ -150,6 +150,8 @@ export const companies = sqliteTable("companies", {
   technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
   genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
   bounce: integer("bounce", { mode: "boolean" }).default(false), // listed on Bounce Health Innovation
+  // News filtering - include this company's name in news import keyword filters
+  newsFilterInclude: integer("news_filter_include", { mode: "boolean" }).default(false),
   // Visibility - false means only visible in manage UI, not public
   visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
@@ -289,6 +291,7 @@ export const newsImportSources = sqliteTable("news_import_sources", {
   sourceIdentifier: text("source_identifier"),
   keywords: text("keywords"),
   useGlobalKeywords: integer("use_global_keywords", { mode: "boolean" }).notNull().default(false),
+  useCompanyNameFilter: integer("use_company_name_filter", { mode: "boolean" }).notNull().default(false),
   excerptMode: text("excerpt_mode", { enum: excerptModes }).notNull().default("description"),
   entityUrl: text("entity_url"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),

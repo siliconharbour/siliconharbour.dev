@@ -372,6 +372,13 @@
       "when": 1768736001000,
       "tag": "0052_add_event_date_all_day",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "6",
+      "when": 1768737000000,
+      "tag": "0053_news_company_name_filter",
+      "breakpoints": true
     }
   ]
 }
