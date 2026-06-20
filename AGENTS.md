@@ -55,6 +55,21 @@ route("api/my-endpoint", "routes/api/my-endpoint.tsx"),
 route("api/my-endpoint/:id", "routes/api/my-endpoint.$id.tsx"),
 ```
 
+## MCP Parity
+
+This project exposes admin/data operations through `app/mcp/bridge.ts`.
+
+When you add or change backend features that an operator/agent may need to use remotely,
+review whether the MCP bridge should expose them too. Common cases:
+
+- New fields on entities already supported by `createEntity` / `updateEntity`
+- New import-source options or sync controls
+- New review / lifecycle actions
+- New admin-safe lookup or creation flows
+
+If a feature should be operable through MCP, update the relevant Zod schemas and handler
+paths in `app/mcp/bridge.ts` before considering the work complete.
+
 ## Database
 
 The SQLite database is located at `./data/siliconharbour.db` (configured via `DB_URL` env var).

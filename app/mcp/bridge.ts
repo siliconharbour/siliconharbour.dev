@@ -313,6 +313,16 @@ const CompanyCreateSchema = z.object({
   description: z.string().optional(),
   location: z.string().optional(),
   email: z.string().optional(),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
+  wikipedia: z.string().optional(),
+  careersUrl: z.string().optional(),
+  founded: z.string().optional(),
+  visible: z.boolean().optional(),
+  technl: z.boolean().optional(),
+  genesis: z.boolean().optional(),
+  bounce: z.boolean().optional(),
+  newsFilterInclude: z.boolean().optional(),
 });
 
 const GroupCreateSchema = z.object({
@@ -392,6 +402,7 @@ const NewsSourceCreateSchema = z.object({
   sourceIdentifier: z.string().optional(),
   keywords: z.string().optional(),
   useGlobalKeywords: z.boolean().optional(),
+  useCompanyNameFilter: z.boolean().optional(),
   excerptMode: z.enum(["description", "content", "none"]).optional(),
   entityUrl: z.string().optional(),
   enabled: z.boolean().optional(),
@@ -488,6 +499,7 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     technl: z.boolean().optional(),
     genesis: z.boolean().optional(),
     bounce: z.boolean().optional(),
+    newsFilterInclude: z.boolean().optional(),
   }),
   // Job update: patches an existing job's basic fields.
   z.object({
@@ -588,6 +600,7 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     sourceIdentifier: z.string().optional(),
     keywords: z.string().optional(),
     useGlobalKeywords: z.boolean().optional(),
+    useCompanyNameFilter: z.boolean().optional(),
     excerptMode: z.enum(["description", "content", "none"]).optional(),
     entityUrl: z.string().optional(),
     enabled: z.boolean().optional(),
@@ -1356,13 +1369,22 @@ export function buildExecuteFunctions(): HostFunctions {
               website: o.website?.trim() || null,
               location: o.location?.trim() || null,
               email: o.email?.trim() || null,
+              linkedin: o.linkedin?.trim() || null,
+              github: o.github?.trim() || null,
+              wikipedia: o.wikipedia?.trim() || null,
+              careersUrl: o.careersUrl?.trim() || null,
+              founded: o.founded?.trim() || null,
               logo: null,
-              visible: false,
+              visible: o.visible ?? false,
+              technl: o.technl ?? false,
+              genesis: o.genesis ?? false,
+              bounce: o.bounce ?? false,
+              newsFilterInclude: o.newsFilterInclude ?? false,
             });
             return toPlain({
               created: true,
               type: "company",
-              message: `Company "${company.name}" created (hidden, pending review)`,
+              message: `Company "${company.name}" created${company.visible ? "" : " (hidden, pending review)"}`,
               entity: { id: company.id, name: company.name, slug: company.slug },
             });
           }
@@ -1548,6 +1570,7 @@ export function buildExecuteFunctions(): HostFunctions {
               sourceIdentifier: o.sourceIdentifier?.trim() || null,
               keywords: o.keywords?.trim() || null,
               useGlobalKeywords: o.useGlobalKeywords ?? false,
+              useCompanyNameFilter: o.useCompanyNameFilter ?? false,
               excerptMode: (o.excerptMode as ExcerptMode | undefined) ?? "description",
               entityUrl: o.entityUrl?.trim() || null,
               enabled: o.enabled ?? true,
