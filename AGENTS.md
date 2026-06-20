@@ -76,6 +76,7 @@ This project uses Drizzle ORM with SQLite. When adding/modifying database schema
 
 - Use backticks around table and column names: ``ALTER TABLE `events` ADD `column_name` ...``
 - NOT double quotes (those will cause "no such column" errors)
+- **Multiple statements require `--> statement-breakpoint`** between each statement. Without it, `better-sqlite3` rejects the file ("contains more than one statement") and `drizzle-kit migrate` fails silently with exit code 1.
 - Follow the style of existing migrations in `drizzle/`
 
 Example:
