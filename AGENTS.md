@@ -102,11 +102,36 @@ Add an entry to `drizzle/meta/_journal.json`:
 - `tag`: Must match the SQL filename (without `.sql`)
 - `when`: Timestamp (can increment from previous)
 
-### 4. Run Migration
+### 4. Run Migration (local)
 
 ```bash
 pnpm run db:migrate
 ```
+
+This applies the migration to your local `./data/siliconharbour.db`. Do this to verify
+the migration SQL is valid and the schema change works as expected.
+
+### 5. Production Migration (operator-run)
+
+**You do NOT run this.** The operator does, after the new code is deployed to prod.
+
+`pnpm run migrate-prod` (defined in `scripts/sync-prod.ts`) orchestrates a zero-data-loss
+prod migration with downtime:
+
+1. Stops the production container
+2. Backs up the prod database (zip archive in `./tmp/backup/`)
+3. Pulls the prod DB locally
+4. Runs `pnpm run db:migrate` against the local copy
+5. Pushes the migrated DB back to prod
+6. Restarts the production container
+
+It prompts for confirmation twice and requires `yes` for both. If the migration fails,
+prod is left untouched and a backup is available.
+
+**Your responsibility:** write the migration (schema + SQL + journal), run it locally to
+verify it applies cleanly, and tell the operator that a prod migration is needed. The
+operator decides when to run `pnpm run migrate-prod` (typically after the code change
+is deployed, so the new code matches the new schema).
 
 ## Session Completion
 
