@@ -123,17 +123,74 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-/** Decode common HTML entities */
+const HTML_ENTITIES: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&apos;": "'",
+  "&nbsp;": "\u00a0",
+  "&iexcl;": "\u00a1",
+  "&cent;": "\u00a2",
+  "&pound;": "\u00a3",
+  "&curren;": "\u00a4",
+  "&yen;": "\u00a5",
+  "&brvbar;": "\u00a6",
+  "&sect;": "\u00a7",
+  "&uml;": "\u00a8",
+  "&copy;": "\u00a9",
+  "&ordf;": "\u00aa",
+  "&laquo;": "\u00ab",
+  "&not;": "\u00ac",
+  "&shy;": "\u00ad",
+  "&reg;": "\u00ae",
+  "&macr;": "\u00af",
+  "&deg;": "\u00b0",
+  "&plusmn;": "\u00b1",
+  "&sup2;": "\u00b2",
+  "&sup3;": "\u00b3",
+  "&acute;": "\u00b4",
+  "&micro;": "\u00b5",
+  "&para;": "\u00b6",
+  "&middot;": "\u00b7",
+  "&cedil;": "\u00b8",
+  "&sup1;": "\u00b9",
+  "&ordm;": "\u00ba",
+  "&raquo;": "\u00bb",
+  "&frac14;": "\u00bc",
+  "&frac12;": "\u00bd",
+  "&frac34;": "\u00be",
+  "&iquest;": "\u00bf",
+  "&times;": "\u00d7",
+  "&divide;": "\u00f7",
+  "&rsquo;": "\u2019",
+  "&lsquo;": "\u2018",
+  "&rdquo;": "\u201d",
+  "&ldquo;": "\u201c",
+  "&mdash;": "\u2014",
+  "&ndash;": "\u2013",
+  "&hellip;": "\u2026",
+  "&bull;": "\u2022",
+  "&trade;": "\u2122",
+  "&euro;": "\u20ac",
+};
+
+/** Decode HTML entities (named, decimal, and hex) */
 function decodeHtmlEntities(text: string): string {
   return text
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+    .replace(
+      /&(#x[\da-fA-F]+|#\d+|\w+);/g,
+      (match) => {
+        if (HTML_ENTITIES[match]) return HTML_ENTITIES[match];
+        if (match.startsWith("&#x")) {
+          return String.fromCharCode(parseInt(match.slice(3, -1), 16));
+        }
+        if (match.startsWith("&#")) {
+          return String.fromCharCode(Number(match.slice(2, -1)));
+        }
+        return match;
+      },
+    );
 }
 
 export const rssImporter: NewsImporter = {
