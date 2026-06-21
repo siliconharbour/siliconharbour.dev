@@ -15,7 +15,7 @@ async function startTestServer() {
   };
 }
 
-describe("Silicon Harbour MCP stale session handling", () => {
+describe("Silicon Harbour MCP stateless transport", () => {
   let server: Awaited<ReturnType<typeof startTestServer>>["server"] | undefined;
 
   afterEach(async () => {
@@ -26,7 +26,7 @@ describe("Silicon Harbour MCP stale session handling", () => {
     server = undefined;
   });
 
-  it("returns 404 for POST requests with an unknown session id", async () => {
+  it("does not mint an MCP session id during initialize", async () => {
     const started = await startTestServer();
     server = started.server;
 
@@ -34,35 +34,39 @@ describe("Silicon Harbour MCP stale session handling", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Mcp-Session-Id": "stale-session-id",
+        Accept: "application/json, text/event-stream",
       },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-11-25",
+          capabilities: {},
+          clientInfo: { name: "vitest", version: "1.0.0" },
+        },
+      }),
     });
 
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
-      jsonrpc: "2.0",
-      error: { code: -32001, message: "Session not found" },
-      id: 1,
-    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("mcp-session-id")).toBeNull();
   });
 
-  it("returns 404 for GET requests with an unknown session id", async () => {
+  it("returns 405 for GET and DELETE requests", async () => {
     const started = await startTestServer();
     server = started.server;
 
-    const response = await fetch(`${started.baseUrl}/mcp`, {
-      method: "GET",
-      headers: {
-        "Mcp-Session-Id": "stale-session-id",
-      },
-    });
+    for (const method of ["GET", "DELETE"] as const) {
+      const response = await fetch(`${started.baseUrl}/mcp`, {
+        method,
+        headers: {
+          "Mcp-Session-Id": "stale-session-id",
+        },
+      });
 
-    expect(response.status).toBe(404);
-    await expect(response.json()).resolves.toEqual({
-      jsonrpc: "2.0",
-      error: { code: -32001, message: "Session not found" },
-      id: null,
-    });
+      expect(response.status).toBe(405);
+      expect(response.headers.get("allow")).toBe("POST");
+      await expect(response.text()).resolves.toContain("Method Not Allowed");
+    }
   });
 });
