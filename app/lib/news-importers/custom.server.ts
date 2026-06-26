@@ -9,6 +9,7 @@ import type {
   FetchedNewsItem,
   NewsImportSourceConfig,
 } from "./types";
+import { genesisScraper } from "./custom/genesis";
 
 /**
  * Scraper function signature.
@@ -23,8 +24,7 @@ type NewsScraper = (
  * Add new scrapers here as needed.
  */
 const scrapers: Record<string, NewsScraper> = {
-  // Add scrapers as needed, e.g.:
-  // vocm: vocmScraper,
+  genesis: genesisScraper,
 };
 
 function parseScraperName(sourceIdentifier: string): string {
