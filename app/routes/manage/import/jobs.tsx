@@ -159,63 +159,67 @@ function PendingJobRow({
   const isActing = fetcher.state !== "idle";
 
   return (
-    <div className={`flex items-center gap-3 p-3 border border-harbour-200 bg-white ${isActing ? "opacity-50" : ""}`}>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-harbour-700 truncate">{job.title}</span>
+    <div
+      className={`flex flex-col gap-3 p-3 border border-harbour-200 bg-white sm:flex-row sm:items-center ${isActing ? "opacity-50" : ""}`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="block w-full font-medium text-harbour-700 break-words sm:w-auto">
+            {job.title}
+          </span>
           {job.sourceType && (
             <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-500">
               {sourceTypeLabels[job.sourceType as keyof typeof sourceTypeLabels] || job.sourceType}
             </span>
           )}
         </div>
-        <p className="text-sm text-harbour-400 truncate">
+        <p className="text-sm text-harbour-400 break-words">
           {[job.companyName, job.location, job.workplaceType].filter(Boolean).join(" \u2022 ")}
         </p>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="grid w-full grid-cols-3 gap-1 sm:flex sm:w-auto sm:flex-nowrap sm:items-center">
         {job.url && (
           <a
             href={job.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+            className="flex items-center justify-center px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
           >
             View
           </a>
         )}
-        <fetcher.Form method="post">
+        <fetcher.Form method="post" className="contents sm:block">
           <input type="hidden" name="intent" value="review-job" />
           <input type="hidden" name="jobId" value={job.id} />
           <input type="hidden" name="action" value="approve" />
           <button
             type="submit"
             disabled={isActing}
-            className="px-2 py-1 text-xs text-green-700 hover:bg-green-50 border border-green-200 hover:border-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-2 py-1 text-xs text-green-700 hover:bg-green-50 border border-green-200 hover:border-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Approve
           </button>
         </fetcher.Form>
-        <fetcher.Form method="post">
+        <fetcher.Form method="post" className="contents sm:block">
           <input type="hidden" name="intent" value="review-job" />
           <input type="hidden" name="jobId" value={job.id} />
           <input type="hidden" name="action" value="approve-non-technical" />
           <button
             type="submit"
             disabled={isActing}
-            className="px-2 py-1 text-xs text-amber-700 hover:bg-amber-50 border border-amber-200 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-2 py-1 text-xs text-amber-700 hover:bg-amber-50 border border-amber-200 hover:border-amber-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Non-Tech
           </button>
         </fetcher.Form>
-        <fetcher.Form method="post">
+        <fetcher.Form method="post" className="contents sm:block">
           <input type="hidden" name="intent" value="review-job" />
           <input type="hidden" name="jobId" value={job.id} />
           <input type="hidden" name="action" value="hide" />
           <button
             type="submit"
             disabled={isActing}
-            className="px-2 py-1 text-xs text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-2 py-1 text-xs text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Hide
           </button>
@@ -245,34 +249,34 @@ export default function ManageImportJobs() {
   return (
     <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-semibold text-harbour-700">Job Import Sources</h1>
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <Link
               to="/manage/import/jobs/technl"
-              className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors"
+              className="block w-full px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors text-center"
             >
               TechNL Board
             </Link>
             <Link
               to="/manage/import/jobs/importers"
-              className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors"
+              className="block w-full px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors text-center"
             >
               Importer Docs
             </Link>
-            <fetcher.Form method="post">
+            <fetcher.Form method="post" className="w-full">
               <input type="hidden" name="intent" value="sync-all" />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+                className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
               >
                 {isSyncAllLoading ? "Syncing All..." : "Sync All"}
               </button>
             </fetcher.Form>
             <Link
               to="/manage/import/jobs/new"
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+              className="block w-full px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors text-center"
             >
               Add Source
             </Link>
@@ -337,7 +341,7 @@ export default function ManageImportJobs() {
         {/* Pending job triage */}
         {pendingJobs.length > 0 && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold text-harbour-700">
                 Pending Review ({pendingJobs.length})
               </h2>
