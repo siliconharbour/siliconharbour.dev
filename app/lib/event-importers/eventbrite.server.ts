@@ -187,11 +187,16 @@ function parseJsonLdEvents(html: string): FetchedEvent[] {
   while ((match = jsonLdRegex.exec(html)) !== null) {
     try {
       const data = JSON.parse(match[1]);
-      if (!Array.isArray(data.itemListElement)) continue;
+      const listItems = Array.isArray(data.itemListElement)
+        ? data.itemListElement
+        : data["@type"]?.toString().includes("Event")
+          ? [{ item: data }]
+          : [];
+      if (listItems.length === 0) continue;
 
-      for (const listItem of data.itemListElement) {
+      for (const listItem of listItems) {
         const ev: SchemaOrgEvent = listItem.item;
-        if (!ev || ev["@type"] !== "Event") continue;
+        if (!ev || !ev["@type"]?.toString().includes("Event")) continue;
 
         const title = ev.name?.trim();
         if (!title) continue;
@@ -259,16 +264,45 @@ async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]
   return parseJsonLdEvents(html);
 }
 
+async function fetchEventPage(url: string): Promise<FetchedEvent[]> {
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",
+      Accept: "text/html",
+    },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch Eventbrite event page: ${res.status}`);
+
+  return parseJsonLdEvents(await res.text());
+}
+
+function isEventbriteEventUrl(url: string): boolean {
+  return url.startsWith('https://www.eventbrite.ca/e/');
+}
+
+function applyConfiguredOrganizer(events: FetchedEvent[], organizer: string | null): FetchedEvent[] {
+  if (!organizer) return events;
+  return events.map((event) => ({ ...event, organizer: event.organizer || organizer }));
+}
+
 export const eventbriteImporter: EventImporter = {
   sourceType: "eventbrite",
 
   async fetchEvents(config: ImportSourceConfig): Promise<FetchedEvent[]> {
-    return fetchOrganizerEvents(config.sourceIdentifier);
+    const events = await fetchOrganizerEvents(config.sourceIdentifier);
+    if (events.length > 0 || !isEventbriteEventUrl(config.sourceUrl)) {
+      return applyConfiguredOrganizer(events, config.organizer);
+    }
+
+    return applyConfiguredOrganizer(await fetchEventPage(config.sourceUrl), config.organizer);
   },
 
   async validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult> {
     try {
-      const events = await fetchOrganizerEvents(config.sourceIdentifier);
+      let events = await fetchOrganizerEvents(config.sourceIdentifier);
+      if (events.length === 0 && isEventbriteEventUrl(config.sourceUrl)) {
+        events = await fetchEventPage(config.sourceUrl);
+      }
       return { valid: true, eventCount: events.length };
     } catch (err) {
       return {

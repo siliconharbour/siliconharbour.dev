@@ -60,7 +60,10 @@ export async function action({ request }: Route.ActionArgs) {
 const SOURCE_TYPES = ["luma-user", "luma-calendar", "technl", "netbenefit", "eventbrite", "bevy", "meetup"] as const;
 
 const FIXED_SOURCES: Partial<Record<string, { identifier: string; url: string }>> = {
-  technl: { identifier: "technl", url: "https://technl.ca/news-events/" },
+  technl: {
+    identifier: "technl",
+    url: "https://technl.app.neoncrm.com/nx/portal/neonevents/events?path=%2Fportal%2Fevents",
+  },
   netbenefit: { identifier: "netbenefit", url: "https://www.netbenefitsoftware.com/events" },
 };
 
