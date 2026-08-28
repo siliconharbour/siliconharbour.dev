@@ -13,23 +13,23 @@ https://siliconharbour.dev/about
 ### Prerequisites
 
 - Node.js
-- npm
+- pnpm
 
 ### Development
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm run dev
 ```
 
-App runs at `http://localhost:5173`
+App runs at `http://localhost:3000`
 
 ### Database Commands
 
 ```bash
-npm run db:migrate    # Run migrations
-npm run db:studio     # Open Drizzle Studio
-npm run db:seed       # Seed database
+pnpm run db:migrate    # Run migrations
+pnpm run db:studio     # Open Drizzle Studio
+pnpm run db:seed       # Seed database
 ```
 
 ## Docker
@@ -58,3 +58,12 @@ docker run -p 3000:3000 -v ./data:/app/data siliconharbour
 | `DATA_DIR`        | Directory for database and uploads | `./data`            |
 | `DB_NAME`         | SQLite database filename           | `siliconharbour.db` |
 | `IMAGES_DIR_NAME` | Subdirectory for uploaded images   | `images`            |
+| `SESSION_SECRET`  | Signs login and OAuth sessions      | Required in prod    |
+| `SITE_URL`        | Public application/MCP resource URL | Production URL      |
+| `OAUTH_ISSUER_URL` | OAuth issuer URL (if different)    | `SITE_URL`          |
+
+## MCP authentication
+
+The MCP endpoint uses OAuth 2.1 authorization-code flow with S256 PKCE. MCP clients discover
+the authorization, registration, and token endpoints automatically from the server metadata;
+there is no shared API token to configure.

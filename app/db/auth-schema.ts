@@ -47,6 +47,18 @@ export const oauthAuthorizationCodes = sqliteTable("oauth_authorization_codes", 
     .$defaultFn(() => new Date()),
 });
 
+export const oauthConsentRequests = sqliteTable("oauth_consent_requests", {
+  nonceHash: text("nonce_hash").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  params: text("params").notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
 export const oauthTokens = sqliteTable(
   "oauth_tokens",
   {
@@ -58,9 +70,11 @@ export const oauthTokens = sqliteTable(
     clientId: text("client_id")
       .notNull()
       .references(() => oauthClients.id, { onDelete: "cascade" }),
+    familyId: text("family_id").notNull(),
     scopes: text("scopes").notNull(),
     resource: text("resource").notNull(),
     expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    revokedAt: integer("revoked_at", { mode: "timestamp" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -68,5 +82,6 @@ export const oauthTokens = sqliteTable(
   (table) => ({
     userIdx: index("oauth_tokens_user_idx").on(table.userId),
     clientIdx: index("oauth_tokens_client_idx").on(table.clientId),
+    familyIdx: index("oauth_tokens_family_idx").on(table.familyId),
   }),
 );

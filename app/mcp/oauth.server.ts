@@ -1,11 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 import { OAuthError, OAuthErrorCode, type AuthInfo } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { db } from "~/db";
 import {
   oauthAuthorizationCodes,
   oauthClients,
+  oauthConsentRequests,
   oauthTokens,
   users,
 } from "~/db/schema";
@@ -14,6 +15,10 @@ export const MCP_SCOPES = ["mcp:read", "mcp:write"] as const;
 const ACCESS_TOKEN_SECONDS = 60 * 60;
 const REFRESH_TOKEN_SECONDS = 60 * 60 * 24 * 30;
 const AUTHORIZATION_CODE_SECONDS = 5 * 60;
+const CONSENT_REQUEST_SECONDS = 10 * 60;
+const MAX_REDIRECT_URIS = 10;
+const MAX_REDIRECT_URI_LENGTH = 2048;
+const MAX_REGISTERED_CLIENTS = 10_000;
 
 export function getOAuthIssuerUrl(): URL {
   return new URL(
@@ -73,13 +78,22 @@ export function isValidRedirectUri(value: string): boolean {
 
 const clientRegistrationSchema = z.object({
   client_name: z.string().trim().min(1).max(200),
-  redirect_uris: z.array(z.string().refine(isValidRedirectUri)).min(1),
+  redirect_uris: z
+    .array(z.string().max(MAX_REDIRECT_URI_LENGTH).refine(isValidRedirectUri))
+    .min(1)
+    .max(MAX_REDIRECT_URIS),
 });
 
 export async function registerClient(input: unknown) {
   const parsed = clientRegistrationSchema.safeParse(input);
   if (!parsed.success) {
     throw new OAuthError(OAuthErrorCode.InvalidClientMetadata, "Invalid client metadata");
+  }
+  if ((await db.$count(oauthClients)) >= MAX_REGISTERED_CLIENTS) {
+    throw new OAuthError(
+      OAuthErrorCode.TemporarilyUnavailable,
+      "OAuth client registration capacity has been reached",
+    );
   }
 
   const client = {
@@ -113,6 +127,16 @@ export async function validateAuthorizationRequest(
   const client = await getClient(clientId);
   const resource = params.get("resource") || "";
   const codeChallenge = params.get("code_challenge") || "";
+
+  if (
+    clientId.length > 200 ||
+    redirectUri.length > MAX_REDIRECT_URI_LENGTH ||
+    resource.length > MAX_REDIRECT_URI_LENGTH ||
+    (params.get("scope") || "").length > 200 ||
+    (params.get("state") || "").length > 512
+  ) {
+    throw new OAuthError(OAuthErrorCode.InvalidRequest, "OAuth request parameter is too large");
+  }
 
   if (!client || !client.redirectUris.includes(redirectUri)) {
     throw new OAuthError(OAuthErrorCode.InvalidClient, "Invalid OAuth client or redirect URI");
@@ -169,6 +193,38 @@ export async function createAuthorizationCode(input: {
   return code;
 }
 
+export async function createConsentRequest(userId: number, params: Record<string, string>) {
+  const nonce = opaqueValue();
+  const now = new Date();
+  await db.transaction((tx) => {
+    tx.delete(oauthConsentRequests).where(lt(oauthConsentRequests.expiresAt, now)).run();
+    tx.insert(oauthConsentRequests)
+      .values({
+        nonceHash: hash(nonce),
+        userId,
+        params: JSON.stringify(params),
+        expiresAt: new Date(now.getTime() + CONSENT_REQUEST_SECONDS * 1000),
+      })
+      .run();
+  });
+  return nonce;
+}
+
+export async function consumeConsentRequest(nonce: string, userId: number) {
+  return db.transaction((tx) => {
+    const row = tx
+      .select()
+      .from(oauthConsentRequests)
+      .where(eq(oauthConsentRequests.nonceHash, hash(nonce)))
+      .get();
+    if (!row || row.userId !== userId || row.expiresAt < new Date()) return null;
+    tx.delete(oauthConsentRequests)
+      .where(eq(oauthConsentRequests.nonceHash, row.nonceHash))
+      .run();
+    return JSON.parse(row.params) as Record<string, string>;
+  });
+}
+
 function verifyPkce(verifier: string, challenge: string): boolean {
   return createHash("sha256").update(verifier).digest("base64url") === challenge;
 }
@@ -178,16 +234,19 @@ function createTokenGrant(input: {
   clientId: string;
   scopes: string[];
   resource: string;
+  familyId?: string;
 }) {
   const accessToken = opaqueValue();
   const refreshToken = opaqueValue();
   const now = Date.now();
+  const familyId = input.familyId || opaqueValue();
   const values = [
     {
       tokenHash: hash(accessToken),
       tokenType: "access",
       userId: input.userId,
       clientId: input.clientId,
+      familyId,
       scopes: serializeScopes(input.scopes),
       resource: input.resource,
       expiresAt: new Date(now + ACCESS_TOKEN_SECONDS * 1000),
@@ -197,6 +256,7 @@ function createTokenGrant(input: {
       tokenType: "refresh",
       userId: input.userId,
       clientId: input.clientId,
+      familyId,
       scopes: serializeScopes(input.scopes),
       resource: input.resource,
       expiresAt: new Date(now + REFRESH_TOKEN_SECONDS * 1000),
@@ -222,11 +282,13 @@ export async function exchangeAuthorizationCode(input: {
   resource: string;
 }) {
   return db.transaction((tx) => {
-    const row = tx
-      .select()
+    const result = tx
+      .select({ code: oauthAuthorizationCodes, userRole: users.role })
       .from(oauthAuthorizationCodes)
+      .innerJoin(users, eq(oauthAuthorizationCodes.userId, users.id))
       .where(eq(oauthAuthorizationCodes.codeHash, hash(input.code)))
       .get();
+    const row = result?.code;
     if (
       !row ||
       row.expiresAt < new Date() ||
@@ -236,6 +298,9 @@ export async function exchangeAuthorizationCode(input: {
       !verifyPkce(input.codeVerifier, row.codeChallenge)
     ) {
       throw new OAuthError(OAuthErrorCode.InvalidGrant, "Invalid or expired authorization code");
+    }
+    if (parseScopes(row.scopes).includes("mcp:write") && result.userRole !== "admin") {
+      throw new OAuthError(OAuthErrorCode.InvalidGrant, "Authorization grant is no longer permitted");
     }
     tx.delete(oauthAuthorizationCodes)
       .where(eq(oauthAuthorizationCodes.codeHash, row.codeHash))
@@ -256,10 +321,11 @@ export async function exchangeRefreshToken(input: {
   clientId: string;
   resource: string;
 }) {
-  return db.transaction((tx) => {
-    const row = tx
-      .select()
+  const result = db.transaction((tx) => {
+    const selected = tx
+      .select({ token: oauthTokens, userRole: users.role })
       .from(oauthTokens)
+      .innerJoin(users, eq(oauthTokens.userId, users.id))
       .where(
         and(
           eq(oauthTokens.tokenHash, hash(input.refreshToken)),
@@ -267,6 +333,7 @@ export async function exchangeRefreshToken(input: {
         ),
       )
       .get();
+    const row = selected?.token;
     if (
       !row ||
       row.expiresAt < new Date() ||
@@ -275,16 +342,34 @@ export async function exchangeRefreshToken(input: {
     ) {
       throw new OAuthError(OAuthErrorCode.InvalidGrant, "Invalid or expired refresh token");
     }
-    tx.delete(oauthTokens).where(eq(oauthTokens.tokenHash, row.tokenHash)).run();
+    const now = new Date();
+    const writeGrantWasRevoked =
+      parseScopes(row.scopes).includes("mcp:write") && selected.userRole !== "admin";
+    if (row.revokedAt || writeGrantWasRevoked) {
+      tx.update(oauthTokens)
+        .set({ revokedAt: now })
+        .where(eq(oauthTokens.familyId, row.familyId))
+        .run();
+      return { rejected: true as const };
+    }
+    tx.update(oauthTokens)
+      .set({ revokedAt: now })
+      .where(and(eq(oauthTokens.tokenHash, row.tokenHash), isNull(oauthTokens.revokedAt)))
+      .run();
     const grant = createTokenGrant({
       userId: row.userId,
       clientId: row.clientId,
       scopes: parseScopes(row.scopes),
       resource: row.resource,
+      familyId: row.familyId,
     });
     tx.insert(oauthTokens).values([...grant.values]).run();
-    return grant.response;
+    return { rejected: false as const, response: grant.response };
   });
+  if (result.rejected) {
+    throw new OAuthError(OAuthErrorCode.InvalidGrant, "Refresh token has been revoked");
+  }
+  return result.response;
 }
 
 const tokenRequestSchema = z.discriminatedUnion("grant_type", [
@@ -347,13 +432,20 @@ export const oauthTokenVerifier = {
         and(eq(oauthTokens.tokenHash, hash(token)), eq(oauthTokens.tokenType, "access")),
       )
       .get();
-    if (!row || row.token.expiresAt < new Date()) {
+    const scopes = row ? parseScopes(row.token.scopes) : [];
+    if (
+      !row ||
+      row.token.expiresAt < new Date() ||
+      row.token.revokedAt ||
+      row.token.resource !== getMcpResourceUrl().toString() ||
+      (scopes.includes("mcp:write") && row.userRole !== "admin")
+    ) {
       throw new OAuthError(OAuthErrorCode.InvalidToken, "Invalid or expired access token");
     }
     return {
       token,
       clientId: row.token.clientId,
-      scopes: parseScopes(row.token.scopes),
+      scopes,
       expiresAt: Math.floor(row.token.expiresAt.getTime() / 1000),
       resource: new URL(row.token.resource),
       extra: { userId: row.token.userId, role: row.userRole },

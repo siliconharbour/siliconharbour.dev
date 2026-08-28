@@ -35,6 +35,7 @@ COPY server.ts /app/server.ts
 COPY tsconfig.json /app/tsconfig.json
 WORKDIR /app
 # Required env vars:
-# MCP_API_TOKEN=<random secret> — required for execute tool authentication
-# Generate with: openssl rand -hex 32
+# SESSION_SECRET=<random secret> — signs login and OAuth consent sessions
+# SITE_URL=https://siliconharbour.dev — public application and MCP resource URL
+# OAUTH_ISSUER_URL=https://siliconharbour.dev — optional when identical to SITE_URL
 CMD ["pnpm", "run", "start"]

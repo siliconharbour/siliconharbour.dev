@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { RouterContextProvider } from "react-router";
 import { db } from "~/db";
-import { users } from "~/db/schema";
+import { sessions, users } from "~/db/schema";
+import { eq } from "drizzle-orm";
 import { createSession } from "~/lib/auth.server";
 import { sessionStorage } from "~/lib/session.server";
 import { oauthJson } from "~/mcp/oauth-http.server";
@@ -24,8 +25,9 @@ function routeArgs(request: Request) {
 
 async function sessionCookie(userId: number) {
   const session = await sessionStorage.getSession();
-  session.set("sessionId", await createSession(userId));
-  return sessionStorage.commitSession(session);
+  const sessionId = await createSession(userId);
+  session.set("sessionId", sessionId);
+  return { cookie: await sessionStorage.commitSession(session), sessionId };
 }
 
 describe("MCP OAuth routes", () => {
@@ -79,6 +81,56 @@ describe("MCP OAuth routes", () => {
     consoleError.mockRestore();
   });
 
+  it("rejects oversized OAuth request bodies", async () => {
+    const oversized = "x".repeat(33 * 1024);
+    const registration = await register(
+      routeArgs(
+        new Request("http://localhost:3000/oauth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ client_name: oversized, redirect_uris: ["https://example.com"] }),
+        }),
+      ),
+    );
+    expect(registration.status).toBe(400);
+    await expect(registration.json()).resolves.toMatchObject({ error: "invalid_request" });
+
+    const token = await exchangeToken(
+      routeArgs(
+        new Request("http://localhost:3000/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ grant_type: "authorization_code", code: oversized }),
+        }),
+      ),
+    );
+    expect(token.status).toBe(400);
+    await expect(token.json()).resolves.toMatchObject({ error: "invalid_request" });
+  });
+
+  it("rate limits repeated dynamic client registrations", async () => {
+    let response: Response | undefined;
+    for (let index = 0; index < 21; index += 1) {
+      response = await register(
+        routeArgs(
+          new Request("http://localhost:3000/oauth/register", {
+            method: "POST",
+            headers: {
+              "CF-Connecting-IP": "192.0.2.1",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              client_name: `Client ${index}`,
+              redirect_uris: ["https://example.com/callback"],
+            }),
+          }),
+        ),
+      );
+    }
+    expect(response?.status).toBe(429);
+    expect(response?.headers.get("retry-after")).toBeTruthy();
+  });
+
   it("completes login-backed consent and token exchange", async () => {
     const [user] = await db
       .insert(users)
@@ -99,30 +151,58 @@ describe("MCP OAuth routes", () => {
       code_challenge_method: "S256",
       resource: "http://localhost:3000/mcp",
     });
-    const cookie = await sessionCookie(user.id);
+    const { cookie } = await sessionCookie(user.id);
     const authorizationRequest = new Request(
       `http://localhost:3000/oauth/authorize?${query}`,
       { headers: { Cookie: cookie } },
     );
-    await expect(loadAuthorization(routeArgs(authorizationRequest))).resolves.toMatchObject({
+    const loaded = await loadAuthorization(routeArgs(authorizationRequest));
+    expect(loaded.data).toMatchObject({
       clientName: "Codex",
       scopes: ["mcp:read", "mcp:write"],
     });
+    expect(loaded.data.redirectHost).toBe("127.0.0.1:4567");
+    expect(loaded.init?.headers).toMatchObject({
+      "Cache-Control": "no-store",
+      "Content-Security-Policy": "frame-ancestors 'none'",
+      "X-Frame-Options": "DENY",
+    });
+    const consentCookie = new Headers(loaded.init?.headers).get("Set-Cookie")!;
 
-    query.set("decision", "allow");
     const consent = await authorize(
       routeArgs(new Request("http://localhost:3000/oauth/authorize", {
         method: "POST",
         headers: {
-          Cookie: cookie,
+          Cookie: consentCookie,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: query,
+        body: new URLSearchParams({
+          consent_nonce: loaded.data.consentNonce,
+          decision: "allow",
+        }),
       })),
     );
     expect(consent.status).toBe(302);
     const callback = new URL(consent.headers.get("location")!);
     expect(callback.searchParams.get("state")).toBe("expected-state");
+
+    await expect(
+      authorize(
+        routeArgs(
+          new Request("http://localhost:3000/oauth/authorize", {
+            method: "POST",
+            headers: {
+              Cookie: consentCookie,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              consent_nonce: loaded.data.consentNonce,
+              decision: "allow",
+            }),
+          }),
+        ),
+      ),
+    ).rejects.toMatchObject({ status: 400 });
 
     const token = await exchangeToken(
       routeArgs(new Request("http://localhost:3000/oauth/token", {
@@ -146,6 +226,10 @@ describe("MCP OAuth routes", () => {
   });
 
   it("preserves the authorization request when login expires before consent", async () => {
+    const [user] = await db
+      .insert(users)
+      .values({ email: "expired@example.com", passwordHash: "unused", role: "admin" })
+      .returning();
     const client = await registerClient({
       client_name: "Codex",
       redirect_uris: ["http://127.0.0.1:4567/callback"],
@@ -159,15 +243,31 @@ describe("MCP OAuth routes", () => {
       code_challenge: createHash("sha256").update("e".repeat(64)).digest("base64url"),
       code_challenge_method: "S256",
       resource: "http://localhost:3000/mcp",
-      decision: "allow",
     });
+
+    const { cookie, sessionId } = await sessionCookie(user.id);
+    const loaded = await loadAuthorization(
+      routeArgs(
+        new Request(`http://localhost:3000/oauth/authorize?${params}`, {
+          headers: { Cookie: cookie },
+        }),
+      ),
+    );
+    const consentCookie = new Headers(loaded.init?.headers).get("Set-Cookie")!;
+    await db.delete(sessions).where(eq(sessions.id, sessionId));
 
     try {
       await authorize(
         routeArgs(new Request("http://localhost:3000/oauth/authorize", {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: params,
+          headers: {
+            Cookie: consentCookie,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            consent_nonce: loaded.data.consentNonce,
+            decision: "allow",
+          }),
         })),
       );
       expect.fail("expected login redirect");

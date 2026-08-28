@@ -1,5 +1,9 @@
 # MCP Server Implementation Plan
 
+> **Historical plan:** The shared-token authentication described in the original plan was
+> superseded by the OAuth 2.1 implementation. The current MCP endpoint uses authorization-code
+> flow, S256 PKCE, resource-bound tokens, and `mcp:write` scope for the execute tool.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Mount an MCP server at `/mcp` in a custom Express server alongside the React Router app, exposing 3 tools (`search`, `query`, `execute`) for AI clients to query all SiliconHarbour data and trigger import syncs.
@@ -951,7 +955,7 @@ export async function createMcpServer(): Promise<McpServer> {
     {
       title: "Execute authenticated SiliconHarbour actions",
       description: [
-        "Like 'query' but also exposes sync and pending-review functions. Requires apiToken.",
+        "Like 'query' but also exposes sync and pending-review functions. Requires mcp:write.",
         "Additional functions: eventImportSources, jobImportSources, pendingEvents, pendingJobs,",
         "syncEventSource(id), syncAllEventSources, syncJobSource(id), syncAllJobSources.",
         "Timeout: 60 seconds (syncs fetch external pages and may be slow).",
@@ -959,17 +963,9 @@ export async function createMcpServer(): Promise<McpServer> {
       ].join(" "),
       inputSchema: {
         code: z.string().describe("JavaScript module with 'export default' returning results"),
-        apiToken: z.string().describe("Bearer token matching MCP_API_TOKEN env var"),
       },
     },
-    async ({ code, apiToken }) => {
-      if (!process.env.MCP_API_TOKEN || apiToken !== process.env.MCP_API_TOKEN) {
-        return {
-          content: [{ type: "text", text: "Error: Invalid or missing apiToken" }],
-          isError: true,
-        };
-      }
-
+    async ({ code }) => {
       const executeBridge = buildExecuteBridge();
       const result = await runInExecuteSandbox(code, executeBridge, 60_000);
 
@@ -1050,15 +1046,10 @@ Open `http://localhost:6274` in browser.
   ```
 - Expected: JSON array of up to 3 events
 
-**Test `execute` without token:**
+**Test `execute` with OAuth:**
 
-- Call `execute` with `{ "code": "export default 'hello'", "apiToken": "wrong" }`
-- Expected: `isError: true`, "Invalid or missing apiToken"
-
-**Test `execute` with token:**
-
-- Set `MCP_API_TOKEN=test-token-123` in your shell env and restart dev server
-- Call `execute` with `{ "code": "import { eventImportSources } from 'siliconharbour'\nexport default await eventImportSources()", "apiToken": "test-token-123" }`
+- Authorize a client for `mcp:write` using the MCP OAuth discovery flow
+- Call `execute` with `{ "code": "import { eventImportSources } from 'siliconharbour'\nexport default await eventImportSources()" }`
 - Expected: JSON array of event import sources
 
 - [ ] **Step 4: Fix any issues found, then commit**
@@ -1086,16 +1077,17 @@ pnpm run build
 
 Expected: clean build.
 
-- [ ] **Step 3: Document MCP_API_TOKEN in README or docs**
+- [ ] **Step 3: Document OAuth production configuration**
 
-In `docs/`, create or update a note about the required env var. No need for a full doc — a comment in the Dockerfile is enough:
+Document the public site/issuer URL and the session-signing secret:
 
 Add to the Dockerfile (above `CMD`):
 
 ```dockerfile
 # Required env vars:
-# MCP_API_TOKEN=<random secret> — required for execute tool authentication
-# Generate with: openssl rand -hex 32
+# SESSION_SECRET=<random secret> — signs login and OAuth consent sessions
+# SITE_URL=https://siliconharbour.dev — public application and MCP resource URL
+# OAUTH_ISSUER_URL=https://siliconharbour.dev — optional when identical to SITE_URL
 ```
 
 - [ ] **Step 4: Final commit**

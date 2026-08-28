@@ -20,6 +20,7 @@ async function createAccessToken(scopes = "mcp:read") {
     tokenType: "access",
     userId: user.id,
     clientId: "test-client",
+    familyId: "test-family",
     scopes,
     resource: "http://localhost:3000/mcp",
     expiresAt: new Date(Date.now() + 60_000),
