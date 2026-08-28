@@ -379,6 +379,20 @@
       "when": 1768737000000,
       "tag": "0053_news_company_name_filter",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1768738000000,
+      "tag": "0054_mcp_oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "6",
+      "when": 1768739000000,
+      "tag": "0055_harden_mcp_oauth",
+      "breakpoints": true
     }
   ]
 }

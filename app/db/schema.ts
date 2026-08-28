@@ -8,29 +8,7 @@ import {
   type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
-// =============================================================================
-// Auth tables
-// =============================================================================
-
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  role: text("role", { enum: ["regular", "admin"] })
-    .notNull()
-    .default("regular"),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
-
-export const sessions = sqliteTable("sessions", {
-  id: text("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-});
+export * from "./auth-schema";
 
 // =============================================================================
 // Content types - all follow a similar pattern with slug, markdown content, timestamps

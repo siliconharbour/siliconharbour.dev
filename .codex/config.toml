@@ -1,0 +1,20 @@
+# Production SiliconHarbour MCP server.
+#
+# Authentication uses the site's normal account login and an OAuth consent
+# screen. Codex stores and refreshes the resulting credentials itself.
+[mcp_servers.siliconharbour_production]
+url = "https://siliconharbour.dev/mcp"
+enabled = true
+required = false
+startup_timeout_sec = 15
+tool_timeout_sec = 90
+default_tools_approval_mode = "prompt"
+
+[mcp_servers.siliconharbour_production.tools.search]
+approval_mode = "approve"
+
+[mcp_servers.siliconharbour_production.tools.query]
+approval_mode = "approve"
+
+[mcp_servers.siliconharbour_production.tools.execute]
+approval_mode = "prompt"

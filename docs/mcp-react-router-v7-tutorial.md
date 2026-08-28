@@ -472,20 +472,9 @@ app.use("/mcp", (req, res, next) => {
 
 ### Authentication
 
-For production, you should add authentication. The MCP spec supports OAuth 2.1 at the transport level. **Use Context7 to look up `@modelcontextprotocol/sdk` OAuth/auth provider setup** — the SDK has built-in support for proxy OAuth providers.
-
-A simpler approach for internal tools is Bearer token auth:
-
-```ts
-app.use("/mcp", (req, res, next) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (token !== process.env.MCP_API_TOKEN) {
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  next();
-});
-```
+For production, use OAuth 2.1 at the MCP transport layer. This project exposes authorization
+server and protected-resource metadata, uses authorization-code flow with S256 PKCE, and binds
+access tokens to the MCP resource. Do not add a shared bearer-token argument to individual tools.
 
 ---
 

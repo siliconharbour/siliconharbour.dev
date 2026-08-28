@@ -1,7 +1,7 @@
 # MCP Server Design Spec
 
 **Date:** 2026-04-03
-**Status:** Approved, ready for implementation
+**Status:** Implemented; authentication updated to OAuth 2.1
 
 ---
 
@@ -20,7 +20,6 @@ An MCP server mounted at `/mcp` inside the existing React Router v7 app, exposin
 
 ## Non-Goals
 
-- Multi-user auth / OAuth 2.1 (single shared Bearer token is sufficient)
 - MCP server-initiated push notifications (inline tool responses are enough)
 - Arbitrary write access (only sync actions and read queries)
 - Exposing admin manage UI functionality beyond sync
@@ -161,19 +160,15 @@ export default { upcoming, techJobs };
 
 ### Tool 3: `execute`
 
-**Authenticated — requires `apiToken` argument matching `MCP_API_TOKEN` env var.**
+**Authenticated — requires an OAuth access token carrying `mcp:write`.**
 
 Same as `query` — executes a JS async arrow function in a QuickJS sandbox — but the injected `siliconharbour` module includes additional action functions for triggering syncs and reading pending review state.
 
 ```
 inputSchema:
   code:     string   — JS async arrow function body
-  apiToken: string   — must match process.env.MCP_API_TOKEN
-
 output: text — JSON.stringify of the export default value, or error message
 ```
-
-If `apiToken` does not match, returns an error immediately without running any code.
 
 **The injected `siliconharbour` module (read + actions):**
 
@@ -259,10 +254,10 @@ app/mcp/
 - 5s timeout kills runaway code
 - No destructive operations possible — module only has read functions
 
-**`execute` tool (authenticated):**
+**`execute` tool (OAuth `mcp:write` scope):**
 
 - Same WASM sandbox constraints
-- Auth check happens on the host before the sandbox runs — wrong token = immediate error, no code executed
+- OAuth scope verification happens before the sandbox runs
 - Action functions call existing sync logic which already has its own error handling
 - Sync functions are the only side effects; no raw DB writes exposed
 
@@ -270,15 +265,16 @@ app/mcp/
 
 - DNS rebinding protection via `hostHeaderValidation` middleware from MCP SDK
 - Origin header validation in production (allow only `https://siliconharbour.dev`)
-- `MCP_API_TOKEN` is a long random secret set as an env var, never logged
+- OAuth 2.1 authorization-code flow requires S256 PKCE and resource-bound access tokens
 
 ---
 
 ## Environment Variables
 
 ```
-MCP_API_TOKEN=<long random secret>   — required for execute tool
 SITE_URL=https://siliconharbour.dev  — already exists
+SESSION_SECRET=<long random secret>  — signs login and OAuth consent sessions
+OAUTH_ISSUER_URL=https://siliconharbour.dev — optional when identical to SITE_URL
 ```
 
 ---
@@ -308,7 +304,7 @@ SITE_URL=https://siliconharbour.dev  — already exists
 2. query(...)
    → reads data, combines entities, filters/formats as needed
 
-3. execute(code, apiToken)
+3. authorize the MCP client for mcp:write, then execute(code)
    → syncs sources, reads pending items, reports back
 ```
 

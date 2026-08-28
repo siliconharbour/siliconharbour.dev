@@ -1,5 +1,5 @@
 import type { Route } from "./+types/login";
-import { Form, redirect, useActionData } from "react-router";
+import { Form, redirect, useActionData, useLoaderData } from "react-router";
 import { login } from "~/lib/auth.server";
 import { getSession, commitSession } from "~/lib/session.server";
 
@@ -8,17 +8,28 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const returnTo = safeReturnTo(new URL(request.url).searchParams.get("returnTo"));
   const session = await getSession(request);
   if (session.get("sessionId")) {
-    return redirect("/manage");
+    return redirect(returnTo);
   }
-  return null;
+  return { returnTo };
+}
+
+function safeReturnTo(value: FormDataEntryValue | string | null): string {
+  return typeof value === "string" &&
+    value.startsWith("/") &&
+    !value.startsWith("//") &&
+    !value.includes("\\")
+    ? value
+    : "/manage";
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const returnTo = safeReturnTo(formData.get("returnTo"));
 
   if (!email || !password) {
     return { error: "Email and password are required" };
@@ -32,7 +43,7 @@ export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request);
   session.set("sessionId", result.sessionId);
 
-  return redirect("/manage", {
+  return redirect(returnTo, {
     headers: {
       "Set-Cookie": await commitSession(session),
     },
@@ -41,6 +52,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function Login() {
   const actionData = useActionData<typeof action>();
+  const { returnTo } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -48,6 +60,7 @@ export default function Login() {
         <h1 className="text-2xl font-semibold text-center text-harbour-700">Login</h1>
 
         <Form method="post" className="flex flex-col gap-4">
+          <input type="hidden" name="returnTo" value={returnTo} />
           {actionData?.error && (
             <div className="p-3 bg-red-100 text-red-700 text-sm">{actionData.error}</div>
           )}

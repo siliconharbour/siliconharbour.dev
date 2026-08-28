@@ -36,17 +36,17 @@ export async function destroySession(session: Awaited<ReturnType<typeof getSessi
   return sessionStorage.destroySession(session);
 }
 
-export async function requireAuth(request: Request) {
+export async function requireAuth(request: Request, loginPath = "/manage/login") {
   const session = await getSession(request);
   const sessionId = session.get("sessionId");
 
   if (!sessionId) {
-    throw redirect("/manage/login");
+    throw redirect(loginPath);
   }
 
   const result = await validateSession(sessionId);
   if (!result) {
-    throw redirect("/manage/login", {
+    throw redirect(loginPath, {
       headers: {
         "Set-Cookie": await destroySession(session),
       },
