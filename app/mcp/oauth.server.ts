@@ -102,6 +102,49 @@ export async function getClient(clientId: string) {
   return { ...client, redirectUris: JSON.parse(client.redirectUris) as string[] };
 }
 
+export async function validateAuthorizationRequest(
+  params: URLSearchParams,
+  role: "regular" | "admin",
+) {
+  const clientId = params.get("client_id") || "";
+  const redirectUri = params.get("redirect_uri") || "";
+  const client = await getClient(clientId);
+  const resource = params.get("resource") || "";
+  const codeChallenge = params.get("code_challenge") || "";
+
+  if (!client || !client.redirectUris.includes(redirectUri)) {
+    throw new OAuthError(OAuthErrorCode.InvalidClient, "Invalid OAuth client or redirect URI");
+  }
+  if (params.get("response_type") !== "code") {
+    throw new OAuthError(
+      OAuthErrorCode.UnsupportedResponseType,
+      "Only the authorization code flow is supported",
+    );
+  }
+  if (
+    params.get("code_challenge_method") !== "S256" ||
+    !/^[A-Za-z0-9_-]{43,128}$/.test(codeChallenge)
+  ) {
+    throw new OAuthError(
+      OAuthErrorCode.InvalidRequest,
+      "PKCE with the S256 challenge method is required",
+    );
+  }
+  if (resource !== getMcpResourceUrl().toString()) {
+    throw new OAuthError(OAuthErrorCode.InvalidTarget, "Invalid OAuth resource");
+  }
+
+  return {
+    client,
+    clientId,
+    redirectUri,
+    resource,
+    codeChallenge,
+    scopes: validateScopes(params.get("scope") || undefined, role),
+    state: params.get("state") || "",
+  };
+}
+
 export async function createAuthorizationCode(input: {
   userId: number;
   clientId: string;

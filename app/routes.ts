@@ -4,6 +4,7 @@ export default [
   // Static routes (no layout needed)
   route("images/:filename", "routes/images.tsx"),
   route("calendar.ics", "routes/calendar-ics.tsx"),
+  route("oauth/authorize", "routes/oauth.authorize.tsx"),
 
   // OG images for social sharing
   route("og.png", "routes/site-og.tsx"),
