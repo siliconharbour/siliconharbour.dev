@@ -21,9 +21,10 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "Authorize MCP access - siliconharbour.dev" }];
 }
 
-function loginPath(request: Request) {
+function loginPath(request: Request, params = new URL(request.url).searchParams) {
   const url = new URL(request.url);
-  return `/manage/login?returnTo=${encodeURIComponent(`${url.pathname}${url.search}`)}`;
+  const returnTo = `${url.pathname}${params.size > 0 ? `?${params}` : ""}`;
+  return `/manage/login?returnTo=${encodeURIComponent(returnTo)}`;
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -39,13 +40,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { user } = await requireAuth(request, loginPath(request));
   const formData = await request.formData();
   const params = new URLSearchParams();
   for (const name of AUTHORIZATION_FIELDS) {
     const value = formData.get(name);
     if (typeof value === "string") params.set(name, value);
   }
+  const { user } = await requireAuth(request, loginPath(request, params));
   const authorization = await validateAuthorizationRequest(params, user.role);
   const destination = new URL(authorization.redirectUri);
 

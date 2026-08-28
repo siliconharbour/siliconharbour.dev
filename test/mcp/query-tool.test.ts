@@ -13,6 +13,16 @@ async function runQuery(code: string) {
 }
 
 describe("MCP query tool", () => {
+  it("only exposes execute when write access is granted", async () => {
+    const readOnly = await createMcpServer(false);
+    const writable = await createMcpServer(true);
+    // Private test-only registry access keeps this assertion at the tool-definition boundary.
+    // @ts-expect-error private test hook
+    expect(Object.keys(readOnly._registeredTools)).toEqual(["search", "query"]);
+    // @ts-expect-error private test hook
+    expect(Object.keys(writable._registeredTools)).toEqual(["search", "query", "execute"]);
+  });
+
   it("returns JSON text for a trivial expression", async () => {
     const result = await runQuery("export default 1");
     expect(result.isError).toBeUndefined();

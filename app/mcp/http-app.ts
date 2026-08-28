@@ -1,4 +1,4 @@
-import express, { type Response } from "express";
+import express from "express";
 import { createRequestHandler } from "@react-router/express";
 import {
   createMcpHandler,
@@ -7,32 +7,11 @@ import {
 } from "@modelcontextprotocol/server";
 import { mcpAuthMetadataRouter, requireBearerAuth } from "@modelcontextprotocol/express";
 import { toNodeHandler } from "@modelcontextprotocol/node";
-import {
-  exchangeAuthorizationCode,
-  exchangeRefreshToken,
-  getClient,
-  getMcpResourceUrl,
-  getOAuthIssuerUrl,
-  oauthTokenVerifier,
-  registerClient,
-} from "./oauth.server.js";
+import { getMcpResourceUrl, getOAuthIssuerUrl, oauthTokenVerifier } from "./oauth.server.js";
 import { createMcpServer } from "./server.js";
 
 export interface CreateSiliconHarbourHttpAppOptions {
   includeFrontend?: boolean;
-}
-
-function noStore(res: Response) {
-  res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Pragma", "no-cache");
-}
-
-function oauthError(res: Response, error: unknown) {
-  noStore(res);
-  const code =
-    typeof error === "object" && error && "code" in error ? String(error.code) : "invalid_request";
-  const description = error instanceof Error ? error.message : "OAuth request failed";
-  res.status(code === "server_error" ? 500 : 400).json({ error: code, error_description: description });
 }
 
 export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourHttpAppOptions = {}) {
@@ -59,40 +38,6 @@ export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourH
     resourceName: "Silicon Harbour MCP",
     dangerouslyAllowInsecureIssuerUrl: process.env.NODE_ENV !== "production",
   }));
-
-  app.post("/oauth/register", express.json({ limit: "32kb" }), async (req, res) => {
-    try {
-      noStore(res);
-      res.status(201).json(await registerClient(req.body));
-    } catch (error) {
-      oauthError(res, error);
-    }
-  });
-
-  app.post("/oauth/token", express.urlencoded({ extended: false, limit: "32kb" }), async (req, res) => {
-    try {
-      const resourceValue = String(req.body.resource || "");
-      if (resourceValue !== resource.toString()) throw new Error("Invalid OAuth resource");
-      const clientId = String(req.body.client_id || "");
-      if (!(await getClient(clientId))) throw new Error("Invalid OAuth client");
-      let tokens;
-      if (req.body.grant_type === "authorization_code") {
-        tokens = await exchangeAuthorizationCode({
-          code: String(req.body.code || ""), clientId,
-          redirectUri: String(req.body.redirect_uri || ""),
-          codeVerifier: String(req.body.code_verifier || ""), resource: resourceValue,
-        });
-      } else if (req.body.grant_type === "refresh_token") {
-        tokens = await exchangeRefreshToken({
-          refreshToken: String(req.body.refresh_token || ""), clientId, resource: resourceValue,
-        });
-      } else throw new Error("Unsupported grant type");
-      noStore(res);
-      res.json(tokens);
-    } catch (error) {
-      oauthError(res, error);
-    }
-  });
 
   app.use("/mcp", express.json());
   app.use("/mcp", (req, res, next) => {

@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { OAuthError, OAuthErrorCode, type AuthInfo } from "@modelcontextprotocol/server";
+import { z } from "zod";
 import { db } from "~/db";
 import {
   oauthAuthorizationCodes,
@@ -70,26 +71,27 @@ export function isValidRedirectUri(value: string): boolean {
   }
 }
 
-export async function registerClient(input: { client_name?: unknown; redirect_uris?: unknown }) {
-  if (
-    typeof input.client_name !== "string" ||
-    !Array.isArray(input.redirect_uris) ||
-    input.redirect_uris.length === 0 ||
-    !input.redirect_uris.every((uri) => typeof uri === "string" && isValidRedirectUri(uri))
-  ) {
+const clientRegistrationSchema = z.object({
+  client_name: z.string().trim().min(1).max(200),
+  redirect_uris: z.array(z.string().refine(isValidRedirectUri)).min(1),
+});
+
+export async function registerClient(input: unknown) {
+  const parsed = clientRegistrationSchema.safeParse(input);
+  if (!parsed.success) {
     throw new OAuthError(OAuthErrorCode.InvalidClientMetadata, "Invalid client metadata");
   }
 
   const client = {
     id: `sh_${opaqueValue()}`,
-    name: input.client_name.slice(0, 200),
-    redirectUris: JSON.stringify([...new Set(input.redirect_uris as string[])]),
+    name: parsed.data.client_name,
+    redirectUris: JSON.stringify([...new Set(parsed.data.redirect_uris)]),
   };
   await db.insert(oauthClients).values(client);
   return {
     client_id: client.id,
     client_name: client.name,
-    redirect_uris: JSON.parse(client.redirectUris) as string[],
+    redirect_uris: [...new Set(parsed.data.redirect_uris)],
     token_endpoint_auth_method: "none",
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
@@ -171,7 +173,7 @@ function verifyPkce(verifier: string, challenge: string): boolean {
   return createHash("sha256").update(verifier).digest("base64url") === challenge;
 }
 
-async function issueTokens(input: {
+function createTokenGrant(input: {
   userId: number;
   clientId: string;
   scopes: string[];
@@ -180,7 +182,7 @@ async function issueTokens(input: {
   const accessToken = opaqueValue();
   const refreshToken = opaqueValue();
   const now = Date.now();
-  await db.insert(oauthTokens).values([
+  const values = [
     {
       tokenHash: hash(accessToken),
       tokenType: "access",
@@ -199,13 +201,16 @@ async function issueTokens(input: {
       resource: input.resource,
       expiresAt: new Date(now + REFRESH_TOKEN_SECONDS * 1000),
     },
-  ]);
+  ] as const;
   return {
-    access_token: accessToken,
-    token_type: "Bearer",
-    expires_in: ACCESS_TOKEN_SECONDS,
-    refresh_token: refreshToken,
-    scope: serializeScopes(input.scopes),
+    values,
+    response: {
+      access_token: accessToken,
+      token_type: "Bearer" as const,
+      expires_in: ACCESS_TOKEN_SECONDS,
+      refresh_token: refreshToken,
+      scope: serializeScopes(input.scopes),
+    },
   };
 }
 
@@ -216,29 +221,33 @@ export async function exchangeAuthorizationCode(input: {
   codeVerifier: string;
   resource: string;
 }) {
-  const row = await db
-    .select()
-    .from(oauthAuthorizationCodes)
-    .where(eq(oauthAuthorizationCodes.codeHash, hash(input.code)))
-    .get();
-  if (
-    !row ||
-    row.expiresAt < new Date() ||
-    row.clientId !== input.clientId ||
-    row.redirectUri !== input.redirectUri ||
-    row.resource !== input.resource ||
-    !verifyPkce(input.codeVerifier, row.codeChallenge)
-  ) {
-    throw new OAuthError(OAuthErrorCode.InvalidGrant, "Invalid or expired authorization code");
-  }
-  await db
-    .delete(oauthAuthorizationCodes)
-    .where(eq(oauthAuthorizationCodes.codeHash, row.codeHash));
-  return issueTokens({
-    userId: row.userId,
-    clientId: row.clientId,
-    scopes: parseScopes(row.scopes),
-    resource: row.resource,
+  return db.transaction((tx) => {
+    const row = tx
+      .select()
+      .from(oauthAuthorizationCodes)
+      .where(eq(oauthAuthorizationCodes.codeHash, hash(input.code)))
+      .get();
+    if (
+      !row ||
+      row.expiresAt < new Date() ||
+      row.clientId !== input.clientId ||
+      row.redirectUri !== input.redirectUri ||
+      row.resource !== input.resource ||
+      !verifyPkce(input.codeVerifier, row.codeChallenge)
+    ) {
+      throw new OAuthError(OAuthErrorCode.InvalidGrant, "Invalid or expired authorization code");
+    }
+    tx.delete(oauthAuthorizationCodes)
+      .where(eq(oauthAuthorizationCodes.codeHash, row.codeHash))
+      .run();
+    const grant = createTokenGrant({
+      userId: row.userId,
+      clientId: row.clientId,
+      scopes: parseScopes(row.scopes),
+      resource: row.resource,
+    });
+    tx.insert(oauthTokens).values([...grant.values]).run();
+    return grant.response;
   });
 }
 
@@ -247,30 +256,84 @@ export async function exchangeRefreshToken(input: {
   clientId: string;
   resource: string;
 }) {
-  const row = await db
-    .select()
-    .from(oauthTokens)
-    .where(
-      and(
-        eq(oauthTokens.tokenHash, hash(input.refreshToken)),
-        eq(oauthTokens.tokenType, "refresh"),
-      ),
-    )
-    .get();
-  if (
-    !row ||
-    row.expiresAt < new Date() ||
-    row.clientId !== input.clientId ||
-    row.resource !== input.resource
-  ) {
-    throw new OAuthError(OAuthErrorCode.InvalidGrant, "Invalid or expired refresh token");
+  return db.transaction((tx) => {
+    const row = tx
+      .select()
+      .from(oauthTokens)
+      .where(
+        and(
+          eq(oauthTokens.tokenHash, hash(input.refreshToken)),
+          eq(oauthTokens.tokenType, "refresh"),
+        ),
+      )
+      .get();
+    if (
+      !row ||
+      row.expiresAt < new Date() ||
+      row.clientId !== input.clientId ||
+      row.resource !== input.resource
+    ) {
+      throw new OAuthError(OAuthErrorCode.InvalidGrant, "Invalid or expired refresh token");
+    }
+    tx.delete(oauthTokens).where(eq(oauthTokens.tokenHash, row.tokenHash)).run();
+    const grant = createTokenGrant({
+      userId: row.userId,
+      clientId: row.clientId,
+      scopes: parseScopes(row.scopes),
+      resource: row.resource,
+    });
+    tx.insert(oauthTokens).values([...grant.values]).run();
+    return grant.response;
+  });
+}
+
+const tokenRequestSchema = z.discriminatedUnion("grant_type", [
+  z.object({
+    grant_type: z.literal("authorization_code"),
+    code: z.string().min(1),
+    client_id: z.string().min(1),
+    redirect_uri: z.string().min(1),
+    code_verifier: z.string().regex(/^[A-Za-z0-9._~-]{43,128}$/),
+    resource: z.string().min(1),
+  }),
+  z.object({
+    grant_type: z.literal("refresh_token"),
+    refresh_token: z.string().min(1),
+    client_id: z.string().min(1),
+    resource: z.string().min(1),
+  }),
+]);
+
+export async function exchangeTokenGrant(input: unknown) {
+  const parsed = tokenRequestSchema.safeParse(input);
+  if (!parsed.success) {
+    const grantType =
+      typeof input === "object" && input && "grant_type" in input
+        ? String(input.grant_type)
+        : "";
+    throw new OAuthError(
+      grantType && !["authorization_code", "refresh_token"].includes(grantType)
+        ? OAuthErrorCode.UnsupportedGrantType
+        : OAuthErrorCode.InvalidRequest,
+      "Invalid token request",
+    );
   }
-  await db.delete(oauthTokens).where(eq(oauthTokens.tokenHash, row.tokenHash));
-  return issueTokens({
-    userId: row.userId,
-    clientId: row.clientId,
-    scopes: parseScopes(row.scopes),
-    resource: row.resource,
+  if (parsed.data.resource !== getMcpResourceUrl().toString()) {
+    throw new OAuthError(OAuthErrorCode.InvalidTarget, "Invalid OAuth resource");
+  }
+  if (parsed.data.grant_type === "authorization_code") {
+    return exchangeAuthorizationCode({
+      code: parsed.data.code,
+      clientId: parsed.data.client_id,
+      redirectUri: parsed.data.redirect_uri,
+      codeVerifier: parsed.data.code_verifier,
+      resource: parsed.data.resource,
+    });
+  }
+  return exchangeRefreshToken({
+    refreshToken: parsed.data.refresh_token,
+    clientId: parsed.data.client_id,
+    resource: parsed.data.resource,
   });
 }
 

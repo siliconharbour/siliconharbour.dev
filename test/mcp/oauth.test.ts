@@ -80,4 +80,73 @@ describe("MCP OAuth", () => {
       }),
     ).rejects.toMatchObject({ code: "invalid_grant" });
   });
+
+  it("allows only one concurrent authorization-code exchange", async () => {
+    const [user] = await db
+      .insert(users)
+      .values({ email: "admin@example.com", passwordHash: "unused", role: "admin" })
+      .returning();
+    const client = await registerClient({
+      client_name: "Codex",
+      redirect_uris: ["http://127.0.0.1:4567/callback"],
+    });
+    const verifier = "c".repeat(64);
+    const code = await createAuthorizationCode({
+      userId: user.id,
+      clientId: client.client_id,
+      redirectUri: client.redirect_uris[0],
+      scopes: ["mcp:read"],
+      codeChallenge: createHash("sha256").update(verifier).digest("base64url"),
+      resource: "http://localhost:3000/mcp",
+    });
+    const exchange = () =>
+      exchangeAuthorizationCode({
+        code,
+        clientId: client.client_id,
+        redirectUri: client.redirect_uris[0],
+        codeVerifier: verifier,
+        resource: "http://localhost:3000/mcp",
+      });
+
+    const results = await Promise.allSettled([exchange(), exchange()]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+  });
+
+  it("allows only one concurrent refresh-token rotation", async () => {
+    const [user] = await db
+      .insert(users)
+      .values({ email: "admin@example.com", passwordHash: "unused", role: "admin" })
+      .returning();
+    const client = await registerClient({
+      client_name: "Codex",
+      redirect_uris: ["http://127.0.0.1:4567/callback"],
+    });
+    const verifier = "r".repeat(64);
+    const code = await createAuthorizationCode({
+      userId: user.id,
+      clientId: client.client_id,
+      redirectUri: client.redirect_uris[0],
+      scopes: ["mcp:read"],
+      codeChallenge: createHash("sha256").update(verifier).digest("base64url"),
+      resource: "http://localhost:3000/mcp",
+    });
+    const tokens = await exchangeAuthorizationCode({
+      code,
+      clientId: client.client_id,
+      redirectUri: client.redirect_uris[0],
+      codeVerifier: verifier,
+      resource: "http://localhost:3000/mcp",
+    });
+    const rotate = () =>
+      exchangeRefreshToken({
+        refreshToken: tokens.refresh_token,
+        clientId: client.client_id,
+        resource: "http://localhost:3000/mcp",
+      });
+
+    const results = await Promise.allSettled([rotate(), rotate()]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+  });
 });

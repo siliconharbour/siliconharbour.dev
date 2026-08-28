@@ -5,6 +5,8 @@ export default [
   route("images/:filename", "routes/images.tsx"),
   route("calendar.ics", "routes/calendar-ics.tsx"),
   route("oauth/authorize", "routes/oauth.authorize.tsx"),
+  route("oauth/register", "routes/oauth.register.tsx"),
+  route("oauth/token", "routes/oauth.token.tsx"),
 
   // OG images for social sharing
   route("og.png", "routes/site-og.tsx"),
