@@ -4,6 +4,7 @@ import { jobs, jobImportSources, companies } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import {
   approveJob,
+  approveJobAsNonTechnical,
   hideImportedJob,
   unhideImportedJob,
   requeueImportedJob,
@@ -12,6 +13,8 @@ import {
   deleteImportSource,
   createImportSource,
   syncJobsFromFetched,
+  getAllPendingJobs,
+  hideAllPendingJobs,
 } from "~/lib/job-importers/sync.server";
 import type { FetchedJob } from "~/lib/job-importers/types";
 
@@ -97,6 +100,55 @@ describe("approveJob", () => {
 
     const [updated] = await db.select().from(jobs).where(eq(jobs.id, job.id));
     expect(updated.status).toBe("active");
+  });
+});
+
+describe("approveJobAsNonTechnical", () => {
+  it("activates the job and clears its technical flag", async () => {
+    const company = await seedCompany();
+    const sourceId = await seedSource(company.id);
+    const job = await seedJob(company.id, sourceId, "pending_review", "ext-non-tech");
+
+    await approveJobAsNonTechnical(job.id);
+
+    const [updated] = await db.select().from(jobs).where(eq(jobs.id, job.id));
+    expect(updated).toMatchObject({ status: "active", isTechnical: false });
+  });
+});
+
+describe("pending job review queries", () => {
+  it("returns only pending jobs with company and source context", async () => {
+    const company = await seedCompany();
+    const sourceId = await seedSource(company.id);
+    const pending = await seedJob(company.id, sourceId, "pending_review", "pending", {
+      title: "Review Me",
+    });
+    await seedJob(company.id, sourceId, "active", "active");
+
+    const results = await getAllPendingJobs();
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      id: pending.id,
+      title: "Review Me",
+      companyName: "Test Company",
+      sourceType: "greenhouse",
+    });
+  });
+
+  it("bulk hides pending jobs without changing active jobs", async () => {
+    const company = await seedCompany();
+    const sourceId = await seedSource(company.id);
+    const first = await seedJob(company.id, sourceId, "pending_review", "pending-1");
+    const second = await seedJob(company.id, sourceId, "pending_review", "pending-2");
+    const active = await seedJob(company.id, sourceId, "active", "active");
+
+    expect(await hideAllPendingJobs()).toBe(2);
+
+    const rows = await db.select().from(jobs);
+    expect(rows.find((job) => job.id === first.id)?.status).toBe("hidden");
+    expect(rows.find((job) => job.id === second.id)?.status).toBe("hidden");
+    expect(rows.find((job) => job.id === active.id)?.status).toBe("active");
   });
 });
 

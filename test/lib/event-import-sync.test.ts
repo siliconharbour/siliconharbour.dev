@@ -7,6 +7,7 @@ import {
   publishImportedEvent,
   hideImportedEvent,
   unhideImportedEvent,
+  getAllPendingEvents,
   deleteEventImportSource,
   createEventImportSource,
 } from "~/lib/event-importers/sync.server";
@@ -108,6 +109,37 @@ describe("unhideImportedEvent", () => {
 
     const [updated] = await db.select().from(events).where(eq(events.id, event.id));
     expect(updated.importStatus).toBe("pending_review");
+  });
+});
+
+describe("getAllPendingEvents", () => {
+  it("returns only pending events with source context and their earliest date", async () => {
+    const source = await seedSource({ name: "Community Calendar" });
+    const pending = await seedEvent(source.id, "pending_review", "pending");
+    await seedEvent(source.id, "approved", "approved");
+    const earlier = new Date("2026-06-01T18:00:00Z");
+    await db.insert(eventDates).values({ eventId: pending.id, startDate: earlier });
+
+    const results = await getAllPendingEvents();
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toMatchObject({
+      id: pending.id,
+      sourceId: source.id,
+      sourceName: "Community Calendar",
+      startDate: earlier,
+    });
+  });
+
+  it("deduplicates events that have multiple dates", async () => {
+    const source = await seedSource();
+    const pending = await seedEvent(source.id, "pending_review");
+    await db.insert(eventDates).values([
+      { eventId: pending.id, startDate: new Date("2026-07-01T18:00:00Z") },
+      { eventId: pending.id, startDate: new Date("2026-08-01T18:00:00Z") },
+    ]);
+
+    expect((await getAllPendingEvents()).filter((event) => event.id === pending.id)).toHaveLength(1);
   });
 });
 
