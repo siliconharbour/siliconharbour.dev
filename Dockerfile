@@ -1,7 +1,7 @@
-FROM node:25-alpine AS pnpm-base
-RUN npm install -g pnpm@10
+FROM node:26.8.1-alpine AS package-manager-base
+RUN npm install -g npm@12.0.2 pnpm@11.14.0
 
-FROM pnpm-base AS dependency-base
+FROM package-manager-base AS dependency-base
 RUN apk add --no-cache python3 make g++
 
 FROM dependency-base AS development-dependencies-env
@@ -15,13 +15,13 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
 RUN pnpm install --frozen-lockfile --prod
 
-FROM pnpm-base AS build-env
+FROM package-manager-base AS build-env
 COPY . /app/
 COPY --from=development-dependencies-env /app/node_modules /app/node_modules
 WORKDIR /app
 RUN pnpm run build
 
-FROM pnpm-base
+FROM package-manager-base
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
