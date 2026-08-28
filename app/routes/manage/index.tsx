@@ -1,18 +1,8 @@
 import type { Route } from "./+types/index";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getAllEvents } from "~/lib/events.server";
-import { getAllCompanies } from "~/lib/companies.server";
-import { getAllGroups } from "~/lib/groups.server";
-import { getAllEducation } from "~/lib/education.server";
-import { getAllPeople } from "~/lib/people.server";
-import { getAllNews } from "~/lib/news.server";
-import { getAllJobs } from "~/lib/jobs.server";
-import { getAllProjects } from "~/lib/projects.server";
-import { getAllProducts } from "~/lib/products.server";
-import { getCommentCount } from "~/lib/comments.server";
-import { getTechnologiesCount } from "~/lib/technologies.server";
 import { stageOrphanedImagesBatch } from "~/lib/image-orphans.server";
+import { getAdminDashboardCounts } from "~/lib/admin-dashboard.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage - siliconharbour.dev" }];
@@ -20,47 +10,8 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
-  const [
-    events,
-    companies,
-    groups,
-    education,
-    people,
-    news,
-    jobs,
-    projects,
-    products,
-    commentsCount,
-    technologiesCount,
-  ] = await Promise.all([
-    getAllEvents(),
-    getAllCompanies(),
-    getAllGroups(),
-    getAllEducation(),
-    getAllPeople(),
-    getAllNews(),
-    getAllJobs(),
-    getAllProjects(),
-    getAllProducts(),
-    getCommentCount(),
-    getTechnologiesCount(),
-  ]);
-  return {
-    user,
-    counts: {
-      events: events.length,
-      companies: companies.length,
-      groups: groups.length,
-      education: education.length,
-      people: people.length,
-      news: news.length,
-      jobs: jobs.length,
-      projects: projects.length,
-      products: products.length,
-      comments: commentsCount,
-      technologies: technologiesCount,
-    },
-  };
+  const dashboard = await getAdminDashboardCounts();
+  return { user, ...dashboard };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -118,7 +69,7 @@ const contentTypes = [
 export default function ManageIndex() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const { user, counts } = useLoaderData<typeof loader>();
+  const { user, counts, pending } = useLoaderData<typeof loader>();
   const isStagingOrphans =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "stage-orphaned-images";
@@ -131,18 +82,33 @@ export default function ManageIndex() {
             <h1 className="text-2xl font-semibold text-harbour-700">Dashboard</h1>
             <p className="text-harbour-400 text-sm">Welcome, {user.email}</p>
           </div>
-          <div className="flex items-center gap-4">
-            <Link to="/manage/settings" className="text-sm text-harbour-400 hover:text-harbour-600">
-              Settings
-            </Link>
-            <Link to="/" className="text-sm text-harbour-400 hover:text-harbour-600">
-              View Site
-            </Link>
-            <Link to="/manage/logout" className="text-sm text-harbour-400 hover:text-harbour-600">
-              Logout
-            </Link>
-          </div>
         </div>
+
+        <Link
+          to="/manage/review"
+          className="flex flex-wrap items-center justify-between gap-4 border border-amber-200 bg-amber-50 p-4 transition-colors hover:border-amber-300"
+        >
+          <div>
+            <h2 className="font-semibold text-harbour-700">Review queue</h2>
+            <p className="text-sm text-harbour-500">
+              Review pending events, news, and jobs in one place.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="bg-amber-100 px-1.5 py-0.5 text-amber-700">
+              {pending.events} events
+            </span>
+            <span className="bg-amber-100 px-1.5 py-0.5 text-amber-700">
+              {pending.news} news
+            </span>
+            <span className="bg-amber-100 px-1.5 py-0.5 text-amber-700">
+              {pending.jobs} jobs
+            </span>
+            <span className="bg-amber-600 px-1.5 py-0.5 font-medium text-white">
+              {pending.total} total
+            </span>
+          </div>
+        </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {contentTypes.map((type) => (

@@ -7,7 +7,7 @@
 import { db } from "~/db";
 import { eventImportSources, events, eventDates } from "~/db/schema";
 import type { EventSourceType } from "~/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, asc } from "drizzle-orm";
 import { generateEventSlug } from "~/lib/events.server";
 import { fetchImage } from "~/lib/scraper.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
@@ -224,6 +224,34 @@ export async function unhideImportedEvent(eventId: number) {
     .update(events)
     .set({ importStatus: "pending_review", updatedAt: new Date() })
     .where(eq(events.id, eventId));
+}
+
+/** Get all pending imported events with source and first-date context for review. */
+export async function getAllPendingEvents() {
+  const rows = await db
+    .select({
+      id: events.id,
+      title: events.title,
+      organizer: events.organizer,
+      location: events.location,
+      link: events.link,
+      coverImageUrl: events.coverImageUrl,
+      sourceId: events.importSourceId,
+      sourceName: eventImportSources.name,
+      startDate: eventDates.startDate,
+    })
+    .from(events)
+    .leftJoin(eventImportSources, eq(events.importSourceId, eventImportSources.id))
+    .leftJoin(eventDates, eq(eventDates.eventId, events.id))
+    .where(eq(events.importStatus, "pending_review"))
+    .orderBy(asc(eventDates.startDate), asc(events.title));
+
+  const seen = new Set<number>();
+  return rows.filter((row) => {
+    if (seen.has(row.id)) return false;
+    seen.add(row.id);
+    return true;
+  });
 }
 
 // =============================================================================
