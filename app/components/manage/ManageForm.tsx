@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { Alert, Button } from "~/components/ui";
 
 export function ManageErrorAlert({ error }: { error: string }) {
-  return <div className="p-4 bg-red-50 border border-red-200 text-red-600">{error}</div>;
+  return <Alert tone="danger">{error}</Alert>;
 }
 
 export function ManageForm({ children }: { children: ReactNode }) {
@@ -32,11 +33,8 @@ export function ManageField({
 
 export function ManageSubmitButton({ children }: { children: ReactNode }) {
   return (
-    <button
-      type="submit"
-      className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
-    >
+    <Button type="submit" className="self-start">
       {children}
-    </button>
+    </Button>
   );
 }

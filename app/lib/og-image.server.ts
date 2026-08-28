@@ -11,6 +11,7 @@ import { formatInTimezone } from "./timezone";
 // OG Image dimensions (standard)
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
+const OG_RENDER_VERSION = 2;
 
 // Cache directory
 const CACHE_DIR = join(tmpdir(), "siliconharbour-og");
@@ -43,7 +44,7 @@ const colors = {
   white: "#ffffff",
 };
 
-interface OGImageData {
+export interface OGImageData {
   title: string;
   date?: string;
   subtitle?: string;
@@ -55,7 +56,10 @@ interface OGImageData {
  * Generate a cache key hash from the input data
  */
 function generateCacheKey(data: OGImageData): string {
-  const hash = createHash("md5").update(JSON.stringify(data)).digest("hex").slice(0, 12);
+  const hash = createHash("md5")
+    .update(JSON.stringify({ version: OG_RENDER_VERSION, data }))
+    .digest("hex")
+    .slice(0, 12);
   return hash;
 }
 
@@ -88,8 +92,26 @@ async function loadCoverImageForCard(imagePath: string): Promise<string | null> 
       return null;
     }
 
-    // Resize for card display area
-    const buffer = await sharp(fullPath).resize(520, 360, { fit: "cover" }).png().toBuffer();
+    // Normalize to the exact card aspect ratio once. The soft full-bleed
+    // background fills the frame while the foreground remains entirely visible,
+    // which works for panoramas, posters, logos, and screenshots alike.
+    const background = await sharp(fullPath)
+      .resize(840, 600, { fit: "cover" })
+      .blur(24)
+      .modulate({ brightness: 0.7, saturation: 0.8 })
+      .png()
+      .toBuffer();
+    const foreground = await sharp(fullPath)
+      .resize(840, 600, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
+    const buffer = await sharp(background)
+      .composite([{ input: foreground, gravity: "centre" }])
+      .png()
+      .toBuffer();
 
     return `data:image/png;base64,${buffer.toString("base64")}`;
   } catch {
@@ -206,55 +228,13 @@ async function generateSVG(data: OGImageData): Promise<string> {
               props: {
                 style: {
                   display: "flex",
-                  flexDirection: data.type === "event" ? "column" : "row",
+                  flexDirection: "row",
                   flex: 1,
-                  alignItems: data.type === "event" ? "stretch" : "center",
-                  gap: data.type === "event" ? "24px" : "40px",
+                  alignItems: "center",
+                  gap: "40px",
                   marginTop: "32px",
                 },
                 children: [
-                  // Cover image -- above text for events, right of text for news
-                  coverImageBase64 &&
-                    data.type === "event" && {
-                      type: "div",
-                      props: {
-                        style: {
-                          display: "flex",
-                          width: "100%",
-                          height: "200px",
-                          overflow: "hidden",
-                          position: "relative",
-                          backgroundColor: colors.harbour50,
-                        },
-                        children: [
-                          {
-                            type: "img",
-                            props: {
-                              src: coverImageBase64,
-                              style: {
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "contain",
-                              },
-                            },
-                          },
-                          {
-                            type: "div",
-                            props: {
-                              style: {
-                                position: "absolute",
-                                top: 0,
-                                left: 0,
-                                width: "100%",
-                                height: "100%",
-                                backgroundColor: colors.harbour200,
-                                opacity: 0.15,
-                              },
-                            },
-                          },
-                        ],
-                      },
-                    },
                   // Text content
                   {
                     type: "div",
@@ -310,9 +290,8 @@ async function generateSVG(data: OGImageData): Promise<string> {
                       ].filter(Boolean),
                     },
                   },
-                  // Cover image -- right of text for news
-                  coverImageBase64 &&
-                    data.type !== "event" && {
+                  // A consistent 4:3 media card for both events and news.
+                  coverImageBase64 && {
                       type: "div",
                       props: {
                         style: {
@@ -331,7 +310,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                               style: {
                                 width: "100%",
                                 height: "100%",
-                                objectFit: "cover",
+                                objectFit: "contain",
                               },
                             },
                           },
