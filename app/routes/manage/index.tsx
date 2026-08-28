@@ -100,25 +100,39 @@ export default function ManageIndex() {
 
         <Link
           to="/manage/review"
-          className="flex flex-wrap items-center justify-between gap-4 border border-amber-200 bg-amber-50 p-4 transition-colors hover:border-amber-300"
+          className={`flex flex-wrap items-center justify-between gap-4 border p-4 transition-colors ${
+            pending.total === 0
+              ? "border-green-200 bg-green-50 hover:border-green-300"
+              : "border-amber-200 bg-amber-50 hover:border-amber-300"
+          }`}
         >
           <div>
             <h2 className="font-semibold text-harbour-700">Review queue</h2>
             <p className="text-sm text-harbour-500">
-              Review pending events, news, and jobs in one place.
+              {pending.total === 0
+                ? "Everything has been reviewed."
+                : "Review pending events, news, and jobs in one place."}
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs">
-            <span className="bg-amber-100 px-1.5 py-0.5 text-amber-700">
+            <span
+              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-1.5 py-0.5`}
+            >
               {pending.events} events
             </span>
-            <span className="bg-amber-100 px-1.5 py-0.5 text-amber-700">
+            <span
+              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-1.5 py-0.5`}
+            >
               {pending.news} news
             </span>
-            <span className="bg-amber-100 px-1.5 py-0.5 text-amber-700">
+            <span
+              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-1.5 py-0.5`}
+            >
               {pending.jobs} jobs
             </span>
-            <span className="bg-amber-600 px-1.5 py-0.5 font-medium text-white">
+            <span
+              className={`${pending.total === 0 ? "bg-green-600" : "bg-amber-600"} px-1.5 py-0.5 font-medium text-white`}
+            >
               {pending.total} total
             </span>
           </div>
