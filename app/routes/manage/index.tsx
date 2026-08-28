@@ -66,6 +66,26 @@ const contentTypes = [
   { key: "comments", label: "Comments", href: "/manage/comments" },
 ] as const;
 
+function ToolLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link
+      to={to}
+      className="border border-harbour-200 bg-white px-3 py-1.5 text-sm font-medium text-harbour-700 transition-colors hover:border-harbour-400 hover:bg-harbour-50"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function ToolGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2 border-b border-harbour-100 px-3 py-3 last:border-b-0 sm:flex-row sm:items-center">
+      <h3 className="w-32 shrink-0 text-sm font-medium text-harbour-500">{label}</h3>
+      <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
+    </div>
+  );
+}
+
 export default function ManageIndex() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
@@ -138,122 +158,69 @@ export default function ManageIndex() {
           </div>
         </Link>
 
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Import Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Link
-              to="/manage/import/technl"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">TechNL Directory</h3>
-              <p className="text-harbour-400 text-sm">
-                Import companies from the TechNL member directory
-              </p>
-            </Link>
-            <Link
-              to="/manage/import/genesis"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Genesis Centre</h3>
-              <p className="text-harbour-400 text-sm">
-                Import companies from the Genesis Centre portfolio
-              </p>
-            </Link>
-            <Link
-              to="/manage/import/bounce"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Bounce Health Innovation</h3>
-              <p className="text-harbour-400 text-sm">
-                Import companies from Bounce Health Innovation&apos;s NL healthtech directory
-              </p>
-            </Link>
-            <Link
-              to="/manage/import/github-by-location"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">GitHub by Location</h3>
-              <p className="text-harbour-400 text-sm">
-                Search GitHub for users with Newfoundland in their location field
-              </p>
-            </Link>
-            <Link
-              to="/manage/import/github-following"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">GitHub Connections</h3>
-              <p className="text-harbour-400 text-sm">
-                Import from a user's following/followers - useful for finding local devs who don't
-                list their location
-              </p>
-            </Link>
-            <Link
-              to="/manage/import/jobs"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Job Import</h3>
-              <p className="text-harbour-400 text-sm">Import jobs from company career pages</p>
-            </Link>
-            <Link
-              to="/manage/import/jobs/search"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Job Board Search</h3>
-              <p className="text-harbour-400 text-sm">
-                Search Indeed and LinkedIn for local job postings
-              </p>
-            </Link>
-            <Link
-              to="/manage/import/events"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Event Import Sources</h3>
-              <p className="text-harbour-400 text-sm">Import events from Luma and techNL</p>
-            </Link>
-            <Link
-              to="/manage/import/news"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">News Import Sources</h3>
-              <p className="text-harbour-400 text-sm">
-                Import news from RSS feeds and custom scrapers
-              </p>
-            </Link>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Export Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Link
-              to="/manage/export"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Export Data</h3>
-              <p className="text-harbour-400 text-sm">
-                Download all content as markdown files in a ZIP archive
-              </p>
-            </Link>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Discord</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Link
-              to="/manage/discord/events"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Post Events</h3>
-              <p className="text-harbour-400 text-sm">Compose and post event roundups to Discord</p>
-            </Link>
-            <Link
-              to="/manage/discord/jobs"
-              className="p-4 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-1"
-            >
-              <h3 className="font-medium text-harbour-700">Post Jobs</h3>
-              <p className="text-harbour-400 text-sm">Compose and post job roundups to Discord</p>
-            </Link>
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-harbour-700">Tools</h2>
+          <div className="border border-harbour-200 bg-white">
+            <ToolGroup label="Directories">
+              <ToolLink to="/manage/import/technl">TechNL</ToolLink>
+              <ToolLink to="/manage/import/genesis">Genesis</ToolLink>
+              <ToolLink to="/manage/import/bounce">Bounce</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="GitHub">
+              <ToolLink to="/manage/import/github-by-location">By Location</ToolLink>
+              <ToolLink to="/manage/import/github-following">Connections</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="Jobs">
+              <ToolLink to="/manage/import/jobs">Import Sources</ToolLink>
+              <ToolLink to="/manage/import/jobs/search">Board Search</ToolLink>
+              <ToolLink to="/manage/import/jobs/importers">Importer Docs</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="Events & News">
+              <ToolLink to="/manage/import/events">Event Sources</ToolLink>
+              <ToolLink to="/manage/import/news">News Sources</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="Discord">
+              <ToolLink to="/manage/discord/events">Post Events</ToolLink>
+              <ToolLink to="/manage/discord/jobs">Post Jobs</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="Data">
+              <ToolLink to="/manage/export">Export Data</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="Maintenance">
+              <Form method="post" className="flex flex-1 flex-wrap items-end gap-2">
+                <input type="hidden" name="intent" value="stage-orphaned-images" />
+                <label className="flex items-center gap-2 text-xs text-harbour-500">
+                  Stage orphaned images
+                  <input
+                    type="number"
+                    name="batchSize"
+                    defaultValue={250}
+                    min={1}
+                    max={5000}
+                    aria-label="Orphan image batch size"
+                    className="w-20 border border-harbour-200 px-2 py-1.5 text-sm text-harbour-700"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={isStagingOrphans}
+                  className="border border-harbour-600 bg-harbour-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-harbour-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isStagingOrphans ? "Staging…" : "Run"}
+                </button>
+              </Form>
+              {actionData?.error ? (
+                <p className="w-full border border-red-200 bg-red-50 px-2 py-1 text-sm text-red-700">
+                  {actionData.error}
+                </p>
+              ) : null}
+              {actionData?.orphanStageResult ? (
+                <p className="w-full border border-green-200 bg-green-50 px-2 py-1 text-sm text-green-700">
+                  Scanned {actionData.orphanStageResult.scannedCount}; staged{" "}
+                  {actionData.orphanStageResult.newlyStagedCount} new orphans.
+                </p>
+              ) : null}
+            </ToolGroup>
           </div>
         </div>
 
@@ -273,58 +240,6 @@ export default function ManageIndex() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Maintenance Tools</h2>
-          <div className="p-4 bg-white border border-harbour-200 flex flex-col gap-3">
-            <div className="flex flex-col gap-1">
-              <h3 className="font-medium text-harbour-700">Stage Orphaned Images</h3>
-              <p className="text-harbour-400 text-sm">
-                Scan image files in batches and stage unreferenced files for manual removal.
-              </p>
-            </div>
-
-            <Form method="post" className="flex flex-col sm:flex-row sm:items-end gap-3">
-              <input type="hidden" name="intent" value="stage-orphaned-images" />
-              <label className="flex flex-col gap-1">
-                <span className="text-xs text-harbour-500">Batch size</span>
-                <input
-                  type="number"
-                  name="batchSize"
-                  defaultValue={250}
-                  min={1}
-                  max={5000}
-                  className="border border-harbour-200 px-2 py-1 text-sm"
-                />
-              </label>
-              <button
-                type="submit"
-                disabled={isStagingOrphans}
-                className="px-3 py-1.5 text-sm bg-harbour-600 text-white border border-harbour-600 hover:bg-harbour-700 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isStagingOrphans ? "Staging..." : "Stage Orphaned Batch"}
-              </button>
-            </Form>
-
-            {actionData?.error ? (
-              <p className="text-sm text-red-700 bg-red-50 border border-red-200 px-2 py-1">
-                {actionData.error}
-              </p>
-            ) : null}
-
-            {actionData?.orphanStageResult ? (
-              <div className="text-sm text-harbour-600 border border-harbour-200 px-3 py-2 bg-harbour-50 flex flex-col gap-1">
-                <p>
-                  Scanned {actionData.orphanStageResult.scannedCount} images. Staged{" "}
-                  {actionData.orphanStageResult.newlyStagedCount} new orphans.
-                </p>
-                <p>
-                  Next offset: {actionData.orphanStageResult.nextOffset} /{" "}
-                  {actionData.orphanStageResult.totalImages}
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </div>
       </div>
     </div>
   );
