@@ -1,17 +1,18 @@
 FROM node:25-alpine AS pnpm-base
 RUN npm install -g pnpm@10
 
-FROM pnpm-base AS development-dependencies-env
+FROM pnpm-base AS dependency-base
+RUN apk add --no-cache python3 make g++
+
+FROM dependency-base AS development-dependencies-env
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
-COPY patches /app/patches
 RUN pnpm install --frozen-lockfile
 COPY . /app
 
-FROM pnpm-base AS production-dependencies-env
+FROM dependency-base AS production-dependencies-env
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
-COPY patches /app/patches
 RUN pnpm install --frozen-lockfile --prod
 
 FROM pnpm-base AS build-env
@@ -22,7 +23,6 @@ RUN pnpm run build
 
 FROM pnpm-base
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
-COPY patches /app/patches
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
 COPY ./app/assets /app/app/assets
