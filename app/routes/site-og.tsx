@@ -1,3 +1,4 @@
+import type { Route } from "./+types/site-og";
 import satori from "satori";
 import sharp from "sharp";
 import { readFileSync, existsSync, mkdirSync } from "fs";
@@ -29,8 +30,8 @@ const colors = {
   white: "#ffffff",
 };
 
-async function generateSiteOG(): Promise<Buffer> {
-  if (existsSync(CACHE_PATH)) {
+async function generateSiteOG(bypassCache = false): Promise<Buffer> {
+  if (!bypassCache && existsSync(CACHE_PATH)) {
     return readFileSync(CACHE_PATH);
   }
 
@@ -138,17 +139,22 @@ async function generateSiteOG(): Promise<Buffer> {
 
   const pngBuffer = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();
 
-  await writeFile(CACHE_PATH, pngBuffer);
+  if (!bypassCache) {
+    await writeFile(CACHE_PATH, pngBuffer);
+  }
   return pngBuffer;
 }
 
-export async function loader() {
-  const pngBuffer = await generateSiteOG();
+export async function loader({ request }: Route.LoaderArgs) {
+  const bypassCache = new URL(request.url).searchParams.has("preview");
+  const pngBuffer = await generateSiteOG(bypassCache);
 
   return new Response(new Uint8Array(pngBuffer), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=86400, s-maxage=604800",
+      "Cache-Control": bypassCache
+        ? "no-store"
+        : "public, max-age=86400, s-maxage=604800",
     },
   });
 }

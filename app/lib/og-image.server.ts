@@ -11,7 +11,7 @@ import { formatInTimezone } from "./timezone";
 // OG Image dimensions (standard)
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
-const OG_RENDER_VERSION = 2;
+const OG_RENDER_VERSION = 3;
 
 // Cache directory
 const CACHE_DIR = join(tmpdir(), "siliconharbour-og");
@@ -165,7 +165,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                 style: {
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  justifyContent: "flex-start",
                 },
                 children: [
                   // Logo and site name
@@ -193,7 +193,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                           type: "div",
                           props: {
                             style: {
-                              fontSize: "24px",
+                              fontSize: "28px",
                               fontWeight: 600,
                               color: colors.harbour700,
                             },
@@ -201,22 +201,6 @@ async function generateSVG(data: OGImageData): Promise<string> {
                           },
                         },
                       ],
-                    },
-                  },
-                  // Type badge
-                  {
-                    type: "div",
-                    props: {
-                      style: {
-                        backgroundColor: colors.harbour600,
-                        color: colors.white,
-                        padding: "8px 20px",
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                      },
-                      children: data.type === "event" ? "Event" : "News",
                     },
                   },
                 ],
@@ -253,10 +237,10 @@ async function generateSVG(data: OGImageData): Promise<string> {
                             style: {
                               fontSize:
                                 data.title.length > 50
-                                  ? "40px"
+                                  ? "46px"
                                   : data.title.length > 30
-                                    ? "48px"
-                                    : "56px",
+                                    ? "54px"
+                                    : "64px",
                               fontWeight: 700,
                               color: colors.harbour700,
                               lineHeight: 1.15,
@@ -269,7 +253,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                           type: "div",
                           props: {
                             style: {
-                              fontSize: "22px",
+                              fontSize: "25px",
                               color: colors.harbour500,
                               fontWeight: 500,
                             },
@@ -281,7 +265,7 @@ async function generateSVG(data: OGImageData): Promise<string> {
                           type: "div",
                           props: {
                             style: {
-                              fontSize: "20px",
+                              fontSize: "23px",
                               color: colors.harbour400,
                             },
                             children: data.subtitle,
@@ -296,8 +280,8 @@ async function generateSVG(data: OGImageData): Promise<string> {
                       props: {
                         style: {
                           display: "flex",
-                          width: "420px",
-                          height: "300px",
+                          width: "500px",
+                          height: "350px",
                           flexShrink: 0,
                           overflow: "hidden",
                           position: "relative",
@@ -365,9 +349,13 @@ async function generateSVG(data: OGImageData): Promise<string> {
 /**
  * Generate and cache an OG image, returning the PNG buffer
  */
-export async function generateOGImage(slug: string, data: OGImageData): Promise<Buffer> {
+export async function generateOGImage(
+  slug: string,
+  data: OGImageData,
+  options: { bypassCache?: boolean } = {},
+): Promise<Buffer> {
   // Check cache first
-  const cachedPath = getCachedImage(slug, data);
+  const cachedPath = options.bypassCache ? null : getCachedImage(slug, data);
   if (cachedPath) {
     return readFileSync(cachedPath);
   }
@@ -380,7 +368,9 @@ export async function generateOGImage(slug: string, data: OGImageData): Promise<
 
   // Save to cache
   const cachePath = getCachePath(slug, data);
-  await writeFile(cachePath, pngBuffer);
+  if (!options.bypassCache) {
+    await writeFile(cachePath, pngBuffer);
+  }
 
   return pngBuffer;
 }

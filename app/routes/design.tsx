@@ -1,4 +1,5 @@
 import type { Route } from "./+types/design";
+import { useState, type ReactNode } from "react";
 import { useLoaderData } from "react-router";
 import { Alert, Badge, Button } from "~/components/ui";
 import { getUpcomingEvents } from "~/lib/events.server";
@@ -11,13 +12,14 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({}: Route.LoaderArgs) {
   const [events, news] = await Promise.all([getUpcomingEvents(), getPublishedNews()]);
   return {
-    eventSlug: events[0]?.slug ?? null,
-    newsSlug: news[0]?.slug ?? null,
+    eventPreviews: events.map(({ slug, title }) => ({ slug, title })),
+    newsPreviews: news.map(({ slug, title }) => ({ slug, title })),
+    previewToken: Date.now(),
   };
 }
 
 export default function DesignSystem() {
-  const { eventSlug, newsSlug } = useLoaderData<typeof loader>();
+  const { eventPreviews, newsPreviews, previewToken } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-6">
@@ -366,14 +368,26 @@ export default function DesignSystem() {
             their real aspect ratio so cropping and long-title problems are visible here first.
           </p>
           <div className="flex flex-col gap-6">
-            <SocialPreview label="Site default" src="/og.png" />
-            {eventSlug ? (
-              <SocialPreview label="Upcoming event" src={`/events/${eventSlug}.png`} />
+            <SocialPreview label="Site default" src={`/og.png?preview=${previewToken}`} />
+            {eventPreviews.length > 0 ? (
+              <SocialPreviewCarousel
+                label="Upcoming event"
+                items={eventPreviews.map((item) => ({
+                  title: item.title,
+                  src: `/events/${item.slug}.png?preview=${previewToken}`,
+                }))}
+              />
             ) : (
               <Alert>No upcoming public event is available for an event preview.</Alert>
             )}
-            {newsSlug ? (
-              <SocialPreview label="Published news" src={`/news/${newsSlug}.png`} />
+            {newsPreviews.length > 0 ? (
+              <SocialPreviewCarousel
+                label="Published news"
+                items={newsPreviews.map((item) => ({
+                  title: item.title,
+                  src: `/news/${item.slug}.png?preview=${previewToken}`,
+                }))}
+              />
             ) : (
               <Alert>No published news item is available for a news preview.</Alert>
             )}
@@ -413,19 +427,82 @@ export default function DesignSystem() {
   );
 }
 
-function SocialPreview({ label, src }: { label: string; src: string }) {
+function SocialPreviewCarousel({
+  label,
+  items,
+}: {
+  label: string;
+  items: Array<{ title: string; src: string }>;
+}) {
+  const [index, setIndex] = useState(0);
+  const current = items[index];
+  const move = (offset: number) => setIndex((value) => (value + offset + items.length) % items.length);
+
+  return (
+    <SocialPreview
+      label={label}
+      title={current.title}
+      src={current.src}
+      controls={
+        <div className="flex items-center gap-2">
+          <span className="text-xs tabular-nums text-harbour-400">
+            {index + 1} / {items.length}
+          </span>
+          <Button
+            type="button"
+            tone="secondary"
+            size="sm"
+            onClick={() => move(-1)}
+            disabled={items.length < 2}
+            aria-label={`Previous ${label.toLowerCase()} preview`}
+          >
+            &larr;
+          </Button>
+          <Button
+            type="button"
+            tone="secondary"
+            size="sm"
+            onClick={() => move(1)}
+            disabled={items.length < 2}
+            aria-label={`Next ${label.toLowerCase()} preview`}
+          >
+            &rarr;
+          </Button>
+        </div>
+      }
+    />
+  );
+}
+
+function SocialPreview({
+  label,
+  title,
+  src,
+  controls,
+}: {
+  label: string;
+  title?: string;
+  src: string;
+  controls?: ReactNode;
+}) {
   return (
     <figure className="border border-harbour-200 bg-white">
-      <div className="px-4 py-3 border-b border-harbour-200 flex items-center justify-between gap-4">
-        <figcaption className="font-medium text-harbour-700">{label}</figcaption>
-        <a
-          href={src}
-          target="_blank"
-          rel="noreferrer"
-          className="text-sm text-harbour-600 hover:text-harbour-700"
-        >
-          Open full size
-        </a>
+      <div className="px-4 py-3 border-b border-harbour-200 flex flex-wrap items-center justify-between gap-4">
+        <figcaption className="min-w-0">
+          <span className="font-medium text-harbour-700">{label}</span>
+          {title ? <span className="block text-sm text-harbour-400 truncate">{title}</span> : null}
+        </figcaption>
+        <div className="flex items-center gap-3">
+          {controls}
+          <a
+            href={src}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-harbour-600 hover:text-harbour-700 whitespace-nowrap"
+          >
+            Open full size
+          </a>
+        </div>
       </div>
       <div className="bg-harbour-50 p-3">
         <img
