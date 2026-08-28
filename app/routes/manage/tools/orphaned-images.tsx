@@ -187,6 +187,9 @@ export default function OrphanedImages() {
               {actionData.deleteResult.missingCount > 0
                 ? `; removed ${actionData.deleteResult.missingCount} missing files from the list`
                 : ""}
+              {actionData.deleteResult.failedCount > 0
+                ? `; ${actionData.deleteResult.failedCount} filesystem operations failed and remain staged`
+                : ""}
               .
             </p>
           )}

@@ -72,4 +72,16 @@ describe("orphaned image deletion", () => {
     expect(existsSync(join(fixture.imagesDir, "orphan.webp"))).toBe(false);
     expect(existsSync(join(fixture.imagesDir, "used.webp"))).toBe(true);
   });
+
+  it("keeps unsafe paths staged without touching files outside the image directory", () => {
+    const fixture = createFixture([{ name: "orphan.webp" }]);
+    const stagedPath = join(fixture.stageDir, "staged.json");
+    const [entry] = JSON.parse(readFileSync(stagedPath, "utf8")) as StagedOrphan[];
+    entry.path = "../outside.webp";
+    writeFileSync(stagedPath, JSON.stringify([entry]));
+
+    const result = deleteAllStagedOrphans(fixture);
+
+    expect(result).toMatchObject({ deletedCount: 0, failedCount: 1, remainingStagedCount: 1 });
+  });
 });

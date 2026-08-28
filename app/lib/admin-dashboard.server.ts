@@ -1,4 +1,5 @@
 import { count, eq } from "drizzle-orm";
+import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { db } from "~/db";
 import {
   comments,
@@ -14,7 +15,7 @@ import {
   technologies,
 } from "~/db/schema";
 
-async function tableCount(table: typeof events | typeof companies | typeof groups | typeof education | typeof people | typeof news | typeof jobs | typeof projects | typeof products | typeof technologies | typeof comments) {
+async function tableCount(table: SQLiteTable) {
   const [result] = await db.select({ total: count() }).from(table);
   return result.total;
 }

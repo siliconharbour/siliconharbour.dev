@@ -216,6 +216,7 @@ export type DeleteStagedOrphansResult = {
   deletedCount: number;
   missingCount: number;
   referencedCount: number;
+  failedCount: number;
   remainingStagedCount: number;
 };
 
@@ -241,6 +242,7 @@ function deleteStagedOrphans(
   let deletedCount = 0;
   let missingCount = 0;
   let referencedCount = 0;
+  let failedCount = 0;
 
   try {
     const probes = buildProbes(db);
@@ -251,18 +253,22 @@ function deleteStagedOrphans(
         continue;
       }
 
-      const imagesRoot = resolve(imagesDir);
-      const imagePath = resolve(imagesRoot, entry.path);
-      if (imagePath === imagesRoot || !imagePath.startsWith(`${imagesRoot}${sep}`)) {
-        throw new Error(`Invalid staged image path: ${entry.path}`);
+      try {
+        const imagesRoot = resolve(imagesDir);
+        const imagePath = resolve(imagesRoot, entry.path);
+        if (imagePath === imagesRoot || !imagePath.startsWith(`${imagesRoot}${sep}`)) {
+          throw new Error(`Invalid staged image path: ${entry.path}`);
+        }
+        if (existsSync(imagePath)) {
+          unlinkSync(imagePath);
+          deletedCount++;
+        } else {
+          missingCount++;
+        }
+        removedPaths.add(entry.path);
+      } catch {
+        failedCount++;
       }
-      if (existsSync(imagePath)) {
-        unlinkSync(imagePath);
-        deletedCount++;
-      } else {
-        missingCount++;
-      }
-      removedPaths.add(entry.path);
     }
   } finally {
     db.close();
@@ -275,6 +281,7 @@ function deleteStagedOrphans(
     deletedCount,
     missingCount,
     referencedCount,
+    failedCount,
     remainingStagedCount: remaining.length,
   };
 }
