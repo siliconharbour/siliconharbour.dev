@@ -1,7 +1,6 @@
 import type { Route } from "./+types/index";
-import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { stageOrphanedImagesBatch } from "~/lib/image-orphans.server";
 import { getAdminDashboardCounts } from "~/lib/admin-dashboard.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,44 +11,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
   const dashboard = await getAdminDashboardCounts();
   return dashboard;
-}
-
-export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent !== "stage-orphaned-images") {
-    return {
-      error: "Unknown action.",
-      orphanStageResult: null,
-    };
-  }
-
-  const rawBatchSize = String(formData.get("batchSize") || "250");
-  const parsedBatchSize = Number(rawBatchSize);
-  const batchSize = Number.isFinite(parsedBatchSize)
-    ? Math.min(Math.max(Math.floor(parsedBatchSize), 1), 5000)
-    : 250;
-
-  try {
-    const result = await stageOrphanedImagesBatch({
-      batchSize,
-      dryRun: false,
-      useCursor: true,
-    });
-
-    return {
-      error: null,
-      orphanStageResult: result,
-    };
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Failed to stage orphaned images.",
-      orphanStageResult: null,
-    };
-  }
 }
 
 const contentTypes = [
@@ -87,12 +48,7 @@ function ToolGroup({ label, children }: { label: string; children: React.ReactNo
 }
 
 export default function ManageIndex() {
-  const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
   const { counts, pending } = useLoaderData<typeof loader>();
-  const isStagingOrphans =
-    navigation.state === "submitting" &&
-    navigation.formData?.get("intent") === "stage-orphaned-images";
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -187,39 +143,7 @@ export default function ManageIndex() {
               <ToolLink to="/manage/export">Export Data</ToolLink>
             </ToolGroup>
             <ToolGroup label="Maintenance">
-              <Form method="post" className="flex flex-1 flex-wrap items-end gap-2">
-                <input type="hidden" name="intent" value="stage-orphaned-images" />
-                <label className="flex items-center gap-2 text-xs text-harbour-500">
-                  Stage orphaned images
-                  <input
-                    type="number"
-                    name="batchSize"
-                    defaultValue={250}
-                    min={1}
-                    max={5000}
-                    aria-label="Orphan image batch size"
-                    className="w-20 border border-harbour-200 px-2 py-1.5 text-sm text-harbour-700"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  disabled={isStagingOrphans}
-                  className="border border-harbour-600 bg-harbour-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-harbour-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isStagingOrphans ? "Staging…" : "Run"}
-                </button>
-              </Form>
-              {actionData?.error ? (
-                <p className="w-full border border-red-200 bg-red-50 px-2 py-1 text-sm text-red-700">
-                  {actionData.error}
-                </p>
-              ) : null}
-              {actionData?.orphanStageResult ? (
-                <p className="w-full border border-green-200 bg-green-50 px-2 py-1 text-sm text-green-700">
-                  Scanned {actionData.orphanStageResult.scannedCount}; staged{" "}
-                  {actionData.orphanStageResult.newlyStagedCount} new orphans.
-                </p>
-              ) : null}
+              <ToolLink to="/manage/tools/orphaned-images">Orphaned Images</ToolLink>
             </ToolGroup>
           </div>
         </div>

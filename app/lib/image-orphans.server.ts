@@ -15,13 +15,13 @@ export type StageOrphanedImagesOptions = {
   stageDir?: string;
 };
 
-type CursorState = {
+export type CursorState = {
   nextOffset: number;
   totalImagesLastRun: number;
   updatedAt: string;
 };
 
-type StagedOrphan = {
+export type StagedOrphan = {
   path: string;
   filename: string;
   sizeBytes: number;
@@ -168,6 +168,39 @@ function readJsonFile<T>(path: string, fallback: T): T {
 
 function writeJsonFile(path: string, data: unknown): void {
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+}
+
+export function getOrphanedImagesState(input: { page?: number; pageSize?: number } = {}) {
+  const stageDir = join(DATA_DIR, "orphaned-images");
+  const cursorPath = join(stageDir, "cursor.json");
+  const stagedPath = join(stageDir, "staged.json");
+  const reportsDir = join(stageDir, "reports");
+  const pageSize = Math.min(Math.max(Math.floor(input.pageSize ?? 48), 1), 200);
+  const staged = readJsonFile<StagedOrphan[]>(stagedPath, []);
+  const cursor = readJsonFile<CursorState | null>(cursorPath, null);
+  const totalPages = Math.max(1, Math.ceil(staged.length / pageSize));
+  const page = Math.min(Math.max(Math.floor(input.page ?? 1), 1), totalPages);
+  const start = (page - 1) * pageSize;
+
+  let reportCount = 0;
+  try {
+    reportCount = readdirSync(reportsDir, { withFileTypes: true }).filter((entry) =>
+      entry.isFile(),
+    ).length;
+  } catch {
+    // The reports directory is created on the first scan.
+  }
+
+  return {
+    items: staged.slice(start, start + pageSize),
+    stagedTotal: staged.length,
+    stagedBytes: staged.reduce((total, entry) => total + entry.sizeBytes, 0),
+    cursor,
+    reportCount,
+    page,
+    pageSize,
+    totalPages,
+  };
 }
 
 export async function stageOrphanedImagesBatch(input: StageOrphanedImagesOptions = {}) {

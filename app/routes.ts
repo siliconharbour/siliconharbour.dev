@@ -146,6 +146,7 @@ export default [
     index("routes/manage/index.tsx"),
     route("review", "routes/manage/review.tsx"),
     route("settings", "routes/manage/settings.tsx"),
+    route("tools/orphaned-images", "routes/manage/tools/orphaned-images.tsx"),
     route("comments", "routes/manage/comments.tsx"),
     ...prefix("events", [
       index("routes/manage/events/index.tsx"),
