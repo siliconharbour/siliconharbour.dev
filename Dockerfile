@@ -1,5 +1,5 @@
 FROM node:26.8.1-alpine AS package-manager-base
-RUN npm install -g npm@12.0.2 pnpm@11.14.0
+RUN npm install -g pnpm@11.24.0
 
 FROM package-manager-base AS dependency-base
 RUN apk add --no-cache python3 make g++
