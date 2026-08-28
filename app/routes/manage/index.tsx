@@ -9,9 +9,9 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { user } = await requireAuth(request);
+  await requireAuth(request);
   const dashboard = await getAdminDashboardCounts();
-  return { user, ...dashboard };
+  return dashboard;
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -69,7 +69,7 @@ const contentTypes = [
 export default function ManageIndex() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
-  const { user, counts, pending } = useLoaderData<typeof loader>();
+  const { counts, pending } = useLoaderData<typeof loader>();
   const isStagingOrphans =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") === "stage-orphaned-images";
@@ -77,10 +77,24 @@ export default function ManageIndex() {
   return (
     <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-4xl mx-auto flex flex-col gap-8">
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold text-harbour-700">Dashboard</h1>
-            <p className="text-harbour-400 text-sm">Welcome, {user.email}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold text-harbour-700">Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <Link to="/" className="text-sm text-harbour-400 hover:text-harbour-600">
+              View Site
+            </Link>
+            <Link
+              to="/manage/settings"
+              className="text-sm text-harbour-400 hover:text-harbour-600"
+            >
+              Settings
+            </Link>
+            <Link
+              to="/manage/logout"
+              className="text-sm text-harbour-400 hover:text-harbour-600"
+            >
+              Logout
+            </Link>
           </div>
         </div>
 
@@ -109,21 +123,6 @@ export default function ManageIndex() {
             </span>
           </div>
         </Link>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {contentTypes.map((type) => (
-            <Link
-              key={type.key}
-              to={type.href}
-              className="p-6 bg-white border border-harbour-200 hover:border-harbour-400 transition-colors flex flex-col gap-2"
-            >
-              <h2 className="text-lg font-semibold text-harbour-700">{type.label}</h2>
-              <p className="text-harbour-400 text-sm">
-                {counts[type.key]} {type.label.toLowerCase()}
-              </p>
-            </Link>
-          ))}
-        </div>
 
         <div className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Import Tools</h2>
@@ -241,6 +240,22 @@ export default function ManageIndex() {
               <h3 className="font-medium text-harbour-700">Post Jobs</h3>
               <p className="text-harbour-400 text-sm">Compose and post job roundups to Discord</p>
             </Link>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold text-harbour-700">Content</h2>
+          <div className="grid grid-cols-2 border-l border-t border-harbour-200 md:grid-cols-3">
+            {contentTypes.map((type) => (
+              <Link
+                key={type.key}
+                to={type.href}
+                className="flex items-center justify-between gap-2 border-b border-r border-harbour-200 bg-white px-3 py-2 text-sm transition-colors hover:bg-harbour-50"
+              >
+                <span className="font-medium text-harbour-700">{type.label}</span>
+                <span className="text-xs text-harbour-400">{counts[type.key]}</span>
+              </Link>
+            ))}
           </div>
         </div>
 

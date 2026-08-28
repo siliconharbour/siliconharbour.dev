@@ -143,9 +143,8 @@ export default [
   ...prefix("manage", [
     route("login", "routes/manage/login.tsx"),
     route("logout", "routes/manage/logout.tsx"),
-    layout("routes/manage/layout.tsx", [
-      index("routes/manage/index.tsx"),
-      route("review", "routes/manage/review.tsx"),
+    index("routes/manage/index.tsx"),
+    route("review", "routes/manage/review.tsx"),
     route("settings", "routes/manage/settings.tsx"),
     route("comments", "routes/manage/comments.tsx"),
     ...prefix("events", [
@@ -234,7 +233,6 @@ export default [
     ...prefix("discord", [
       route("events", "routes/manage/discord/events.tsx"),
       route("jobs", "routes/manage/discord/jobs.tsx"),
-    ]),
     ]),
   ]),
 ] satisfies RouteConfig;
