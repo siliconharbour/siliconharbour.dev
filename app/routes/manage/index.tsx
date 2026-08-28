@@ -117,15 +117,6 @@ export default function ManageIndex() {
         <div className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-harbour-700">Tools</h2>
           <div className="border border-harbour-200 bg-white">
-            <ToolGroup label="Directories">
-              <ToolLink to="/manage/import/technl">TechNL</ToolLink>
-              <ToolLink to="/manage/import/genesis">Genesis</ToolLink>
-              <ToolLink to="/manage/import/bounce">Bounce</ToolLink>
-            </ToolGroup>
-            <ToolGroup label="GitHub">
-              <ToolLink to="/manage/import/github-by-location">By Location</ToolLink>
-              <ToolLink to="/manage/import/github-following">Connections</ToolLink>
-            </ToolGroup>
             <ToolGroup label="Jobs">
               <ToolLink to="/manage/import/jobs">Import Sources</ToolLink>
               <ToolLink to="/manage/import/jobs/search">Board Search</ToolLink>
@@ -138,6 +129,15 @@ export default function ManageIndex() {
             <ToolGroup label="Discord">
               <ToolLink to="/manage/discord/events">Post Events</ToolLink>
               <ToolLink to="/manage/discord/jobs">Post Jobs</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="Directories">
+              <ToolLink to="/manage/import/technl">TechNL</ToolLink>
+              <ToolLink to="/manage/import/genesis">Genesis</ToolLink>
+              <ToolLink to="/manage/import/bounce">Bounce</ToolLink>
+            </ToolGroup>
+            <ToolGroup label="GitHub">
+              <ToolLink to="/manage/import/github-by-location">By Location</ToolLink>
+              <ToolLink to="/manage/import/github-following">Connections</ToolLink>
             </ToolGroup>
             <ToolGroup label="Data">
               <ToolLink to="/manage/export">Export Data</ToolLink>
