@@ -1,4 +1,4 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { searchSpec } from "./search.js";
 import { formatSandboxError, runInSandbox } from "./sandbox.js";
@@ -150,7 +150,7 @@ function buildExecuteDescription(): string {
   const docs = getHostFunctionDocs();
   const unions = getEntitySchemaDocs();
   return [
-    "Like 'query' but also exposes sync, creation, review functions. Requires apiToken.",
+    "Like 'query' but also exposes sync, creation, and review functions. Requires the mcp:write OAuth scope.",
     "",
     "Imports from 'siliconharbour' (call search('fnName') for signatures):",
     "",
