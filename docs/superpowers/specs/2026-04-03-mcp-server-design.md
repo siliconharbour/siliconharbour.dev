@@ -1,7 +1,7 @@
 # MCP Server Design Spec
 
 **Date:** 2026-04-03
-**Status:** Approved, ready for implementation
+**Status:** Implemented; authentication updated to OAuth 2.1
 
 ---
 
@@ -20,7 +20,6 @@ An MCP server mounted at `/mcp` inside the existing React Router v7 app, exposin
 
 ## Non-Goals
 
-- Multi-user auth / OAuth 2.1 (single shared Bearer token is sufficient)
 - MCP server-initiated push notifications (inline tool responses are enough)
 - Arbitrary write access (only sync actions and read queries)
 - Exposing admin manage UI functionality beyond sync
@@ -305,7 +304,7 @@ OAUTH_ISSUER_URL=https://siliconharbour.dev — optional when identical to SITE_
 2. query(...)
    → reads data, combines entities, filters/formats as needed
 
-3. execute(code, apiToken)
+3. authorize the MCP client for mcp:write, then execute(code)
    → syncs sources, reads pending items, reports back
 ```
 

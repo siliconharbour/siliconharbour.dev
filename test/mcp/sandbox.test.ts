@@ -8,6 +8,6 @@ describe("formatSandboxError", () => {
   });
 
   it("serializes plain objects without message-like fields", () => {
-    expect(formatSandboxError({ reason: "missing apiToken" })).toBe('{\n  "reason": "missing apiToken"\n}');
+    expect(formatSandboxError({ reason: "invalid input" })).toBe('{\n  "reason": "invalid input"\n}');
   });
 });

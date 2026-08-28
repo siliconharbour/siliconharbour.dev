@@ -66,4 +66,4 @@ docker run -p 3000:3000 -v ./data:/app/data siliconharbour
 
 The MCP endpoint uses OAuth 2.1 authorization-code flow with S256 PKCE. MCP clients discover
 the authorization, registration, and token endpoints automatically from the server metadata;
-there is no shared API token to configure.
+clients do not require a manually configured secret.

@@ -1,14 +1,13 @@
 # MCP Server Implementation Plan
 
-> **Historical plan:** The shared-token authentication described in the original plan was
-> superseded by the OAuth 2.1 implementation. The current MCP endpoint uses authorization-code
-> flow, S256 PKCE, resource-bound tokens, and `mcp:write` scope for the execute tool.
+> **Historical plan:** Authentication has been updated to OAuth 2.1 authorization-code flow with
+> S256 PKCE, resource-bound tokens, and `mcp:write` scope for the execute tool.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Mount an MCP server at `/mcp` in a custom Express server alongside the React Router app, exposing 3 tools (`search`, `query`, `execute`) for AI clients to query all SiliconHarbour data and trigger import syncs.
 
-**Architecture:** Replace `react-router-serve` with a custom Express `server.ts` that handles `/mcp` via the MCP SDK and forwards everything else to React Router. The `query` and `execute` tools run user-supplied JS in a QuickJS WASM sandbox with a `siliconharbour` virtual module injected — host DB functions are bridged in via `globalThis.__sh__`. `execute` additionally requires a Bearer token and exposes sync action functions.
+**Architecture:** Replace `react-router-serve` with a custom Express `server.ts` that handles `/mcp` via the MCP SDK and forwards everything else to React Router. The `query` and `execute` tools run user-supplied JS in a QuickJS WASM sandbox with a `siliconharbour` virtual module injected — host DB functions are bridged in via `globalThis.__sh__`. `execute` additionally requires the OAuth `mcp:write` scope and exposes sync action functions.
 
 **Tech Stack:** `@modelcontextprotocol/sdk@1.29.0`, `express`, `@types/express`, `@sebastianwessel/quickjs@3.0.1`, `@jitl/quickjs-ng-wasmfile-release-sync@0.32.0`, `zod` (already installed), `tsx@4.21.0` (already installed).
 

@@ -43,7 +43,7 @@ const TOOLS: ToolMeta[] = [
     title: "execute",
     description:
       "Like query, but also exposes sync, creation, review, and lifecycle functions. " +
-      "Requires an authenticated MCP session (apiToken). Timeout: 60 seconds.",
+      "Requires an OAuth-authorized MCP session with the mcp:write scope. Timeout: 60 seconds.",
     auth: "Authenticated",
     bindings: "execute",
   },
