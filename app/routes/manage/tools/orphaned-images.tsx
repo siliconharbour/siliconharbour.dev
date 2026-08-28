@@ -1,6 +1,8 @@
 import type { Route } from "./+types/orphaned-images";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import {
+  deleteAllStagedOrphans,
+  deleteStagedOrphan,
   getOrphanedImagesState,
   stageOrphanedImagesBatch,
 } from "~/lib/image-orphans.server";
@@ -20,6 +22,44 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
   const formData = await request.formData();
+  const intent = String(formData.get("intent") || "scan");
+
+  if (intent === "delete") {
+    const path = String(formData.get("path") || "");
+    if (!path) return { intent, success: false as const, error: "Image path is required." };
+    try {
+      return {
+        intent,
+        success: true as const,
+        error: null,
+        deleteResult: deleteStagedOrphan(path),
+      };
+    } catch (error) {
+      return {
+        intent,
+        success: false as const,
+        error: error instanceof Error ? error.message : "Failed to delete the image.",
+      };
+    }
+  }
+
+  if (intent === "delete-all") {
+    try {
+      return {
+        intent,
+        success: true as const,
+        error: null,
+        deleteResult: deleteAllStagedOrphans(),
+      };
+    } catch (error) {
+      return {
+        intent,
+        success: false as const,
+        error: error instanceof Error ? error.message : "Failed to delete staged images.",
+      };
+    }
+  }
+
   const parsedBatchSize = Number(formData.get("batchSize") || 250);
   const batchSize = Number.isFinite(parsedBatchSize)
     ? Math.min(Math.max(Math.floor(parsedBatchSize), 1), 5000)
@@ -32,9 +72,10 @@ export async function action({ request }: Route.ActionArgs) {
       resetCursor: formData.get("resetCursor") === "true",
       dryRun: false,
     });
-    return { success: true as const, error: null, result };
+    return { intent: "scan", success: true as const, error: null, result };
   } catch (error) {
     return {
+      intent: "scan",
       success: false as const,
       error: error instanceof Error ? error.message : "Failed to scan images.",
       result: null,
@@ -73,8 +114,8 @@ export default function OrphanedImages() {
         </div>
 
         <div className="border border-harbour-200 bg-harbour-50 p-4 text-sm text-harbour-600">
-          Staging is a review report only. These files remain in <code>data/images</code> and are not
-          moved or deleted by this tool.
+          Staging builds a review list without moving files. Deletion re-checks the current database
+          first and preserves any image that has become referenced since it was staged.
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">
@@ -98,6 +139,7 @@ export default function OrphanedImages() {
 
         <div className="border border-harbour-200 bg-white p-4">
           <Form method="post" className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="intent" value="scan" />
             <label className="flex flex-col gap-1 text-xs text-harbour-500">
               Batch size
               <input
@@ -132,10 +174,20 @@ export default function OrphanedImages() {
               {actionData.error}
             </p>
           )}
-          {actionData?.success && actionData.result && (
+          {actionData?.success && "result" in actionData && actionData.result && (
             <p className="mt-3 border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
               Scanned {actionData.result.scannedCount} images and found {actionData.result.orphanCount}{" "}
               candidates ({actionData.result.newlyStagedCount} newly staged).
+            </p>
+          )}
+          {actionData?.success && "deleteResult" in actionData && actionData.deleteResult && (
+            <p className="mt-3 border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              Deleted {actionData.deleteResult.deletedCount} files. Skipped{" "}
+              {actionData.deleteResult.referencedCount} now-referenced files
+              {actionData.deleteResult.missingCount > 0
+                ? `; removed ${actionData.deleteResult.missingCount} missing files from the list`
+                : ""}
+              .
             </p>
           )}
         </div>
@@ -143,7 +195,32 @@ export default function OrphanedImages() {
         <section className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-lg font-semibold text-harbour-700">Staged Candidates</h2>
-            <span className="text-sm text-harbour-400">{state.stagedTotal} total</span>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-harbour-400">{state.stagedTotal} total</span>
+              {state.stagedTotal > 0 && (
+                <Form
+                  method="post"
+                  onSubmit={(event) => {
+                    if (
+                      !confirm(
+                        `Permanently delete all ${state.stagedTotal} staged candidates? Each will be re-checked first.`,
+                      )
+                    ) {
+                      event.preventDefault();
+                    }
+                  }}
+                >
+                  <input type="hidden" name="intent" value="delete-all" />
+                  <button
+                    type="submit"
+                    disabled={isScanning}
+                    className="border border-red-200 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Delete All Staged
+                  </button>
+                </Form>
+              )}
+            </div>
           </div>
 
           {state.items.length === 0 ? (
@@ -166,6 +243,25 @@ export default function OrphanedImages() {
                     {item.filename}
                   </p>
                   <p className="text-xs text-harbour-400">{formatBytes(item.sizeBytes)}</p>
+                  <Form
+                    method="post"
+                    className="mt-2"
+                    onSubmit={(event) => {
+                      if (!confirm(`Permanently delete ${item.filename}?`)) {
+                        event.preventDefault();
+                      }
+                    }}
+                  >
+                    <input type="hidden" name="intent" value="delete" />
+                    <input type="hidden" name="path" value={item.path} />
+                    <button
+                      type="submit"
+                      disabled={isScanning}
+                      className="w-full border border-red-200 px-2 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                  </Form>
                 </article>
               ))}
             </div>

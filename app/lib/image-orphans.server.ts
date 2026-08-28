@@ -1,6 +1,14 @@
 import Database from "better-sqlite3";
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { extname, join, relative, resolve, sep } from "node:path";
 import { DATA_DIR, DB_PATH, IMAGES_DIR } from "./paths.server";
 
 export type StageOrphanedImagesOptions = {
@@ -201,6 +209,87 @@ export function getOrphanedImagesState(input: { page?: number; pageSize?: number
     pageSize,
     totalPages,
   };
+}
+
+export type DeleteStagedOrphansResult = {
+  requestedCount: number;
+  deletedCount: number;
+  missingCount: number;
+  referencedCount: number;
+  remainingStagedCount: number;
+};
+
+type DeleteStagedOrphansOptions = {
+  dbPath?: string;
+  imagesDir?: string;
+  stageDir?: string;
+};
+
+function deleteStagedOrphans(
+  paths?: string[],
+  input: DeleteStagedOrphansOptions = {},
+): DeleteStagedOrphansResult {
+  const dbPath = input.dbPath ?? DB_PATH;
+  const imagesDir = input.imagesDir ?? IMAGES_DIR;
+  const stageDir = input.stageDir ?? join(DATA_DIR, "orphaned-images");
+  const stagedPath = join(stageDir, "staged.json");
+  const staged = readJsonFile<StagedOrphan[]>(stagedPath, []);
+  const selectedPaths = new Set(paths ?? staged.map((entry) => entry.path));
+  const selected = staged.filter((entry) => selectedPaths.has(entry.path));
+  const removedPaths = new Set<string>();
+  const db = new Database(dbPath, { readonly: true });
+  let deletedCount = 0;
+  let missingCount = 0;
+  let referencedCount = 0;
+
+  try {
+    const probes = buildProbes(db);
+    for (const entry of selected) {
+      const reference = findReferenceProbe(probes, entry.filename, entry.path);
+      if (reference) {
+        referencedCount++;
+        continue;
+      }
+
+      const imagesRoot = resolve(imagesDir);
+      const imagePath = resolve(imagesRoot, entry.path);
+      if (imagePath === imagesRoot || !imagePath.startsWith(`${imagesRoot}${sep}`)) {
+        throw new Error(`Invalid staged image path: ${entry.path}`);
+      }
+      if (existsSync(imagePath)) {
+        unlinkSync(imagePath);
+        deletedCount++;
+      } else {
+        missingCount++;
+      }
+      removedPaths.add(entry.path);
+    }
+  } finally {
+    db.close();
+  }
+
+  const remaining = staged.filter((entry) => !removedPaths.has(entry.path));
+  writeJsonFile(stagedPath, remaining);
+  return {
+    requestedCount: selected.length,
+    deletedCount,
+    missingCount,
+    referencedCount,
+    remainingStagedCount: remaining.length,
+  };
+}
+
+export function deleteStagedOrphan(
+  path: string,
+  input: DeleteStagedOrphansOptions = {},
+): DeleteStagedOrphansResult {
+  return deleteStagedOrphans([path], input);
+}
+
+export function deleteAllStagedOrphans(
+  input: DeleteStagedOrphansOptions = {},
+): DeleteStagedOrphansResult {
+  return deleteStagedOrphans(undefined, input);
 }
 
 export async function stageOrphanedImagesBatch(input: StageOrphanedImagesOptions = {}) {
