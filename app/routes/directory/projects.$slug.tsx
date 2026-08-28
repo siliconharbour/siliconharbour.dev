@@ -149,7 +149,7 @@ export default function ProjectDetail() {
   const { project, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } =
     useLoaderData<typeof loader>();
   const links = parseProjectLinks(project.links);
-  const linkEntries = Object.entries(links).filter(([_, url]) => url);
+  const linkEntries = Object.entries(links).filter(([, url]) => url);
 
   return (
     <div className="max-w-4xl mx-auto p-4 py-8">
