@@ -4,12 +4,37 @@ import {
   parseAsTimezone,
   getTimeInTimezone,
   getDateInTimezone,
+  getDayBoundsInTimezone,
   SITE_TIMEZONE,
 } from "~/lib/timezone";
 
 describe("SITE_TIMEZONE", () => {
   it("is America/St_Johns", () => {
     expect(SITE_TIMEZONE).toBe("America/St_Johns");
+  });
+});
+
+describe("getDayBoundsInTimezone", () => {
+  it("uses Newfoundland midnight boundaries in winter", () => {
+    const bounds = getDayBoundsInTimezone("2026-01-15");
+    expect(bounds.start.toISOString()).toBe("2026-01-15T03:30:00.000Z");
+    expect(bounds.end.toISOString()).toBe("2026-01-16T03:29:59.999Z");
+  });
+
+  it("uses Newfoundland midnight boundaries in summer", () => {
+    const bounds = getDayBoundsInTimezone("2026-07-15");
+    expect(bounds.start.toISOString()).toBe("2026-07-15T02:30:00.000Z");
+    expect(bounds.end.toISOString()).toBe("2026-07-16T02:29:59.999Z");
+  });
+
+  it("accounts for the short day when daylight time begins", () => {
+    const bounds = getDayBoundsInTimezone("2026-03-08");
+    expect(bounds.end.getTime() - bounds.start.getTime() + 1).toBe(23 * 60 * 60 * 1000);
+  });
+
+  it("accounts for the long day when standard time returns", () => {
+    const bounds = getDayBoundsInTimezone("2026-11-01");
+    expect(bounds.end.getTime() - bounds.start.getTime() + 1).toBe(25 * 60 * 60 * 1000);
   });
 });
 

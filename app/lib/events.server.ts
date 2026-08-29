@@ -10,15 +10,20 @@ import {
   type EventOccurrence,
   type NewEventOccurrence,
 } from "~/db/schema";
-import { eq, gte, and, lte, asc, desc, isNull, or, inArray } from "drizzle-orm";
+import { eq, gte, and, lte, lt, asc, desc, isNull, or, inArray } from "drizzle-orm";
 import { deleteImage } from "./images.server";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences, syncOrganizerReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
 import { parseRecurrenceRule, generateOccurrences } from "./recurrence.server";
-import { parseAsTimezone, getDateInTimezone, SITE_TIMEZONE } from "./timezone";
+import {
+  parseAsTimezone,
+  getDateInTimezone,
+  getDayBoundsInTimezone,
+  SITE_TIMEZONE,
+} from "./timezone";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
-import { startOfDay } from "date-fns";
+import { addDays, startOfDay } from "date-fns";
 
 export type EventWithDates = Event & { dates: EventDate[] };
 
@@ -299,6 +304,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
           eventId: eventData.id,
           startDate: startDateTime,
           endDate: endDateTime,
+          isAllDay: !eventData.defaultStartTime,
         };
       });
 
@@ -352,7 +358,7 @@ export async function getEventsForMonth(
   const oneTimeDates = await db
     .select()
     .from(eventDates)
-    .where(and(gte(eventDates.startDate, monthStart), lte(eventDates.startDate, monthEnd)));
+    .where(and(gte(eventDates.startDate, monthStart), lt(eventDates.startDate, monthEnd)));
 
   // Group by event
   const eventDateMap = new Map<number, string[]>();
@@ -394,7 +400,9 @@ export async function getEventsForMonth(
   for (const event of recurringEventsList) {
     if (seenEventIds.has(event.id)) continue;
 
-    const generatedDates = getGeneratedOccurrences(event, monthStart, monthEnd);
+    const generatedDates = getGeneratedOccurrences(event, monthStart, monthEnd).filter(
+      (date) => date < monthEnd,
+    );
     if (generatedDates.length === 0) continue;
 
     // Get overrides to check for cancellations
@@ -427,7 +435,7 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   const zonedStartOfDay = startOfDay(zonedNow);
   const todayStart = fromZonedTime(zonedStartOfDay, SITE_TIMEZONE);
 
-  const weekFromNow = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const weekFromNow = fromZonedTime(addDays(zonedStartOfDay, 7), SITE_TIMEZONE);
 
   // Only one-off events (with explicit dates) -- recurring events stay in
   // the "Upcoming > Recurring" section on the homepage
@@ -454,13 +462,17 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
 }
 
 export async function getEventsByMonth(year: number, month: number): Promise<EventWithDates[]> {
-  const startOfMonth = new Date(year, month, 1);
-  const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59);
+  const startOfMonth = parseAsTimezone(
+    `${year}-${String(month + 1).padStart(2, "0")}-01`,
+    "00:00",
+  );
+  const nextMonth = new Date(Date.UTC(year, month + 1, 1));
+  const endOfMonth = parseAsTimezone(nextMonth.toISOString().slice(0, 10), "00:00");
 
   const eventIdsInMonth = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(and(gte(eventDates.startDate, startOfMonth), lte(eventDates.startDate, endOfMonth)));
+    .where(and(gte(eventDates.startDate, startOfMonth), lt(eventDates.startDate, endOfMonth)));
 
   if (eventIdsInMonth.length === 0) return [];
 
@@ -509,10 +521,7 @@ export async function getPaginatedEvents(
 
   // If filtering by specific date, get events on that date
   if (dateFilter) {
-    // Parse yyyy-MM-dd and create UTC day boundaries
-    const [year, month, day] = dateFilter.split("-").map(Number);
-    const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-    const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
+    const { start: startOfDay, end: endOfDay } = getDayBoundsInTimezone(dateFilter);
 
     const dateRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
@@ -664,11 +673,9 @@ export async function getOccurrenceOverride(
   eventId: number,
   occurrenceDate: Date,
 ): Promise<EventOccurrence | null> {
-  // Normalize the date to start of day for comparison
-  const startOfDay = new Date(occurrenceDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(startOfDay);
-  endOfDay.setHours(23, 59, 59, 999);
+  const { start: startOfDay, end: endOfDay } = getDayBoundsInTimezone(
+    getDateInTimezone(occurrenceDate),
+  );
 
   const result = await db
     .select()

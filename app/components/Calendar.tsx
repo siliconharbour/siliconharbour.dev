@@ -1,8 +1,8 @@
 import { useDatePicker } from "@rehookify/datepicker";
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { isSameDay, addMonths, subMonths, format } from "date-fns";
+import { addMonths, subMonths, format } from "date-fns";
 import { useNavigate } from "react-router";
-import { formatInTimezone } from "~/lib/timezone";
+import { getDateInTimezone } from "~/lib/timezone";
 
 /**
  * Minimal calendar event data returned from /api/calendar-events
@@ -31,7 +31,9 @@ export function Calendar({
 }: CalendarProps) {
   const navigate = useNavigate();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [offsetDate, setOffsetDate] = useState<Date>(new Date());
+  const [offsetDate, setOffsetDate] = useState<Date>(
+    () => new Date(`${getDateInTimezone(new Date())}T12:00:00`),
+  );
   const [loading, setLoading] = useState(false);
 
   // Cache: month key "YYYY-MM" -> CalendarEventData[]
@@ -93,7 +95,8 @@ export function Calendar({
   }, [activeEvents]);
 
   const handleDayClick = (date: Date) => {
-    const dateKey = formatInTimezone(date, "yyyy-MM-dd");
+    // Date-picker values represent browser calendar cells, not UTC instants.
+    const dateKey = format(date, "yyyy-MM-dd");
     const dayEvents = eventDateMap.get(dateKey) || [];
 
     if (onDateClick) {
@@ -158,10 +161,10 @@ export function Calendar({
       {/* Days grid */}
       <div className={`grid grid-cols-7 gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}>
         {days.map((dpDay) => {
-          const dateKey = formatInTimezone(dpDay.$date, "yyyy-MM-dd");
+          const dateKey = format(dpDay.$date, "yyyy-MM-dd");
           const dayEvents = eventDateMap.get(dateKey) || [];
           const hasEvents = dayEvents.length > 0;
-          const isToday = isSameDay(dpDay.$date, new Date());
+          const isToday = dateKey === getDateInTimezone(new Date());
 
           const isClickable = hasEvents && dpDay.inCurrentMonth;
 

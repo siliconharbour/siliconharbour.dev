@@ -42,3 +42,13 @@ export function getTimeInTimezone(date: Date): string {
 export function getDateInTimezone(date: Date): string {
   return formatInTimezone(date, "yyyy-MM-dd");
 }
+
+/** Get UTC instants covering one Newfoundland calendar day. */
+export function getDayBoundsInTimezone(dateStr: string): { start: Date; end: Date } {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const followingDay = new Date(Date.UTC(year, month - 1, day + 1));
+  const followingDateStr = followingDay.toISOString().slice(0, 10);
+  const start = parseAsTimezone(dateStr, "00:00");
+  const nextStart = parseAsTimezone(followingDateStr, "00:00");
+  return { start, end: new Date(nextStart.getTime() - 1) };
+}

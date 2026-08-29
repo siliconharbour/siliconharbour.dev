@@ -1,7 +1,7 @@
 import type { Route } from "./+types/calendar-ics";
 import { createEvents, type EventAttributes } from "ics";
 import { getUpcomingEvents, getEventOccurrenceOverrides } from "~/lib/events.server";
-import { parseAsTimezone } from "~/lib/timezone";
+import { formatInTimezone, getDateInTimezone, parseAsTimezone } from "~/lib/timezone";
 
 function toDateArray(d: Date): [number, number, number, number, number] {
   return [
@@ -13,6 +13,25 @@ function toDateArray(d: Date): [number, number, number, number, number] {
   ];
 }
 
+function toSiteDateArray(d: Date): [number, number, number, number, number] {
+  return formatInTimezone(d, "yyyy-MM-dd-HH-mm").split("-").map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+}
+
+export function labelRecurringEventsWithSiteTimezone(calendar: string): string {
+  return calendar.replace(/BEGIN:VEVENT[\s\S]*?END:VEVENT/g, (eventBlock) => {
+    if (!eventBlock.includes("RRULE:")) return eventBlock;
+    return eventBlock
+      .replace(/^DTSTART:/m, "DTSTART;TZID=America/St_Johns:")
+      .replace(/^DTEND:/m, "DTEND;TZID=America/St_Johns:");
+  });
+}
+
 /**
  * Date-only tuple (year, month, day) for all-day VEVENTs. The `ics`
  * package emits DTSTART;VALUE=DATE when start/end are length-3 tuples,
@@ -22,10 +41,7 @@ function toDateArray(d: Date): [number, number, number, number, number] {
  * doesn't slip to the previous day in subscribers' clients.
  */
 function toAllDayArray(d: Date): [number, number, number] {
-  // Use local NL date — startDate is stored anchored at noon site-time.
-  // Reading via getFullYear/getMonth would give server-local; instead,
-  // reuse the same UTC components since noon UTC ≈ morning NL ≈ same day.
-  return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()];
+  return getDateInTimezone(d).split("-").map(Number) as [number, number, number];
 }
 
 export async function loader({}: Route.LoaderArgs) {
@@ -69,12 +85,12 @@ export async function loader({}: Route.LoaderArgs) {
       for (const override of overrides) {
         if (override.cancelled) {
           // Cancelled occurrences become EXDATE
-          const occDateStr = override.occurrenceDate.toISOString().split("T")[0];
+          const occDateStr = getDateInTimezone(override.occurrenceDate);
           const occDateTime = parseAsTimezone(occDateStr, startTime);
           exclusionDates.push(toDateArray(occDateTime));
         } else if (override.location || override.startTime || override.endTime) {
           // Modified occurrences: EXDATE the original + emit standalone VEVENT
-          const occDateStr = override.occurrenceDate.toISOString().split("T")[0];
+          const occDateStr = getDateInTimezone(override.occurrenceDate);
           const occDateTime = parseAsTimezone(occDateStr, startTime);
           exclusionDates.push(toDateArray(occDateTime));
           modifiedOverrides.push(override);
@@ -88,12 +104,12 @@ export async function loader({}: Route.LoaderArgs) {
         description: `https://siliconharbour.dev/events/${event.slug}\n\n${event.description}`,
         location: event.location || undefined,
         url: `https://siliconharbour.dev/events/${event.slug}`,
-        start: toDateArray(startDate),
-        startInputType: "utc",
-        startOutputType: "utc",
-        end: toDateArray(endDate),
-        endInputType: "utc",
-        endOutputType: "utc",
+        start: toSiteDateArray(startDate),
+        startInputType: "local",
+        startOutputType: "local",
+        end: toSiteDateArray(endDate),
+        endInputType: "local",
+        endOutputType: "local",
         status: "CONFIRMED" as const,
         transp: "TRANSPARENT" as const,
         categories: ["Tech", "Community"],
@@ -116,7 +132,7 @@ export async function loader({}: Route.LoaderArgs) {
 
       // Emit standalone VEVENTs for modified occurrences
       for (const override of modifiedOverrides) {
-        const occDateStr = override.occurrenceDate.toISOString().split("T")[0];
+        const occDateStr = getDateInTimezone(override.occurrenceDate);
         const overrideStartTime = override.startTime || startTime;
         const overrideEndTime = override.endTime || event.defaultEndTime;
 
@@ -218,7 +234,7 @@ export async function loader({}: Route.LoaderArgs) {
     throw new Response("Failed to generate calendar", { status: 500 });
   }
 
-  return new Response(value, {
+  return new Response(labelRecurringEventsWithSiteTimezone(value), {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Content-Disposition": 'attachment; filename="siliconharbour-events.ics"',

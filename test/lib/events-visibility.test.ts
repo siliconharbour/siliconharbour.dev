@@ -7,6 +7,8 @@ import {
   getEventById,
   getEventBySlug,
   createEvent,
+  getPaginatedEvents,
+  getEventsForMonth,
 } from "~/lib/events.server";
 
 // =============================================================================
@@ -78,6 +80,64 @@ describe("getPublicEventBySlug", () => {
   it("returns null for non-existent slug", async () => {
     const result = await getPublicEventBySlug("does-not-exist");
     expect(result).toBeNull();
+  });
+});
+
+describe("event date filtering", () => {
+  it("filters by Newfoundland calendar day near midnight", async () => {
+    const [previousDay, selectedDay] = await db
+      .insert(events)
+      .values([
+        {
+          slug: "late-previous-day",
+          title: "Late Previous Day",
+          description: "Occurs at 11:30 PM NDT on July 14",
+          link: "https://example.com/previous",
+        },
+        {
+          slug: "early-selected-day",
+          title: "Early Selected Day",
+          description: "Occurs at 12:30 AM NDT on July 15",
+          link: "https://example.com/selected",
+        },
+      ])
+      .returning();
+    await db.insert(eventDates).values([
+      { eventId: previousDay.id, startDate: new Date("2026-07-15T02:00:00Z") },
+      { eventId: selectedDay.id, startDate: new Date("2026-07-15T03:00:00Z") },
+    ]);
+
+    const result = await getPaginatedEvents(20, 0, undefined, "all", "2026-07-15");
+    expect(result.items.map((event) => event.slug)).toContain("early-selected-day");
+    expect(result.items.map((event) => event.slug)).not.toContain("late-previous-day");
+  });
+
+  it("does not include Newfoundland midnight from the next month", async () => {
+    const [julyEvent, augustEvent] = await db
+      .insert(events)
+      .values([
+        {
+          slug: "july-boundary-event",
+          title: "July Boundary Event",
+          description: "Last local hour in July",
+          link: "https://example.com/july",
+        },
+        {
+          slug: "august-boundary-event",
+          title: "August Boundary Event",
+          description: "First local instant in August",
+          link: "https://example.com/august",
+        },
+      ])
+      .returning();
+    await db.insert(eventDates).values([
+      { eventId: julyEvent.id, startDate: new Date("2026-08-01T02:29:00Z") },
+      { eventId: augustEvent.id, startDate: new Date("2026-08-01T02:30:00Z") },
+    ]);
+
+    const result = await getEventsForMonth(2026, 7);
+    expect(result.map((event) => event.slug)).toContain("july-boundary-event");
+    expect(result.map((event) => event.slug)).not.toContain("august-boundary-event");
   });
 });
 

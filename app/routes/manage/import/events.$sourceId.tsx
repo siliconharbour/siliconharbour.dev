@@ -12,17 +12,18 @@ import {
   downloadAndSaveCoverImage,
 } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
-import { format, isPast } from "date-fns";
+import { isPast } from "date-fns";
 import { db } from "~/db";
 import { events as eventsTable } from "~/db/schema";
 import { eq } from "drizzle-orm";
+import { formatInTimezone } from "~/lib/timezone";
 
 function EventDate({ date }: { date: Date | null }) {
   if (!date) return null;
   const past = isPast(date);
   return (
     <span className={`text-xs ${past ? "text-red-500" : "text-harbour-500"}`}>
-      {format(date, "MMM d, yyyy")}
+      {formatInTimezone(date, "MMM d, yyyy")}
       {past ? " (past)" : ""}
     </span>
   );
