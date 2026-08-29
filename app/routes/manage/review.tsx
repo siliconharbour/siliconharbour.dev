@@ -1,5 +1,4 @@
 import type { Route } from "./+types/review";
-import { format } from "date-fns";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { db } from "~/db";
 import { events } from "~/db/schema";
@@ -22,6 +21,7 @@ import {
 } from "~/lib/news-importers/sync.server";
 import { requireAuth } from "~/lib/session.server";
 import { eq } from "drizzle-orm";
+import { formatInTimezone } from "~/lib/timezone";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Review Queue - siliconharbour.dev" }];
@@ -189,7 +189,7 @@ export default function ManageReview() {
                     </p>
                     {event.startDate && (
                       <p className="text-xs text-harbour-500">
-                        {format(event.startDate, "MMM d, yyyy 'at' h:mm a")}
+                        {formatInTimezone(event.startDate, "MMM d, yyyy 'at' h:mm a")}
                       </p>
                     )}
                   </div>

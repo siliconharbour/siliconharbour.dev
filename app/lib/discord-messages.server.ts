@@ -1,6 +1,6 @@
-import { format } from "date-fns";
 import type { EventWithDates } from "~/lib/events.server";
 import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
+import { formatInTimezone } from "~/lib/timezone";
 
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";
 const ACCENT_COLOR = 0x2b51d1; // harbour-600
@@ -32,8 +32,8 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
     let dateLine = "Date TBD";
     if (nextDate) {
       dateLine = nextDate.isAllDay
-        ? format(nextDate.startDate, "EEE, MMM d")
-        : format(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
+        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
+        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
     }
     if (event.recurrenceRule) {
       const parsed = parseRecurrenceRule(event.recurrenceRule);

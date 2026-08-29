@@ -16,6 +16,7 @@ import { postMessage } from "~/lib/discord.server";
 import { format } from "date-fns";
 import { getGeneratedOccurrences } from "~/lib/events.server";
 import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
+import { formatInTimezone } from "~/lib/timezone";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Discord Events - siliconharbour.dev" }];
@@ -46,6 +47,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         eventId: event.id,
         startDate: date,
         endDate: null,
+        isAllDay: !event.defaultStartTime,
       }));
       return { ...event, dates: syntheticDates, recurrenceLabel };
     }
@@ -114,6 +116,7 @@ export async function action({ request }: Route.ActionArgs) {
           eventId: event.id,
           startDate: date,
           endDate: null,
+          isAllDay: !event.defaultStartTime,
         }));
         return { ...event, dates: syntheticDates };
       }
@@ -303,8 +306,11 @@ export default function DiscordEvents() {
                     const nextDate = event.dates[0];
                     const dateLine = nextDate
                       ? nextDate.isAllDay
-                        ? format(new Date(nextDate.startDate), "EEE, MMM d")
-                        : format(new Date(nextDate.startDate), "EEE, MMM d 'at' h:mm a")
+                        ? formatInTimezone(new Date(nextDate.startDate), "EEE, MMM d")
+                        : formatInTimezone(
+                            new Date(nextDate.startDate),
+                            "EEE, MMM d 'at' h:mm a",
+                          )
                       : "Recurring";
                     return (
                       <div

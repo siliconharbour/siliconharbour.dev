@@ -44,6 +44,7 @@ function makeEvent(overrides: Partial<EventWithDates> = {}): EventWithDates {
         eventId: 1,
         startDate: new Date("2026-04-10T18:00:00Z"),
         endDate: new Date("2026-04-10T20:00:00Z"),
+        isAllDay: false,
       },
     ],
     ...overrides,
@@ -107,6 +108,46 @@ describe("buildEventsMessage", () => {
 
     expect(allContent).toContain("**Test Event**");
     expect(allContent).toContain("St. John's, NL");
+  });
+
+  it("formats event times in Newfoundland daylight time", () => {
+    const result = buildEventsMessage([makeEvent()]);
+    const container = result[0] as { type: number; components: any[] };
+    const allContent = container.components
+      .flatMap((component: any) =>
+        component.type === 9 ? component.components : [component],
+      )
+      .filter((component: any) => component.type === 10)
+      .map((component: any) => component.content)
+      .join("\n");
+
+    expect(allContent).toContain("Fri, Apr 10 at 3:30 PM");
+    expect(allContent).not.toContain("6:00 PM");
+  });
+
+  it("formats event times in Newfoundland standard time", () => {
+    const event = makeEvent({
+      dates: [
+        {
+          id: 2,
+          eventId: 1,
+          startDate: new Date("2026-01-15T21:30:00Z"),
+          endDate: null,
+          isAllDay: false,
+        },
+      ],
+    });
+    const result = buildEventsMessage([event]);
+    const container = result[0] as { type: number; components: any[] };
+    const allContent = container.components
+      .flatMap((component: any) =>
+        component.type === 9 ? component.components : [component],
+      )
+      .filter((component: any) => component.type === 10)
+      .map((component: any) => component.content)
+      .join("\n");
+
+    expect(allContent).toContain("Thu, Jan 15 at 6:00 PM");
   });
 
   it("multiple events have separators between them", () => {
