@@ -5,12 +5,13 @@ type Tone = "primary" | "secondary" | "ghost" | "danger" | "warning" | "success"
 type Size = "sm" | "md";
 
 const buttonTones: Record<Tone, string> = {
-  primary: "bg-harbour-600 text-white hover:bg-harbour-700",
-  secondary: "bg-harbour-100 text-harbour-700 hover:bg-harbour-200",
-  ghost: "text-harbour-600 hover:bg-harbour-50",
-  danger: "bg-red-600 text-white hover:bg-red-700",
-  warning: "bg-amber-500 text-white hover:bg-amber-600",
-  success: "bg-green-600 text-white hover:bg-green-700",
+  primary: "bg-harbour-600 text-white hover:bg-harbour-700 hover:text-white",
+  secondary:
+    "bg-harbour-100 text-harbour-700 hover:bg-harbour-200 hover:text-harbour-800",
+  ghost: "bg-white text-harbour-600 hover:bg-harbour-50 hover:text-harbour-700",
+  danger: "bg-red-600 text-white hover:bg-red-700 hover:text-white",
+  warning: "bg-amber-700 text-white hover:bg-amber-800 hover:text-white",
+  success: "bg-green-700 text-white hover:bg-green-800 hover:text-white",
 };
 
 const buttonSizes: Record<Size, string> = {

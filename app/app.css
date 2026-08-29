@@ -200,25 +200,6 @@ a:focus {
   opacity: 0.8;
 }
 
-/* =============================================================================
-   Button Styles
-   ============================================================================= */
-
-/* Buttons with bg colors should maintain white text on hover */
-a[class*="bg-harbour"]:hover,
-a[class*="bg-red"]:hover,
-a[class*="bg-green"]:hover,
-button[class*="bg-harbour"]:hover,
-button[class*="bg-red"]:hover,
-button[class*="bg-green"]:hover {
-  @apply text-white;
-}
-
-/* Calendar buttons should NOT get white text on hover */
-button.calendar-day:hover {
-  color: inherit;
-}
-
 button {
   @apply cursor-pointer;
 }

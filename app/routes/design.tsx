@@ -82,7 +82,8 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Buttons</h2>
           <p className="text-sm text-harbour-500">
-            No rounded corners. Use transition-colors for hover states.
+            No rounded corners. Button variants own both their foreground and background colors for
+            normal and hover states; every pairing must meet WCAG AA contrast for normal text.
           </p>
           <div className="flex flex-wrap gap-3 p-4 border border-harbour-200 bg-white">
             <Button>Primary</Button>
@@ -98,9 +99,9 @@ export default function DesignSystem() {
           </div>
           <div className="p-4 border border-harbour-200 bg-white">
             <p className="text-sm text-harbour-500 mb-2">Button with count badge:</p>
-            <button className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium transition-colors flex items-center gap-2">
+            <button className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white hover:text-white font-medium transition-colors flex items-center gap-2">
               Review
-              <span className="px-1.5 py-0.5 bg-amber-600 text-xs">12</span>
+              <span className="px-1.5 py-0.5 bg-amber-800 text-xs">12</span>
             </button>
           </div>
         </section>
