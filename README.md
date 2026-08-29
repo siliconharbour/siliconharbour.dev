@@ -62,8 +62,9 @@ docker run -p 3000:3000 -v ./data:/app/data siliconharbour
 | `SITE_URL`        | Public application/MCP resource URL | Production URL      |
 | `OAUTH_ISSUER_URL` | OAuth issuer URL (if different)    | `SITE_URL`          |
 
-## MCP authentication
+## MCP access
 
-The MCP endpoint uses OAuth 2.1 authorization-code flow with S256 PKCE. MCP clients discover
-the authorization, registration, and token endpoints automatically from the server metadata;
-clients do not require a manually configured secret.
+The `search` and `query` MCP tools are public. OAuth is optional and enables the `execute` tool
+for administrators with the `mcp:write` scope. The server uses the OAuth 2.1 authorization code
+flow with S256 PKCE. MCP clients discover the OAuth endpoints from server metadata and open the
+site's login and consent flow. Clients do not need a manually configured API key or shared secret.

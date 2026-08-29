@@ -146,6 +146,12 @@ export default function SubscribePage() {
         <CopyUrlCard url="https://siliconharbour.dev/mcp" label="MCP endpoint" />
 
         <p>
+          Public search and read tools work without signing in. OAuth is optional and unlocks
+          administrative tools for authorized accounts through the site&apos;s normal login and
+          consent flow.
+        </p>
+
+        <p>
           See the <a href="/api">API docs</a> for full details including example queries.
         </p>
       </article>

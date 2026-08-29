@@ -47,11 +47,17 @@ export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourH
     if (req.method === "OPTIONS") return void res.sendStatus(204);
     next();
   });
-  app.use("/mcp", requireBearerAuth({
+  const authenticateBearer = requireBearerAuth({
     verifier: oauthTokenVerifier,
     requiredScopes: ["mcp:read"],
     resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resource),
-  }));
+  });
+  app.use("/mcp", (req, res, next) => {
+    // Reading through search and query is public. If a client sends OAuth
+    // credentials, validate them and pass their scopes to the MCP handler.
+    if (!req.headers.authorization) return next();
+    return authenticateBearer(req, res, next);
+  });
   app.use("/mcp", (req, res, next) => {
     if (req.method === "GET" || req.method === "DELETE") {
       res.status(405).set("Allow", "POST").send("Method Not Allowed");

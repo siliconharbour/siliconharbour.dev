@@ -472,9 +472,11 @@ app.use("/mcp", (req, res, next) => {
 
 ### Authentication
 
-For production, use OAuth 2.1 at the MCP transport layer. This project exposes authorization
-server and protected-resource metadata, uses authorization-code flow with S256 PKCE, and binds
-access tokens to the MCP resource. Do not add a shared bearer-token argument to individual tools.
+This project allows public access to read-only MCP tools. OAuth 2.1 is optional and enables
+protected tools at the transport layer. The server publishes authorization server and protected
+resource metadata, uses the authorization code flow with S256 PKCE, and binds each OAuth session
+to the MCP resource. Clients discover this setup and open the normal site login and consent flow.
+Individual tools do not accept API keys or shared secrets.
 
 ---
 

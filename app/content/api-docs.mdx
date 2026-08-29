@@ -7,7 +7,7 @@ import { Code, CodeBlock, ApiTable, MCPTools } from "../components/content";
 
 # API
 
-A read-only JSON API for accessing community data. No authentication required. CORS enabled.
+The JSON API provides read-only access to community data without authentication and supports cross-origin requests.
 
 ## Base URL
 
@@ -45,26 +45,26 @@ Link: <https://siliconharbour.dev/api/companies?limit=20&offset=20>; rel="next",
       <https://siliconharbour.dev/api/companies?limit=20&offset=0>; rel="first"
 ```
 
-## OpenAPI Specification
+## OpenAPI specification
 
 [View OpenAPI Spec](/openapi.json)
 
-## MCP Server
+## MCP server
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server is available at `/mcp` for AI assistants and agents.
+AI assistants and agents can connect to the [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server at `/mcp`.
 
 **Endpoint:** `https://siliconharbour.dev/mcp`
 
 ### Tools
 
-Three MCP tools are exposed. Expand any tool to see the functions it makes available — this listing is auto-generated from the bridge implementation so it always reflects the live server.
+The server has two public tools and one authenticated tool. Expand a tool to see its available functions. This list comes from the bridge implementation and stays in sync with the server.
 
 <MCPTools />
 
 
-### Setup (Claude Desktop / OpenCode)
+### Connect an MCP client
 
-Public access — no token needed:
+Add the endpoint to any client that supports remote MCP servers:
 
 ```json
 {
@@ -75,6 +75,12 @@ Public access — no token needed:
   }
 }
 ```
+
+You can use `search` and `query` without signing in. These tools provide read-only access to public SiliconHarbour data.
+
+OAuth is optional. To use the `execute` tool, start your MCP client's sign-in action and log in with your SiliconHarbour account. The client discovers the OAuth endpoints automatically and opens the site's login and consent flow. You do not need an API key or shared secret.
+
+The `execute` tool requires the `mcp:write` OAuth scope and an administrator account. It can run imports, create or update records, and perform review actions. An invalid or expired OAuth session is rejected instead of falling back to public access.
 
 ### Example queries
 

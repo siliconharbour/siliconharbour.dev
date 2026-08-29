@@ -1,6 +1,6 @@
 /**
  * Host bridge: real DB/sync functions exposed directly into the QuickJS sandbox.
- * Each function is called on-demand by user code — no pre-fetching.
+ * Each function is called on demand by user code. Nothing is prefetched.
  */
 
 import { z } from "zod";
@@ -138,7 +138,7 @@ import { eq, and, isNull, count } from "drizzle-orm";
 //   - server.ts     (renders the `execute` tool description prompt)
 //
 // Co-locating with the implementation means a new bridge function CANNOT
-// drift — its docs travel with it, and getHostFunctionDocs() reads them
+// drift. Its docs travel with it, and getHostFunctionDocs() reads them
 // straight off the live function references.
 
 export type HostFnCategory =
@@ -210,7 +210,7 @@ function entriesFor(fns: HostFunctions): HostFunctionDocsEntry[] {
         status: "undocumented" as const,
         signature: `${name}(...)`,
         description:
-          "(undocumented — wrap this function with host('signature', 'description', category, fn) in app/mcp/bridge.ts)",
+          "(undocumented; wrap this function with host('signature', 'description', category, fn) in app/mcp/bridge.ts)",
         category: "read" as HostFnCategory,
       };
     })
@@ -220,7 +220,7 @@ function entriesFor(fns: HostFunctions): HostFunctionDocsEntry[] {
 /**
  * Walks the live host-function bindings and pulls __doc off each entry.
  * Used by the /api docs page, the searchSpec module hints, and server.ts
- * to build the `execute` tool description prompt — so there is exactly
+ * to build the `execute` tool description prompt, so there is exactly
  * one source of truth (the call site in this file).
  */
 export function getHostFunctionDocs(): HostFunctionDocs {
@@ -608,7 +608,7 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     sourceIdentifier: z.string().optional(),
     sourceUrl: z.string().optional(),
   }),
-  // News-source update — the same shape we accept for create, minus the type discriminator.
+  // News-source update uses the create shape without the type discriminator.
   z.object({
     type: z.literal("news-source"),
     id: z.number("id is required"),
@@ -660,7 +660,7 @@ const GET_ENTITY_TYPES = [
   "job",
   "news",
   "event",
-  // Source types — by:id only, since they have no slug/name semantics.
+  // Source types use by:id only since they have no slug/name semantics.
   "event-source",
   "job-source",
   "news-source",
@@ -684,7 +684,7 @@ const ListEntitiesSchema = z.object({
     "person",
     "education",
     "technology",
-    // Source listings — agents previously had to call eventImportSources()
+    // Source listings. Agents previously had to call eventImportSources()
     // etc. directly; surface them via listEntities for consistency.
     "event-source",
     "job-source",
@@ -771,7 +771,7 @@ export interface UnionSchemaDoc {
 function unwrapOptional(node: unknown): { inner: unknown; optional: boolean } {
   let cur = node as { _def?: { type?: string; innerType?: unknown } };
   let optional = false;
-  // Multiple .partial() applications can produce nested optionals — keep
+  // Multiple .partial() applications can produce nested optionals. Keep
   // unwrapping until we hit a non-optional layer.
   while (cur?._def?.type === "optional" && cur._def.innerType) {
     optional = true;
@@ -934,7 +934,7 @@ async function listJobImportSourcesForMcp() {
   }));
 }
 
-/** Read-only host functions — safe to expose without auth */
+/** Read-only host functions that are safe to expose without auth. */
 export function buildReadFunctions(): HostFunctions {
   return {
     events: host(
@@ -1093,7 +1093,7 @@ async function createNewsArticleInternal(opts: z.infer<typeof NewsArticleCreateS
   return { id: article.id, slug: article.slug, title: article.title };
 }
 
-/** Execute host functions — superset of read, adds sync and pending actions */
+/** Execute host functions. This superset adds sync and pending actions. */
 export function buildExecuteFunctions(): HostFunctions {
   return {
     ...buildReadFunctions(),
@@ -1164,7 +1164,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     listImporterTypes: host(
       "listImporterTypes()",
-      "Return metadata for every job importer type (greenhouse, ashby, workday, bamboohr, lever, custom, etc.) — name, approach, reliability, quirks.",
+      "Return the name, approach, reliability, and quirks for every job importer type, including greenhouse, ashby, workday, bamboohr, lever, and custom.",
       "sources",
       async () => {
         return getAllImporterMeta();
@@ -1231,7 +1231,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     asyncSyncAllSources: host(
       "asyncSyncAllSources({ type? }) where type is 'event'|'job'|'news' (omit to sync all)",
-      "Start a background sync of all sources of the given type. If type omitted, queues every event, job, and news source in one run. Returns a runId — poll via getAsyncSync(runId).",
+      "Start a background sync of all sources of the given type. If type is omitted, queues every event, job, and news source in one run. Returns a runId to poll with getAsyncSync(runId).",
       "async-sync",
       async (opts: unknown) => {
         const o = SyncAllSchema.parse(opts ?? {});
@@ -1648,7 +1648,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     updateEntity: host(
       "updateEntity({ type, id, ...fields })",
-      "Patch fields on an entity. `type` dispatches: person, education, product, project, technology, company, group, event, job, news, event-source, job-source, news-source. All fields except `type` and `id` are optional — only supplied fields are updated.",
+      "Patch fields on an entity. `type` dispatches: person, education, product, project, technology, company, group, event, job, news, event-source, job-source, news-source. All fields except `type` and `id` are optional. Only supplied fields are updated.",
       "creation",
       async (opts: unknown) => {
         const o = UpdateEntitySchema.parse(opts ?? {});
@@ -1820,7 +1820,7 @@ export function buildExecuteFunctions(): HostFunctions {
             };
           }
           case "event": {
-            // updateEvent matches the lib shape — Partial<Omit<NewEvent, "slug">>.
+            // updateEvent matches the lib shape: Partial<Omit<NewEvent, "slug">>.
             // The dates array is converted out-of-band and passed as the
             // second argument (the lib replaces the entire event_dates set
             // when dates is non-null).
@@ -1968,7 +1968,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     deleteEntity: host(
       "deleteEntity({ type, id })",
-      "Delete an entity by id. Types: person, education, product, project, technology, company, group, event, job, event-source, job-source, news-source. Use with care — there is no undo, and deleting an import source orphans any pending events/jobs/news that came from it.",
+      "Delete an entity by id. Types: person, education, product, project, technology, company, group, event, job, event-source, job-source, news-source. Use with care. There is no undo, and deleting an import source orphans any pending events, jobs, or news that came from it.",
       "creation",
       async (opts: unknown) => {
         const o = DeleteEntitySchema.parse(opts ?? {});
@@ -2022,7 +2022,7 @@ export function buildExecuteFunctions(): HostFunctions {
           };
         }
 
-        // Source types have no slug or name semantics — they're keyed
+        // Source types have no slug or name semantics. They are keyed
         // by numeric id only. Fail fast if the agent asks otherwise.
         if (
           (o.type === "event-source" || o.type === "job-source" || o.type === "news-source") &&
@@ -2275,7 +2275,7 @@ export function buildExecuteFunctions(): HostFunctions {
           }
         }
 
-        // filter === "all" — delegate to the read functions where possible.
+        // For filter === "all", delegate to the read functions where possible.
         // Source types are listed directly from the source-listing helpers
         // since they aren't paginated entities.
         const read = buildReadFunctions();

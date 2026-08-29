@@ -42,6 +42,12 @@ async function startTestServer() {
   };
 }
 
+async function parseMcpResponse(response: Response) {
+  const responseText = await response.text();
+  const dataLine = responseText.split("\n").find((line) => line.startsWith("data: "));
+  return JSON.parse(dataLine ? dataLine.slice(6) : responseText);
+}
+
 describe("Silicon Harbour MCP stateless transport", () => {
   let server: Awaited<ReturnType<typeof startTestServer>>["server"] | undefined;
 
@@ -101,18 +107,82 @@ describe("Silicon Harbour MCP stateless transport", () => {
     }
   });
 
-  it("challenges unauthenticated clients with protected resource metadata", async () => {
+  it("allows unauthenticated clients to initialize and use public tools", async () => {
+    const started = await startTestServer();
+    server = started.server;
+    const initialize = await fetch(`${started.baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-11-25",
+          capabilities: {},
+          clientInfo: { name: "vitest-public", version: "1.0.0" },
+        },
+      }),
+    });
+    expect(initialize.status).toBe(200);
+
+    const tools = await fetch(`${started.baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
+    });
+    expect(tools.status).toBe(200);
+    const body = await parseMcpResponse(tools);
+    expect(body.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      "search",
+      "query",
+    ]);
+  });
+
+  it("challenges invalid OAuth credentials with protected resource metadata", async () => {
     const started = await startTestServer();
     server = started.server;
     const response = await fetch(`${started.baseUrl}/mcp`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer invalid-token",
+      },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }),
     });
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toContain(
       'resource_metadata="http://localhost:3000/.well-known/oauth-protected-resource/mcp"',
     );
+  });
+
+  it("adds the execute tool for an OAuth session with write access", async () => {
+    const token = await createAccessToken("mcp:read mcp:write");
+    const started = await startTestServer();
+    server = started.server;
+    const response = await fetch(`${started.baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+    });
+
+    expect(response.status).toBe(200);
+    const body = await parseMcpResponse(response);
+    expect(body.result.tools.map((tool: { name: string }) => tool.name)).toEqual([
+      "search",
+      "query",
+      "execute",
+    ]);
   });
 
   it("publishes OAuth authorization and protected-resource metadata", async () => {
