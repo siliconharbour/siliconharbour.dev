@@ -28,6 +28,7 @@ import { scrapeVerlo } from "./custom/verlo";
 import { scrapeAudyse } from "./custom/audyse";
 import { scrapeCarnegie } from "./custom/carnegie-learning";
 import { scrapeIntact } from "./custom/intact";
+import { scrapeGenesis } from "./custom/genesis";
 /**
  * Registry of custom scrapers by company identifier
  */
@@ -50,6 +51,7 @@ const scrapers: Record<string, CustomScraper> = {
   audyse: () => scrapeAudyse(),
   "carnegie-learning": () => scrapeCarnegie(),
   intact: () => scrapeIntact(),
+  genesis: (careersUrl: string) => scrapeGenesis(careersUrl),
 };
 
 export const customImporter: JobImporter = {
