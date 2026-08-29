@@ -211,7 +211,12 @@ export async function getRandomJobs(count: number, seed?: number) {
 // =============================================================================
 
 export interface PaginatedJobs {
-  items: Job[];
+  items: Array<
+    Job & {
+      companyName: string | null;
+      companyLogo: string | null;
+    }
+  >;
   total: number;
 }
 
@@ -243,9 +248,14 @@ export async function getPaginatedJobs(
     }
 
     // Filter to only active jobs that match search
-    const items = await db
-      .select()
+    const rows = await db
+      .select({
+        job: jobs,
+        companyName: companies.name,
+        companyLogo: companies.logo,
+      })
       .from(jobs)
+      .leftJoin(companies, eq(jobs.companyId, companies.id))
       .where(and(baseCondition, inArray(jobs.id, matchingIds)))
       .orderBy(desc(jobs.postedAt))
       .limit(limit)
@@ -257,21 +267,40 @@ export async function getPaginatedJobs(
       .from(jobs)
       .where(and(baseCondition, inArray(jobs.id, matchingIds)));
 
-    return { items, total };
+    return {
+      items: rows.map(({ job, companyName, companyLogo }) => ({
+        ...job,
+        companyName,
+        companyLogo,
+      })),
+      total,
+    };
   }
 
   // No search - get total count and paginated items (active only)
   const [{ total }] = await db.select({ total: count() }).from(jobs).where(baseCondition);
 
-  const items = await db
-    .select()
+  const rows = await db
+    .select({
+      job: jobs,
+      companyName: companies.name,
+      companyLogo: companies.logo,
+    })
     .from(jobs)
+    .leftJoin(companies, eq(jobs.companyId, companies.id))
     .where(baseCondition)
     .orderBy(desc(jobs.postedAt))
     .limit(limit)
     .offset(offset);
 
-  return { items, total };
+  return {
+    items: rows.map(({ job, companyName, companyLogo }) => ({
+      ...job,
+      companyName,
+      companyLogo,
+    })),
+    total,
+  };
 }
 
 // =============================================================================

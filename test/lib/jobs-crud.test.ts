@@ -327,4 +327,25 @@ describe("getPaginatedJobs", () => {
     expect(result.total).toBe(1);
     expect(result.items[0].id).toBe(active.id);
   });
+
+  it("includes company identity in unfiltered and searched results", async () => {
+    const company = await seedCompany("Pagination Company");
+    const job = await createJob(
+      jobInput({ title: "Pi Developer", companyId: company.id }),
+    );
+
+    const unfiltered = await getPaginatedJobs(10, 0);
+    expect(unfiltered.items.find((item) => item.id === job.id)?.companyName).toBe(
+      "Pagination Company",
+    );
+
+    const searched = await getPaginatedJobs(10, 0, "Pi");
+    expect(searched.items).toContainEqual(
+      expect.objectContaining({
+        id: job.id,
+        companyId: company.id,
+        companyName: "Pagination Company",
+      }),
+    );
+  });
 });

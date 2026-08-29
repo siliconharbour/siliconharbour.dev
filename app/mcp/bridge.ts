@@ -917,7 +917,7 @@ export function buildReadFunctions(): HostFunctions {
 
     jobs: host(
       "jobs({ query?, limit?, offset? })",
-      "List active jobs (includes both technical and non-technical postings). Optional text query searches indexed content.",
+      "List active jobs with companyId, companyName, and companyLogo (includes both technical and non-technical postings). Optional text query searches indexed content.",
       "read",
       async (opts: unknown) => {
         const o = PaginationSchema.parse(opts ?? {});
