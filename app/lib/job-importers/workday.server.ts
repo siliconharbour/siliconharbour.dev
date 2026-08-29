@@ -25,6 +25,7 @@ import { htmlToText } from "./text.server";
 // We need to use a browser-like User-Agent to avoid 400 errors.
 const BROWSER_USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+const WORKDAY_PAGE_SIZE = 20;
 
 /**
  * Parse the source identifier into components
@@ -174,7 +175,8 @@ async function fetchWorkdayJobs(
     },
     body: JSON.stringify({
       appliedFacets: {},
-      limit: 100, // Fetch up to 100 jobs at a time
+      // Workday rejects page sizes above 20 with HTTP 400 on some tenants.
+      limit: WORKDAY_PAGE_SIZE,
       offset: 0,
       searchText: searchText,
     }),
@@ -206,7 +208,7 @@ async function fetchWorkdayJobs(
         },
         body: JSON.stringify({
           appliedFacets: {},
-          limit: 100,
+          limit: WORKDAY_PAGE_SIZE,
           offset: offset,
           searchText: searchText,
         }),

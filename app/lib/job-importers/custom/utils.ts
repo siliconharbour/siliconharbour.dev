@@ -22,7 +22,13 @@ const execFileAsync = promisify(execFile);
  */
 export async function fetchPage(url: string): Promise<string> {
   const response = await fetch(url, {
-    headers: { Accept: "text/html" },
+    headers: {
+      Accept: "text/html",
+      // Several career sites reject Node's default user agent even though the
+      // same public page is available to ordinary browsers.
+      "User-Agent":
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    },
   });
 
   if (!response.ok) {
