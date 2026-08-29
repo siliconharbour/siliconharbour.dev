@@ -5,7 +5,7 @@
 
 import { db } from "~/db";
 import { jobImportSources, jobs, companies } from "~/db/schema";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import type { SyncResult, ImportSourceConfig, JobSourceType, FetchedJob } from "./types";
 import { getImporter } from "./index";
 import { generateJobSlug } from "~/lib/jobs.server";
@@ -359,32 +359,36 @@ export async function getActiveJobsForCompany(companyId: number) {
 export async function getAllImportSources() {
   const sources = await db.select().from(jobImportSources).orderBy(jobImportSources.updatedAt);
 
-  // Get job counts per source for active and pending_review statuses
+  // Get lifecycle counts for every source. Operator surfaces need to
+  // distinguish a healthy source with hidden jobs from a zero-result scrape.
   const jobRows = await db
     .select({
       sourceId: jobs.sourceId,
       status: jobs.status,
     })
-    .from(jobs)
-    .where(inArray(jobs.status, ["active", "pending_review"]));
-
-  const activeBySource = new Map<number, number>();
-  const pendingBySource = new Map<number, number>();
+    .from(jobs);
+  const countsBySource = new Map<number, Record<string, number>>();
   for (const row of jobRows) {
     if (row.sourceId) {
-      if (row.status === "active") {
-        activeBySource.set(row.sourceId, (activeBySource.get(row.sourceId) || 0) + 1);
-      } else if (row.status === "pending_review") {
-        pendingBySource.set(row.sourceId, (pendingBySource.get(row.sourceId) || 0) + 1);
-      }
+      const counts = countsBySource.get(row.sourceId) ?? {};
+      counts[row.status] = (counts[row.status] ?? 0) + 1;
+      countsBySource.set(row.sourceId, counts);
     }
   }
 
-  return sources.map((source) => ({
-    ...source,
-    activeJobCount: activeBySource.get(source.id) || 0,
-    pendingReviewCount: pendingBySource.get(source.id) || 0,
-  }));
+  return sources.map((source) => {
+    const counts = countsBySource.get(source.id) ?? {};
+    return {
+      ...source,
+      activeJobCount: counts.active ?? 0,
+      pendingReviewCount: counts.pending_review ?? 0,
+      hiddenJobCount: counts.hidden ?? 0,
+      removedJobCount: counts.removed ?? 0,
+      filledJobCount: counts.filled ?? 0,
+      expiredJobCount: counts.expired ?? 0,
+      totalJobCount: Object.values(counts).reduce((total, value) => total + value, 0),
+    };
+  });
 }
 
 /**

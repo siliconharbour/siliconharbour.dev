@@ -124,6 +124,8 @@ import {
   companies,
   eventImportSources,
   jobImportSources,
+  jobStatuses,
+  workplaceTypes,
   news,
 } from "~/db/schema";
 import { eq, and, isNull, count } from "drizzle-orm";
@@ -235,6 +237,19 @@ const PaginationSchema = z.object({
   offset: z.number().optional(),
   query: z.string().optional(),
   upcoming: z.boolean().optional(),
+});
+
+const JobQuerySchema = z.object({
+  limit: z.number().optional(),
+  offset: z.number().optional(),
+  query: z.string().optional(),
+  companyId: z.number().optional(),
+  sourceId: z.number().optional(),
+  status: z.union([z.enum(jobStatuses), z.literal("all")]).optional(),
+  isTechnical: z.boolean().optional(),
+  workplaceType: z.enum(workplaceTypes).optional(),
+  location: z.string().optional(),
+  lastSeenAfter: z.coerce.date().optional(),
 });
 
 // ── Union CRUD for entities ────────────────────────────────────────────
@@ -892,6 +907,33 @@ function toPlain<T>(val: T): T {
   );
 }
 
+async function listJobImportSourcesForMcp() {
+  const [sources, companyRows] = await Promise.all([
+    getAllImportSources(),
+    db.select({ id: companies.id, name: companies.name }).from(companies),
+  ]);
+  const companyNames = new Map(companyRows.map((company) => [company.id, company.name]));
+
+  return sources.map((source) => ({
+    id: source.id,
+    companyId: source.companyId,
+    companyName: companyNames.get(source.companyId) ?? null,
+    sourceType: source.sourceType,
+    sourceIdentifier: source.sourceIdentifier,
+    sourceUrl: source.sourceUrl,
+    lastFetchedAt: source.lastFetchedAt,
+    fetchStatus: source.fetchStatus,
+    fetchError: source.fetchError,
+    activeJobCount: source.activeJobCount,
+    pendingReviewCount: source.pendingReviewCount,
+    hiddenJobCount: source.hiddenJobCount,
+    removedJobCount: source.removedJobCount,
+    filledJobCount: source.filledJobCount,
+    expiredJobCount: source.expiredJobCount,
+    totalJobCount: source.totalJobCount,
+  }));
+}
+
 /** Read-only host functions — safe to expose without auth */
 export function buildReadFunctions(): HostFunctions {
   return {
@@ -916,13 +958,20 @@ export function buildReadFunctions(): HostFunctions {
     ),
 
     jobs: host(
-      "jobs({ query?, limit?, offset? })",
-      "List active jobs with companyId, companyName, and companyLogo (includes both technical and non-technical postings). Optional text query searches indexed content.",
+      "jobs({ query?, limit?, offset?, companyId?, sourceId?, status?, isTechnical?, workplaceType?, location?, lastSeenAfter? })",
+      "Search jobs with company and import-source identity. Defaults to status:'active' and includes technical and non-technical jobs. status accepts active|pending_review|removed|filled|expired|hidden|all; location is a case-insensitive substring; lastSeenAfter accepts an ISO date.",
       "read",
       async (opts: unknown) => {
-        const o = PaginationSchema.parse(opts ?? {});
+        const o = JobQuerySchema.parse(opts ?? {});
         const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, {
           includeNonTechnical: true,
+          companyId: o.companyId,
+          sourceId: o.sourceId,
+          status: o.status,
+          isTechnical: o.isTechnical,
+          workplaceType: o.workplaceType,
+          location: o.location,
+          lastSeenAfter: o.lastSeenAfter,
         });
         return toPlain(result.items);
       },
@@ -1073,20 +1122,10 @@ export function buildExecuteFunctions(): HostFunctions {
 
     jobImportSources: host(
       "jobImportSources()",
-      "List all job import sources with id, sourceType, fetchStatus, and lastFetchedAt.",
+      "List job import sources with company identity, configuration, fetch health, and counts for every job lifecycle status.",
       "sources",
       async () => {
-        const sources = await getAllImportSources();
-        return toPlain(
-          sources.map((s) => ({
-            id: s.id,
-            name: s.sourceIdentifier,
-            sourceType: s.sourceType,
-            lastFetchedAt: s.lastFetchedAt,
-            fetchStatus: s.fetchStatus,
-            fetchError: s.fetchError,
-          })),
-        );
+        return toPlain(await listJobImportSourcesForMcp());
       },
     ),
 
@@ -2272,17 +2311,7 @@ export function buildExecuteFunctions(): HostFunctions {
             );
           }
           case "job-source": {
-            const sources = await getAllImportSources();
-            return toPlain(
-              sources.map((s) => ({
-                id: s.id,
-                name: s.sourceIdentifier,
-                sourceType: s.sourceType,
-                lastFetchedAt: s.lastFetchedAt,
-                fetchStatus: s.fetchStatus,
-                fetchError: s.fetchError,
-              })),
-            );
+            return toPlain(await listJobImportSourcesForMcp());
           }
           case "news-source": {
             const sources = await getAllNewsImportSources();

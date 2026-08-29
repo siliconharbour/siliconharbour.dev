@@ -236,6 +236,72 @@ describe("reviewEntity dispatch", () => {
   });
 });
 
+describe("operator job discovery", () => {
+  it("filters jobs by source and exposes company and source identity", async () => {
+    const company = await call<{ entity: { id: number } }>(fns().createEntity, {
+      type: "company",
+      name: "Discovery Co",
+    });
+    const { db } = await import("~/db");
+    const { jobs, jobImportSources } = await import("~/db/schema");
+    const now = new Date();
+    const [source] = await db
+      .insert(jobImportSources)
+      .values({
+        companyId: company.entity.id,
+        sourceType: "ashby",
+        sourceIdentifier: "discovery",
+        sourceUrl: "https://jobs.ashbyhq.com/discovery",
+        fetchStatus: "success",
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
+    await db.insert(jobs).values({
+      companyId: company.entity.id,
+      sourceId: source.id,
+      sourceType: "imported",
+      externalId: "discover-1",
+      slug: "discovery-engineer",
+      title: "Discovery Engineer",
+      location: "St. John's, NL",
+      workplaceType: "onsite",
+      status: "hidden",
+      firstSeenAt: now,
+      lastSeenAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const result = await call<Array<Record<string, unknown>>>(fns().jobs, {
+      sourceId: source.id,
+      status: "all",
+      location: "St. John's",
+    });
+
+    expect(result).toContainEqual(
+      expect.objectContaining({
+        companyName: "Discovery Co",
+        importSourceType: "ashby",
+        importSourceIdentifier: "discovery",
+        status: "hidden",
+      }),
+    );
+
+    const sources = await call<Array<Record<string, unknown>>>(fns().jobImportSources, {});
+    expect(sources).toContainEqual(
+      expect.objectContaining({
+        id: source.id,
+        companyId: company.entity.id,
+        companyName: "Discovery Co",
+        sourceUrl: "https://jobs.ashbyhq.com/discovery",
+        hiddenJobCount: 1,
+        totalJobCount: 1,
+      }),
+    );
+  });
+});
+
 describe("deleteEntity dispatch", () => {
   it("deletes a project and reports success", async () => {
     const created = await call<{ entity: { id: number } }>(fns().createEntity, {

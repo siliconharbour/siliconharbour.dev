@@ -348,4 +348,37 @@ describe("getPaginatedJobs", () => {
       }),
     );
   });
+
+  it("supports operator filters without changing the active-only default", async () => {
+    const company = await seedCompany("Filtered Company");
+    const matching = await createJob(
+      jobInput({
+        title: "Local Data Engineer",
+        companyId: company.id,
+        location: "St. John's, NL",
+        workplaceType: "hybrid",
+      }),
+    );
+    const hidden = await createJob(
+      jobInput({ title: "Hidden Data Engineer", companyId: company.id }),
+    );
+    await db.update(jobs).set({ status: "hidden" }).where(eq(jobs.id, hidden.id));
+
+    const active = await getPaginatedJobs(10, 0, undefined, {
+      includeNonTechnical: true,
+      companyId: company.id,
+      workplaceType: "hybrid",
+      location: "john's",
+    });
+    expect(active.items.map((item) => item.id)).toEqual([matching.id]);
+
+    const allStatuses = await getPaginatedJobs(10, 0, undefined, {
+      includeNonTechnical: true,
+      companyId: company.id,
+      status: "all",
+    });
+    expect(new Set(allStatuses.items.map((item) => item.status))).toEqual(
+      new Set(["active", "hidden"]),
+    );
+  });
 });

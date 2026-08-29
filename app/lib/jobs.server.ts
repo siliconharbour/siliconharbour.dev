@@ -1,6 +1,14 @@
 import { db } from "~/db";
-import { jobs, companies, type Job, type NewJob } from "~/db/schema";
-import { eq, desc, and, count, inArray, isNotNull } from "drizzle-orm";
+import {
+  jobs,
+  companies,
+  jobImportSources,
+  type Job,
+  type JobStatus,
+  type NewJob,
+  type WorkplaceType,
+} from "~/db/schema";
+import { eq, desc, and, count, inArray, isNotNull, like, gte } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -215,6 +223,9 @@ export interface PaginatedJobs {
     Job & {
       companyName: string | null;
       companyLogo: string | null;
+      importSourceType: string | null;
+      importSourceIdentifier: string | null;
+      importSourceUrl: string | null;
     }
   >;
   total: number;
@@ -228,14 +239,43 @@ export async function getPaginatedJobs(
   limit: number,
   offset: number,
   searchQuery?: string,
-  options?: { includeNonTechnical?: boolean },
+  options?: {
+    includeNonTechnical?: boolean;
+    companyId?: number;
+    sourceId?: number;
+    status?: JobStatus | "all";
+    isTechnical?: boolean;
+    workplaceType?: WorkplaceType;
+    location?: string;
+    lastSeenAfter?: Date;
+  },
 ): Promise<PaginatedJobs> {
   const includeNonTechnical = options?.includeNonTechnical ?? false;
 
   // Build base conditions
-  const baseConditions = [eq(jobs.status, "active")];
-  if (!includeNonTechnical) {
+  const baseConditions = [];
+  if (options?.status !== "all") {
+    baseConditions.push(eq(jobs.status, options?.status ?? "active"));
+  }
+  if (options?.isTechnical !== undefined) {
+    baseConditions.push(eq(jobs.isTechnical, options.isTechnical));
+  } else if (!includeNonTechnical) {
     baseConditions.push(eq(jobs.isTechnical, true));
+  }
+  if (options?.companyId !== undefined) {
+    baseConditions.push(eq(jobs.companyId, options.companyId));
+  }
+  if (options?.sourceId !== undefined) {
+    baseConditions.push(eq(jobs.sourceId, options.sourceId));
+  }
+  if (options?.workplaceType !== undefined) {
+    baseConditions.push(eq(jobs.workplaceType, options.workplaceType));
+  }
+  if (options?.location?.trim()) {
+    baseConditions.push(like(jobs.location, `%${options.location.trim()}%`));
+  }
+  if (options?.lastSeenAfter !== undefined) {
+    baseConditions.push(gte(jobs.lastSeenAt, options.lastSeenAfter));
   }
   const baseCondition = and(...baseConditions);
 
@@ -253,9 +293,13 @@ export async function getPaginatedJobs(
         job: jobs,
         companyName: companies.name,
         companyLogo: companies.logo,
+        importSourceType: jobImportSources.sourceType,
+        importSourceIdentifier: jobImportSources.sourceIdentifier,
+        importSourceUrl: jobImportSources.sourceUrl,
       })
       .from(jobs)
       .leftJoin(companies, eq(jobs.companyId, companies.id))
+      .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
       .where(and(baseCondition, inArray(jobs.id, matchingIds)))
       .orderBy(desc(jobs.postedAt))
       .limit(limit)
@@ -268,10 +312,9 @@ export async function getPaginatedJobs(
       .where(and(baseCondition, inArray(jobs.id, matchingIds)));
 
     return {
-      items: rows.map(({ job, companyName, companyLogo }) => ({
+      items: rows.map(({ job, ...related }) => ({
         ...job,
-        companyName,
-        companyLogo,
+        ...related,
       })),
       total,
     };
@@ -285,19 +328,22 @@ export async function getPaginatedJobs(
       job: jobs,
       companyName: companies.name,
       companyLogo: companies.logo,
+      importSourceType: jobImportSources.sourceType,
+      importSourceIdentifier: jobImportSources.sourceIdentifier,
+      importSourceUrl: jobImportSources.sourceUrl,
     })
     .from(jobs)
     .leftJoin(companies, eq(jobs.companyId, companies.id))
+    .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
     .where(baseCondition)
     .orderBy(desc(jobs.postedAt))
     .limit(limit)
     .offset(offset);
 
   return {
-    items: rows.map(({ job, companyName, companyLogo }) => ({
+    items: rows.map(({ job, ...related }) => ({
       ...job,
-      companyName,
-      companyLogo,
+      ...related,
     })),
     total,
   };
