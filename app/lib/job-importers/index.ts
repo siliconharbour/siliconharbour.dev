@@ -13,6 +13,7 @@ import { collageImporter } from "./collage.server";
 import { ripplingImporter } from "./rippling.server";
 import { adpImporter } from "./adp.server";
 import { careerbeaconImporter } from "./careerbeacon.server";
+import { kyrixImporter } from "./kyrix.server";
 import { workableImporter } from "./workable.server";
 import { icimsImporter } from "./icims.server";
 import { jibeImporter } from "./jibe.server";
@@ -32,6 +33,7 @@ const importers: Record<string, JobImporter> = {
   rippling: ripplingImporter,
   adp: adpImporter,
   careerbeacon: careerbeaconImporter,
+  kyrix: kyrixImporter,
   workable: workableImporter,
   icims: icimsImporter,
   jibe: jibeImporter,
