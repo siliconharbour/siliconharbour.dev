@@ -101,7 +101,10 @@ import {
   updateJob as updateJobRecord,
   deleteJob as deleteJobRecord,
 } from "~/lib/jobs.server";
-import { searchIndeed, searchLinkedIn } from "~/lib/job-search.server";
+import {
+  searchIndeedWithMatches,
+  searchLinkedInWithMatches,
+} from "~/lib/job-search.server";
 import {
   getAllNewsImportSources,
   getNewsSourceById,
@@ -2376,21 +2379,21 @@ export function buildExecuteFunctions(): HostFunctions {
 
     searchIndeedJobs: host(
       "searchIndeedJobs({ query?, location?, limit?, hoursOld? })",
-      "Search Indeed via their mobile GraphQL API. Returns id, title, company, location, description, salary, datePosted. Default location: \"St. John's, NL\".",
+      "Search Indeed via their mobile GraphQL API. Returns job data plus match (known company, existing job/status, configured sources, duplicate confidence) and discoveredSource when a direct application URL identifies a supported ATS. Default location: \"St. John's, NL\".",
       "search",
       async (opts: unknown) => {
         const o = SearchJobsSchema.parse(opts ?? {});
-        return searchIndeed(o);
+        return searchIndeedWithMatches(o);
       },
     ),
 
     searchLinkedInJobs: host(
       "searchLinkedInJobs({ query?, location?, limit? })",
-      "Search LinkedIn via the public jobs-guest endpoint. No authentication required. Returns id, title, company, location, url, datePosted, salary.",
+      "Search LinkedIn via the public jobs-guest endpoint. Returns job data plus match (known company, existing job/status, configured sources, duplicate confidence). LinkedIn does not expose a direct ATS URL here, so discoveredSource is normally null.",
       "search",
       async (opts: unknown) => {
         const o = SearchJobsSchema.parse(opts ?? {});
-        return searchLinkedIn(o);
+        return searchLinkedInWithMatches(o);
       },
     ),
 

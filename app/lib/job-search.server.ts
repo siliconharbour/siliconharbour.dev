@@ -15,6 +15,11 @@
  */
 
 import { htmlToText } from "./job-importers/text.server";
+import {
+  enrichJobSearchResults,
+  type EnrichedIndeedSearchResult,
+  type EnrichedLinkedInSearchResult,
+} from "./job-search-enrichment.server";
 
 // Re-export client-safe constants
 export { JOB_SEARCH_TERMS, type JobSearchTerm } from "./job-search";
@@ -258,3 +263,17 @@ export async function searchLinkedIn(opts: {
 
   return jobs;
 }
+
+export async function searchIndeedWithMatches(
+  opts: Parameters<typeof searchIndeed>[0],
+): Promise<EnrichedIndeedSearchResult[]> {
+  return enrichJobSearchResults(await searchIndeed(opts));
+}
+
+export async function searchLinkedInWithMatches(
+  opts: Parameters<typeof searchLinkedIn>[0],
+): Promise<EnrichedLinkedInSearchResult[]> {
+  return enrichJobSearchResults(await searchLinkedIn(opts));
+}
+
+export type { EnrichedIndeedSearchResult, EnrichedLinkedInSearchResult };

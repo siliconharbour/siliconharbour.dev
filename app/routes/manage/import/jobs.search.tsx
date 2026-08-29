@@ -3,10 +3,10 @@ import { useState } from "react";
 import { Link, useFetcher } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import {
-  searchIndeed,
-  searchLinkedIn,
-  type IndeedSearchResult,
-  type LinkedInSearchResult,
+  searchIndeedWithMatches,
+  searchLinkedInWithMatches,
+  type EnrichedIndeedSearchResult,
+  type EnrichedLinkedInSearchResult,
 } from "~/lib/job-search.server";
 import { JOB_SEARCH_TERMS } from "~/lib/job-search";
 import { createJob } from "~/lib/jobs.server";
@@ -33,11 +33,11 @@ export async function action({ request }: Route.ActionArgs) {
 
     try {
       if (source === "indeed") {
-        const results = await searchIndeed({ query, location, limit: 50 });
+        const results = await searchIndeedWithMatches({ query, location, limit: 50 });
         return { intent: "search", source: "indeed", results, error: null };
       }
       if (source === "linkedin") {
-        const results = await searchLinkedIn({ query, location, limit: 50 });
+        const results = await searchLinkedInWithMatches({ query, location, limit: 50 });
         return { intent: "search", source: "linkedin", results, error: null };
       }
       return { intent: "search", error: "Unknown source" };
@@ -92,9 +92,9 @@ export async function action({ request }: Route.ActionArgs) {
   return { error: "Unknown intent" };
 }
 
-type SearchResult = IndeedSearchResult | LinkedInSearchResult;
+type SearchResult = EnrichedIndeedSearchResult | EnrichedLinkedInSearchResult;
 
-function isIndeedResult(r: SearchResult): r is IndeedSearchResult {
+function isIndeedResult(r: SearchResult): r is EnrichedIndeedSearchResult {
   return "descriptionHtml" in r;
 }
 
@@ -213,6 +213,29 @@ export default function JobSearchPage() {
                           Remote
                         </span>
                       )}
+                      {r.match.companyId && (
+                        <span className="text-xs px-1.5 py-0.5 bg-green-50 text-green-700">
+                          Known company
+                        </span>
+                      )}
+                      {r.match.jobSources.map((source) => (
+                        <span
+                          key={source.id}
+                          className="text-xs px-1.5 py-0.5 bg-harbour-50 text-harbour-700"
+                        >
+                          {source.sourceType} source
+                        </span>
+                      ))}
+                      {r.match.likelyDuplicate && (
+                        <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800">
+                          Existing: {r.match.existingJobStatus}
+                        </span>
+                      )}
+                      {r.discoveredSource && (
+                        <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700">
+                          {r.discoveredSource.sourceType} detected ({r.discoveredSource.confidence})
+                        </span>
+                      )}
                     </div>
                     <div className="text-sm text-harbour-500 mt-1">
                       {r.companyName && <span className="font-medium">{r.companyName}</span>}
@@ -246,7 +269,15 @@ export default function JobSearchPage() {
                         name="description"
                         value={isIndeedResult(r) ? r.description : r.title}
                       />
-                      <input type="hidden" name="url" value={r.url} />
+                      <input
+                        type="hidden"
+                        name="url"
+                        value={
+                          isIndeedResult(r) && r.discoveredSource && r.directUrl
+                            ? r.directUrl
+                            : r.url
+                        }
+                      />
                       <input type="hidden" name="location" value={r.location} />
                       <input type="hidden" name="salary" value={r.salary ?? ""} />
                       <input
@@ -256,9 +287,10 @@ export default function JobSearchPage() {
                       />
                       <button
                         type="submit"
-                        className="text-xs px-2 py-1 bg-harbour-600 text-white hover:bg-harbour-700"
+                        disabled={r.match.likelyDuplicate}
+                        className="text-xs px-2 py-1 bg-harbour-600 text-white hover:bg-harbour-700 disabled:cursor-not-allowed disabled:bg-harbour-200 disabled:text-harbour-700"
                       >
-                        Import
+                        {r.match.likelyDuplicate ? "Indexed" : "Import"}
                       </button>
                     </fetcher.Form>
                   </div>
