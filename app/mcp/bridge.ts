@@ -1061,6 +1061,7 @@ export function buildExecuteFunctions(): HostFunctions {
             sourceType: s.sourceType,
             lastFetchedAt: s.lastFetchedAt,
             fetchStatus: s.fetchStatus,
+            fetchError: s.fetchError,
             pendingCount: s.pendingCount,
           })),
         );
@@ -1080,6 +1081,7 @@ export function buildExecuteFunctions(): HostFunctions {
             sourceType: s.sourceType,
             lastFetchedAt: s.lastFetchedAt,
             fetchStatus: s.fetchStatus,
+            fetchError: s.fetchError,
           })),
         );
       },
@@ -2261,6 +2263,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 sourceType: s.sourceType,
                 lastFetchedAt: s.lastFetchedAt,
                 fetchStatus: s.fetchStatus,
+                fetchError: s.fetchError,
                 pendingCount: s.pendingCount,
               })),
             );
@@ -2274,6 +2277,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 sourceType: s.sourceType,
                 lastFetchedAt: s.lastFetchedAt,
                 fetchStatus: s.fetchStatus,
+                fetchError: s.fetchError,
               })),
             );
           }
@@ -2288,6 +2292,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 enabled: s.enabled,
                 lastSyncAt: s.lastSyncAt,
                 lastSyncStatus: s.lastSyncStatus,
+                lastSyncError: s.lastSyncError,
               })),
             );
           }

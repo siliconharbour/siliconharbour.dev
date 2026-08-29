@@ -48,7 +48,7 @@ function ToolGroup({ label, children }: { label: string; children: React.ReactNo
 }
 
 export default function ManageIndex() {
-  const { counts, pending } = useLoaderData<typeof loader>();
+  const { counts, pending, importFailures } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -73,6 +73,52 @@ export default function ManageIndex() {
             </Link>
           </div>
         </div>
+
+        {importFailures.length > 0 && (
+          <section className="border border-red-200 bg-red-50 p-4" aria-labelledby="import-failures">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 id="import-failures" className="font-semibold text-red-700">
+                  Import failures
+                </h2>
+                <p className="text-sm text-red-600">
+                  {importFailures.length} source{importFailures.length === 1 ? " is" : "s are"}{" "}
+                  failing and may leave published content stale.
+                </p>
+              </div>
+              <span className="bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">
+                {importFailures.length} failing
+              </span>
+            </div>
+            <div className="mt-3 divide-y divide-red-200 border border-red-200 bg-white">
+              {importFailures.map((failure) => (
+                <Link
+                  key={`${failure.kind}-${failure.id}`}
+                  to={failure.href}
+                  className="block px-3 py-2 transition-colors hover:bg-red-50"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-red-700">{failure.name}</span>
+                    <span className="bg-red-100 px-1.5 py-0.5 text-xs text-red-700">
+                      {failure.kind}
+                    </span>
+                    <span className="text-xs text-harbour-400">
+                      {failure.lastAttemptAt
+                        ? `last attempted ${new Date(failure.lastAttemptAt).toLocaleString("en-CA", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}`
+                        : "never completed a sync"}
+                    </span>
+                  </div>
+                  <p className="mt-1 break-words text-sm text-red-600">
+                    {failure.error ?? "Unknown import error"}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         <Link
           to="/manage/review"
