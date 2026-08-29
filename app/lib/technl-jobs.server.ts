@@ -47,14 +47,47 @@ export interface TechNLJobWithMatch extends TechNLJob {
     companyId: number | null;
     companySlug: string | null;
     companyVisible: boolean | null;
-    /** True if a job with this exact URL already exists in our DB. */
+    /** True if the posting matches an existing job by URL or company and title. */
     alreadyImported: boolean;
     /** ID of the matching job row, if alreadyImported. */
     matchedJobId: number | null;
     matchedJobStatus: string | null;
+    /** How the existing job was matched. */
+    duplicateConfidence: "exact_url" | "company_title" | null;
     /** True if the matched company has a job_import_sources row of any type. */
     companyHasJobSource: boolean;
   };
+}
+
+type ExistingJobMatchCandidate = {
+  id: number;
+  title: string;
+  url: string | null;
+  status: string;
+  companyId: number | null;
+};
+
+export function findExistingTechNLJob(
+  posting: Pick<TechNLJob, "link" | "title">,
+  companyId: number | null,
+  candidates: ExistingJobMatchCandidate[],
+): {
+  job: ExistingJobMatchCandidate | null;
+  confidence: "exact_url" | "company_title" | null;
+} {
+  const exactUrlMatch = candidates.find((candidate) => candidate.url === posting.link);
+  if (exactUrlMatch) return { job: exactUrlMatch, confidence: "exact_url" };
+
+  if (companyId === null) return { job: null, confidence: null };
+  const normalizedTitle = normalizeJobTitle(posting.title);
+  const companyTitleMatch = candidates.find(
+    (candidate) =>
+      candidate.companyId === companyId &&
+      normalizeJobTitle(candidate.title) === normalizedTitle,
+  );
+  return companyTitleMatch
+    ? { job: companyTitleMatch, confidence: "company_title" }
+    : { job: null, confidence: null };
 }
 
 /**
@@ -132,16 +165,17 @@ export async function fetchTechNLJobsWithMatches(): Promise<{
     companyIndex.set(c.name.trim().toLowerCase(), c);
   }
 
-  // Look up jobs by URL to detect duplicates. We compare on the technl.ca
-  // canonical link.
-  const links = fetched.map((j) => j.link);
-  const matchedJobs = links.length
-    ? await db.select({ id: jobs.id, url: jobs.url, status: jobs.status, companyId: jobs.companyId }).from(jobs)
-    : [];
-  const jobByUrl = new Map<string, (typeof matchedJobs)[number]>();
-  for (const j of matchedJobs) {
-    if (j.url) jobByUrl.set(j.url, j);
-  }
+  // Load existing jobs once so we can detect the same posting even when our
+  // canonical URL points directly at the employer's ATS instead of TechNL.
+  const matchedJobs = await db
+    .select({
+      id: jobs.id,
+      title: jobs.title,
+      url: jobs.url,
+      status: jobs.status,
+      companyId: jobs.companyId,
+    })
+    .from(jobs);
 
   // For company-level dedup signal, mark companies that already have any
   // job_import_sources row.
@@ -155,7 +189,8 @@ export async function fetchTechNLJobsWithMatches(): Promise<{
 
   const annotated: TechNLJobWithMatch[] = fetched.map((j) => {
     const company = companyIndex.get(j.company.trim().toLowerCase());
-    const matchedJob = jobByUrl.get(j.link);
+    const existingMatch = findExistingTechNLJob(j, company?.id ?? null, matchedJobs);
+    const matchedJob = existingMatch.job;
     return {
       ...j,
       match: {
@@ -165,6 +200,7 @@ export async function fetchTechNLJobsWithMatches(): Promise<{
         alreadyImported: !!matchedJob,
         matchedJobId: matchedJob?.id ?? null,
         matchedJobStatus: matchedJob?.status ?? null,
+        duplicateConfidence: existingMatch.confidence,
         companyHasJobSource: company ? companyIdsWithSources.has(company.id) : false,
       },
     };
@@ -183,6 +219,16 @@ function textOf(item: Element, selector: string): string {
 
 function nullable(value: string): string | null {
   return value.length > 0 ? value : null;
+}
+
+export function normalizeJobTitle(value: string): string {
+  return value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function rfc2822ToIso(value: string): string | null {

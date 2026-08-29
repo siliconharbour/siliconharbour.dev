@@ -83,9 +83,10 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
     return backlinks;
   })();
 
-  // Events use single column with max-width, others use 2-column grid
   const gridClass =
-    type === "event" ? "flex flex-col gap-4 max-w-md" : "grid grid-cols-1 sm:grid-cols-2 gap-3";
+    type === "event"
+      ? "grid grid-cols-1 sm:grid-cols-2 gap-4 items-start"
+      : "grid grid-cols-1 sm:grid-cols-2 gap-3";
 
   return (
     <div>
