@@ -14,6 +14,7 @@ import type { ResolvedRef } from "~/components/RichMarkdown";
 import { Footer } from "~/components/Footer";
 import { Header } from "~/components/Header";
 import { buildSeoMeta } from "~/lib/seo";
+import { getEventTimingState } from "~/lib/event-timing";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
@@ -36,19 +37,28 @@ export async function loader({}: Route.LoaderArgs) {
       getSectionVisibility(),
     ]);
 
-  const thisWeekIds = new Set(thisWeek.map((e) => e.id));
-  const futureEvents = upcoming.filter((e) => !thisWeekIds.has(e.id));
+  const activePeriods = upcoming.filter(
+    (event) =>
+      event.timeMode === "period" && getEventTimingState(event.dates) === "active",
+  );
+  const activePeriodIds = new Set(activePeriods.map((event) => event.id));
+  const visibleThisWeek = thisWeek.filter((event) => !activePeriodIds.has(event.id));
+  const thisWeekIds = new Set(visibleThisWeek.map((e) => e.id));
+  const futureEvents = upcoming.filter(
+    (event) => !thisWeekIds.has(event.id) && !activePeriodIds.has(event.id),
+  );
 
   // Prepare refs for featured events (thisWeek events that show descriptions)
   const eventRefs: Record<number, Record<string, ResolvedRef>> = {};
   await Promise.all(
-    thisWeek.map(async (event) => {
+    visibleThisWeek.map(async (event) => {
       eventRefs[event.id] = await prepareRefsForClient(event.description);
     }),
   );
 
   return {
-    thisWeek,
+    thisWeek: visibleThisWeek,
+    activePeriods,
     futureEvents,
     allEvents: upcoming,
     featuredCompanies,
@@ -63,6 +73,7 @@ export async function loader({}: Route.LoaderArgs) {
 export default function Home() {
   const {
     thisWeek,
+    activePeriods,
     futureEvents,
     allEvents,
     featuredCompanies,
@@ -85,6 +96,16 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main content */}
             <div className="lg:col-span-2 flex flex-col gap-8">
+              {visibility.events && activePeriods.length > 0 && (
+                <section className="flex flex-col gap-4">
+                  <h2 className="text-lg font-semibold text-green-700">Happening Now</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {activePeriods.map((event) => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                </section>
+              )}
               {/* This week */}
               {visibility.events && thisWeek.length > 0 && (
                 <section className="flex flex-col gap-4">

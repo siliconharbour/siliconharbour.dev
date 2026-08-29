@@ -101,10 +101,7 @@ import {
   updateJob as updateJobRecord,
   deleteJob as deleteJobRecord,
 } from "~/lib/jobs.server";
-import {
-  searchIndeedWithMatches,
-  searchLinkedInWithMatches,
-} from "~/lib/job-search.server";
+import { searchIndeedWithMatches, searchLinkedInWithMatches } from "~/lib/job-search.server";
 import {
   getAllNewsImportSources,
   getNewsSourceById,
@@ -357,9 +354,7 @@ const EventCreateSchema = z.object({
   title: z.string().min(1, "title is required"),
   description: z.string().min(1, "description is required"),
   link: z.string().min(1, "link is required (external URL such as the LinkedIn event URL)"),
-  startDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
   endDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "endDate must be YYYY-MM-DD")
@@ -378,6 +373,8 @@ const EventCreateSchema = z.object({
   location: z.string().optional(),
   organizer: z.string().optional(),
   requiresSignup: z.boolean().optional(),
+  timeMode: z.enum(["scheduled", "period"]).optional(),
+  parentEventId: z.number().int().positive().nullable().optional(),
 });
 
 const JobCreateSchema = z.object({
@@ -550,6 +547,8 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     location: z.string().optional(),
     organizer: z.string().optional(),
     requiresSignup: z.boolean().optional(),
+    timeMode: z.enum(["scheduled", "period"]).optional(),
+    parentEventId: z.number().int().positive().nullable().optional(),
     importStatus: z
       .enum(["pending_review", "approved", "published", "hidden", "removed"])
       .optional(),
@@ -787,20 +786,24 @@ function unwrapOptional(node: unknown): { inner: unknown; optional: boolean } {
  * anything else.
  */
 function renderFieldType(node: unknown): string {
-  const def = (node as {
-    _def?: {
-      type?: string;
-      values?: unknown[];
-      options?: unknown[];
-      entries?: Record<string, unknown>;
-    };
-  })?._def;
+  const def = (
+    node as {
+      _def?: {
+        type?: string;
+        values?: unknown[];
+        options?: unknown[];
+        entries?: Record<string, unknown>;
+      };
+    }
+  )?._def;
   switch (def?.type) {
     case "literal": {
       // zod 4 stores literal values as an array (single-element for the common case).
       const vs = def.values;
       if (Array.isArray(vs)) {
-        return vs.length === 1 ? JSON.stringify(vs[0]) : vs.map((v) => JSON.stringify(v)).join(" | ");
+        return vs.length === 1
+          ? JSON.stringify(vs[0])
+          : vs.map((v) => JSON.stringify(v)).join(" | ");
       }
       return "literal";
     }
@@ -1057,7 +1060,9 @@ async function submitNewsLinkInternal(opts: z.infer<typeof NewsLinkCreateSchema>
     const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
     title = titleMatch ? titleMatch[1].trim() : new URL(url).hostname;
     if (!excerpt) {
-      const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html);
+      const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(
+        html,
+      );
       excerpt = descMatch ? descMatch[1].trim() : undefined;
     }
   }
@@ -1478,6 +1483,8 @@ export function buildExecuteFunctions(): HostFunctions {
                 iconImage: null,
                 coverImageUrl: null,
                 requiresSignup: o.requiresSignup ?? false,
+                timeMode: o.timeMode ?? "scheduled",
+                parentEventId: o.parentEventId ?? null,
                 // Hidden from public listings until an admin uploads a cover/icon
                 // image and clicks Save & Publish at /manage/events/{id}.
                 importStatus: "pending_review",
@@ -1826,7 +1833,9 @@ export function buildExecuteFunctions(): HostFunctions {
             // when dates is non-null).
             const tz = "America/St_Johns";
             const updates: Record<string, unknown> = {};
-            let parsedDates: { startDate: Date; endDate: Date | null; isAllDay: boolean }[] | undefined;
+            let parsedDates:
+              | { startDate: Date; endDate: Date | null; isAllDay: boolean }[]
+              | undefined;
             for (const [key, value] of Object.entries(o)) {
               if (key === "type" || key === "id") continue;
               if (value === undefined) continue;
@@ -2271,7 +2280,9 @@ export function buildExecuteFunctions(): HostFunctions {
               return toPlain(rows);
             }
             default:
-              throw new Error(`filter:'manual' is only supported for type job|event (got ${o.type})`);
+              throw new Error(
+                `filter:'manual' is only supported for type job|event (got ${o.type})`,
+              );
           }
         }
 
@@ -2376,7 +2387,10 @@ export function buildExecuteFunctions(): HostFunctions {
             case "deactivate-removed":
             case "deactivate-filled":
             case "deactivate-expired": {
-              const reason = o.action.replace(/^deactivate-/, "") as "removed" | "filled" | "expired";
+              const reason = o.action.replace(/^deactivate-/, "") as
+                | "removed"
+                | "filled"
+                | "expired";
               const now = new Date();
               await db
                 .update(jobs)
@@ -2408,7 +2422,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     searchIndeedJobs: host(
       "searchIndeedJobs({ query?, location?, limit?, hoursOld? })",
-      "Search Indeed via their mobile GraphQL API. Returns job data plus match (known company, existing job/status, configured sources, duplicate confidence) and discoveredSource when a direct application URL identifies a supported ATS. Default location: \"St. John's, NL\".",
+      'Search Indeed via their mobile GraphQL API. Returns job data plus match (known company, existing job/status, configured sources, duplicate confidence) and discoveredSource when a direct application URL identifies a supported ATS. Default location: "St. John\'s, NL".',
       "search",
       async (opts: unknown) => {
         const o = SearchJobsSchema.parse(opts ?? {});

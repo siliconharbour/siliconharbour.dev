@@ -31,9 +31,12 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
     const nextDate = event.dates[0];
     let dateLine = "Date TBD";
     if (nextDate) {
-      dateLine = nextDate.isAllDay
-        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
-        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
+      dateLine =
+        event.timeMode === "period" && nextDate.endDate
+          ? `${formatInTimezone(nextDate.startDate, "MMM d")} - ${formatInTimezone(nextDate.endDate, "MMM d, yyyy")} · Time period`
+          : nextDate.isAllDay
+            ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
+            : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
     }
     if (event.recurrenceRule) {
       const parsed = parseRecurrenceRule(event.recurrenceRule);
@@ -99,10 +102,7 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
  * Build a single technical job's components (text + button).
  * Returns 2-3 inner components (text, action row, optional separator).
  */
-function buildTechJobComponents(
-  job: JobForDiscord,
-  includeSeparator: boolean,
-): object[] {
+function buildTechJobComponents(job: JobForDiscord, includeSeparator: boolean): object[] {
   const parts: string[] = [];
   if (job.companyName) parts.push(job.companyName);
   if (job.location) parts.push(job.location);

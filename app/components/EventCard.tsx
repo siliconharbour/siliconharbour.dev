@@ -2,9 +2,21 @@ import { Link } from "react-router";
 import type { Event, EventDate } from "~/db/schema";
 import { RichMarkdown, type ResolvedRef } from "./RichMarkdown";
 import { formatInTimezone } from "~/lib/timezone";
+import { getEventTimingState } from "~/lib/event-timing";
 
 type EventCardProps = {
-  event: Event & { dates: EventDate[] };
+  event: Pick<
+    Event,
+    | "id"
+    | "slug"
+    | "title"
+    | "description"
+    | "location"
+    | "organizer"
+    | "coverImage"
+    | "iconImage"
+    | "recurrenceRule"
+  > & { timeMode?: Event["timeMode"]; dates: EventDate[] };
   variant?: "featured" | "default" | "compact";
   resolvedRefs?: Record<string, ResolvedRef>;
 };
@@ -87,6 +99,32 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
   const hasMultipleDates = event.dates.length > 1;
 
   const isFeatured = variant === "featured";
+  const timeMode = event.timeMode ?? "scheduled";
+  const timingState = getEventTimingState(event.dates);
+  const periodLabel =
+    timeMode === "period"
+      ? timingState === "active"
+        ? "Happening now"
+        : timingState === "earlier-today"
+          ? "Earlier today"
+          : "Time period"
+      : timingState === "earlier-today"
+        ? "Earlier today"
+        : null;
+  const periodLabelClasses =
+    timingState === "active"
+      ? "bg-green-100 text-green-700"
+      : timingState === "earlier-today"
+        ? "bg-harbour-50 text-harbour-500"
+        : "bg-harbour-100 text-harbour-600";
+
+  const dateLabel = nextDate
+    ? timeMode === "period" && nextDate.endDate
+      ? `${formatInTimezone(nextDate.startDate, "MMM d")} - ${formatInTimezone(nextDate.endDate, "MMM d, yyyy")}`
+      : nextDate.isAllDay
+        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
+        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")
+    : null;
 
   if (isFeatured) {
     return (
@@ -129,6 +167,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                       Recurring
                     </span>
                   )}
+                  {periodLabel && (
+                    <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
+                      {periodLabel}
+                    </span>
+                  )}
                 </div>
                 {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
               </div>
@@ -138,12 +181,8 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-harbour-500">
                 {nextDate && (
                   <div className="flex items-center gap-2">
-                    <time dateTime={nextDate.startDate.toISOString()}>
-                      {nextDate.isAllDay
-                        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
-                        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
-                    </time>
-                    {nextDate.endDate && (
+                    <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>
+                    {nextDate.endDate && timeMode !== "period" && (
                       <>
                         <span className="text-harbour-300">-</span>
                         <time dateTime={nextDate.endDate.toISOString()}>
@@ -206,6 +245,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                 <h3 className="font-semibold text-sm leading-tight text-harbour-700 group-hover:text-harbour-600">
                   {event.title}
                 </h3>
+                {periodLabel && (
+                  <span className={`self-start px-1.5 py-0.5 text-xs ${periodLabelClasses}`}>
+                    {periodLabel}
+                  </span>
+                )}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-harbour-500">
                   {event.recurrenceRule && (
                     <span className="text-harbour-400">
@@ -270,6 +314,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                     Recurring
                   </span>
                 )}
+                {periodLabel && (
+                  <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
+                    {periodLabel}
+                  </span>
+                )}
               </div>
               {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
             </div>
@@ -277,13 +326,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
 
           <div className="mt-2 flex flex-col gap-1">
             <div className="text-sm text-harbour-500">
-              {nextDate && (
-                <time dateTime={nextDate.startDate.toISOString()}>
-                  {nextDate.isAllDay
-                    ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
-                    : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
-                </time>
-              )}
+              {nextDate && <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>}
               {event.recurrenceRule ? (
                 <span className="text-xs text-harbour-400 ml-2">
                   {describeRecurrence(event.recurrenceRule)}

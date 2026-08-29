@@ -24,8 +24,14 @@ import {
 } from "./timezone";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { addDays, startOfDay } from "date-fns";
+import { siteDayBounds, validatePeriodDates } from "./event-timing";
 
 export type EventWithDates = Event & { dates: EventDate[] };
+export type EventSummary = Pick<Event, "id" | "slug" | "title" | "timeMode">;
+export type EventWithRelations = EventWithDates & {
+  parentEvent: EventSummary | null;
+  childEvents: EventWithDates[];
+};
 
 /**
  * Batch-fetch dates for multiple events in a single query, avoiding N+1.
@@ -53,9 +59,8 @@ const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus
 
 /** An event date is "upcoming or in progress" if it starts in the future OR has already started but not yet ended */
 function isUpcomingOrInProgress(date: EventDate, now: Date): boolean {
-  if (date.startDate >= now) return true;
-  if (date.endDate && date.endDate >= now) return true;
-  return false;
+  const { start: todayStart } = siteDayBounds(now);
+  return (date.endDate ?? date.startDate) >= todayStart;
 }
 
 /**
@@ -114,6 +119,12 @@ export async function createEvent(
   event: Omit<NewEvent, "slug">,
   dates: Omit<NewEventDate, "eventId">[],
 ): Promise<EventWithDates> {
+  const validationError = validatePeriodDates(event.timeMode ?? "scheduled", dates);
+  if (validationError) throw new Error(validationError);
+  if ((event.timeMode ?? "scheduled") === "period" && event.parentEventId) {
+    throw new Error("A time period cannot be part of another event.");
+  }
+  await validateParentEvent(event.parentEventId ?? null);
   // Generate unique slug from title
   const slug = await generateEventSlug(event.title);
 
@@ -146,6 +157,19 @@ export async function updateEvent(
   event: Partial<Omit<NewEvent, "slug">>,
   dates?: Omit<NewEventDate, "eventId">[],
 ): Promise<EventWithDates | null> {
+  const current = await db.select().from(events).where(eq(events.id, id)).get();
+  if (!current) return null;
+  const nextTimeMode = event.timeMode ?? current.timeMode;
+  const nextDates = dates ?? (await db.select().from(eventDates).where(eq(eventDates.eventId, id)));
+  const validationError = validatePeriodDates(nextTimeMode, nextDates);
+  if (validationError) throw new Error(validationError);
+  const nextParentEventId =
+    event.parentEventId === undefined ? current.parentEventId : event.parentEventId;
+  if (nextTimeMode === "period" && nextParentEventId) {
+    throw new Error("A time period cannot be part of another event.");
+  }
+  if (event.parentEventId === id) throw new Error("An event cannot be part of itself.");
+  await validateParentEvent(nextParentEventId);
   // If title is being updated, regenerate slug
   let updateData: Partial<NewEvent> = { ...event, updatedAt: new Date() };
   if (event.title) {
@@ -230,6 +254,46 @@ export async function getEventBySlug(slug: string): Promise<EventWithDates | nul
   return { ...event, dates };
 }
 
+async function validateParentEvent(parentEventId: number | null): Promise<void> {
+  if (parentEventId === null) return;
+  const parent = await db.select().from(events).where(eq(events.id, parentEventId)).get();
+  if (!parent) throw new Error("The selected parent event does not exist.");
+  if (parent.timeMode !== "period") throw new Error("An event can only be part of a time period.");
+  if (parent.parentEventId !== null)
+    throw new Error("Nested event relationships are not supported.");
+}
+
+export async function getPeriodOptions(excludeId?: number): Promise<EventSummary[]> {
+  const rows = await db
+    .select()
+    .from(events)
+    .where(eq(events.timeMode, "period"))
+    .orderBy(asc(events.title));
+  return rows
+    .filter((event) => event.id !== excludeId)
+    .map(({ id, slug, title, timeMode }) => ({ id, slug, title, timeMode }));
+}
+
+export async function getEventRelations(event: EventWithDates): Promise<EventWithRelations> {
+  const parent = event.parentEventId
+    ? await db.select().from(events).where(eq(events.id, event.parentEventId)).get()
+    : null;
+  const children = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.parentEventId, event.id), isPubliclyVisible));
+  const childEvents = (await attachDates(children)).sort(
+    (a, b) => (a.dates[0]?.startDate.getTime() ?? 0) - (b.dates[0]?.startDate.getTime() ?? 0),
+  );
+  return {
+    ...event,
+    parentEvent: parent
+      ? { id: parent.id, slug: parent.slug, title: parent.title, timeMode: parent.timeMode }
+      : null,
+    childEvents,
+  };
+}
+
 /**
  * Public-safe variant of getEventBySlug.
  * Blocks access to imported events that haven't been published yet.
@@ -249,6 +313,7 @@ export async function getAllEvents(): Promise<EventWithDates[]> {
 
 export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   const now = new Date();
+  const { start: todayStart } = siteDayBounds(now);
   const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
   // Get all events that have at least one explicit date that is upcoming or currently in progress
@@ -257,7 +322,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
     .from(eventDates)
     .where(
       or(
-        gte(eventDates.startDate, now), // starts in the future
+        gte(eventDates.startDate, todayStart), // includes events earlier today
         and(
           // or: started already but end is still future
           lte(eventDates.startDate, now),
@@ -335,6 +400,7 @@ export interface CalendarEventData {
   title: string;
   dates: string[]; // Array of "YYYY-MM-DD" date strings within the month
   isRecurring: boolean;
+  isPeriod: boolean;
 }
 
 /**
@@ -358,33 +424,60 @@ export async function getEventsForMonth(
   const oneTimeDates = await db
     .select()
     .from(eventDates)
-    .where(and(gte(eventDates.startDate, monthStart), lt(eventDates.startDate, monthEnd)));
+    .where(
+      and(
+        lt(eventDates.startDate, monthEnd),
+        or(
+          gte(eventDates.endDate, monthStart),
+          and(isNull(eventDates.endDate), gte(eventDates.startDate, monthStart)),
+        ),
+      ),
+    );
 
   // Group by event
-  const eventDateMap = new Map<number, string[]>();
+  const eventDateMap = new Map<number, EventDate[]>();
   for (const ed of oneTimeDates) {
-    const dateStr = getDateInTimezone(ed.startDate);
     if (!eventDateMap.has(ed.eventId)) {
       eventDateMap.set(ed.eventId, []);
     }
-    eventDateMap.get(ed.eventId)!.push(dateStr);
+    eventDateMap.get(ed.eventId)!.push(ed);
   }
 
   // Fetch event details for one-time events
-  for (const [eventId, dateStrs] of eventDateMap) {
+  for (const [eventId, dates] of eventDateMap) {
     const event = await db
       .select()
       .from(events)
       .where(and(eq(events.id, eventId), isPubliclyVisible))
       .get();
     if (event) {
+      const dateStrs = new Set<string>();
+      for (const date of dates) {
+        const rangeStart = date.startDate > monthStart ? date.startDate : monthStart;
+        const lastDayOfMonth = fromZonedTime(
+          addDays(toZonedTime(monthEnd, SITE_TIMEZONE), -1),
+          SITE_TIMEZONE,
+        );
+        const rangeEnd = date.endDate
+          ? date.endDate < monthEnd
+            ? date.endDate
+            : lastDayOfMonth
+          : date.startDate;
+        let cursor = toZonedTime(rangeStart, SITE_TIMEZONE);
+        const localEnd = toZonedTime(rangeEnd, SITE_TIMEZONE);
+        while (cursor <= localEnd) {
+          dateStrs.add(getDateInTimezone(fromZonedTime(cursor, SITE_TIMEZONE)));
+          cursor = addDays(cursor, 1);
+        }
+      }
       seenEventIds.add(eventId);
       result.push({
         id: event.id,
         slug: event.slug,
         title: event.title,
-        dates: dateStrs,
+        dates: [...dateStrs],
         isRecurring: false,
+        isPeriod: event.timeMode === "period",
       });
     }
   }
@@ -422,6 +515,7 @@ export async function getEventsForMonth(
         title: event.title,
         dates: dateStrs,
         isRecurring: true,
+        isPeriod: false,
       });
     }
   }
@@ -462,10 +556,7 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
 }
 
 export async function getEventsByMonth(year: number, month: number): Promise<EventWithDates[]> {
-  const startOfMonth = parseAsTimezone(
-    `${year}-${String(month + 1).padStart(2, "0")}-01`,
-    "00:00",
-  );
+  const startOfMonth = parseAsTimezone(`${year}-${String(month + 1).padStart(2, "0")}-01`, "00:00");
   const nextMonth = new Date(Date.UTC(year, month + 1, 1));
   const endOfMonth = parseAsTimezone(nextMonth.toISOString().slice(0, 10), "00:00");
 
@@ -480,9 +571,7 @@ export async function getEventsByMonth(year: number, month: number): Promise<Eve
   const eventRows = await db.select().from(events).where(inArray(events.id, ids));
   const eventsWithDates = await attachDates(eventRows);
 
-  return eventsWithDates.filter(
-    (e) => e.importStatus === null || e.importStatus === "published",
-  );
+  return eventsWithDates.filter((e) => e.importStatus === null || e.importStatus === "published");
 }
 
 // =============================================================================
@@ -504,6 +593,7 @@ export async function getPaginatedEvents(
   dateFilter?: string, // yyyy-MM-dd format
 ): Promise<PaginatedEvents> {
   const now = new Date();
+  const { start: todayStart } = siteDayBounds(now);
   const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
   // Get recurring events (they're always considered "upcoming" if no end date or end date is in future)
@@ -526,7 +616,15 @@ export async function getPaginatedEvents(
     const dateRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(and(gte(eventDates.startDate, startOfDay), lte(eventDates.startDate, endOfDay)));
+      .where(
+        and(
+          lte(eventDates.startDate, endOfDay),
+          or(
+            gte(eventDates.endDate, startOfDay),
+            and(isNull(eventDates.endDate), gte(eventDates.startDate, startOfDay)),
+          ),
+        ),
+      );
 
     // Also check if any recurring events fall on this date
     const recurringOnDate: number[] = [];
@@ -542,7 +640,7 @@ export async function getPaginatedEvents(
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(gte(eventDates.startDate, now));
+      .where(or(gte(eventDates.startDate, todayStart), gte(eventDates.endDate, todayStart)));
 
     // Include recurring events as upcoming
     filteredEventIds = [...new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds])];
@@ -551,7 +649,7 @@ export async function getPaginatedEvents(
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(gte(eventDates.startDate, now));
+      .where(or(gte(eventDates.startDate, todayStart), gte(eventDates.endDate, todayStart)));
     const upcomingIds = new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds]);
 
     const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
@@ -578,10 +676,7 @@ export async function getPaginatedEvents(
 
   // Fetch full event data with dates for all matching events in batch.
   // Sorting requires date data, so we fetch first and slice after.
-  const eventRows = await db
-    .select()
-    .from(events)
-    .where(inArray(events.id, filteredEventIds));
+  const eventRows = await db.select().from(events).where(inArray(events.id, filteredEventIds));
   const batchedWithDates = await attachDates(eventRows);
 
   // For recurring events, replace stored dates with generated synthetic ones
@@ -630,8 +725,8 @@ export async function getPaginatedEvents(
     }
 
     // Upcoming and All: upcoming events first (soonest), then past (most recent first)
-    const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
-    const bNext = b.dates.find((d) => d.startDate >= now)?.startDate;
+    const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
+    const bNext = b.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
 
     // Both have upcoming dates: sort soonest first
     if (aNext && bNext) return aNext.getTime() - bNext.getTime();

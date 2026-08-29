@@ -9,6 +9,7 @@ import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/ti
 
 type EventFormProps = {
   event?: Event & { dates: EventDate[] };
+  periodOptions?: Array<Pick<Event, "id" | "title">>;
   error?: string;
   showPublish?: boolean;
   showUnpublish?: boolean;
@@ -82,13 +83,19 @@ function parseRecurrenceRule(rule: string | null): {
   return { frequency: freq, dayOfWeek, monthlyPosition };
 }
 
-export function EventForm({ event, error, showPublish, showUnpublish }: EventFormProps) {
+export function EventForm({
+  event,
+  periodOptions = [],
+  error,
+  showPublish,
+  showUnpublish,
+}: EventFormProps) {
   // Determine if this is a recurring event
   const isExistingRecurring = !!event?.recurrenceRule;
 
   // Event type: "onetime" or "recurring"
-  const [eventType, setEventType] = useState<"onetime" | "recurring">(
-    isExistingRecurring ? "recurring" : "onetime",
+  const [eventType, setEventType] = useState<"onetime" | "recurring" | "period">(
+    event?.timeMode === "period" ? "period" : isExistingRecurring ? "recurring" : "onetime",
   );
 
   // Recurrence settings
@@ -325,12 +332,10 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
             <label className="block text-sm font-medium mb-2 text-harbour-700">Cover Image</label>
             {generateCoverFromIcon ? (
               <div className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 bg-harbour-50 px-4 text-center">
-                <span className="text-sm text-harbour-600 font-medium">
-                  Will generate on save
-                </span>
+                <span className="text-sm text-harbour-600 font-medium">Will generate on save</span>
                 <span className="mt-1 text-xs text-harbour-400">
-                  A diagonal gradient from the icon's dominant colors will be
-                  used as the cover image.
+                  A diagonal gradient from the icon's dominant colors will be used as the cover
+                  image.
                 </span>
               </div>
             ) : coverImagePreview ? (
@@ -448,9 +453,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
         </div>
 
         {/* Hidden inputs for image data */}
-        {generateCoverFromIcon && (
-          <input type="hidden" name="generateCoverFromIcon" value="true" />
-        )}
+        {generateCoverFromIcon && <input type="hidden" name="generateCoverFromIcon" value="true" />}
         {!generateCoverFromIcon && coverImageData && (
           <input type="hidden" name="coverImageData" value={coverImageData} />
         )}
@@ -488,21 +491,72 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
               />
               <span className="text-harbour-600">Recurring event</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="eventType"
+                value="period"
+                checked={eventType === "period"}
+                onChange={() => {
+                  setEventType("period");
+                  setDates((current) => [
+                    {
+                      ...current[0],
+                      isRange: true,
+                      endDate: current[0].endDate ?? current[0].startDate,
+                    },
+                  ]);
+                }}
+                className="accent-harbour-600"
+              />
+              <span className="text-harbour-600">Time period</span>
+            </label>
           </div>
+          <p className="mt-2 text-sm text-harbour-400">
+            Use a time period for a jam, application window, or activity that stays open across
+            several days.
+          </p>
         </div>
 
+        {eventType !== "period" && periodOptions.length > 0 && (
+          <div>
+            <label
+              htmlFor="parentEventId"
+              className="block text-sm font-medium mb-1 text-harbour-700"
+            >
+              Part of a time period (optional)
+            </label>
+            <select
+              id="parentEventId"
+              name="parentEventId"
+              defaultValue={event?.parentEventId ?? ""}
+              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+            >
+              <option value="">Standalone event</option>
+              {periodOptions.map((period) => (
+                <option key={period.id} value={period.id}>
+                  {period.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {eventType === "period" && <input type="hidden" name="parentEventId" value="" />}
+
         {/* One-time Event Dates */}
-        {eventType === "onetime" && (
+        {eventType !== "recurring" && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-harbour-700">Event Dates *</label>
-              <button
-                type="button"
-                onClick={addDate}
-                className="text-sm text-harbour-600 hover:text-harbour-700"
-              >
-                + Add Date
-              </button>
+              {eventType === "onetime" && (
+                <button
+                  type="button"
+                  onClick={addDate}
+                  className="text-sm text-harbour-600 hover:text-harbour-700"
+                >
+                  + Add Date
+                </button>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -510,7 +564,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                 <div key={dateEntry.id} className="p-4 border border-harbour-200 bg-harbour-50/30">
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-sm font-medium text-harbour-500">Date {index + 1}</span>
-                    {dates.length > 1 && (
+                    {eventType === "onetime" && dates.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeDate(dateEntry.id)}
@@ -538,7 +592,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         {formatInTimezone(dateEntry.startDate, "MMM d, yyyy")}
                       </button>
                       {activeDatePicker === `${dateEntry.id}-start` && (
-                        <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                        <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
                           <DayPicker
                             mode="single"
                             selected={dateEntry.startDate}
@@ -559,9 +613,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         <input
                           type="time"
                           value={dateEntry.startTime}
-                          onChange={(e) =>
-                            updateDate(dateEntry.id, { startTime: e.target.value })
-                          }
+                          onChange={(e) => updateDate(dateEntry.id, { startTime: e.target.value })}
                           className="w-full px-3 py-2 border border-harbour-200 bg-white"
                         />
                       </div>
@@ -591,6 +643,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                       <input
                         type="checkbox"
                         checked={dateEntry.isRange}
+                        disabled={eventType === "period"}
                         onChange={(e) =>
                           updateDate(dateEntry.id, {
                             isRange: e.target.checked,
@@ -599,7 +652,11 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         }
                         className="accent-harbour-600"
                       />
-                      {dateEntry.isAllDay ? "Spans multiple days" : "Has end time"}
+                      {eventType === "period"
+                        ? "Period has an end"
+                        : dateEntry.isAllDay
+                          ? "Spans multiple days"
+                          : "Has end time"}
                     </label>
                   </div>
 
@@ -640,7 +697,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                                   : "Select date"}
                               </button>
                               {activeDatePicker === `${dateEntry.id}-end` && (
-                                <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                                <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
                                   <DayPicker
                                     mode="single"
                                     selected={dateEntry.endDate || undefined}
@@ -674,8 +731,8 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                           </div>
                           {endIsBeforeStart && (
                             <p className="text-xs text-red-600 mt-1">
-                              End date{dateEntry.isAllDay ? "" : "/time"} is before the start
-                              date{dateEntry.isAllDay ? "" : "/time"}
+                              End date{dateEntry.isAllDay ? "" : "/time"} is before the start date
+                              {dateEntry.isAllDay ? "" : "/time"}
                             </p>
                           )}
                         </div>
@@ -874,7 +931,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                   </button>
                 )}
                 {showRecurrenceEndPicker && (
-                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
                     <DayPicker
                       mode="single"
                       selected={recurrenceEndDate || undefined}

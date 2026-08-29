@@ -21,10 +21,13 @@ import {
   getPublicEventBySlug,
   getAllEvents,
   getUpcomingEvents,
+  getEventsForMonth,
   generateEventSlug,
   type EventWithDates,
 } from "~/lib/events.server";
 import type { NewEvent } from "~/db/schema";
+import { siteDayBounds } from "~/lib/event-timing";
+import { parseAsTimezone } from "~/lib/timezone";
 
 // =============================================================================
 // Helpers
@@ -71,8 +74,12 @@ describe("generateEventSlug", () => {
   });
 
   it("walks through -2, -3 when multiple collisions exist", async () => {
-    await createEvent(baseEvent({ title: "Demo Night" }), [{ startDate: dateAt(1), endDate: null }]);
-    await createEvent(baseEvent({ title: "Demo Night" }), [{ startDate: dateAt(2), endDate: null }]);
+    await createEvent(baseEvent({ title: "Demo Night" }), [
+      { startDate: dateAt(1), endDate: null },
+    ]);
+    await createEvent(baseEvent({ title: "Demo Night" }), [
+      { startDate: dateAt(2), endDate: null },
+    ]);
 
     const slug = await generateEventSlug("Demo Night");
     expect(slug).toBe("demo-night-3");
@@ -95,6 +102,38 @@ describe("generateEventSlug", () => {
 // =============================================================================
 
 describe("createEvent", () => {
+  it("creates a period and a scheduled child event", async () => {
+    const period = await createEvent(baseEvent({ title: "Game Jam", timeMode: "period" }), [
+      { startDate: dateAt(1), endDate: dateAt(14) },
+    ]);
+    const showcase = await createEvent(
+      baseEvent({ title: "Game Jam Showcase", parentEventId: period.id }),
+      [{ startDate: dateAt(15), endDate: null }],
+    );
+
+    expect(period.timeMode).toBe("period");
+    expect(showcase.parentEventId).toBe(period.id);
+  });
+
+  it("rejects a period without a complete range", async () => {
+    await expect(
+      createEvent(baseEvent({ title: "Incomplete Jam", timeMode: "period" }), [
+        { startDate: dateAt(1), endDate: null },
+      ]),
+    ).rejects.toThrow(/exactly one date range/i);
+  });
+
+  it("rejects a parent that is not a period", async () => {
+    const parent = await createEvent(baseEvent({ title: "Ordinary Event" }), [
+      { startDate: dateAt(1), endDate: null },
+    ]);
+    await expect(
+      createEvent(baseEvent({ title: "Invalid Child", parentEventId: parent.id }), [
+        { startDate: dateAt(2), endDate: null },
+      ]),
+    ).rejects.toThrow(/only be part of a time period/i);
+  });
+
   it("persists the event with a generated slug and the supplied dates", async () => {
     const created = await createEvent(
       baseEvent({ title: "Software Meetup", description: "Monthly meetup" }),
@@ -116,16 +155,43 @@ describe("createEvent", () => {
     ]);
 
     expect(created.dates).toHaveLength(3);
-    const stored = await db
-      .select()
-      .from(eventDates)
-      .where(eq(eventDates.eventId, created.id));
+    const stored = await db.select().from(eventDates).where(eq(eventDates.eventId, created.id));
     expect(stored).toHaveLength(3);
   });
 
   it("allows zero dates (used for recurring events with no explicit instances)", async () => {
     const created = await createEvent(baseEvent({ title: "Recurring Series" }), []);
     expect(created.dates).toHaveLength(0);
+  });
+});
+
+describe("current event visibility", () => {
+  it("keeps an event from earlier today in upcoming results", async () => {
+    const { start } = siteDayBounds(new Date());
+    const earlierToday = new Date(start.getTime() + 60_000);
+    const created = await createEvent(baseEvent({ title: "Earlier Today" }), [
+      { startDate: earlierToday, endDate: null },
+    ]);
+
+    const upcoming = await getUpcomingEvents();
+    expect(upcoming.map((event) => event.id)).toContain(created.id);
+  });
+});
+
+describe("period calendar coverage", () => {
+  it("includes every local day covered by a period", async () => {
+    const period = await createEvent(baseEvent({ title: "September Jam", timeMode: "period" }), [
+      {
+        startDate: parseAsTimezone("2026-09-12", "12:00"),
+        endDate: parseAsTimezone("2026-09-14", "12:00"),
+        isAllDay: true,
+      },
+    ]);
+
+    const calendar = await getEventsForMonth(2026, 9);
+    const item = calendar.find((event) => event.id === period.id);
+    expect(item?.isPeriod).toBe(true);
+    expect(item?.dates).toEqual(["2026-09-12", "2026-09-13", "2026-09-14"]);
   });
 });
 
@@ -169,17 +235,12 @@ describe("updateEvent", () => {
       { startDate: dateAt(8), endDate: null },
     ]);
 
-    const updated = await updateEvent(created.id, {}, [
-      { startDate: dateAt(20), endDate: null },
-    ]);
+    const updated = await updateEvent(created.id, {}, [{ startDate: dateAt(20), endDate: null }]);
     expect(updated!.dates).toHaveLength(1);
     expect(updated!.dates[0].startDate.getTime()).toBeCloseTo(dateAt(20).getTime(), -3);
 
     // The old dates should be gone — not just orphaned.
-    const stored = await db
-      .select()
-      .from(eventDates)
-      .where(eq(eventDates.eventId, created.id));
+    const stored = await db.select().from(eventDates).where(eq(eventDates.eventId, created.id));
     expect(stored).toHaveLength(1);
   });
 
@@ -222,10 +283,7 @@ describe("deleteEvent", () => {
 
     await deleteEvent(created.id);
 
-    const orphaned = await db
-      .select()
-      .from(eventDates)
-      .where(eq(eventDates.eventId, created.id));
+    const orphaned = await db.select().from(eventDates).where(eq(eventDates.eventId, created.id));
     expect(orphaned).toHaveLength(0);
   });
 });

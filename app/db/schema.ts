@@ -28,7 +28,10 @@ export const contentTypes = [
 ] as const;
 export type ContentType = (typeof contentTypes)[number];
 
-// Events - tech meetups, conferences, workshops
+export const eventTimeModes = ["scheduled", "period"] as const;
+export type EventTimeMode = (typeof eventTimeModes)[number];
+
+// Events - tech meetups, conferences, workshops, and participation periods
 export const events = sqliteTable(
   "events",
   {
@@ -43,6 +46,10 @@ export const events = sqliteTable(
     iconImage: text("icon_image"),
     coverImageUrl: text("cover_image_url"),
     requiresSignup: integer("requires_signup", { mode: "boolean" }).notNull().default(false),
+    timeMode: text("time_mode", { enum: eventTimeModes }).notNull().default("scheduled"),
+    parentEventId: integer("parent_event_id").references((): AnySQLiteColumn => events.id, {
+      onDelete: "set null",
+    }),
     // Recurrence fields
     recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
     recurrenceStart: integer("recurrence_start", { mode: "timestamp" }), // When the series begins (null = use createdAt)
@@ -67,6 +74,7 @@ export const events = sqliteTable(
     importSourceExternalIdUnique: uniqueIndex("events_import_source_external_id_unique")
       .on(table.importSourceId, table.externalId)
       .where(sql`${table.importSourceId} IS NOT NULL AND ${table.externalId} IS NOT NULL`),
+    parentEventIdx: index("events_parent_event_id_idx").on(table.parentEventId),
   }),
 );
 
@@ -269,7 +277,9 @@ export const newsImportSources = sqliteTable("news_import_sources", {
   sourceIdentifier: text("source_identifier"),
   keywords: text("keywords"),
   useGlobalKeywords: integer("use_global_keywords", { mode: "boolean" }).notNull().default(false),
-  useCompanyNameFilter: integer("use_company_name_filter", { mode: "boolean" }).notNull().default(false),
+  useCompanyNameFilter: integer("use_company_name_filter", { mode: "boolean" })
+    .notNull()
+    .default(false),
   excerptMode: text("excerpt_mode", { enum: excerptModes }).notNull().default("description"),
   entityUrl: text("entity_url"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),

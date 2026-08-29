@@ -649,6 +649,7 @@ export type EventBacklinkData = {
   organizer: string | null;
   coverImage: string | null;
   iconImage: string | null;
+  timeMode: "scheduled" | "period";
   requiresSignup: boolean;
   recurrenceRule: string | null;
   recurrenceEnd: Date | null;
@@ -656,7 +657,13 @@ export type EventBacklinkData = {
   defaultEndTime: string | null;
   createdAt: Date;
   updatedAt: Date;
-  dates: Array<{ id: number; eventId: number; startDate: Date; endDate: Date | null }>;
+  dates: Array<{
+    id: number;
+    eventId: number;
+    startDate: Date;
+    endDate: Date | null;
+    isAllDay: boolean;
+  }>;
 };
 
 export type DetailedBacklink =

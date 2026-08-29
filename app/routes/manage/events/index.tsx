@@ -70,6 +70,11 @@ export default function ManageEventsIndex() {
                         Recurring
                       </span>
                     )}
+                    {event.timeMode === "period" && (
+                      <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs shrink-0">
+                        Time period
+                      </span>
+                    )}
                   </div>
                   {event.recurrenceRule ? (
                     <p className="text-sm text-harbour-400">
@@ -79,6 +84,9 @@ export default function ManageEventsIndex() {
                   ) : event.dates.length > 0 ? (
                     <p className="text-sm text-harbour-400">
                       {formatInTimezone(event.dates[0].startDate, "MMM d, yyyy")}
+                      {event.timeMode === "period" &&
+                        event.dates[0].endDate &&
+                        ` - ${formatInTimezone(event.dates[0].endDate, "MMM d, yyyy")}`}
                       {event.dates.length > 1 && ` (+${event.dates.length - 1} more)`}
                     </p>
                   ) : null}

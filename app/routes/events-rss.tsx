@@ -26,7 +26,11 @@ export async function loader({}: Route.LoaderArgs) {
 ${events
   .map((event) => {
     const nextDate = event.dates[0];
-    const dateStr = nextDate ? formatInTimezone(nextDate.startDate, "MMM d, yyyy") : "";
+    const dateStr = nextDate
+      ? event.timeMode === "period" && nextDate.endDate
+        ? `${formatInTimezone(nextDate.startDate, "MMM d")} - ${formatInTimezone(nextDate.endDate, "MMM d, yyyy")}`
+        : formatInTimezone(nextDate.startDate, "MMM d, yyyy")
+      : "";
     const title = `${event.title}${dateStr ? ` - ${dateStr}` : ""}`;
     return `    <item>
       <title>${escapeXml(title)}</title>

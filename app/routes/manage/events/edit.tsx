@@ -1,7 +1,7 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getEventById, updateEvent } from "~/lib/events.server";
+import { getEventById, getPeriodOptions, updateEvent } from "~/lib/events.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
 import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
@@ -12,6 +12,7 @@ import {
   parseEventRecurringForm,
   parseOneTimeEventDates,
 } from "~/lib/admin/manage-schemas";
+import { validatePeriodDates } from "~/lib/event-timing";
 import { db } from "~/db";
 import { eq } from "drizzle-orm";
 import { events as eventsTable } from "~/db/schema";
@@ -30,7 +31,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Event not found", { status: 404 });
   }
 
-  return { event };
+  return { event, periodOptions: await getPeriodOptions(event.id) };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -54,6 +55,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // Check if this is a recurring event
   const isRecurring = parsedBase.data.eventType === "recurring";
+  const timeMode = parsedBase.data.eventType === "period" ? "period" : "scheduled";
   const iconImage = await resolveUpdatedImage({
     formData,
     uploadedImageField: "iconImageData",
@@ -94,6 +96,8 @@ export async function action({ request, params }: Route.ActionArgs) {
         location: parsedBase.data.location,
         organizer: parsedBase.data.organizer,
         requiresSignup: parsedBase.data.requiresSignup,
+        timeMode,
+        parentEventId: parsedBase.data.parentEventId,
         ...(coverImage !== undefined && { coverImage }),
         ...(iconImage !== undefined && { iconImage }),
         recurrenceStart: parsedRecurring.data.recurrenceStart
@@ -113,6 +117,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (!parsedDates.success) {
       return actionError(parsedDates.error);
     }
+    const periodError = validatePeriodDates(timeMode, parsedDates.data);
+    if (periodError) return actionError(periodError);
 
     await updateEvent(
       id,
@@ -123,6 +129,8 @@ export async function action({ request, params }: Route.ActionArgs) {
         location: parsedBase.data.location,
         organizer: parsedBase.data.organizer,
         requiresSignup: parsedBase.data.requiresSignup,
+        timeMode,
+        parentEventId: parsedBase.data.parentEventId,
         ...(coverImage !== undefined && { coverImage }),
         ...(iconImage !== undefined && { iconImage }),
         // Clear recurrence when switching to one-time
@@ -160,7 +168,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditEvent() {
-  const { event } = useLoaderData<typeof loader>();
+  const { event, periodOptions } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const isRecurring = !!event.recurrenceRule;
   // Visibility rule: importStatus IS NULL OR = 'published'. Anything else
@@ -168,8 +176,7 @@ export default function EditEvent() {
   // removed). Show the publish button for any of those. Show the unpublish
   // counterpart when published.
   const isPublished = event.importStatus === "published";
-  const isHiddenFromPublic =
-    event.importStatus !== null && event.importStatus !== "published";
+  const isHiddenFromPublic = event.importStatus !== null && event.importStatus !== "published";
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -201,14 +208,14 @@ export default function EditEvent() {
 
         {isHiddenFromPublic && (
           <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            This event is <strong>not public</strong> (status:{" "}
-            <code>{event.importStatus}</code>). Use <strong>Save &amp; Publish</strong> when ready
-            to make it live.
+            This event is <strong>not public</strong> (status: <code>{event.importStatus}</code>).
+            Use <strong>Save &amp; Publish</strong> when ready to make it live.
           </div>
         )}
 
         <EventForm
           event={event}
+          periodOptions={periodOptions}
           error={actionData?.error}
           showPublish={isHiddenFromPublic}
           showUnpublish={isPublished}

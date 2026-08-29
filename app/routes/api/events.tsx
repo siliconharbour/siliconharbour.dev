@@ -12,10 +12,7 @@ const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus
 
 export const loader = createPaginatedApiLoader({
   loadPage: async ({ limit, offset }) => {
-    const [{ total }] = await db
-      .select({ total: count() })
-      .from(events)
-      .where(isPubliclyVisible);
+    const [{ total }] = await db.select({ total: count() }).from(events).where(isPubliclyVisible);
     const eventsPage = await db
       .select()
       .from(events)
@@ -48,6 +45,8 @@ export const loader = createPaginatedApiLoader({
       location: event.location,
       link: event.link,
       coverImage: imageUrl(event.coverImage),
+      timeMode: event.timeMode,
+      parentEventId: event.parentEventId,
       dates: (datesMap.get(event.id) || []).map((date) => ({
         startDate: date.startDate.toISOString(),
         endDate: date.endDate?.toISOString() || null,
