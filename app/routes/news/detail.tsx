@@ -11,6 +11,7 @@ import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
+import { TintedImage } from "~/components/TintedImage";
 
 export function meta({ data, params }: Route.MetaArgs) {
   const article = data?.article;
@@ -139,13 +140,13 @@ export default function NewsDetail() {
         ) : (
           <>
             {article.coverImage && (
-              <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+              <TintedImage className="aspect-video overflow-hidden bg-harbour-100">
                 <img
                   src={`/images/${article.coverImage}`}
                   alt=""
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-              </div>
+              </TintedImage>
             )}
 
             <div className="flex flex-col gap-2">

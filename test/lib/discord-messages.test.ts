@@ -26,6 +26,8 @@ function makeEvent(overrides: Partial<EventWithDates> = {}): EventWithDates {
     iconImage: null,
     coverImageUrl: null,
     requiresSignup: false,
+    timeMode: "scheduled",
+    parentEventId: null,
     recurrenceRule: null,
     recurrenceStart: null,
     recurrenceEnd: null,
@@ -114,9 +116,7 @@ describe("buildEventsMessage", () => {
     const result = buildEventsMessage([makeEvent()]);
     const container = result[0] as { type: number; components: any[] };
     const allContent = container.components
-      .flatMap((component: any) =>
-        component.type === 9 ? component.components : [component],
-      )
+      .flatMap((component: any) => (component.type === 9 ? component.components : [component]))
       .filter((component: any) => component.type === 10)
       .map((component: any) => component.content)
       .join("\n");
@@ -140,14 +140,30 @@ describe("buildEventsMessage", () => {
     const result = buildEventsMessage([event]);
     const container = result[0] as { type: number; components: any[] };
     const allContent = container.components
-      .flatMap((component: any) =>
-        component.type === 9 ? component.components : [component],
-      )
+      .flatMap((component: any) => (component.type === 9 ? component.components : [component]))
       .filter((component: any) => component.type === 10)
       .map((component: any) => component.content)
       .join("\n");
 
     expect(allContent).toContain("Thu, Jan 15 at 6:00 PM");
+  });
+
+  it("formats a time period as a complete range", () => {
+    const event = makeEvent({
+      timeMode: "period",
+      dates: [
+        {
+          id: 3,
+          eventId: 1,
+          startDate: new Date("2026-09-12T05:00:00Z"),
+          endDate: new Date("2026-09-26T05:00:00Z"),
+          isAllDay: true,
+        },
+      ],
+    });
+    const result = buildEventsMessage([event]);
+    expect(JSON.stringify(result)).toContain("Sep 12 - Sep 26, 2026");
+    expect(JSON.stringify(result)).not.toContain("Time period");
   });
 
   it("multiple events have separators between them", () => {

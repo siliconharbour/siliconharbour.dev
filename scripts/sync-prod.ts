@@ -143,9 +143,11 @@ function stopContainer() {
 }
 
 function startContainer() {
-  console.log(`Starting ${SERVICE_NAME} container...`);
-  ssh(`cd ${REMOTE_COMPOSE_DIR} && docker compose start ${SERVICE_NAME}`, { stdio: "inherit" });
-  console.log("Container started.");
+  console.log(`Starting ${SERVICE_NAME} container with the latest image...`);
+  ssh(`cd ${REMOTE_COMPOSE_DIR} && docker compose up -d --pull always ${SERVICE_NAME}`, {
+    stdio: "inherit",
+  });
+  console.log("Container started with the latest image.");
 }
 
 function checkContainerStatus(): boolean {

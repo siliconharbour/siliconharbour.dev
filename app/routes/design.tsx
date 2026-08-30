@@ -57,6 +57,38 @@ export default function DesignSystem() {
           </div>
         </section>
 
+        {/* Event timing */}
+        <section className="flex flex-col gap-4">
+          <h2 className="text-lg font-semibold text-harbour-700">Event timing</h2>
+          <p className="text-sm text-harbour-500">
+            Scheduled events happen at a set time. Time periods run across a date range, like a game
+            jam or application window.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-green-200 bg-white p-4 flex flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                <span className="text-xs px-1.5 py-0.5 bg-green-50 text-green-700">
+                  Happening now
+                </span>
+                <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700">Game jam</span>
+              </div>
+              <h3 className="font-medium text-harbour-700">GUMP Jam 3: Computer Lab</h3>
+              <p className="text-sm text-harbour-600">September 12 - September 26, 2026</p>
+              <p className="text-sm text-harbour-400">Online</p>
+            </div>
+            <div className="border border-harbour-200 bg-white p-4 flex flex-col gap-2">
+              <span className="self-start text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+                Earlier today
+              </span>
+              <h3 className="font-medium text-harbour-700">Community Demo Night</h3>
+              <p className="text-sm text-harbour-600">Saturday, August 29 at 2:00 PM</p>
+              <p className="text-sm text-harbour-400">
+                Events stay listed until midnight in Newfoundland.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Typography */}
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Typography</h2>
@@ -94,8 +126,12 @@ export default function DesignSystem() {
           </div>
           <div className="flex flex-wrap gap-3 p-4 border border-harbour-200 bg-white">
             <Button size="sm">Small Primary</Button>
-            <Button size="sm" tone="secondary">Small Secondary</Button>
-            <Button size="sm" tone="ghost">Ghost Button</Button>
+            <Button size="sm" tone="secondary">
+              Small Secondary
+            </Button>
+            <Button size="sm" tone="ghost">
+              Ghost Button
+            </Button>
           </div>
           <div className="p-4 border border-harbour-200 bg-white">
             <p className="text-sm text-harbour-500 mb-2">Button with count badge:</p>
@@ -209,9 +245,15 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold text-harbour-700">Alerts & Banners</h2>
           <div className="flex flex-col gap-3">
-            <Alert tone="danger" title="Error alert">Something went wrong. Please try again.</Alert>
-            <Alert tone="warning" title="Warning alert">This item is hidden from public view.</Alert>
-            <Alert tone="success" title="Success alert">Changes saved successfully.</Alert>
+            <Alert tone="danger" title="Error alert">
+              Something went wrong. Please try again.
+            </Alert>
+            <Alert tone="warning" title="Warning alert">
+              This item is hidden from public view.
+            </Alert>
+            <Alert tone="success" title="Success alert">
+              Changes saved successfully.
+            </Alert>
             <Alert title="Info alert">Helpful information for the user.</Alert>
           </div>
         </section>
@@ -357,7 +399,9 @@ export default function DesignSystem() {
             <p className="text-sm text-harbour-400 mt-1">
               Empty states should explain whether the user is done or needs to take an action.
             </p>
-            <Button size="sm" className="mt-4">Create an item</Button>
+            <Button size="sm" className="mt-4">
+              Create an item
+            </Button>
           </div>
         </section>
 
@@ -437,7 +481,8 @@ function SocialPreviewCarousel({
 }) {
   const [index, setIndex] = useState(0);
   const current = items[index];
-  const move = (offset: number) => setIndex((value) => (value + offset + items.length) % items.length);
+  const move = (offset: number) =>
+    setIndex((value) => (value + offset + items.length) % items.length);
 
   return (
     <SocialPreview

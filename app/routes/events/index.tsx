@@ -43,7 +43,6 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function EventsIndex() {
   const { events, total, limit, offset, searchQuery, filter, dateFilter, isAdmin } =
     useLoaderData<typeof loader>();
-
   // Format the date filter for display
   const dateFilterDisplay = dateFilter
     ? format(parse(dateFilter, "yyyy-MM-dd", new Date()), "MMMM d, yyyy")

@@ -1,6 +1,7 @@
 import type { EventWithDates } from "~/lib/events.server";
 import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
 import { formatInTimezone } from "~/lib/timezone";
+import { formatEventPeriodRange } from "~/lib/event-display";
 
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";
 const ACCENT_COLOR = 0x2b51d1; // harbour-600
@@ -31,9 +32,12 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
     const nextDate = event.dates[0];
     let dateLine = "Date TBD";
     if (nextDate) {
-      dateLine = nextDate.isAllDay
-        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
-        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
+      dateLine =
+        event.timeMode === "period" && nextDate.endDate
+          ? (formatEventPeriodRange(nextDate) ?? "Date TBD")
+          : nextDate.isAllDay
+            ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
+            : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
     }
     if (event.recurrenceRule) {
       const parsed = parseRecurrenceRule(event.recurrenceRule);
@@ -99,10 +103,7 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
  * Build a single technical job's components (text + button).
  * Returns 2-3 inner components (text, action row, optional separator).
  */
-function buildTechJobComponents(
-  job: JobForDiscord,
-  includeSeparator: boolean,
-): object[] {
+function buildTechJobComponents(job: JobForDiscord, includeSeparator: boolean): object[] {
   const parts: string[] = [];
   if (job.companyName) parts.push(job.companyName);
   if (job.location) parts.push(job.location);

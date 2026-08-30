@@ -15,6 +15,13 @@ import {
   getEventById as getEventByIdRecord,
   getEventBySlug as getEventBySlugRecord,
 } from "~/lib/events.server";
+import {
+  createEventTag as createEventTagRecord,
+  deleteEventTag as deleteEventTagRecord,
+  getEventTagIdsBySlugs,
+  getEventTagsWithUsage,
+  updateEventTag as updateEventTagRecord,
+} from "~/lib/event-tags.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import {
   getPaginatedNews,
@@ -101,10 +108,7 @@ import {
   updateJob as updateJobRecord,
   deleteJob as deleteJobRecord,
 } from "~/lib/jobs.server";
-import {
-  searchIndeedWithMatches,
-  searchLinkedInWithMatches,
-} from "~/lib/job-search.server";
+import { searchIndeedWithMatches, searchLinkedInWithMatches } from "~/lib/job-search.server";
 import {
   getAllNewsImportSources,
   getNewsSourceById,
@@ -357,9 +361,7 @@ const EventCreateSchema = z.object({
   title: z.string().min(1, "title is required"),
   description: z.string().min(1, "description is required"),
   link: z.string().min(1, "link is required (external URL such as the LinkedIn event URL)"),
-  startDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
   endDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "endDate must be YYYY-MM-DD")
@@ -378,7 +380,18 @@ const EventCreateSchema = z.object({
   location: z.string().optional(),
   organizer: z.string().optional(),
   requiresSignup: z.boolean().optional(),
+  timeMode: z.enum(["scheduled", "period"]).optional(),
+  parentEventId: z.number().int().positive().nullable().optional(),
+  eventTags: z.array(z.string().min(1)).optional(),
 });
+
+const EventTagSaveSchema = z.object({
+  id: z.number().int().positive().optional(),
+  name: z.string().min(1),
+  color: z.enum(["harbour", "green", "amber", "red", "purple"]),
+});
+
+const EventTagDeleteSchema = z.object({ id: z.number().int().positive() });
 
 const JobCreateSchema = z.object({
   type: z.literal("job"),
@@ -550,6 +563,9 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     location: z.string().optional(),
     organizer: z.string().optional(),
     requiresSignup: z.boolean().optional(),
+    timeMode: z.enum(["scheduled", "period"]).optional(),
+    parentEventId: z.number().int().positive().nullable().optional(),
+    eventTags: z.array(z.string().min(1)).optional(),
     importStatus: z
       .enum(["pending_review", "approved", "published", "hidden", "removed"])
       .optional(),
@@ -787,20 +803,24 @@ function unwrapOptional(node: unknown): { inner: unknown; optional: boolean } {
  * anything else.
  */
 function renderFieldType(node: unknown): string {
-  const def = (node as {
-    _def?: {
-      type?: string;
-      values?: unknown[];
-      options?: unknown[];
-      entries?: Record<string, unknown>;
-    };
-  })?._def;
+  const def = (
+    node as {
+      _def?: {
+        type?: string;
+        values?: unknown[];
+        options?: unknown[];
+        entries?: Record<string, unknown>;
+      };
+    }
+  )?._def;
   switch (def?.type) {
     case "literal": {
       // zod 4 stores literal values as an array (single-element for the common case).
       const vs = def.values;
       if (Array.isArray(vs)) {
-        return vs.length === 1 ? JSON.stringify(vs[0]) : vs.map((v) => JSON.stringify(v)).join(" | ");
+        return vs.length === 1
+          ? JSON.stringify(vs[0])
+          : vs.map((v) => JSON.stringify(v)).join(" | ");
       }
       return "literal";
     }
@@ -1057,7 +1077,9 @@ async function submitNewsLinkInternal(opts: z.infer<typeof NewsLinkCreateSchema>
     const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
     title = titleMatch ? titleMatch[1].trim() : new URL(url).hostname;
     if (!excerpt) {
-      const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html);
+      const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(
+        html,
+      );
       excerpt = descMatch ? descMatch[1].trim() : undefined;
     }
   }
@@ -1159,6 +1181,39 @@ export function buildExecuteFunctions(): HostFunctions {
           }),
         );
         return toPlain(enriched);
+      },
+    ),
+
+    eventTags: host(
+      "eventTags()",
+      "List configured event tags, their colour token, and the number of assigned events.",
+      "lookup",
+      async () => toPlain(await getEventTagsWithUsage()),
+    ),
+
+    saveEventTag: host(
+      "saveEventTag({ id?, name, color })",
+      "Create an event tag, or update one when id is supplied. Colours: harbour, green, amber, red, purple.",
+      "creation",
+      async (opts: unknown) => {
+        const o = EventTagSaveSchema.parse(opts ?? {});
+        if (o.id) {
+          await updateEventTagRecord(o.id, o.name, o.color);
+          return { saved: true, id: o.id };
+        }
+        const tag = await createEventTagRecord(o.name, o.color);
+        return toPlain({ saved: true, tag });
+      },
+    ),
+
+    deleteEventTag: host(
+      "deleteEventTag({ id })",
+      "Delete an event tag and its event assignments. Events are not deleted.",
+      "creation",
+      async (opts: unknown) => {
+        const o = EventTagDeleteSchema.parse(opts ?? {});
+        await deleteEventTagRecord(o.id);
+        return { deleted: true, id: o.id };
       },
     ),
 
@@ -1478,11 +1533,14 @@ export function buildExecuteFunctions(): HostFunctions {
                 iconImage: null,
                 coverImageUrl: null,
                 requiresSignup: o.requiresSignup ?? false,
+                timeMode: o.timeMode ?? "scheduled",
+                parentEventId: o.parentEventId ?? null,
                 // Hidden from public listings until an admin uploads a cover/icon
                 // image and clicks Save & Publish at /manage/events/{id}.
                 importStatus: "pending_review",
               },
               [{ startDate, endDate, isAllDay }],
+              await getEventTagIdsBySlugs(o.eventTags ?? []),
             );
             return toPlain({
               created: true,
@@ -1826,7 +1884,10 @@ export function buildExecuteFunctions(): HostFunctions {
             // when dates is non-null).
             const tz = "America/St_Johns";
             const updates: Record<string, unknown> = {};
-            let parsedDates: { startDate: Date; endDate: Date | null; isAllDay: boolean }[] | undefined;
+            let parsedDates:
+              | { startDate: Date; endDate: Date | null; isAllDay: boolean }[]
+              | undefined;
+            let tagIds: number[] | undefined;
             for (const [key, value] of Object.entries(o)) {
               if (key === "type" || key === "id") continue;
               if (value === undefined) continue;
@@ -1854,18 +1915,26 @@ export function buildExecuteFunctions(): HostFunctions {
                 });
                 continue;
               }
+              if (key === "eventTags") {
+                tagIds = await getEventTagIdsBySlugs(value as string[]);
+                continue;
+              }
               if (typeof value === "string") {
                 updates[key] = value.trim() || null;
               } else {
                 updates[key] = value;
               }
             }
-            if (Object.keys(updates).length === 0 && !parsedDates) {
+            if (Object.keys(updates).length === 0 && !parsedDates && !tagIds) {
               return { updated: false, type: "event", message: "No fields to update" };
             }
-            const updated = await updateEventRecord(o.id, updates, parsedDates);
+            const updated = await updateEventRecord(o.id, updates, parsedDates, tagIds);
             if (!updated) throw new Error(`Event ${o.id} not found`);
-            const summary = [...Object.keys(updates), ...(parsedDates ? ["dates"] : [])].join(", ");
+            const summary = [
+              ...Object.keys(updates),
+              ...(parsedDates ? ["dates"] : []),
+              ...(tagIds ? ["eventTags"] : []),
+            ].join(", ");
             return {
               updated: true,
               type: "event",
@@ -2271,7 +2340,9 @@ export function buildExecuteFunctions(): HostFunctions {
               return toPlain(rows);
             }
             default:
-              throw new Error(`filter:'manual' is only supported for type job|event (got ${o.type})`);
+              throw new Error(
+                `filter:'manual' is only supported for type job|event (got ${o.type})`,
+              );
           }
         }
 
@@ -2376,7 +2447,10 @@ export function buildExecuteFunctions(): HostFunctions {
             case "deactivate-removed":
             case "deactivate-filled":
             case "deactivate-expired": {
-              const reason = o.action.replace(/^deactivate-/, "") as "removed" | "filled" | "expired";
+              const reason = o.action.replace(/^deactivate-/, "") as
+                | "removed"
+                | "filled"
+                | "expired";
               const now = new Date();
               await db
                 .update(jobs)
@@ -2408,7 +2482,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     searchIndeedJobs: host(
       "searchIndeedJobs({ query?, location?, limit?, hoursOld? })",
-      "Search Indeed via their mobile GraphQL API. Returns job data plus match (known company, existing job/status, configured sources, duplicate confidence) and discoveredSource when a direct application URL identifies a supported ATS. Default location: \"St. John's, NL\".",
+      'Search Indeed via their mobile GraphQL API. Returns job data plus match (known company, existing job/status, configured sources, duplicate confidence) and discoveredSource when a direct application URL identifies a supported ATS. Default location: "St. John\'s, NL".',
       "search",
       async (opts: unknown) => {
         const o = SearchJobsSchema.parse(opts ?? {});

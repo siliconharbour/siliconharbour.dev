@@ -138,10 +138,10 @@ describe("getEntitySchemaDocs", () => {
 });
 
 describe("getHostFunctionDocs", () => {
-  it("returns 8 read functions and 27 execute functions", () => {
+  it("returns 8 read functions and 30 execute functions", () => {
     const docs = getHostFunctionDocs();
     expect(docs.read).toHaveLength(8);
-    expect(docs.execute).toHaveLength(27);
+    expect(docs.execute).toHaveLength(30);
   });
 
   it("read surface is a strict subset of execute (execute mirrors read)", () => {
@@ -168,6 +168,9 @@ describe("getHostFunctionDocs", () => {
     for (const fn of [
       "createEntity",
       "updateEntity",
+      "eventTags",
+      "saveEventTag",
+      "deleteEventTag",
       "deleteEntity",
       "getEntity",
       "listEntities",

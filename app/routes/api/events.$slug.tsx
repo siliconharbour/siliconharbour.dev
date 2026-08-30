@@ -5,6 +5,7 @@ import { and, eq, asc, or, isNull } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 import { eventRecurrence } from "~/lib/events-api.server";
+import { getTagsForEvents } from "~/lib/event-tags.server";
 
 const mapEvent = async (event: typeof events.$inferSelect) => {
   const dates = await db
@@ -12,6 +13,18 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
     .from(eventDates)
     .where(eq(eventDates.eventId, event.id))
     .orderBy(asc(eventDates.startDate));
+  const tags = (await getTagsForEvents([event.id])).get(event.id) ?? [];
+  const parent = event.parentEventId
+    ? await db
+        .select()
+        .from(events)
+        .where(and(eq(events.id, event.parentEventId), isPubliclyVisible))
+        .get()
+    : null;
+  const children = await db
+    .select({ id: events.id, slug: events.slug, title: events.title, timeMode: events.timeMode })
+    .from(events)
+    .where(and(eq(events.parentEventId, event.id), isPubliclyVisible));
 
   return {
     id: event.id,
@@ -22,6 +35,11 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
     location: event.location,
     link: event.link,
     coverImage: imageUrl(event.coverImage),
+    timeMode: event.timeMode,
+    parentEventId: event.parentEventId,
+    tags,
+    parent: parent ? { id: parent.id, slug: parent.slug, title: parent.title } : null,
+    schedule: children,
     dates: dates.map((d) => ({
       startDate: d.startDate.toISOString(),
       endDate: d.endDate?.toISOString() || null,

@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import type { News } from "~/db/schema";
 import { Pagination } from "~/components/Pagination";
 import { SearchInput } from "~/components/SearchInput";
+import { TintedImage } from "~/components/TintedImage";
 
 export interface NewsListingData {
   articles: News[];
@@ -59,15 +60,15 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a href={href} {...linkProps} className="group flex flex-col gap-3">
+    <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-3">
       {article.coverImage && (
-        <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+        <TintedImage className="aspect-video overflow-hidden bg-harbour-100">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
-        </div>
+        </TintedImage>
       )}
       <div className="flex flex-col gap-1.5">
         {showTypeBadge && article.type === "article" && <ArticleBadge />}
@@ -87,15 +88,15 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a href={href} {...linkProps} className="group flex flex-col gap-2">
+    <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-2">
       {article.coverImage && (
-        <div className="img-tint aspect-video relative overflow-hidden bg-harbour-100">
+        <TintedImage className="aspect-video overflow-hidden bg-harbour-100">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
-        </div>
+        </TintedImage>
       )}
       <div className="flex flex-col gap-1">
         {showTypeBadge && article.type === "article" && <ArticleBadge />}
@@ -121,16 +122,16 @@ function ListItem({ article, showTypeBadge }: { article: News; showTypeBadge: bo
     <a
       href={href}
       {...linkProps}
-      className="group flex gap-4 py-4 border-b border-harbour-100 last:border-b-0"
+      className="group group/image-tint flex gap-4 py-4 border-b border-harbour-100 last:border-b-0"
     >
       {article.coverImage && (
-        <div className="img-tint w-28 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0 hidden sm:block">
+        <TintedImage className="w-28 h-20 overflow-hidden bg-harbour-100 flex-shrink-0 hidden sm:block">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
-        </div>
+        </TintedImage>
       )}
       <div className="flex flex-col gap-1 flex-1 min-w-0">
         <div className="flex items-center gap-2">

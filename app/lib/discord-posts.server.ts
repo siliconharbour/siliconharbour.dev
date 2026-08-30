@@ -8,6 +8,7 @@ import {
   companies,
   type DiscordChannelType,
 } from "~/db/schema";
+import { siteDayBounds } from "~/lib/event-timing";
 import { eq, and, isNull, gte, or, sql, desc } from "drizzle-orm";
 
 // ============================================================================
@@ -19,6 +20,7 @@ import { eq, and, isNull, gte, or, sql, desc } from "drizzle-orm";
  */
 export async function getUnpostedEvents() {
   const now = new Date();
+  const { start: todayStart } = siteDayBounds(now);
 
   // Subquery: event IDs that have been dealt with (posted or skipped)
   const dealtWith = db
@@ -33,7 +35,7 @@ export async function getUnpostedEvents() {
   const upcomingDateEventIds = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(gte(eventDates.startDate, now));
+    .where(or(gte(eventDates.startDate, todayStart), gte(eventDates.endDate, todayStart)));
 
   // Recurring events still active
   const recurringEvents = await db

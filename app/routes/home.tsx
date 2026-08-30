@@ -14,6 +14,8 @@ import type { ResolvedRef } from "~/components/RichMarkdown";
 import { Footer } from "~/components/Footer";
 import { Header } from "~/components/Header";
 import { buildSeoMeta } from "~/lib/seo";
+import { isActivePeriod } from "~/lib/event-display";
+import { TintedImage } from "~/components/TintedImage";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
@@ -36,19 +38,41 @@ export async function loader({}: Route.LoaderArgs) {
       getSectionVisibility(),
     ]);
 
-  const thisWeekIds = new Set(thisWeek.map((e) => e.id));
-  const futureEvents = upcoming.filter((e) => !thisWeekIds.has(e.id));
+  const activePeriods = upcoming.filter(isActivePeriod);
+  const activePeriodIds = new Set(activePeriods.map((event) => event.id));
+  const upcomingIds = new Set(upcoming.map((event) => event.id));
+  const linkedEventIds = new Set(
+    upcoming
+      .filter((event) => event.parentEventId && upcomingIds.has(event.parentEventId))
+      .map((event) => event.id),
+  );
+  const linkedEvents = upcoming.reduce<Record<number, typeof upcoming>>((groups, event) => {
+    if (!event.parentEventId || !linkedEventIds.has(event.id)) return groups;
+    (groups[event.parentEventId] ??= []).push(event);
+    return groups;
+  }, {});
+  const visibleThisWeek = thisWeek.filter(
+    (event) => !activePeriodIds.has(event.id) && !linkedEventIds.has(event.id),
+  );
+  const thisWeekIds = new Set(visibleThisWeek.map((e) => e.id));
+  const futureEvents = upcoming.filter(
+    (event) =>
+      !thisWeekIds.has(event.id) &&
+      !activePeriodIds.has(event.id) &&
+      !linkedEventIds.has(event.id),
+  );
 
   // Prepare refs for featured events (thisWeek events that show descriptions)
   const eventRefs: Record<number, Record<string, ResolvedRef>> = {};
   await Promise.all(
-    thisWeek.map(async (event) => {
+    visibleThisWeek.map(async (event) => {
       eventRefs[event.id] = await prepareRefsForClient(event.description);
     }),
   );
 
   return {
-    thisWeek,
+    thisWeek: visibleThisWeek,
+    activePeriods,
     futureEvents,
     allEvents: upcoming,
     featuredCompanies,
@@ -56,6 +80,7 @@ export async function loader({}: Route.LoaderArgs) {
     jobs, // Daily-randomized sample of 4 jobs from different companies
     featuredProjects,
     eventRefs,
+    linkedEvents,
     visibility,
   };
 }
@@ -63,6 +88,7 @@ export async function loader({}: Route.LoaderArgs) {
 export default function Home() {
   const {
     thisWeek,
+    activePeriods,
     futureEvents,
     allEvents,
     featuredCompanies,
@@ -70,6 +96,7 @@ export default function Home() {
     jobs,
     featuredProjects,
     eventRefs,
+    linkedEvents,
     visibility,
   } = useLoaderData<typeof loader>();
 
@@ -85,6 +112,20 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main content */}
             <div className="lg:col-span-2 flex flex-col gap-8">
+              {visibility.events && activePeriods.length > 0 && (
+                <section aria-label="Happening now">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {activePeriods.map((event) => (
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        linkedEvents={linkedEvents[event.id]}
+                        showStatus
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
               {/* This week */}
               {visibility.events && thisWeek.length > 0 && (
                 <section className="flex flex-col gap-4">
@@ -96,6 +137,8 @@ export default function Home() {
                         event={event}
                         variant="featured"
                         resolvedRefs={eventRefs[event.id]}
+                        linkedEvents={linkedEvents[event.id]}
+                        showStatus
                       />
                     ))}
                   </div>
@@ -124,7 +167,12 @@ export default function Home() {
                       {oneOffEvents.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {oneOffEvents.slice(0, 4).map((event) => (
-                            <EventCard key={event.id} event={event} />
+                            <EventCard
+                              key={event.id}
+                              event={event}
+                              linkedEvents={linkedEvents[event.id]}
+                              showStatus
+                            />
                           ))}
                         </div>
                       )}
@@ -140,7 +188,7 @@ export default function Home() {
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {recurringEvents.map((event) => (
-                              <EventCard key={event.id} event={event} variant="compact" />
+                              <EventCard key={event.id} event={event} variant="compact" showStatus />
                             ))}
                           </div>
                         </>
@@ -171,16 +219,16 @@ export default function Home() {
                       <Link
                         key={article.id}
                         to={`/news/${article.slug}`}
-                        className="group flex flex-col sm:flex-row gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+                        className="group group/image-tint flex flex-col sm:flex-row gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {article.coverImage && (
-                          <div className="img-tint w-full sm:w-32 h-24 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+                          <TintedImage className="w-full sm:w-32 h-24 overflow-hidden bg-harbour-100 flex-shrink-0">
                             <img
                               src={`/images/${article.coverImage}`}
                               alt=""
                               className="absolute inset-0 w-full h-full object-cover"
                             />
-                          </div>
+                          </TintedImage>
                         )}
                         <div className="flex flex-col gap-1">
                           <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">

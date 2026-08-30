@@ -2,6 +2,7 @@ import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
 import { getEventById, updateEvent } from "~/lib/events.server";
+import { getPeriodOptions } from "~/lib/event-periods.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
 import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
@@ -12,9 +13,11 @@ import {
   parseEventRecurringForm,
   parseOneTimeEventDates,
 } from "~/lib/admin/manage-schemas";
+import { validatePeriodDates } from "~/lib/event-timing";
 import { db } from "~/db";
 import { eq } from "drizzle-orm";
 import { events as eventsTable } from "~/db/schema";
+import { getEventTags } from "~/lib/event-tags.server";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.event?.title || "Event"} - siliconharbour.dev` }];
@@ -30,7 +33,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Event not found", { status: 404 });
   }
 
-  return { event };
+  const [periodOptions, availableTags] = await Promise.all([
+    getPeriodOptions(event.id),
+    getEventTags(),
+  ]);
+  return { event, periodOptions, availableTags };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -46,6 +53,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const formData = await request.formData();
+  const tagIds = formData.getAll("tagIds").map(Number).filter(Number.isInteger);
   const intent = formData.get("intent") as string | null;
   const parsedBase = parseEventBaseForm(formData);
   if (!parsedBase.success) {
@@ -54,6 +62,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // Check if this is a recurring event
   const isRecurring = parsedBase.data.eventType === "recurring";
+  const timeMode = parsedBase.data.eventType === "period" ? "period" : "scheduled";
   const iconImage = await resolveUpdatedImage({
     formData,
     uploadedImageField: "iconImageData",
@@ -79,61 +88,73 @@ export async function action({ request, params }: Route.ActionArgs) {
       processor: processAndSaveCoverImage,
     }));
 
-  if (isRecurring) {
-    const parsedRecurring = parseEventRecurringForm(formData);
-    if (!parsedRecurring.success) {
-      return actionError(parsedRecurring.error);
-    }
+  try {
+    if (isRecurring) {
+      const parsedRecurring = parseEventRecurringForm(formData);
+      if (!parsedRecurring.success) {
+        return actionError(parsedRecurring.error);
+      }
 
-    await updateEvent(
-      id,
-      {
-        title: parsedBase.data.title,
-        description: parsedBase.data.description,
-        link: parsedBase.data.link,
-        location: parsedBase.data.location,
-        organizer: parsedBase.data.organizer,
-        requiresSignup: parsedBase.data.requiresSignup,
-        ...(coverImage !== undefined && { coverImage }),
-        ...(iconImage !== undefined && { iconImage }),
-        recurrenceStart: parsedRecurring.data.recurrenceStart
-          ? new Date(parsedRecurring.data.recurrenceStart)
-          : null,
-        recurrenceRule: parsedRecurring.data.recurrenceRule,
-        recurrenceEnd: parsedRecurring.data.recurrenceEnd
-          ? new Date(parsedRecurring.data.recurrenceEnd)
-          : null,
-        defaultStartTime: parsedRecurring.data.defaultStartTime,
-        defaultEndTime: parsedRecurring.data.defaultEndTime,
-      },
-      [], // Clear explicit dates for recurring events
-    );
-  } else {
-    const parsedDates = parseOneTimeEventDates(formData);
-    if (!parsedDates.success) {
-      return actionError(parsedDates.error);
-    }
+      await updateEvent(
+        id,
+        {
+          title: parsedBase.data.title,
+          description: parsedBase.data.description,
+          link: parsedBase.data.link,
+          location: parsedBase.data.location,
+          organizer: parsedBase.data.organizer,
+          requiresSignup: parsedBase.data.requiresSignup,
+          timeMode,
+          parentEventId: parsedBase.data.parentEventId,
+          ...(coverImage !== undefined && { coverImage }),
+          ...(iconImage !== undefined && { iconImage }),
+          recurrenceStart: parsedRecurring.data.recurrenceStart
+            ? new Date(parsedRecurring.data.recurrenceStart)
+            : null,
+          recurrenceRule: parsedRecurring.data.recurrenceRule,
+          recurrenceEnd: parsedRecurring.data.recurrenceEnd
+            ? new Date(parsedRecurring.data.recurrenceEnd)
+            : null,
+          defaultStartTime: parsedRecurring.data.defaultStartTime,
+          defaultEndTime: parsedRecurring.data.defaultEndTime,
+        },
+        [], // Clear explicit dates for recurring events
+        tagIds,
+      );
+    } else {
+      const parsedDates = parseOneTimeEventDates(formData);
+      if (!parsedDates.success) {
+        return actionError(parsedDates.error);
+      }
+      const periodError = validatePeriodDates(timeMode, parsedDates.data);
+      if (periodError) return actionError(periodError);
 
-    await updateEvent(
-      id,
-      {
-        title: parsedBase.data.title,
-        description: parsedBase.data.description,
-        link: parsedBase.data.link,
-        location: parsedBase.data.location,
-        organizer: parsedBase.data.organizer,
-        requiresSignup: parsedBase.data.requiresSignup,
-        ...(coverImage !== undefined && { coverImage }),
-        ...(iconImage !== undefined && { iconImage }),
-        // Clear recurrence when switching to one-time
-        recurrenceRule: null,
-        recurrenceStart: null,
-        recurrenceEnd: null,
-        defaultStartTime: null,
-        defaultEndTime: null,
-      },
-      parsedDates.data,
-    );
+      await updateEvent(
+        id,
+        {
+          title: parsedBase.data.title,
+          description: parsedBase.data.description,
+          link: parsedBase.data.link,
+          location: parsedBase.data.location,
+          organizer: parsedBase.data.organizer,
+          requiresSignup: parsedBase.data.requiresSignup,
+          timeMode,
+          parentEventId: parsedBase.data.parentEventId,
+          ...(coverImage !== undefined && { coverImage }),
+          ...(iconImage !== undefined && { iconImage }),
+          // Clear recurrence when switching to one-time
+          recurrenceRule: null,
+          recurrenceStart: null,
+          recurrenceEnd: null,
+          defaultStartTime: null,
+          defaultEndTime: null,
+        },
+        parsedDates.data,
+        tagIds,
+      );
+    }
+  } catch (error) {
+    return actionError(error instanceof Error ? error.message : "Could not save the event.");
   }
 
   // Toggle publish state if requested. Visibility rule everywhere is
@@ -160,7 +181,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditEvent() {
-  const { event } = useLoaderData<typeof loader>();
+  const { event, periodOptions, availableTags } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const isRecurring = !!event.recurrenceRule;
   // Visibility rule: importStatus IS NULL OR = 'published'. Anything else
@@ -168,8 +189,7 @@ export default function EditEvent() {
   // removed). Show the publish button for any of those. Show the unpublish
   // counterpart when published.
   const isPublished = event.importStatus === "published";
-  const isHiddenFromPublic =
-    event.importStatus !== null && event.importStatus !== "published";
+  const isHiddenFromPublic = event.importStatus !== null && event.importStatus !== "published";
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -201,14 +221,15 @@ export default function EditEvent() {
 
         {isHiddenFromPublic && (
           <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-            This event is <strong>not public</strong> (status:{" "}
-            <code>{event.importStatus}</code>). Use <strong>Save &amp; Publish</strong> when ready
-            to make it live.
+            This event is <strong>not public</strong> (status: <code>{event.importStatus}</code>).
+            Use <strong>Save &amp; Publish</strong> when ready to make it live.
           </div>
         )}
 
         <EventForm
           event={event}
+          periodOptions={periodOptions}
+          availableTags={availableTags}
           error={actionData?.error}
           showPublish={isHiddenFromPublic}
           showUnpublish={isPublished}

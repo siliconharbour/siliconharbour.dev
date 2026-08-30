@@ -1,13 +1,61 @@
 import { Link } from "react-router";
-import type { Event, EventDate } from "~/db/schema";
+import type { Event, EventDate, EventTag } from "~/db/schema";
 import { RichMarkdown, type ResolvedRef } from "./RichMarkdown";
 import { formatInTimezone } from "~/lib/timezone";
+import { formatEventPeriodRange, getEventStatusLabel } from "~/lib/event-display";
+import { getEventTimingState } from "~/lib/event-timing";
+import { eventTagColorStyles } from "~/lib/event-tags";
+import { TintedImage } from "./TintedImage";
 
 type EventCardProps = {
-  event: Event & { dates: EventDate[] };
+  event: Pick<
+    Event,
+    | "id"
+    | "slug"
+    | "title"
+    | "description"
+    | "location"
+    | "organizer"
+    | "coverImage"
+    | "iconImage"
+    | "recurrenceRule"
+    | "timeMode"
+  > & { dates: EventDate[]; tags?: EventTag[] };
   variant?: "featured" | "default" | "compact";
   resolvedRefs?: Record<string, ResolvedRef>;
+  linkedEvents?: Array<Pick<Event, "id" | "slug" | "title"> & { dates: EventDate[] }>;
+  showStatus?: boolean;
 };
+
+function LinkedEventDates({ events }: { events: NonNullable<EventCardProps["linkedEvents"]> }) {
+  if (events.length === 0) return null;
+
+  return (
+    <div className="-mt-px bg-harbour-50 px-4 py-3 ring-1 ring-harbour-200/50">
+      {events.map((linkedEvent) => {
+        const date = linkedEvent.dates[0];
+        return (
+          <Link
+            key={linkedEvent.id}
+            to={`/events/${linkedEvent.slug}`}
+            className="group/link flex flex-col gap-0.5 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+          >
+            <span className="font-medium text-harbour-700 group-hover/link:text-harbour-600">
+              {linkedEvent.title}
+            </span>
+            {date && (
+              <time dateTime={date.startDate.toISOString()} className="shrink-0 text-harbour-500">
+                {date.isAllDay
+                  ? formatInTimezone(date.startDate, "EEE, MMM d")
+                  : formatInTimezone(date.startDate, "EEE, MMM d 'at' h:mm a")}
+              </time>
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 function describeRecurrence(rule: string | null): string | null {
   if (!rule) return null;
@@ -82,27 +130,50 @@ function StackedWrapper({
   );
 }
 
-export function EventCard({ event, variant = "default", resolvedRefs }: EventCardProps) {
+export function EventCard({
+  event,
+  variant = "default",
+  resolvedRefs,
+  linkedEvents = [],
+  showStatus = false,
+}: EventCardProps) {
   const nextDate = event.dates[0];
   const hasMultipleDates = event.dates.length > 1;
 
   const isFeatured = variant === "featured";
+  const timingState = getEventTimingState(event.dates);
+  const periodLabel = showStatus ? getEventStatusLabel(event) : null;
+  const periodLabelClasses =
+    timingState === "active"
+      ? "bg-green-50 text-green-700"
+      : timingState === "earlier-today"
+        ? "bg-harbour-50 text-harbour-500"
+        : "bg-harbour-100 text-harbour-600";
+
+  const dateLabel = nextDate
+    ? event.timeMode === "period" && nextDate.endDate
+      ? formatEventPeriodRange(nextDate)
+      : nextDate.isAllDay
+        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
+        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")
+    : null;
 
   if (isFeatured) {
     return (
       <StackedWrapper isRecurring={!!event.recurrenceRule}>
-        <Link
-          to={`/events/${event.slug}`}
-          className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
-        >
+        <div>
+          <Link
+            to={`/events/${event.slug}`}
+            className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+          >
           {event.coverImage && (
-            <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
+            <TintedImage className="aspect-[3/1] overflow-hidden bg-harbour-100">
               <img
                 src={`/images/${event.coverImage}`}
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
               />
-            </div>
+            </TintedImage>
           )}
 
           {/* Overlapping content card */}
@@ -111,7 +182,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
           >
             <div className="flex items-start gap-3">
               {event.iconImage && (
-                <div className="img-tint relative w-14 h-14 flex-shrink-0">
+                <div className="relative w-14 h-14 flex-shrink-0">
                   <img
                     src={`/images/${event.iconImage}`}
                     alt=""
@@ -120,13 +191,26 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                 </div>
               )}
               <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-semibold text-lg leading-tight text-harbour-700 group-hover:text-harbour-600">
                     {event.title}
                   </h3>
                   {event.recurrenceRule && (
                     <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
                       Recurring
+                    </span>
+                  )}
+                  {event.tags?.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className={`px-1.5 py-0.5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                  {periodLabel && (
+                    <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
+                      {periodLabel}
                     </span>
                   )}
                 </div>
@@ -138,12 +222,8 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-harbour-500">
                 {nextDate && (
                   <div className="flex items-center gap-2">
-                    <time dateTime={nextDate.startDate.toISOString()}>
-                      {nextDate.isAllDay
-                        ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
-                        : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
-                    </time>
-                    {nextDate.endDate && (
+                    <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>
+                    {nextDate.endDate && event.timeMode !== "period" && (
                       <>
                         <span className="text-harbour-300">-</span>
                         <time dateTime={nextDate.endDate.toISOString()}>
@@ -178,7 +258,9 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
               </div>
             </div>
           </div>
-        </Link>
+          </Link>
+          <LinkedEventDates events={linkedEvents} />
+        </div>
       </StackedWrapper>
     );
   }
@@ -194,7 +276,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
           <div className="relative bg-white p-3">
             <div className="flex items-start gap-2.5">
               {event.iconImage && (
-                <div className="img-tint relative w-10 h-10 flex-shrink-0">
+                <div className="relative w-10 h-10 flex-shrink-0">
                   <img
                     src={`/images/${event.iconImage}`}
                     alt=""
@@ -206,6 +288,19 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                 <h3 className="font-semibold text-sm leading-tight text-harbour-700 group-hover:text-harbour-600">
                   {event.title}
                 </h3>
+                {periodLabel && (
+                  <span className={`self-start px-1.5 py-0.5 text-xs ${periodLabelClasses}`}>
+                    {periodLabel}
+                  </span>
+                )}
+                {event.tags?.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className={`self-start px-1.5 py-0.5 text-xs ${eventTagColorStyles[tag.color]}`}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-harbour-500">
                   {event.recurrenceRule && (
                     <span className="text-harbour-400">
@@ -232,18 +327,19 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
   // Default (non-featured) card
   return (
     <StackedWrapper isRecurring={!!event.recurrenceRule}>
-      <Link
-        to={`/events/${event.slug}`}
-        className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
-      >
+      <div>
+        <Link
+          to={`/events/${event.slug}`}
+          className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+        >
         {event.coverImage && (
-          <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
+          <TintedImage className="aspect-[3/1] overflow-hidden bg-harbour-100">
             <img
               src={`/images/${event.coverImage}`}
               alt=""
               className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
             />
-          </div>
+          </TintedImage>
         )}
 
         {/* Overlapping content card */}
@@ -252,7 +348,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
         >
           <div className="flex items-start gap-3">
             {event.iconImage && (
-              <div className="img-tint relative w-14 h-14 flex-shrink-0">
+              <div className="relative w-14 h-14 flex-shrink-0">
                 <img
                   src={`/images/${event.iconImage}`}
                   alt=""
@@ -261,13 +357,26 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
               </div>
             )}
             <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold text-base leading-tight text-harbour-700 group-hover:text-harbour-600">
                   {event.title}
                 </h3>
                 {event.recurrenceRule && (
                   <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
                     Recurring
+                  </span>
+                )}
+                {event.tags?.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className={`px-1.5 py-0.5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+                {periodLabel && (
+                  <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
+                    {periodLabel}
                   </span>
                 )}
               </div>
@@ -277,13 +386,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
 
           <div className="mt-2 flex flex-col gap-1">
             <div className="text-sm text-harbour-500">
-              {nextDate && (
-                <time dateTime={nextDate.startDate.toISOString()}>
-                  {nextDate.isAllDay
-                    ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
-                    : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")}
-                </time>
-              )}
+              {nextDate && <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>}
               {event.recurrenceRule ? (
                 <span className="text-xs text-harbour-400 ml-2">
                   {describeRecurrence(event.recurrenceRule)}
@@ -300,7 +403,9 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
             )}
           </div>
         </div>
-      </Link>
+        </Link>
+        <LinkedEventDates events={linkedEvents} />
+      </div>
     </StackedWrapper>
   );
 }

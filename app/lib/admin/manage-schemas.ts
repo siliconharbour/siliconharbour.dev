@@ -27,7 +27,11 @@ export const eventBaseSchema = z.object({
   link: zRequiredString("Link"),
   location: zOptionalNullableString,
   organizer: zOptionalNullableString,
-  eventType: z.enum(["onetime", "recurring"]),
+  eventType: z.enum(["onetime", "recurring", "period"]),
+  parentEventId: z.preprocess(
+    (value) => (value === "" || value == null ? null : Number(value)),
+    z.number().int().positive().nullable(),
+  ),
   requiresSignup: zCheckboxBoolean,
 });
 

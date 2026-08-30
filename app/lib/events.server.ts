@@ -9,6 +9,7 @@ import {
   type NewEventDate,
   type EventOccurrence,
   type NewEventOccurrence,
+  type EventTag,
 } from "~/db/schema";
 import { eq, gte, and, lte, lt, asc, desc, isNull, or, inArray } from "drizzle-orm";
 import { deleteImage } from "./images.server";
@@ -24,8 +25,16 @@ import {
 } from "./timezone";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { addDays, startOfDay } from "date-fns";
+import { normalizeEventDates, siteDayBounds, validatePeriodDates } from "./event-timing";
+import { assertValidEventStructure } from "./event-periods.server";
+import { getTagsForEvents, setEventTags, validateEventTagIds } from "./event-tags.server";
 
-export type EventWithDates = Event & { dates: EventDate[] };
+export type EventWithDates = Event & { dates: EventDate[]; tags?: EventTag[] };
+export type EventSummary = Pick<Event, "id" | "slug" | "title" | "timeMode">;
+export type EventWithRelations = EventWithDates & {
+  parentEvent: EventSummary | null;
+  childEvents: EventWithDates[];
+};
 
 /**
  * Batch-fetch dates for multiple events in a single query, avoiding N+1.
@@ -39,23 +48,32 @@ async function attachDates(eventList: Event[]): Promise<EventWithDates[]> {
     .from(eventDates)
     .where(inArray(eventDates.eventId, ids))
     .orderBy(asc(eventDates.startDate));
+  const tagsByEvent = await getTagsForEvents(ids);
   const datesByEvent = new Map<number, EventDate[]>();
   for (const d of allDates) {
     const list = datesByEvent.get(d.eventId) ?? [];
     list.push(d);
     datesByEvent.set(d.eventId, list);
   }
-  return eventList.map((event) => ({ ...event, dates: datesByEvent.get(event.id) ?? [] }));
+  return eventList.map((event) => ({
+    ...event,
+    dates: datesByEvent.get(event.id) ?? [],
+    tags: tagsByEvent.get(event.id) ?? [],
+  }));
 }
 
 /** Filter: show manually-created events (importStatus IS NULL) and published imports */
 const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
 
+/** Matches dates that occur on or after the given local calendar day. */
+function isCurrentOnOrAfter(dayStart: Date) {
+  return or(gte(eventDates.startDate, dayStart), gte(eventDates.endDate, dayStart));
+}
+
 /** An event date is "upcoming or in progress" if it starts in the future OR has already started but not yet ended */
 function isUpcomingOrInProgress(date: EventDate, now: Date): boolean {
-  if (date.startDate >= now) return true;
-  if (date.endDate && date.endDate >= now) return true;
-  return false;
+  const { start: todayStart } = siteDayBounds(now);
+  return (date.endDate ?? date.startDate) >= todayStart;
 }
 
 /**
@@ -113,7 +131,17 @@ export async function generateEventSlug(title: string, excludeId?: number): Prom
 export async function createEvent(
   event: Omit<NewEvent, "slug">,
   dates: Omit<NewEventDate, "eventId">[],
+  tagIds: number[] = [],
 ): Promise<EventWithDates> {
+  await validateEventTagIds(tagIds);
+  const timeMode = event.timeMode ?? "scheduled";
+  const normalizedDates = normalizeEventDates(timeMode, dates);
+  const validationError = validatePeriodDates(timeMode, normalizedDates);
+  if (validationError) throw new Error(validationError);
+  await assertValidEventStructure({
+    nextTimeMode: timeMode,
+    parentEventId: event.parentEventId ?? null,
+  });
   // Generate unique slug from title
   const slug = await generateEventSlug(event.title);
 
@@ -123,7 +151,7 @@ export async function createEvent(
     .returning();
 
   const newDates = await Promise.all(
-    dates.map(async (date) => {
+    normalizedDates.map(async (date) => {
       const [newDate] = await db
         .insert(eventDates)
         .values({ ...date, eventId: newEvent.id })
@@ -137,15 +165,37 @@ export async function createEvent(
 
   // Sync organizer references
   await syncOrganizerReferences(newEvent.id, newEvent.organizer);
+  await setEventTags(newEvent.id, tagIds);
 
-  return { ...newEvent, dates: newDates };
+  const tags = (await getTagsForEvents([newEvent.id])).get(newEvent.id) ?? [];
+  return { ...newEvent, dates: newDates, tags };
 }
 
 export async function updateEvent(
   id: number,
   event: Partial<Omit<NewEvent, "slug">>,
   dates?: Omit<NewEventDate, "eventId">[],
+  tagIds?: number[],
 ): Promise<EventWithDates | null> {
+  if (tagIds !== undefined) await validateEventTagIds(tagIds);
+  const current = await db.select().from(events).where(eq(events.id, id)).get();
+  if (!current) return null;
+  const nextTimeMode = event.timeMode ?? current.timeMode;
+  const nextDates = normalizeEventDates(
+    nextTimeMode,
+    dates ?? (await db.select().from(eventDates).where(eq(eventDates.eventId, id))),
+  );
+  const shouldReplaceDates = dates !== undefined || nextTimeMode !== current.timeMode;
+  const validationError = validatePeriodDates(nextTimeMode, nextDates);
+  if (validationError) throw new Error(validationError);
+  const nextParentEventId =
+    event.parentEventId === undefined ? current.parentEventId : event.parentEventId;
+  await assertValidEventStructure({
+    eventId: id,
+    currentTimeMode: current.timeMode,
+    nextTimeMode,
+    parentEventId: nextParentEventId,
+  });
   // If title is being updated, regenerate slug
   let updateData: Partial<NewEvent> = { ...event, updatedAt: new Date() };
   if (event.title) {
@@ -165,13 +215,14 @@ export async function updateEvent(
   if (event.organizer !== undefined) {
     await syncOrganizerReferences(id, event.organizer);
   }
+  if (tagIds !== undefined) await setEventTags(id, tagIds);
 
-  if (dates) {
+  if (shouldReplaceDates) {
     // Delete existing dates and insert new ones
     await db.delete(eventDates).where(eq(eventDates.eventId, id));
 
     const newDates = await Promise.all(
-      dates.map(async (date) => {
+      nextDates.map(async (date) => {
         const [newDate] = await db
           .insert(eventDates)
           .values({ ...date, eventId: id })
@@ -180,12 +231,14 @@ export async function updateEvent(
       }),
     );
 
-    return { ...updated, dates: newDates };
+    const tags = (await getTagsForEvents([id])).get(id) ?? [];
+    return { ...updated, dates: newDates, tags };
   }
 
   const existingDates = await db.select().from(eventDates).where(eq(eventDates.eventId, id));
 
-  return { ...updated, dates: existingDates };
+  const tags = (await getTagsForEvents([id])).get(id) ?? [];
+  return { ...updated, dates: existingDates, tags };
 }
 
 export async function deleteEvent(id: number): Promise<boolean> {
@@ -214,7 +267,8 @@ export async function getEventById(id: number): Promise<EventWithDates | null> {
     .where(eq(eventDates.eventId, id))
     .orderBy(asc(eventDates.startDate));
 
-  return { ...event, dates };
+  const tags = (await getTagsForEvents([id])).get(id) ?? [];
+  return { ...event, dates, tags };
 }
 
 export async function getEventBySlug(slug: string): Promise<EventWithDates | null> {
@@ -227,7 +281,28 @@ export async function getEventBySlug(slug: string): Promise<EventWithDates | nul
     .where(eq(eventDates.eventId, event.id))
     .orderBy(asc(eventDates.startDate));
 
-  return { ...event, dates };
+  const tags = (await getTagsForEvents([event.id])).get(event.id) ?? [];
+  return { ...event, dates, tags };
+}
+
+export async function getEventRelations(event: EventWithDates): Promise<EventWithRelations> {
+  const parent = event.parentEventId
+    ? await db.select().from(events).where(eq(events.id, event.parentEventId)).get()
+    : null;
+  const children = await db
+    .select()
+    .from(events)
+    .where(and(eq(events.parentEventId, event.id), isPubliclyVisible));
+  const childEvents = (await attachDates(children)).sort(
+    (a, b) => (a.dates[0]?.startDate.getTime() ?? 0) - (b.dates[0]?.startDate.getTime() ?? 0),
+  );
+  return {
+    ...event,
+    parentEvent: parent
+      ? { id: parent.id, slug: parent.slug, title: parent.title, timeMode: parent.timeMode }
+      : null,
+    childEvents,
+  };
 }
 
 /**
@@ -249,22 +324,14 @@ export async function getAllEvents(): Promise<EventWithDates[]> {
 
 export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   const now = new Date();
+  const { start: todayStart } = siteDayBounds(now);
   const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
   // Get all events that have at least one explicit date that is upcoming or currently in progress
   const upcomingEventIds = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(
-      or(
-        gte(eventDates.startDate, now), // starts in the future
-        and(
-          // or: started already but end is still future
-          lte(eventDates.startDate, now),
-          gte(eventDates.endDate, now),
-        ),
-      ),
-    );
+    .where(isCurrentOnOrAfter(todayStart));
 
   // Also get recurring events
   const recurringEventsResult = await db
@@ -288,7 +355,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
 
   const eventsWithDates = batchedWithDates.map((eventData) => {
     if (eventData.recurrenceRule) {
-      const generatedDates = getGeneratedOccurrences(eventData, now, threeMonthsFromNow);
+      const generatedDates = getGeneratedOccurrences(eventData, todayStart, threeMonthsFromNow);
       const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
         const dateStr = getDateInTimezone(date);
         const startTime = eventData.defaultStartTime || "00:00";
@@ -335,6 +402,7 @@ export interface CalendarEventData {
   title: string;
   dates: string[]; // Array of "YYYY-MM-DD" date strings within the month
   isRecurring: boolean;
+  isPeriod: boolean;
 }
 
 /**
@@ -358,33 +426,60 @@ export async function getEventsForMonth(
   const oneTimeDates = await db
     .select()
     .from(eventDates)
-    .where(and(gte(eventDates.startDate, monthStart), lt(eventDates.startDate, monthEnd)));
+    .where(
+      and(
+        lt(eventDates.startDate, monthEnd),
+        or(
+          gte(eventDates.endDate, monthStart),
+          and(isNull(eventDates.endDate), gte(eventDates.startDate, monthStart)),
+        ),
+      ),
+    );
 
   // Group by event
-  const eventDateMap = new Map<number, string[]>();
+  const eventDateMap = new Map<number, EventDate[]>();
   for (const ed of oneTimeDates) {
-    const dateStr = getDateInTimezone(ed.startDate);
     if (!eventDateMap.has(ed.eventId)) {
       eventDateMap.set(ed.eventId, []);
     }
-    eventDateMap.get(ed.eventId)!.push(dateStr);
+    eventDateMap.get(ed.eventId)!.push(ed);
   }
 
   // Fetch event details for one-time events
-  for (const [eventId, dateStrs] of eventDateMap) {
+  for (const [eventId, dates] of eventDateMap) {
     const event = await db
       .select()
       .from(events)
       .where(and(eq(events.id, eventId), isPubliclyVisible))
       .get();
     if (event) {
+      const dateStrs = new Set<string>();
+      for (const date of dates) {
+        const rangeStart = date.startDate > monthStart ? date.startDate : monthStart;
+        const lastDayOfMonth = fromZonedTime(
+          addDays(toZonedTime(monthEnd, SITE_TIMEZONE), -1),
+          SITE_TIMEZONE,
+        );
+        const rangeEnd = date.endDate
+          ? date.endDate < monthEnd
+            ? date.endDate
+            : lastDayOfMonth
+          : date.startDate;
+        let cursor = toZonedTime(rangeStart, SITE_TIMEZONE);
+        const localEnd = toZonedTime(rangeEnd, SITE_TIMEZONE);
+        while (cursor <= localEnd) {
+          dateStrs.add(getDateInTimezone(fromZonedTime(cursor, SITE_TIMEZONE)));
+          cursor = addDays(cursor, 1);
+        }
+      }
       seenEventIds.add(eventId);
       result.push({
         id: event.id,
         slug: event.slug,
         title: event.title,
-        dates: dateStrs,
+        dates: [...dateStrs],
         isRecurring: false,
+        isPeriod: event.timeMode === "period",
       });
     }
   }
@@ -422,6 +517,7 @@ export async function getEventsForMonth(
         title: event.title,
         dates: dateStrs,
         isRecurring: true,
+        isPeriod: false,
       });
     }
   }
@@ -462,10 +558,7 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
 }
 
 export async function getEventsByMonth(year: number, month: number): Promise<EventWithDates[]> {
-  const startOfMonth = parseAsTimezone(
-    `${year}-${String(month + 1).padStart(2, "0")}-01`,
-    "00:00",
-  );
+  const startOfMonth = parseAsTimezone(`${year}-${String(month + 1).padStart(2, "0")}-01`, "00:00");
   const nextMonth = new Date(Date.UTC(year, month + 1, 1));
   const endOfMonth = parseAsTimezone(nextMonth.toISOString().slice(0, 10), "00:00");
 
@@ -480,9 +573,7 @@ export async function getEventsByMonth(year: number, month: number): Promise<Eve
   const eventRows = await db.select().from(events).where(inArray(events.id, ids));
   const eventsWithDates = await attachDates(eventRows);
 
-  return eventsWithDates.filter(
-    (e) => e.importStatus === null || e.importStatus === "published",
-  );
+  return eventsWithDates.filter((e) => e.importStatus === null || e.importStatus === "published");
 }
 
 // =============================================================================
@@ -504,6 +595,7 @@ export async function getPaginatedEvents(
   dateFilter?: string, // yyyy-MM-dd format
 ): Promise<PaginatedEvents> {
   const now = new Date();
+  const { start: todayStart } = siteDayBounds(now);
   const threeMonthsFromNow = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
   // Get recurring events (they're always considered "upcoming" if no end date or end date is in future)
@@ -513,7 +605,7 @@ export async function getPaginatedEvents(
     .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
   const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
   const recurringEventIds = recurringEvents
-    .filter((e) => !e.recurrenceEnd || e.recurrenceEnd > now)
+    .filter((e) => !e.recurrenceEnd || e.recurrenceEnd >= todayStart)
     .map((e) => e.id);
 
   // Get event IDs based on filter
@@ -526,7 +618,15 @@ export async function getPaginatedEvents(
     const dateRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(and(gte(eventDates.startDate, startOfDay), lte(eventDates.startDate, endOfDay)));
+      .where(
+        and(
+          lte(eventDates.startDate, endOfDay),
+          or(
+            gte(eventDates.endDate, startOfDay),
+            and(isNull(eventDates.endDate), gte(eventDates.startDate, startOfDay)),
+          ),
+        ),
+      );
 
     // Also check if any recurring events fall on this date
     const recurringOnDate: number[] = [];
@@ -542,7 +642,7 @@ export async function getPaginatedEvents(
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(gte(eventDates.startDate, now));
+      .where(isCurrentOnOrAfter(todayStart));
 
     // Include recurring events as upcoming
     filteredEventIds = [...new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds])];
@@ -551,7 +651,7 @@ export async function getPaginatedEvents(
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(gte(eventDates.startDate, now));
+      .where(isCurrentOnOrAfter(todayStart));
     const upcomingIds = new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds]);
 
     const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
@@ -578,16 +678,13 @@ export async function getPaginatedEvents(
 
   // Fetch full event data with dates for all matching events in batch.
   // Sorting requires date data, so we fetch first and slice after.
-  const eventRows = await db
-    .select()
-    .from(events)
-    .where(inArray(events.id, filteredEventIds));
+  const eventRows = await db.select().from(events).where(inArray(events.id, filteredEventIds));
   const batchedWithDates = await attachDates(eventRows);
 
   // For recurring events, replace stored dates with generated synthetic ones
   const eventsWithDates: (EventWithDates | null)[] = batchedWithDates.map((event) => {
     if (event.recurrenceRule) {
-      const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
+      const generatedDates = getGeneratedOccurrences(event, todayStart, threeMonthsFromNow);
       const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
         const dateStr = getDateInTimezone(date);
         const startTime = event.defaultStartTime || "00:00";
@@ -603,6 +700,7 @@ export async function getPaginatedEvents(
           eventId: event.id,
           startDate: startDateTime,
           endDate: endDateTime,
+          isAllDay: !event.defaultStartTime,
         };
       });
 
@@ -630,8 +728,8 @@ export async function getPaginatedEvents(
     }
 
     // Upcoming and All: upcoming events first (soonest), then past (most recent first)
-    const aNext = a.dates.find((d) => d.startDate >= now)?.startDate;
-    const bNext = b.dates.find((d) => d.startDate >= now)?.startDate;
+    const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
+    const bNext = b.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
 
     // Both have upcoming dates: sort soonest first
     if (aNext && bNext) return aNext.getTime() - bNext.getTime();
@@ -773,17 +871,19 @@ export function getGeneratedOccurrences(
  */
 export async function getEventWithOccurrences(
   eventId: number,
-  rangeStart: Date = new Date(),
+  rangeStart?: Date,
   rangeEnd: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
 ): Promise<EventWithOccurrences | null> {
   const event = await getEventById(eventId);
   if (!event) return null;
 
+  const effectiveRangeStart = rangeStart ?? siteDayBounds(new Date()).start;
+
   const occurrences: EventOccurrenceDisplay[] = [];
 
   // If this is a recurring event, generate occurrences
   if (event.recurrenceRule) {
-    const generatedDates = getGeneratedOccurrences(event, rangeStart, rangeEnd);
+    const generatedDates = getGeneratedOccurrences(event, effectiveRangeStart, rangeEnd);
     const overrides = await getEventOccurrenceOverrides(eventId);
 
     // Create a map of overrides by date (normalized to Newfoundland timezone date)

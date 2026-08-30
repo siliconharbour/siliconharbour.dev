@@ -173,6 +173,8 @@ export function eventToMarkdown(event: EventWithDates): string {
     location: event.location,
     organizer: event.organizer,
     requires_signup: event.requiresSignup,
+    time_mode: event.timeMode,
+    parent_event_id: event.parentEventId,
     recurring: !!event.recurrenceRule,
     updated_at: event.updatedAt,
   });

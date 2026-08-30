@@ -28,7 +28,12 @@ export const contentTypes = [
 ] as const;
 export type ContentType = (typeof contentTypes)[number];
 
-// Events - tech meetups, conferences, workshops
+export const eventTimeModes = ["scheduled", "period"] as const;
+export type EventTimeMode = (typeof eventTimeModes)[number];
+export const eventTagColors = ["harbour", "green", "amber", "red", "purple"] as const;
+export type EventTagColor = (typeof eventTagColors)[number];
+
+// Events - tech meetups, conferences, workshops, and participation periods
 export const events = sqliteTable(
   "events",
   {
@@ -43,6 +48,10 @@ export const events = sqliteTable(
     iconImage: text("icon_image"),
     coverImageUrl: text("cover_image_url"),
     requiresSignup: integer("requires_signup", { mode: "boolean" }).notNull().default(false),
+    timeMode: text("time_mode", { enum: eventTimeModes }).notNull().default("scheduled"),
+    parentEventId: integer("parent_event_id").references((): AnySQLiteColumn => events.id, {
+      onDelete: "set null",
+    }),
     // Recurrence fields
     recurrenceRule: text("recurrence_rule"), // RRULE format: "FREQ=WEEKLY;BYDAY=TH"
     recurrenceStart: integer("recurrence_start", { mode: "timestamp" }), // When the series begins (null = use createdAt)
@@ -67,6 +76,7 @@ export const events = sqliteTable(
     importSourceExternalIdUnique: uniqueIndex("events_import_source_external_id_unique")
       .on(table.importSourceId, table.externalId)
       .where(sql`${table.importSourceId} IS NOT NULL AND ${table.externalId} IS NOT NULL`),
+    parentEventIdx: index("events_parent_event_id_idx").on(table.parentEventId),
   }),
 );
 
@@ -82,6 +92,43 @@ export const eventDates = sqliteTable("event_dates", {
   // timezone drift) but no clock time is shown.
   isAllDay: integer("is_all_day", { mode: "boolean" }).notNull().default(false),
 });
+
+export const eventTags = sqliteTable("event_tags", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  color: text("color", { enum: eventTagColors }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const eventTagAssignments = sqliteTable(
+  "event_tag_assignments",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    eventId: integer("event_id")
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+    tagId: integer("tag_id")
+      .notNull()
+      .references(() => eventTags.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    eventIdx: index("event_tag_assignments_event_id_idx").on(table.eventId),
+    tagIdx: index("event_tag_assignments_tag_id_idx").on(table.tagId),
+    eventTagUnique: uniqueIndex("event_tag_assignments_event_tag_unique").on(
+      table.eventId,
+      table.tagId,
+    ),
+  }),
+);
+
+export type EventTag = typeof eventTags.$inferSelect;
+export type NewEventTag = typeof eventTags.$inferInsert;
 
 // Event occurrence overrides - for per-occurrence customization of recurring events
 export const eventOccurrences = sqliteTable(
@@ -269,7 +316,9 @@ export const newsImportSources = sqliteTable("news_import_sources", {
   sourceIdentifier: text("source_identifier"),
   keywords: text("keywords"),
   useGlobalKeywords: integer("use_global_keywords", { mode: "boolean" }).notNull().default(false),
-  useCompanyNameFilter: integer("use_company_name_filter", { mode: "boolean" }).notNull().default(false),
+  useCompanyNameFilter: integer("use_company_name_filter", { mode: "boolean" })
+    .notNull()
+    .default(false),
   excerptMode: text("excerpt_mode", { enum: excerptModes }).notNull().default("description"),
   entityUrl: text("entity_url"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),

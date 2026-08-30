@@ -1,6 +1,7 @@
 import type { Route } from "./+types/events-rss";
 import { getUpcomingEvents } from "~/lib/events.server";
 import { formatInTimezone } from "~/lib/timezone";
+import { formatEventPeriodRange } from "~/lib/event-display";
 
 export async function loader({}: Route.LoaderArgs) {
   const events = await getUpcomingEvents();
@@ -26,7 +27,11 @@ export async function loader({}: Route.LoaderArgs) {
 ${events
   .map((event) => {
     const nextDate = event.dates[0];
-    const dateStr = nextDate ? formatInTimezone(nextDate.startDate, "MMM d, yyyy") : "";
+    const dateStr = nextDate
+      ? event.timeMode === "period" && nextDate.endDate
+        ? formatEventPeriodRange(nextDate)
+        : formatInTimezone(nextDate.startDate, "MMM d, yyyy")
+      : "";
     const title = `${event.title}${dateStr ? ` - ${dateStr}` : ""}`;
     return `    <item>
       <title>${escapeXml(title)}</title>

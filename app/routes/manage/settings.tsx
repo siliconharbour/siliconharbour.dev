@@ -1,5 +1,5 @@
 import type { Route } from "./+types/settings";
-import { Form, Link, useLoaderData, useFetcher } from "react-router";
+import { Form, Link, useActionData, useLoaderData, useFetcher } from "react-router";
 import { useState } from "react";
 import { requireAuth } from "~/lib/session.server";
 import {
@@ -20,6 +20,14 @@ import {
   removeDestination,
 } from "~/lib/discord-destinations.server";
 import { sectionKeys, type SectionKey, commentableKeys, type CommentableKey, discordChannelTypes, type DiscordChannelType, type DiscordDestination } from "~/db/schema";
+import {
+  createEventTag,
+  deleteEventTag,
+  getEventTagsWithUsage,
+  isEventTagColor,
+  updateEventTag,
+} from "~/lib/event-tags.server";
+import { EventTagSettings } from "~/components/manage/EventTagSettings";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Settings - siliconharbour.dev" }];
@@ -27,13 +35,14 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  const [visibility, commentVisibility, discordConfig, eventsDestinations, jobsDestinations, newsGlobalKeywords] = await Promise.all([
+  const [visibility, commentVisibility, discordConfig, eventsDestinations, jobsDestinations, newsGlobalKeywords, eventTags] = await Promise.all([
     getSectionVisibility(),
     getCommentVisibility(),
     getDiscordConfig(),
     listDestinations("events"),
     listDestinations("jobs"),
     getNewsGlobalKeywords(),
+    getEventTagsWithUsage(),
   ]);
   return {
     visibility,
@@ -41,6 +50,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     discordConfig,
     discordDestinations: { events: eventsDestinations, jobs: jobsDestinations },
     newsGlobalKeywords,
+    eventTags,
   };
 }
 
@@ -49,6 +59,33 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
 
   const intent = formData.get("intent");
+
+  if (intent === "add-event-tag" || intent === "update-event-tag") {
+    const name = formData.get("name");
+    const color = formData.get("color");
+    if (typeof name !== "string" || typeof color !== "string" || !isEventTagColor(color)) {
+      return { intent, error: "Enter a tag name and choose an available colour." };
+    }
+    try {
+      if (intent === "add-event-tag") {
+        await createEventTag(name, color);
+      } else {
+        const id = Number(formData.get("tagId"));
+        if (!Number.isInteger(id) || id < 1) return { intent, error: "Invalid event tag." };
+        await updateEventTag(id, name, color);
+      }
+      return { intent, success: true };
+    } catch (error) {
+      return { intent, error: error instanceof Error ? error.message : "Could not save the tag." };
+    }
+  }
+
+  if (intent === "delete-event-tag") {
+    const id = Number(formData.get("tagId"));
+    if (!Number.isInteger(id) || id < 1) return { intent, error: "Invalid event tag." };
+    await deleteEventTag(id);
+    return { intent, success: true };
+  }
 
   if (intent === "test-discord") {
     const token = formData.get("discord_bot_token");
@@ -432,7 +469,8 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
 }
 
 export default function Settings() {
-  const { visibility, commentVisibility, discordConfig, discordDestinations, newsGlobalKeywords } = useLoaderData<typeof loader>();
+  const { visibility, commentVisibility, discordConfig, discordDestinations, newsGlobalKeywords, eventTags } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const testFetcher = useFetcher<{ discordTest?: { valid: boolean; username?: string; error?: string; guildCount?: number } }>();
   const discordTestResult = testFetcher.data?.discordTest;
 
@@ -448,6 +486,11 @@ export default function Settings() {
             Back to Dashboard
           </Link>
         </div>
+
+        <EventTagSettings
+          tags={eventTags}
+          error={actionData && "error" in actionData ? actionData.error : undefined}
+        />
 
         <Form method="post" className="flex flex-col gap-6">
           <div className="bg-white border border-harbour-200 p-6">

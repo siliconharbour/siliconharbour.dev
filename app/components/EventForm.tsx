@@ -4,11 +4,15 @@ import { Form } from "react-router";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { ImageCropper } from "./ImageCropper";
-import type { Event, EventDate } from "~/db/schema";
+import type { Event, EventDate, EventTag } from "~/db/schema";
 import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/timezone";
+import { EventTimingFields, type EventFormTiming } from "./EventTimingFields";
+import { EventTagPicker } from "./EventTagPicker";
 
 type EventFormProps = {
-  event?: Event & { dates: EventDate[] };
+  event?: Event & { dates: EventDate[]; tags?: EventTag[] };
+  periodOptions?: Array<Pick<Event, "id" | "title">>;
+  availableTags?: EventTag[];
   error?: string;
   showPublish?: boolean;
   showUnpublish?: boolean;
@@ -82,13 +86,20 @@ function parseRecurrenceRule(rule: string | null): {
   return { frequency: freq, dayOfWeek, monthlyPosition };
 }
 
-export function EventForm({ event, error, showPublish, showUnpublish }: EventFormProps) {
+export function EventForm({
+  event,
+  periodOptions = [],
+  availableTags = [],
+  error,
+  showPublish,
+  showUnpublish,
+}: EventFormProps) {
   // Determine if this is a recurring event
   const isExistingRecurring = !!event?.recurrenceRule;
 
   // Event type: "onetime" or "recurring"
-  const [eventType, setEventType] = useState<"onetime" | "recurring">(
-    isExistingRecurring ? "recurring" : "onetime",
+  const [eventType, setEventType] = useState<EventFormTiming>(
+    event?.timeMode === "period" ? "period" : isExistingRecurring ? "recurring" : "onetime",
   );
 
   // Recurrence settings
@@ -310,6 +321,8 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
           />
         </div>
 
+        <EventTagPicker availableTags={availableTags} selectedTags={event?.tags} />
+
         {/* Organizer */}
         <EntityPicker
           name="organizer"
@@ -325,12 +338,10 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
             <label className="block text-sm font-medium mb-2 text-harbour-700">Cover Image</label>
             {generateCoverFromIcon ? (
               <div className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 bg-harbour-50 px-4 text-center">
-                <span className="text-sm text-harbour-600 font-medium">
-                  Will generate on save
-                </span>
+                <span className="text-sm text-harbour-600 font-medium">Will generate on save</span>
                 <span className="mt-1 text-xs text-harbour-400">
-                  A diagonal gradient from the icon's dominant colors will be
-                  used as the cover image.
+                  A diagonal gradient from the icon's dominant colors will be used as the cover
+                  image.
                 </span>
               </div>
             ) : coverImagePreview ? (
@@ -448,9 +459,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
         </div>
 
         {/* Hidden inputs for image data */}
-        {generateCoverFromIcon && (
-          <input type="hidden" name="generateCoverFromIcon" value="true" />
-        )}
+        {generateCoverFromIcon && <input type="hidden" name="generateCoverFromIcon" value="true" />}
         {!generateCoverFromIcon && coverImageData && (
           <input type="hidden" name="coverImageData" value={coverImageData} />
         )}
@@ -462,47 +471,41 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
           <input type="hidden" name="existingIconImage" value={event.iconImage} />
         )}
 
-        {/* Event Type Selection */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-harbour-700">Event Type *</label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="eventType"
-                value="onetime"
-                checked={eventType === "onetime"}
-                onChange={() => setEventType("onetime")}
-                className="accent-harbour-600"
-              />
-              <span className="text-harbour-600">One-time event</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="eventType"
-                value="recurring"
-                checked={eventType === "recurring"}
-                onChange={() => setEventType("recurring")}
-                className="accent-harbour-600"
-              />
-              <span className="text-harbour-600">Recurring event</span>
-            </label>
-          </div>
-        </div>
+        <EventTimingFields
+          value={eventType}
+          onChange={(value) => {
+            setEventType(value);
+            if (value === "period") {
+              setDates((current) => [
+                {
+                  ...current[0],
+                  isRange: true,
+                  isAllDay: true,
+                  startTime: "",
+                  endTime: "",
+                  endDate: current[0].endDate ?? current[0].startDate,
+                },
+              ]);
+            }
+          }}
+          periodOptions={periodOptions}
+          parentEventId={event?.parentEventId}
+        />
 
         {/* One-time Event Dates */}
-        {eventType === "onetime" && (
+        {eventType !== "recurring" && (
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-harbour-700">Event Dates *</label>
-              <button
-                type="button"
-                onClick={addDate}
-                className="text-sm text-harbour-600 hover:text-harbour-700"
-              >
-                + Add Date
-              </button>
+              {eventType === "onetime" && (
+                <button
+                  type="button"
+                  onClick={addDate}
+                  className="text-sm text-harbour-600 hover:text-harbour-700"
+                >
+                  + Add Date
+                </button>
+              )}
             </div>
 
             <div className="space-y-4">
@@ -510,7 +513,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                 <div key={dateEntry.id} className="p-4 border border-harbour-200 bg-harbour-50/30">
                   <div className="flex items-start justify-between mb-3">
                     <span className="text-sm font-medium text-harbour-500">Date {index + 1}</span>
-                    {dates.length > 1 && (
+                    {eventType === "onetime" && dates.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeDate(dateEntry.id)}
@@ -538,7 +541,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         {formatInTimezone(dateEntry.startDate, "MMM d, yyyy")}
                       </button>
                       {activeDatePicker === `${dateEntry.id}-start` && (
-                        <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                        <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
                           <DayPicker
                             mode="single"
                             selected={dateEntry.startDate}
@@ -559,9 +562,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         <input
                           type="time"
                           value={dateEntry.startTime}
-                          onChange={(e) =>
-                            updateDate(dateEntry.id, { startTime: e.target.value })
-                          }
+                          onChange={(e) => updateDate(dateEntry.id, { startTime: e.target.value })}
                           className="w-full px-3 py-2 border border-harbour-200 bg-white"
                         />
                       </div>
@@ -573,6 +574,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                       <input
                         type="checkbox"
                         checked={dateEntry.isAllDay}
+                        disabled={eventType === "period"}
                         onChange={(e) =>
                           updateDate(dateEntry.id, {
                             isAllDay: e.target.checked,
@@ -585,12 +587,13 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         }
                         className="accent-harbour-600"
                       />
-                      All day (no specific time)
+                      {eventType === "period" ? "All-day date range" : "All day (no specific time)"}
                     </label>
                     <label className="flex items-center gap-2 text-sm text-harbour-600">
                       <input
                         type="checkbox"
                         checked={dateEntry.isRange}
+                        disabled={eventType === "period"}
                         onChange={(e) =>
                           updateDate(dateEntry.id, {
                             isRange: e.target.checked,
@@ -599,7 +602,11 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                         }
                         className="accent-harbour-600"
                       />
-                      {dateEntry.isAllDay ? "Spans multiple days" : "Has end time"}
+                      {eventType === "period"
+                        ? "End date required"
+                        : dateEntry.isAllDay
+                          ? "Spans multiple days"
+                          : "Has end time"}
                     </label>
                   </div>
 
@@ -640,7 +647,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                                   : "Select date"}
                               </button>
                               {activeDatePicker === `${dateEntry.id}-end` && (
-                                <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                                <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
                                   <DayPicker
                                     mode="single"
                                     selected={dateEntry.endDate || undefined}
@@ -674,8 +681,8 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                           </div>
                           {endIsBeforeStart && (
                             <p className="text-xs text-red-600 mt-1">
-                              End date{dateEntry.isAllDay ? "" : "/time"} is before the start
-                              date{dateEntry.isAllDay ? "" : "/time"}
+                              End date{dateEntry.isAllDay ? "" : "/time"} is before the start date
+                              {dateEntry.isAllDay ? "" : "/time"}
                             </p>
                           )}
                         </div>
@@ -874,7 +881,7 @@ export function EventForm({ event, error, showPublish, showUnpublish }: EventFor
                   </button>
                 )}
                 {showRecurrenceEndPicker && (
-                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200 shadow-lg">
+                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
                     <DayPicker
                       mode="single"
                       selected={recurrenceEndDate || undefined}

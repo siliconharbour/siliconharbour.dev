@@ -2,6 +2,7 @@ import type { Route } from "./+types/detail";
 import { Link, useLoaderData } from "react-router";
 import {
   getPublicEventBySlug,
+  getEventRelations,
   getEventWithOccurrences,
   type EventOccurrenceDisplay,
 } from "~/lib/events.server";
@@ -14,8 +15,10 @@ import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.se
 import { getOptionalUser } from "~/lib/session.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
+import { EventCard } from "~/components/EventCard";
 import { formatInTimezone } from "~/lib/timezone";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
+import { eventTagColorStyles } from "~/lib/event-tags";
 
 export function meta({ data, params }: Route.MetaArgs) {
   const event = data?.event;
@@ -68,6 +71,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
 
+  const eventWithRelations = await getEventRelations(event);
   const resolvedRefs = await prepareRefsForClient(event.description);
   const backlinks = await getDetailedBacklinks("event", event.id);
   const organizers = await resolveOrganizers(event.organizer);
@@ -87,7 +91,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   }
 
   return {
-    event,
+    event: eventWithRelations,
     resolvedRefs,
     backlinks,
     occurrences,
@@ -144,6 +148,7 @@ export default function EventDetail() {
     organizers,
   } = useLoaderData<typeof loader>();
   const isRecurring = !!event.recurrenceRule;
+  const isPeriod = event.timeMode === "period";
   const eventLinkDomain = getEventLinkDomain(event.link);
 
   return (
@@ -168,6 +173,17 @@ export default function EventDetail() {
         >
           {/* Event info card with ring border */}
           <div className="bg-white p-4 ring-1 ring-harbour-200/50 flex flex-col gap-4">
+            {event.parentEvent && (
+              <p className="text-sm text-harbour-500">
+                Part of{" "}
+                <Link
+                  to={`/events/${event.parentEvent.slug}`}
+                  className="font-medium text-harbour-600 hover:text-harbour-700"
+                >
+                  {event.parentEvent.title}
+                </Link>
+              </p>
+            )}
             {/* Title with icon */}
             <div className="flex items-start gap-4">
               {event.iconImage && (
@@ -205,6 +221,18 @@ export default function EventDetail() {
                   )}
                 </div>
                 {organizers.length > 0 && <OrganizerLinks organizers={organizers} />}
+                {event.tags && event.tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {event.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className={`px-1.5 py-0.5 text-xs ${eventTagColorStyles[tag.color]}`}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -225,10 +253,9 @@ export default function EventDetail() {
                 <span className="text-harbour-600">{recurrenceDescription}</span>
               </div>
             )}
-
             {/* When */}
             <div className="flex gap-2">
-              <span className="text-harbour-500">When:</span>
+              <span className="text-harbour-500">{isPeriod ? "Runs from:" : "When:"}</span>
               <div className="flex flex-col gap-1">
                 {isRecurring ? (
                   occurrences.length > 0 ? (
@@ -312,7 +339,9 @@ export default function EventDetail() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors self-start"
             >
-              {event.requiresSignup ? "Signup for" : "View"} event on {eventLinkDomain}
+              {isPeriod
+                ? `Visit on ${eventLinkDomain}`
+                : `${event.requiresSignup ? "Signup for" : "View"} event on ${eventLinkDomain}`}
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -328,6 +357,17 @@ export default function EventDetail() {
           <div className="prose">
             <RichMarkdown content={event.description} resolvedRefs={resolvedRefs} />
           </div>
+
+          {event.childEvents.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <h2 className="text-lg font-semibold text-harbour-700">Schedule</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {event.childEvents.map((child) => (
+                  <EventCard key={child.id} event={child} />
+                ))}
+              </div>
+            </section>
+          )}
 
           <ReferencedBy backlinks={backlinks} />
         </div>
