@@ -13,7 +13,7 @@ export function getEventStatusLabel(event: TimedEvent): string | null {
   const state = getEventTimingState(event.dates);
   if (state === "earlier-today") return "Earlier today";
   if (event.timeMode !== "period") return null;
-  return state === "active" ? "Happening now" : "Time period";
+  return state === "active" ? "Happening now" : null;
 }
 
 export function isActivePeriod(event: TimedEvent): boolean {

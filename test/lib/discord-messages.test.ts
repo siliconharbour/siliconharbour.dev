@@ -162,7 +162,8 @@ describe("buildEventsMessage", () => {
       ],
     });
     const result = buildEventsMessage([event]);
-    expect(JSON.stringify(result)).toContain("Sep 12 - Sep 26, 2026 · Time period");
+    expect(JSON.stringify(result)).toContain("Sep 12 - Sep 26, 2026");
+    expect(JSON.stringify(result)).not.toContain("Time period");
   });
 
   it("multiple events have separators between them", () => {

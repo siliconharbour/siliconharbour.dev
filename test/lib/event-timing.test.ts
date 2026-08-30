@@ -62,13 +62,13 @@ describe("event display", () => {
     );
   });
 
-  it("labels an upcoming period", () => {
+  it("does not add a redundant label to an upcoming period", () => {
     const dates = [date("2026-09-12T05:00:00Z", "2026-09-26T05:00:00Z")];
     expect(
       getEventStatusLabel({
         timeMode: "period",
         dates,
       }),
-    ).toBe("Time period");
+    ).toBeNull();
   });
 });

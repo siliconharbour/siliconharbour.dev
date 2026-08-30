@@ -240,14 +240,6 @@ export default function EventDetail() {
                 <span className="text-harbour-600">{recurrenceDescription}</span>
               </div>
             )}
-            {isPeriod && (
-              <div>
-                <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700">
-                  Time period
-                </span>
-              </div>
-            )}
-
             {/* When */}
             <div className="flex gap-2">
               <span className="text-harbour-500">{isPeriod ? "Runs from:" : "When:"}</span>

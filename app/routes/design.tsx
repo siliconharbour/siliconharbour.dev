@@ -71,7 +71,7 @@ export default function DesignSystem() {
               </span>
               <h3 className="font-medium text-harbour-700">GUMP Jam 3: Computer Lab</h3>
               <p className="text-sm text-harbour-600">September 12 - September 26, 2026</p>
-              <p className="text-sm text-harbour-400">Time period · Online</p>
+              <p className="text-sm text-harbour-400">Online</p>
             </div>
             <div className="border border-harbour-200 bg-white p-4 flex flex-col gap-2">
               <span className="self-start text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">

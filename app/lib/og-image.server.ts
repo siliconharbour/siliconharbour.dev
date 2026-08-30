@@ -457,7 +457,7 @@ export function prepareEventOGData(event: {
     date: dateStr,
     subtitle:
       event.timeMode === "period"
-        ? ["Time period", event.location].filter(Boolean).join(" · ")
+        ? event.location || undefined
         : event.location || undefined,
     coverImagePath: event.coverImage || undefined,
     type: "event",
