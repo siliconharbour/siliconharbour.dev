@@ -112,8 +112,7 @@ export default function Home() {
             {/* Main content */}
             <div className="lg:col-span-2 flex flex-col gap-8">
               {visibility.events && activePeriods.length > 0 && (
-                <section className="flex flex-col gap-4">
-                  <h2 className="text-lg font-semibold text-green-700">Happening now</h2>
+                <section aria-label="Happening now">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {activePeriods.map((event) => (
                       <EventCard
