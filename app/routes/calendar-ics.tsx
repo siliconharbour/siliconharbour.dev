@@ -112,7 +112,7 @@ export async function loader({}: Route.LoaderArgs) {
         endOutputType: "local",
         status: "CONFIRMED" as const,
         transp: "TRANSPARENT" as const,
-        categories: ["Tech", "Community"],
+        categories: ["Tech", "Community", ...(event.tags?.map((tag) => tag.name) ?? [])],
         created: toDateArray(event.createdAt),
         lastModified: toDateArray(event.updatedAt),
         uid: `event-${event.id}@siliconharbour.dev`,
@@ -156,7 +156,7 @@ export async function loader({}: Route.LoaderArgs) {
           endOutputType: "utc",
           status: "CONFIRMED" as const,
           transp: "TRANSPARENT" as const,
-          categories: ["Tech", "Community"],
+          categories: ["Tech", "Community", ...(event.tags?.map((tag) => tag.name) ?? [])],
           uid: `event-${event.id}-override-${occDateStr.replace(/-/g, "")}@siliconharbour.dev`,
         };
 
@@ -184,7 +184,7 @@ export async function loader({}: Route.LoaderArgs) {
           start: toDateArray(startDate),
           status: "CONFIRMED" as const,
           transp: "TRANSPARENT" as const,
-          categories: ["Tech", "Community"],
+          categories: ["Tech", "Community", ...(event.tags?.map((tag) => tag.name) ?? [])],
           created: toDateArray(event.createdAt),
           lastModified: toDateArray(event.updatedAt),
           uid: `${event.id}-${date.id}@siliconharbour.dev`,

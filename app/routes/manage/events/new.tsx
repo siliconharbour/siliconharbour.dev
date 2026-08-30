@@ -13,6 +13,7 @@ import {
   parseOneTimeEventDates,
 } from "~/lib/admin/manage-schemas";
 import { validatePeriodDates } from "~/lib/event-timing";
+import { getEventTags } from "~/lib/event-tags.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Event - siliconharbour.dev" }];
@@ -20,13 +21,15 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAuth(request);
-  return { periodOptions: await getPeriodOptions() };
+  const [periodOptions, availableTags] = await Promise.all([getPeriodOptions(), getEventTags()]);
+  return { periodOptions, availableTags };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAuth(request);
 
   const formData = await request.formData();
+  const tagIds = formData.getAll("tagIds").map(Number).filter(Number.isInteger);
   const parsedBase = parseEventBaseForm(formData);
   if (!parsedBase.success) {
     return actionError(parsedBase.error);
@@ -78,6 +81,7 @@ export async function action({ request }: Route.ActionArgs) {
           defaultEndTime: parsedRecurring.data.defaultEndTime,
         },
         [], // No explicit dates for recurring events
+        tagIds,
       );
     } else {
       const parsedDates = parseOneTimeEventDates(formData);
@@ -101,6 +105,7 @@ export async function action({ request }: Route.ActionArgs) {
           parentEventId: parsedBase.data.parentEventId,
         },
         parsedDates.data,
+        tagIds,
       );
     }
   } catch (error) {
@@ -112,7 +117,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function NewEvent() {
   const actionData = useActionData<typeof action>();
-  const { periodOptions } = useLoaderData<typeof loader>();
+  const { periodOptions, availableTags } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -125,7 +130,11 @@ export default function NewEvent() {
 
         <h1 className="text-2xl font-semibold text-harbour-700">New Event</h1>
 
-        <EventForm error={actionData?.error} periodOptions={periodOptions} />
+        <EventForm
+          error={actionData?.error}
+          periodOptions={periodOptions}
+          availableTags={availableTags}
+        />
       </div>
     </div>
   );

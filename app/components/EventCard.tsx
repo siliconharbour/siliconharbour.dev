@@ -1,9 +1,10 @@
 import { Link } from "react-router";
-import type { Event, EventDate } from "~/db/schema";
+import type { Event, EventDate, EventTag } from "~/db/schema";
 import { RichMarkdown, type ResolvedRef } from "./RichMarkdown";
 import { formatInTimezone } from "~/lib/timezone";
 import { formatEventPeriodRange, getEventStatusLabel } from "~/lib/event-display";
 import { getEventTimingState } from "~/lib/event-timing";
+import { eventTagColorStyles } from "~/lib/event-tags";
 
 type EventCardProps = {
   event: Pick<
@@ -18,7 +19,7 @@ type EventCardProps = {
     | "iconImage"
     | "recurrenceRule"
     | "timeMode"
-  > & { dates: EventDate[] };
+  > & { dates: EventDate[]; tags?: EventTag[] };
   variant?: "featured" | "default" | "compact";
   resolvedRefs?: Record<string, ResolvedRef>;
   linkedEvents?: Array<Pick<Event, "id" | "slug" | "title"> & { dates: EventDate[] }>;
@@ -187,7 +188,7 @@ export function EventCard({
                 </div>
               )}
               <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-semibold text-lg leading-tight text-harbour-700 group-hover:text-harbour-600">
                     {event.title}
                   </h3>
@@ -196,6 +197,14 @@ export function EventCard({
                       Recurring
                     </span>
                   )}
+                  {event.tags?.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className={`px-1.5 py-0.5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
                   {periodLabel && (
                     <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
                       {periodLabel}
@@ -281,6 +290,14 @@ export function EventCard({
                     {periodLabel}
                   </span>
                 )}
+                {event.tags?.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className={`self-start px-1.5 py-0.5 text-xs ${eventTagColorStyles[tag.color]}`}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-harbour-500">
                   {event.recurrenceRule && (
                     <span className="text-harbour-400">
@@ -337,7 +354,7 @@ export function EventCard({
               </div>
             )}
             <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold text-base leading-tight text-harbour-700 group-hover:text-harbour-600">
                   {event.title}
                 </h3>
@@ -346,6 +363,14 @@ export function EventCard({
                     Recurring
                   </span>
                 )}
+                {event.tags?.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className={`px-1.5 py-0.5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
                 {periodLabel && (
                   <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
                     {periodLabel}

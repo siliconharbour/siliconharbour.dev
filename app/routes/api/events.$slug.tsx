@@ -5,6 +5,7 @@ import { and, eq, asc, or, isNull } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 import { eventRecurrence } from "~/lib/events-api.server";
+import { getTagsForEvents } from "~/lib/event-tags.server";
 
 const mapEvent = async (event: typeof events.$inferSelect) => {
   const dates = await db
@@ -12,6 +13,7 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
     .from(eventDates)
     .where(eq(eventDates.eventId, event.id))
     .orderBy(asc(eventDates.startDate));
+  const tags = (await getTagsForEvents([event.id])).get(event.id) ?? [];
   const parent = event.parentEventId
     ? await db
         .select()
@@ -35,6 +37,7 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
     coverImage: imageUrl(event.coverImage),
     timeMode: event.timeMode,
     parentEventId: event.parentEventId,
+    tags,
     parent: parent ? { id: parent.id, slug: parent.slug, title: parent.title } : null,
     schedule: children,
     dates: dates.map((d) => ({

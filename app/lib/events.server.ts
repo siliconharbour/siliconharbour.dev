@@ -9,6 +9,7 @@ import {
   type NewEventDate,
   type EventOccurrence,
   type NewEventOccurrence,
+  type EventTag,
 } from "~/db/schema";
 import { eq, gte, and, lte, lt, asc, desc, isNull, or, inArray } from "drizzle-orm";
 import { deleteImage } from "./images.server";
@@ -26,8 +27,9 @@ import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { addDays, startOfDay } from "date-fns";
 import { siteDayBounds, validatePeriodDates } from "./event-timing";
 import { assertValidEventStructure } from "./event-periods.server";
+import { getTagsForEvents, setEventTags, validateEventTagIds } from "./event-tags.server";
 
-export type EventWithDates = Event & { dates: EventDate[] };
+export type EventWithDates = Event & { dates: EventDate[]; tags?: EventTag[] };
 export type EventSummary = Pick<Event, "id" | "slug" | "title" | "timeMode">;
 export type EventWithRelations = EventWithDates & {
   parentEvent: EventSummary | null;
@@ -46,13 +48,18 @@ async function attachDates(eventList: Event[]): Promise<EventWithDates[]> {
     .from(eventDates)
     .where(inArray(eventDates.eventId, ids))
     .orderBy(asc(eventDates.startDate));
+  const tagsByEvent = await getTagsForEvents(ids);
   const datesByEvent = new Map<number, EventDate[]>();
   for (const d of allDates) {
     const list = datesByEvent.get(d.eventId) ?? [];
     list.push(d);
     datesByEvent.set(d.eventId, list);
   }
-  return eventList.map((event) => ({ ...event, dates: datesByEvent.get(event.id) ?? [] }));
+  return eventList.map((event) => ({
+    ...event,
+    dates: datesByEvent.get(event.id) ?? [],
+    tags: tagsByEvent.get(event.id) ?? [],
+  }));
 }
 
 /** Filter: show manually-created events (importStatus IS NULL) and published imports */
@@ -124,7 +131,9 @@ export async function generateEventSlug(title: string, excludeId?: number): Prom
 export async function createEvent(
   event: Omit<NewEvent, "slug">,
   dates: Omit<NewEventDate, "eventId">[],
+  tagIds: number[] = [],
 ): Promise<EventWithDates> {
+  await validateEventTagIds(tagIds);
   const validationError = validatePeriodDates(event.timeMode ?? "scheduled", dates);
   if (validationError) throw new Error(validationError);
   await assertValidEventStructure({
@@ -154,15 +163,19 @@ export async function createEvent(
 
   // Sync organizer references
   await syncOrganizerReferences(newEvent.id, newEvent.organizer);
+  await setEventTags(newEvent.id, tagIds);
 
-  return { ...newEvent, dates: newDates };
+  const tags = (await getTagsForEvents([newEvent.id])).get(newEvent.id) ?? [];
+  return { ...newEvent, dates: newDates, tags };
 }
 
 export async function updateEvent(
   id: number,
   event: Partial<Omit<NewEvent, "slug">>,
   dates?: Omit<NewEventDate, "eventId">[],
+  tagIds?: number[],
 ): Promise<EventWithDates | null> {
+  if (tagIds !== undefined) await validateEventTagIds(tagIds);
   const current = await db.select().from(events).where(eq(events.id, id)).get();
   if (!current) return null;
   const nextTimeMode = event.timeMode ?? current.timeMode;
@@ -196,6 +209,7 @@ export async function updateEvent(
   if (event.organizer !== undefined) {
     await syncOrganizerReferences(id, event.organizer);
   }
+  if (tagIds !== undefined) await setEventTags(id, tagIds);
 
   if (dates) {
     // Delete existing dates and insert new ones
@@ -211,12 +225,14 @@ export async function updateEvent(
       }),
     );
 
-    return { ...updated, dates: newDates };
+    const tags = (await getTagsForEvents([id])).get(id) ?? [];
+    return { ...updated, dates: newDates, tags };
   }
 
   const existingDates = await db.select().from(eventDates).where(eq(eventDates.eventId, id));
 
-  return { ...updated, dates: existingDates };
+  const tags = (await getTagsForEvents([id])).get(id) ?? [];
+  return { ...updated, dates: existingDates, tags };
 }
 
 export async function deleteEvent(id: number): Promise<boolean> {
@@ -245,7 +261,8 @@ export async function getEventById(id: number): Promise<EventWithDates | null> {
     .where(eq(eventDates.eventId, id))
     .orderBy(asc(eventDates.startDate));
 
-  return { ...event, dates };
+  const tags = (await getTagsForEvents([id])).get(id) ?? [];
+  return { ...event, dates, tags };
 }
 
 export async function getEventBySlug(slug: string): Promise<EventWithDates | null> {
@@ -258,7 +275,8 @@ export async function getEventBySlug(slug: string): Promise<EventWithDates | nul
     .where(eq(eventDates.eventId, event.id))
     .orderBy(asc(eventDates.startDate));
 
-  return { ...event, dates };
+  const tags = (await getTagsForEvents([event.id])).get(event.id) ?? [];
+  return { ...event, dates, tags };
 }
 
 export async function getEventRelations(event: EventWithDates): Promise<EventWithRelations> {

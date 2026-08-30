@@ -400,6 +400,13 @@
       "when": 1768740000000,
       "tag": "0056_add_event_periods",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1768741000000,
+      "tag": "0057_add_event_tags",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,13 @@ import {
   getEventById as getEventByIdRecord,
   getEventBySlug as getEventBySlugRecord,
 } from "~/lib/events.server";
+import {
+  createEventTag as createEventTagRecord,
+  deleteEventTag as deleteEventTagRecord,
+  getEventTagIdsBySlugs,
+  getEventTagsWithUsage,
+  updateEventTag as updateEventTagRecord,
+} from "~/lib/event-tags.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 import {
   getPaginatedNews,
@@ -375,7 +382,16 @@ const EventCreateSchema = z.object({
   requiresSignup: z.boolean().optional(),
   timeMode: z.enum(["scheduled", "period"]).optional(),
   parentEventId: z.number().int().positive().nullable().optional(),
+  eventTags: z.array(z.string().min(1)).optional(),
 });
+
+const EventTagSaveSchema = z.object({
+  id: z.number().int().positive().optional(),
+  name: z.string().min(1),
+  color: z.enum(["harbour", "green", "amber", "red", "purple"]),
+});
+
+const EventTagDeleteSchema = z.object({ id: z.number().int().positive() });
 
 const JobCreateSchema = z.object({
   type: z.literal("job"),
@@ -549,6 +565,7 @@ const UpdateEntitySchema = z.discriminatedUnion("type", [
     requiresSignup: z.boolean().optional(),
     timeMode: z.enum(["scheduled", "period"]).optional(),
     parentEventId: z.number().int().positive().nullable().optional(),
+    eventTags: z.array(z.string().min(1)).optional(),
     importStatus: z
       .enum(["pending_review", "approved", "published", "hidden", "removed"])
       .optional(),
@@ -1167,6 +1184,39 @@ export function buildExecuteFunctions(): HostFunctions {
       },
     ),
 
+    eventTags: host(
+      "eventTags()",
+      "List configured event tags, their colour token, and the number of assigned events.",
+      "lookup",
+      async () => toPlain(await getEventTagsWithUsage()),
+    ),
+
+    saveEventTag: host(
+      "saveEventTag({ id?, name, color })",
+      "Create an event tag, or update one when id is supplied. Colours: harbour, green, amber, red, purple.",
+      "creation",
+      async (opts: unknown) => {
+        const o = EventTagSaveSchema.parse(opts ?? {});
+        if (o.id) {
+          await updateEventTagRecord(o.id, o.name, o.color);
+          return { saved: true, id: o.id };
+        }
+        const tag = await createEventTagRecord(o.name, o.color);
+        return toPlain({ saved: true, tag });
+      },
+    ),
+
+    deleteEventTag: host(
+      "deleteEventTag({ id })",
+      "Delete an event tag and its event assignments. Events are not deleted.",
+      "creation",
+      async (opts: unknown) => {
+        const o = EventTagDeleteSchema.parse(opts ?? {});
+        await deleteEventTagRecord(o.id);
+        return { deleted: true, id: o.id };
+      },
+    ),
+
     listImporterTypes: host(
       "listImporterTypes()",
       "Return the name, approach, reliability, and quirks for every job importer type, including greenhouse, ashby, workday, bamboohr, lever, and custom.",
@@ -1490,6 +1540,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 importStatus: "pending_review",
               },
               [{ startDate, endDate, isAllDay }],
+              await getEventTagIdsBySlugs(o.eventTags ?? []),
             );
             return toPlain({
               created: true,
@@ -1836,6 +1887,7 @@ export function buildExecuteFunctions(): HostFunctions {
             let parsedDates:
               | { startDate: Date; endDate: Date | null; isAllDay: boolean }[]
               | undefined;
+            let tagIds: number[] | undefined;
             for (const [key, value] of Object.entries(o)) {
               if (key === "type" || key === "id") continue;
               if (value === undefined) continue;
@@ -1863,18 +1915,26 @@ export function buildExecuteFunctions(): HostFunctions {
                 });
                 continue;
               }
+              if (key === "eventTags") {
+                tagIds = await getEventTagIdsBySlugs(value as string[]);
+                continue;
+              }
               if (typeof value === "string") {
                 updates[key] = value.trim() || null;
               } else {
                 updates[key] = value;
               }
             }
-            if (Object.keys(updates).length === 0 && !parsedDates) {
+            if (Object.keys(updates).length === 0 && !parsedDates && !tagIds) {
               return { updated: false, type: "event", message: "No fields to update" };
             }
-            const updated = await updateEventRecord(o.id, updates, parsedDates);
+            const updated = await updateEventRecord(o.id, updates, parsedDates, tagIds);
             if (!updated) throw new Error(`Event ${o.id} not found`);
-            const summary = [...Object.keys(updates), ...(parsedDates ? ["dates"] : [])].join(", ");
+            const summary = [
+              ...Object.keys(updates),
+              ...(parsedDates ? ["dates"] : []),
+              ...(tagIds ? ["eventTags"] : []),
+            ].join(", ");
             return {
               updated: true,
               type: "event",

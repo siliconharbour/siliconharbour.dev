@@ -4,13 +4,14 @@ import { Form } from "react-router";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
 import { ImageCropper } from "./ImageCropper";
-import type { Event, EventDate } from "~/db/schema";
+import type { Event, EventDate, EventTag } from "~/db/schema";
 import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/timezone";
 import { EventTimingFields, type EventFormTiming } from "./EventTimingFields";
 
 type EventFormProps = {
-  event?: Event & { dates: EventDate[] };
+  event?: Event & { dates: EventDate[]; tags?: EventTag[] };
   periodOptions?: Array<Pick<Event, "id" | "title">>;
+  availableTags?: EventTag[];
   error?: string;
   showPublish?: boolean;
   showUnpublish?: boolean;
@@ -87,6 +88,7 @@ function parseRecurrenceRule(rule: string | null): {
 export function EventForm({
   event,
   periodOptions = [],
+  availableTags = [],
   error,
   showPublish,
   showUnpublish,
@@ -317,6 +319,29 @@ export function EventForm({
             className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
           />
         </div>
+
+        {availableTags.length > 0 && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="text-sm font-medium text-harbour-700">Tags (optional)</legend>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map((tag) => (
+                <label
+                  key={tag.id}
+                  className="flex cursor-pointer items-center gap-2 border border-harbour-200 bg-white px-3 py-2 text-sm text-harbour-700 hover:border-harbour-300"
+                >
+                  <input
+                    type="checkbox"
+                    name="tagIds"
+                    value={tag.id}
+                    defaultChecked={event?.tags?.some((assigned) => assigned.id === tag.id)}
+                    className="h-4 w-4 border-harbour-300 text-harbour-600 focus:ring-harbour-500"
+                  />
+                  {tag.name}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         {/* Organizer */}
         <EntityPicker

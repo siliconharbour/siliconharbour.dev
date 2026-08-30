@@ -5,6 +5,7 @@ import { asc, count, eq, isNull, or } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createPaginatedApiLoader } from "~/lib/api-route.server";
 import { eventRecurrence } from "~/lib/events-api.server";
+import { getTagsForEvents } from "~/lib/event-tags.server";
 
 // Public-safe filter: manual events (importStatus IS NULL) or published imports.
 // Excludes imports awaiting review, hidden, or otherwise non-public.
@@ -22,6 +23,7 @@ export const loader = createPaginatedApiLoader({
       .offset(offset);
 
     const eventIds = eventsPage.map((event) => event.id);
+    const tagsByEvent = await getTagsForEvents(eventIds);
     const allDates =
       eventIds.length > 0
         ? await db.select().from(eventDates).orderBy(asc(eventDates.startDate))
@@ -47,6 +49,7 @@ export const loader = createPaginatedApiLoader({
       coverImage: imageUrl(event.coverImage),
       timeMode: event.timeMode,
       parentEventId: event.parentEventId,
+      tags: tagsByEvent.get(event.id) ?? [],
       dates: (datesMap.get(event.id) || []).map((date) => ({
         startDate: date.startDate.toISOString(),
         endDate: date.endDate?.toISOString() || null,

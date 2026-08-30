@@ -18,6 +18,7 @@ import { ReferencedBy } from "~/components/ReferencedBy";
 import { EventCard } from "~/components/EventCard";
 import { formatInTimezone } from "~/lib/timezone";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
+import { eventTagColorStyles } from "~/lib/event-tags";
 
 export function meta({ data, params }: Route.MetaArgs) {
   const event = data?.event;
@@ -220,6 +221,18 @@ export default function EventDetail() {
                   )}
                 </div>
                 {organizers.length > 0 && <OrganizerLinks organizers={organizers} />}
+                {event.tags && event.tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {event.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className={`px-1.5 py-0.5 text-xs ${eventTagColorStyles[tag.color]}`}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

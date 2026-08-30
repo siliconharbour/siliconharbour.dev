@@ -17,6 +17,7 @@ import { validatePeriodDates } from "~/lib/event-timing";
 import { db } from "~/db";
 import { eq } from "drizzle-orm";
 import { events as eventsTable } from "~/db/schema";
+import { getEventTags } from "~/lib/event-tags.server";
 
 export function meta({ data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.event?.title || "Event"} - siliconharbour.dev` }];
@@ -32,7 +33,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Event not found", { status: 404 });
   }
 
-  return { event, periodOptions: await getPeriodOptions(event.id) };
+  const [periodOptions, availableTags] = await Promise.all([
+    getPeriodOptions(event.id),
+    getEventTags(),
+  ]);
+  return { event, periodOptions, availableTags };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -48,6 +53,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const formData = await request.formData();
+  const tagIds = formData.getAll("tagIds").map(Number).filter(Number.isInteger);
   const intent = formData.get("intent") as string | null;
   const parsedBase = parseEventBaseForm(formData);
   if (!parsedBase.success) {
@@ -113,6 +119,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           defaultEndTime: parsedRecurring.data.defaultEndTime,
         },
         [], // Clear explicit dates for recurring events
+        tagIds,
       );
     } else {
       const parsedDates = parseOneTimeEventDates(formData);
@@ -143,6 +150,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           defaultEndTime: null,
         },
         parsedDates.data,
+        tagIds,
       );
     }
   } catch (error) {
@@ -173,7 +181,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditEvent() {
-  const { event, periodOptions } = useLoaderData<typeof loader>();
+  const { event, periodOptions, availableTags } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const isRecurring = !!event.recurrenceRule;
   // Visibility rule: importStatus IS NULL OR = 'published'. Anything else
@@ -221,6 +229,7 @@ export default function EditEvent() {
         <EventForm
           event={event}
           periodOptions={periodOptions}
+          availableTags={availableTags}
           error={actionData?.error}
           showPublish={isHiddenFromPublic}
           showUnpublish={isPublished}
