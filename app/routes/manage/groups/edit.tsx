@@ -1,7 +1,7 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { z } from "zod";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getGroupById, updateGroup } from "~/lib/groups.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
@@ -21,7 +21,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseIdOrThrow(params.id, "group");
 
@@ -34,7 +34,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const parsedId = parseIdOrError(params.id, "group");
   if ("error" in parsedId) return parsedId;

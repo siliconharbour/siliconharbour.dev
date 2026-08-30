@@ -1,6 +1,6 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { createEvent } from "~/lib/events.server";
 import { getPeriodOptions } from "~/lib/event-periods.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
@@ -20,13 +20,13 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const [periodOptions, availableTags] = await Promise.all([getPeriodOptions(), getEventTags()]);
   return { periodOptions, availableTags };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const tagIds = formData.getAll("tagIds").map(Number).filter(Number.isInteger);

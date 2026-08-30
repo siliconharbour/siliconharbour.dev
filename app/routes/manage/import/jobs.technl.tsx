@@ -1,6 +1,6 @@
 import type { Route } from "./+types/jobs.technl";
 import { Link, useLoaderData, useFetcher } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { fetchTechNLJobsWithMatches } from "~/lib/technl-jobs.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -8,7 +8,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   try {
     const result = await fetchTechNLJobsWithMatches();
     return { ...result, error: null as string | null };
@@ -22,7 +22,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   // The page intentionally has no DB-mutating actions. The "Refresh" button
   // re-runs the loader, which re-fetches the live RSS feed; we don't store
   // anything on our side because TechNL is the source of truth.

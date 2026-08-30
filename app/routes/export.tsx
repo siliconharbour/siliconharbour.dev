@@ -14,12 +14,12 @@ import {
 } from "~/db/schema";
 import { asc, desc } from "drizzle-orm";
 import { format } from "date-fns";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const zip = new JSZip();
 
   // Fetch all data

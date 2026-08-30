@@ -2,7 +2,7 @@ import type { Route } from "./+types/news.new";
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import { redirect } from "react-router";
 import { z } from "zod";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { createNewsImportSource } from "~/lib/news-importers/sync.server";
 import {
   newsSourceTypes,
@@ -19,7 +19,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   return null;
 }
 
@@ -60,7 +60,7 @@ function matchesKeywords(
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent");

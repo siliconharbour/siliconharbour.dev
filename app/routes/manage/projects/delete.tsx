@@ -1,6 +1,6 @@
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getProjectById, deleteProject, getProjectImages } from "~/lib/projects.server";
 import { deleteImage } from "~/lib/images.server";
 import { parseIdOrThrow } from "~/lib/admin/route";
@@ -11,7 +11,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseIdOrThrow(params.id, "project");
 
@@ -24,7 +24,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseIdOrThrow(params.id, "project");
 

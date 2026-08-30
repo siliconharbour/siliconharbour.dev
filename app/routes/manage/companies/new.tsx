@@ -1,6 +1,6 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { createCompany } from "~/lib/companies.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
@@ -14,12 +14,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   return null;
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const parsed = parseCompanyForm(formData);

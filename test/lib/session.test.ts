@@ -3,7 +3,13 @@ import { db } from "~/db";
 import { users, sessions } from "~/db/schema";
 import { eq } from "drizzle-orm";
 import { hashPassword, createSession } from "~/lib/auth.server";
-import { sessionStorage, requireAuth, getOptionalUser, logout } from "~/lib/session.server";
+import {
+  sessionStorage,
+  requireAuth,
+  requireAdmin,
+  getOptionalUser,
+  logout,
+} from "~/lib/session.server";
 
 // =============================================================================
 // Helpers
@@ -95,6 +101,21 @@ describe("requireAuth", () => {
     expect(result.user.id).toBe(user.id);
     expect(result.user.email).toBe("test@example.com");
     expect(result.session.id).toBe(sessionId);
+  });
+
+  it("allows a valid non-admin session", async () => {
+    const user = await seedUser("regular@example.com", "password123", "regular");
+    const sessionId = await createSession(user.id);
+
+    const result = await requireAuth(await buildRequest(sessionId));
+    expect(result.user.role).toBe("regular");
+  });
+
+  it("rejects a valid non-admin session from admin surfaces", async () => {
+    const user = await seedUser("regular-admin@example.com", "password123", "regular");
+    const sessionId = await createSession(user.id);
+
+    await expect(requireAdmin(await buildRequest(sessionId))).rejects.toMatchObject({ status: 403 });
   });
 });
 

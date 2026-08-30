@@ -1,6 +1,6 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getEventById, updateEvent } from "~/lib/events.server";
 import { getPeriodOptions } from "~/lib/event-periods.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
@@ -24,7 +24,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseIdOrThrow(params.id, "event");
 
@@ -41,7 +41,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const parsedId = parseIdOrError(params.id, "event");
   if ("error" in parsedId) return parsedId;

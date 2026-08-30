@@ -1,7 +1,7 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { z } from "zod";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { createProduct } from "~/lib/products.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { processAndSaveCoverImage, processAndSaveIconImageWithPadding } from "~/lib/images.server";
@@ -17,13 +17,13 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const companies = await getAllCompanies();
   return { companies };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const schema = z.object({

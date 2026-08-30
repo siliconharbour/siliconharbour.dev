@@ -1,6 +1,6 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getEducationById, updateEducation } from "~/lib/education.server";
 import {
   processAndSaveCoverImage,
@@ -14,7 +14,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseInt(params.id, 10);
   if (isNaN(id)) {
@@ -30,7 +30,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseInt(params.id, 10);
   if (isNaN(id)) {

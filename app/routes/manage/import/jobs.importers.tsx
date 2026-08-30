@@ -1,6 +1,6 @@
 import type { Route } from "./+types/jobs.importers";
 import { Link, useLoaderData } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getAllImporterMeta } from "~/lib/job-importers/index";
 import type { ImporterReliability } from "~/lib/job-importers/types";
 
@@ -12,7 +12,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const importers = getAllImporterMeta();
   return { importers };
 }

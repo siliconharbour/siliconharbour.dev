@@ -1,6 +1,6 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useFetcher } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getAllNews, createNews } from "~/lib/news.server";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
@@ -18,7 +18,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
   const articles = await getAllNews();
@@ -34,7 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent");

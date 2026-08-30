@@ -1,7 +1,7 @@
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useEffect, useState, useCallback } from "react";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import {
   getHiddenPeople,
   updatePerson,
@@ -39,13 +39,13 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const people = await getHiddenPeople();
   return { people };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent") as string;

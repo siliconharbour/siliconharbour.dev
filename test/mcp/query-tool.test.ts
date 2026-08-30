@@ -42,4 +42,13 @@ describe("MCP query tool", () => {
       expect(typeof (parsed[0] as { name?: unknown }).name).toBe("string");
     }
   });
+
+  it("cannot smuggle a mutation helper through the public query sandbox", async () => {
+    const result = await runQuery(
+      'import { createEntity } from "siliconharbour"; export default await createEntity({ type: "company", name: "Unauthorized MCP Company" });',
+    );
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("createEntity");
+  });
 });

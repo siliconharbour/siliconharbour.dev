@@ -1,7 +1,7 @@
 import type { Route } from "./+types/jobs.$sourceId";
 import { Link, useLoaderData, useFetcher, redirect } from "react-router";
 import type { ReactNode } from "react";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import type { FetchedJob } from "~/lib/job-importers/types";
 import {
   getImportSourceWithStats,
@@ -202,7 +202,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const sourceId = Number(params.sourceId);
   if (!sourceId) {
@@ -220,7 +220,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const sourceId = Number(params.sourceId);
   const source = await getImportSourceWithStats(sourceId);

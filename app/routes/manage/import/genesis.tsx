@@ -1,6 +1,6 @@
 import type { Route } from "./+types/genesis";
 import { useLoaderData } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { scrapeGenesis } from "~/lib/scraper.server";
 import {
   buildDirectoryImportLoaderData,
@@ -43,12 +43,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   return buildDirectoryImportLoaderData(config);
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   return handleDirectoryImportAction(request, config);
 }
 

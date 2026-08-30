@@ -1,7 +1,7 @@
 import type { Route } from "./+types/github-by-location";
 import { useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { searchNewfoundlandUsers, getUserProfiles, fetchAvatar } from "~/lib/github.server";
 import type { GitHubUser, ImportProgress } from "~/lib/github.types";
 import {
@@ -34,7 +34,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   // Get existing people for duplicate detection
   const existingPeople = await getAllPeople(true); // include hidden
@@ -58,7 +58,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const intent = formData.get("intent");

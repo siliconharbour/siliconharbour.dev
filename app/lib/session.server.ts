@@ -36,6 +36,7 @@ export async function destroySession(session: Awaited<ReturnType<typeof getSessi
   return sessionStorage.destroySession(session);
 }
 
+/** Require a valid session, regardless of the user's role. */
 export async function requireAuth(request: Request, loginPath = "/manage/login") {
   const session = await getSession(request);
   const sessionId = session.get("sessionId");
@@ -53,6 +54,15 @@ export async function requireAuth(request: Request, loginPath = "/manage/login")
     });
   }
 
+  return result;
+}
+
+/** Require an administrator session for management and mutation surfaces. */
+export async function requireAdmin(request: Request, loginPath = "/manage/login") {
+  const result = await requireAuth(request, loginPath);
+  if (result.user.role !== "admin") {
+    throw new Response("Forbidden", { status: 403 });
+  }
   return result;
 }
 

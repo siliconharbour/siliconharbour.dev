@@ -1,6 +1,6 @@
 import type { Route } from "./+types/news.$sourceId";
 import { Link, redirect, useLoaderData, useFetcher } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import {
   getNewsSourceWithItems,
   deleteNewsImportSource,
@@ -91,7 +91,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const sourceId = Number(params.sourceId);
   if (!sourceId) throw new Response("Not Found", { status: 404 });
 
@@ -102,7 +102,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const sourceId = Number(params.sourceId);
   if (!sourceId) throw new Response("Not Found", { status: 404 });
 

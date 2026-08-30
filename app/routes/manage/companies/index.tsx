@@ -1,6 +1,6 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useSearchParams, Form } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import {
   getHiddenCompaniesCount,
   getVisibleCompaniesCount,
@@ -52,7 +52,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
   const missingParam = url.searchParams.get("missing") || "";
@@ -142,7 +142,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
 

@@ -19,7 +19,7 @@ import {
   getAllPendingNews,
   hideNewsItem,
 } from "~/lib/news-importers/sync.server";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { eq } from "drizzle-orm";
 import { formatInTimezone } from "~/lib/timezone";
 
@@ -28,7 +28,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const [pendingEvents, pendingNews, pendingJobs] = await Promise.all([
     getAllPendingEvents(),
     getAllPendingNews(),
@@ -38,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const formData = await request.formData();
   const kind = String(formData.get("kind"));
   const reviewAction = String(formData.get("action"));

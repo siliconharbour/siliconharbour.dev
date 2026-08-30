@@ -1,7 +1,7 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { z } from "zod";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getNewsById, updateNews } from "~/lib/news.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
@@ -28,7 +28,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseIdOrThrow(params.id, "article");
 
@@ -41,7 +41,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const parsedId = parseIdOrError(params.id, "article");
   if ("error" in parsedId) return parsedId;

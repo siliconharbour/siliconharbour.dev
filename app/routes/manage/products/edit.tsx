@@ -1,7 +1,7 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { z } from "zod";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getProductById, updateProduct } from "~/lib/products.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { processAndSaveCoverImage, processAndSaveIconImageWithPadding } from "~/lib/images.server";
@@ -18,7 +18,7 @@ export function meta({ data }: Route.MetaArgs) {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const id = parseIdOrThrow(params.id, "product");
 
@@ -33,7 +33,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const parsedId = parseIdOrError(params.id, "product");
   if ("error" in parsedId) return parsedId;

@@ -1,7 +1,7 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { z } from "zod";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { createJob } from "~/lib/jobs.server";
 import { db } from "~/db";
 import { companies } from "~/db/schema";
@@ -15,7 +15,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   // Get all companies for the dropdown
   const companyList = await db
@@ -27,7 +27,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const schema = z.object({

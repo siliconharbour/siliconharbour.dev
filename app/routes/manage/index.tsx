@@ -1,6 +1,6 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getAdminDashboardCounts } from "~/lib/admin-dashboard.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -8,7 +8,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const dashboard = await getAdminDashboardCounts();
   return dashboard;
 }

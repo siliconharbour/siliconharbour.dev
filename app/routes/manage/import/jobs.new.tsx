@@ -1,6 +1,6 @@
 import type { Route } from "./+types/jobs.new";
 import { Form, Link, useLoaderData, useActionData, useNavigation, redirect } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { createImportSource, getAllImportSources } from "~/lib/job-importers/sync.server";
 import { getImporter, getAvailableSourceTypes } from "~/lib/job-importers";
@@ -11,7 +11,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const [companies, existingSources] = await Promise.all([
     getAllCompanies(true),
@@ -35,7 +35,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const companyId = Number(formData.get("companyId"));

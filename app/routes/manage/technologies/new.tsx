@@ -1,6 +1,6 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { createTechnology } from "~/lib/technologies.server";
 import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 import { processAndSaveIconImage } from "~/lib/images.server";
@@ -11,12 +11,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   return { categories: technologyCategories, categoryLabels };
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
 

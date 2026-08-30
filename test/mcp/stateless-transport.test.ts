@@ -4,11 +4,14 @@ import { createSiliconHarbourHttpApp } from "~/mcp/http-app";
 import { db } from "~/db";
 import { oauthClients, oauthTokens, users } from "~/db/schema";
 
-async function createAccessToken(scopes = "mcp:read") {
-  const token = "test-access-token";
+async function createAccessToken(
+  scopes = "mcp:read",
+  role: "regular" | "admin" = "admin",
+) {
+  const token = `test-access-token-${role}-${scopes.replaceAll(" ", "-")}`;
   const [user] = await db
     .insert(users)
-    .values({ email: "admin@example.com", passwordHash: "unused", role: "admin" })
+    .values({ email: `${role}-${crypto.randomUUID()}@example.com`, passwordHash: "unused", role })
     .returning();
   await db.insert(oauthClients).values({
     id: "test-client",
@@ -143,6 +146,59 @@ describe("Silicon Harbour MCP stateless transport", () => {
       "search",
       "query",
     ]);
+  });
+
+  it.each([
+    ["an unauthenticated session", undefined],
+    ["a read-only OAuth session", "mcp:read"],
+  ])("does not let %s invoke the execute tool", async (_label, scopes) => {
+    const token = scopes ? await createAccessToken(scopes) : undefined;
+    const started = await startTestServer();
+    server = started.server;
+
+    const response = await fetch(`${started.baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "tools/call",
+        params: {
+          name: "execute",
+          arguments: {
+            code: "export default await createEntity({ type: 'company', name: 'Nope' })",
+          },
+        },
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    const body = await parseMcpResponse(response);
+    expect(body.error).toMatchObject({ code: -32602 });
+    expect(body.error.message).toContain("execute");
+  });
+
+  it("rejects a forged write-scoped token belonging to a regular account", async () => {
+    const token = await createAccessToken("mcp:read mcp:write", "regular");
+    const started = await startTestServer();
+    server = started.server;
+
+    const response = await fetch(`${started.baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toContain("invalid_token");
   });
 
   it("challenges invalid OAuth credentials with protected resource metadata", async () => {

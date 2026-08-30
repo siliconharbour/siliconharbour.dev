@@ -2,7 +2,7 @@ import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { useState } from "react";
 import { z } from "zod";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { createNews } from "~/lib/news.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
@@ -22,12 +22,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   return null;
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
 
   const formData = await request.formData();
   const itemType = (formData.get("type") as string) || "article";

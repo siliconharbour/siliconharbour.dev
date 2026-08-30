@@ -6,21 +6,21 @@ import {
   getOrphanedImagesState,
   stageOrphanedImagesBatch,
 } from "~/lib/image-orphans.server";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Orphaned Images - siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const url = new URL(request.url);
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
   return getOrphanedImagesState({ page });
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") || "scan");
 

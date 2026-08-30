@@ -1,6 +1,6 @@
 import type { Route } from "./+types/events";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getDiscordConfig } from "~/lib/config.server";
 import { listDestinations } from "~/lib/discord-destinations.server";
 import {
@@ -23,7 +23,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const [config, destinations, unpostedEvents, history] = await Promise.all([
     getDiscordConfig(),
     listDestinations("events"),
@@ -63,7 +63,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const formData = await request.formData();
   const intent = formData.get("intent");
   const config = await getDiscordConfig();

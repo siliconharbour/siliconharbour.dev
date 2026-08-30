@@ -1,6 +1,6 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
-import { requireAuth } from "~/lib/session.server";
+import { requireAdmin } from "~/lib/session.server";
 import { getPaginatedEducation } from "~/lib/education.server";
 import { SearchInput } from "~/components/SearchInput";
 
@@ -9,7 +9,7 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
   const { items: institutions } = await getPaginatedEducation(100, 0, searchQuery, true);

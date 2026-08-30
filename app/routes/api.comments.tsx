@@ -1,7 +1,19 @@
 import type { Route } from "./+types/api.comments";
 import { createComment, getCommentById, hashIP } from "~/lib/comments.server";
 import { verifyTurnstile, isTurnstileEnabled } from "~/lib/turnstile.server";
-import { contentTypes, type ContentType } from "~/db/schema";
+import { and, eq } from "drizzle-orm";
+import { db } from "~/db";
+import {
+  companies,
+  contentTypes,
+  education,
+  groups,
+  news,
+  products,
+  projects,
+  type ContentType,
+} from "~/db/schema";
+import { areCommentsEnabled } from "~/lib/config.server";
 import {
   checkRateLimit,
   cleanupExpiredRateLimits,
@@ -9,6 +21,60 @@ import {
   COMMENT_RATE_LIMIT,
   COMMENT_RATE_WINDOW,
 } from "~/lib/ratelimit.server";
+
+const commentSettingsByContentType = {
+  company: "companies",
+  group: "groups",
+  education: "education",
+  project: "projects",
+  product: "products",
+  news: "news",
+} as const satisfies Partial<Record<ContentType, Parameters<typeof areCommentsEnabled>[0]>>;
+
+async function isPublicCommentTarget(contentType: keyof typeof commentSettingsByContentType, id: number) {
+  switch (contentType) {
+    case "company":
+      return Boolean(
+        await db
+          .select({ id: companies.id })
+          .from(companies)
+          .where(and(eq(companies.id, id), eq(companies.visible, true)))
+          .get(),
+      );
+    case "group":
+      return Boolean(
+        await db
+          .select({ id: groups.id })
+          .from(groups)
+          .where(and(eq(groups.id, id), eq(groups.visible, true)))
+          .get(),
+      );
+    case "education":
+      return Boolean(
+        await db
+          .select({ id: education.id })
+          .from(education)
+          .where(and(eq(education.id, id), eq(education.visible, true)))
+          .get(),
+      );
+    case "project":
+      return Boolean(
+        await db.select({ id: projects.id }).from(projects).where(eq(projects.id, id)).get(),
+      );
+    case "product":
+      return Boolean(
+        await db.select({ id: products.id }).from(products).where(eq(products.id, id)).get(),
+      );
+    case "news":
+      return Boolean(
+        await db
+          .select({ id: news.id })
+          .from(news)
+          .where(and(eq(news.id, id), eq(news.status, "published")))
+          .get(),
+      );
+  }
+}
 
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
@@ -26,10 +92,21 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Invalid content type" };
   }
 
+  const commentSetting = commentSettingsByContentType[contentType as keyof typeof commentSettingsByContentType];
+  if (!commentSetting) {
+    return { error: "Comments are not available for this content type" };
+  }
+  if (!(await areCommentsEnabled(commentSetting))) {
+    return { error: "Comments are disabled for this content type" };
+  }
+
   // Validate content ID
   const contentId = parseInt(contentIdStr, 10);
   if (isNaN(contentId) || contentId <= 0) {
     return { error: "Invalid content ID" };
+  }
+  if (!(await isPublicCommentTarget(contentType as keyof typeof commentSettingsByContentType, contentId))) {
+    return { error: "Content not found" };
   }
 
   // Validate parent ID if provided (for replies)
