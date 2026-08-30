@@ -13,10 +13,7 @@ export function siteDayBounds(now: Date): { start: Date; end: Date } {
   };
 }
 
-export function getEventTimingState(
-  dates: EventDate[],
-  now = new Date(),
-): EventTimingState {
+export function getEventTimingState(dates: EventDate[], now = new Date()): EventTimingState {
   if (dates.length === 0) return "past";
   const { start: todayStart } = siteDayBounds(now);
   const firstStart = Math.min(...dates.map((date) => date.startDate.getTime()));

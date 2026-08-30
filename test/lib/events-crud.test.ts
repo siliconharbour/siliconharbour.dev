@@ -134,6 +134,19 @@ describe("createEvent", () => {
     ).rejects.toThrow(/only be part of a time period/i);
   });
 
+  it("does not change a period to a scheduled event while it has linked events", async () => {
+    const period = await createEvent(baseEvent({ title: "Linked Jam", timeMode: "period" }), [
+      { startDate: dateAt(1), endDate: dateAt(14) },
+    ]);
+    await createEvent(baseEvent({ title: "Linked Showcase", parentEventId: period.id }), [
+      { startDate: dateAt(15), endDate: null },
+    ]);
+
+    await expect(updateEvent(period.id, { timeMode: "scheduled" })).rejects.toThrow(
+      /move the linked events/i,
+    );
+  });
+
   it("persists the event with a generated slug and the supplied dates", async () => {
     const created = await createEvent(
       baseEvent({ title: "Software Meetup", description: "Monthly meetup" }),
@@ -172,6 +185,22 @@ describe("current event visibility", () => {
     const created = await createEvent(baseEvent({ title: "Earlier Today" }), [
       { startDate: earlierToday, endDate: null },
     ]);
+
+    const upcoming = await getUpcomingEvents();
+    expect(upcoming.map((event) => event.id)).toContain(created.id);
+  });
+
+  it("keeps a period that began before today and ended earlier today", async () => {
+    const { start } = siteDayBounds(new Date());
+    const created = await createEvent(
+      baseEvent({ title: "Period Ending Today", timeMode: "period" }),
+      [
+        {
+          startDate: new Date(start.getTime() - 24 * 60 * 60 * 1000),
+          endDate: start,
+        },
+      ],
+    );
 
     const upcoming = await getUpcomingEvents();
     expect(upcoming.map((event) => event.id)).toContain(created.id);

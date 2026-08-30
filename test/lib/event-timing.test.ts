@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getEventTimingState, validatePeriodDates } from "~/lib/event-timing";
+import { formatEventPeriodRange, getEventStatusLabel } from "~/lib/event-display";
 import type { EventDate } from "~/db/schema";
 
 function date(startDate: string, endDate: string | null = null): EventDate {
@@ -15,9 +16,7 @@ function date(startDate: string, endDate: string | null = null): EventDate {
 describe("event timing", () => {
   it("keeps a finished event current through the rest of its Newfoundland day", () => {
     const dates = [date("2026-08-29T16:30:00Z", "2026-08-29T17:30:00Z")];
-    expect(getEventTimingState(dates, new Date("2026-08-29T22:00:00Z"))).toBe(
-      "earlier-today",
-    );
+    expect(getEventTimingState(dates, new Date("2026-08-29T22:00:00Z"))).toBe("earlier-today");
   });
 
   it("moves an event to past at Newfoundland midnight", () => {
@@ -53,5 +52,23 @@ describe("period validation", () => {
         },
       ]),
     ).toBeNull();
+  });
+});
+
+describe("event display", () => {
+  it("formats one shared period range for cards and feeds", () => {
+    expect(formatEventPeriodRange(date("2026-09-12T14:30:00Z", "2026-09-26T14:30:00Z"))).toBe(
+      "Sep 12 - Sep 26, 2026",
+    );
+  });
+
+  it("labels an upcoming period", () => {
+    const dates = [date("2026-09-12T05:00:00Z", "2026-09-26T05:00:00Z")];
+    expect(
+      getEventStatusLabel({
+        timeMode: "period",
+        dates,
+      }),
+    ).toBe("Time period");
   });
 });

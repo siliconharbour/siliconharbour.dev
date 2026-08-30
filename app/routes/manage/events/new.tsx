@@ -1,7 +1,8 @@
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { createEvent, getPeriodOptions } from "~/lib/events.server";
+import { createEvent } from "~/lib/events.server";
+import { getPeriodOptions } from "~/lib/event-periods.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
 import { actionError } from "~/lib/admin/action-result";
@@ -47,59 +48,63 @@ export async function action({ request }: Route.ActionArgs) {
   const isRecurring = parsedBase.data.eventType === "recurring";
   const timeMode = parsedBase.data.eventType === "period" ? "period" : "scheduled";
 
-  if (isRecurring) {
-    const parsedRecurring = parseEventRecurringForm(formData);
-    if (!parsedRecurring.success) {
-      return actionError(parsedRecurring.error);
-    }
+  try {
+    if (isRecurring) {
+      const parsedRecurring = parseEventRecurringForm(formData);
+      if (!parsedRecurring.success) {
+        return actionError(parsedRecurring.error);
+      }
 
-    await createEvent(
-      {
-        title: parsedBase.data.title,
-        description: parsedBase.data.description,
-        link: parsedBase.data.link,
-        location: parsedBase.data.location,
-        organizer: parsedBase.data.organizer,
-        coverImage,
-        iconImage,
-        requiresSignup: parsedBase.data.requiresSignup,
-        timeMode,
-        parentEventId: parsedBase.data.parentEventId,
-        recurrenceStart: parsedRecurring.data.recurrenceStart
-          ? new Date(parsedRecurring.data.recurrenceStart)
-          : null,
-        recurrenceRule: parsedRecurring.data.recurrenceRule,
-        recurrenceEnd: parsedRecurring.data.recurrenceEnd
-          ? new Date(parsedRecurring.data.recurrenceEnd)
-          : null,
-        defaultStartTime: parsedRecurring.data.defaultStartTime,
-        defaultEndTime: parsedRecurring.data.defaultEndTime,
-      },
-      [], // No explicit dates for recurring events
-    );
-  } else {
-    const parsedDates = parseOneTimeEventDates(formData);
-    if (!parsedDates.success) {
-      return actionError(parsedDates.error);
-    }
-    const periodError = validatePeriodDates(timeMode, parsedDates.data);
-    if (periodError) return actionError(periodError);
+      await createEvent(
+        {
+          title: parsedBase.data.title,
+          description: parsedBase.data.description,
+          link: parsedBase.data.link,
+          location: parsedBase.data.location,
+          organizer: parsedBase.data.organizer,
+          coverImage,
+          iconImage,
+          requiresSignup: parsedBase.data.requiresSignup,
+          timeMode,
+          parentEventId: parsedBase.data.parentEventId,
+          recurrenceStart: parsedRecurring.data.recurrenceStart
+            ? new Date(parsedRecurring.data.recurrenceStart)
+            : null,
+          recurrenceRule: parsedRecurring.data.recurrenceRule,
+          recurrenceEnd: parsedRecurring.data.recurrenceEnd
+            ? new Date(parsedRecurring.data.recurrenceEnd)
+            : null,
+          defaultStartTime: parsedRecurring.data.defaultStartTime,
+          defaultEndTime: parsedRecurring.data.defaultEndTime,
+        },
+        [], // No explicit dates for recurring events
+      );
+    } else {
+      const parsedDates = parseOneTimeEventDates(formData);
+      if (!parsedDates.success) {
+        return actionError(parsedDates.error);
+      }
+      const periodError = validatePeriodDates(timeMode, parsedDates.data);
+      if (periodError) return actionError(periodError);
 
-    await createEvent(
-      {
-        title: parsedBase.data.title,
-        description: parsedBase.data.description,
-        link: parsedBase.data.link,
-        location: parsedBase.data.location,
-        organizer: parsedBase.data.organizer,
-        coverImage,
-        iconImage,
-        requiresSignup: parsedBase.data.requiresSignup,
-        timeMode,
-        parentEventId: parsedBase.data.parentEventId,
-      },
-      parsedDates.data,
-    );
+      await createEvent(
+        {
+          title: parsedBase.data.title,
+          description: parsedBase.data.description,
+          link: parsedBase.data.link,
+          location: parsedBase.data.location,
+          organizer: parsedBase.data.organizer,
+          coverImage,
+          iconImage,
+          requiresSignup: parsedBase.data.requiresSignup,
+          timeMode,
+          parentEventId: parsedBase.data.parentEventId,
+        },
+        parsedDates.data,
+      );
+    }
+  } catch (error) {
+    return actionError(error instanceof Error ? error.message : "Could not save the event.");
   }
 
   return redirect("/manage/events");

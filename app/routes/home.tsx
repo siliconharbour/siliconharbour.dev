@@ -14,7 +14,7 @@ import type { ResolvedRef } from "~/components/RichMarkdown";
 import { Footer } from "~/components/Footer";
 import { Header } from "~/components/Header";
 import { buildSeoMeta } from "~/lib/seo";
-import { getEventTimingState } from "~/lib/event-timing";
+import { isActivePeriod } from "~/lib/event-display";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
@@ -37,10 +37,7 @@ export async function loader({}: Route.LoaderArgs) {
       getSectionVisibility(),
     ]);
 
-  const activePeriods = upcoming.filter(
-    (event) =>
-      event.timeMode === "period" && getEventTimingState(event.dates) === "active",
-  );
+  const activePeriods = upcoming.filter(isActivePeriod);
   const activePeriodIds = new Set(activePeriods.map((event) => event.id));
   const visibleThisWeek = thisWeek.filter((event) => !activePeriodIds.has(event.id));
   const thisWeekIds = new Set(visibleThisWeek.map((e) => e.id));
@@ -98,7 +95,7 @@ export default function Home() {
             <div className="lg:col-span-2 flex flex-col gap-8">
               {visibility.events && activePeriods.length > 0 && (
                 <section className="flex flex-col gap-4">
-                  <h2 className="text-lg font-semibold text-green-700">Happening Now</h2>
+                  <h2 className="text-lg font-semibold text-green-700">Happening now</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {activePeriods.map((event) => (
                       <EventCard key={event.id} event={event} />

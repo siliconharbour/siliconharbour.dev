@@ -59,10 +59,10 @@ export default function DesignSystem() {
 
         {/* Event timing */}
         <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Event Timing</h2>
+          <h2 className="text-lg font-semibold text-harbour-700">Event timing</h2>
           <p className="text-sm text-harbour-500">
-            Scheduled events describe a moment. Time periods describe an activity that remains open
-            across a date range, such as a game jam or application window.
+            Scheduled events happen at a set time. Time periods run across a date range, like a game
+            jam or application window.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border border-green-200 bg-white p-4 flex flex-col gap-2">
@@ -80,7 +80,7 @@ export default function DesignSystem() {
               <h3 className="font-medium text-harbour-700">Community Demo Night</h3>
               <p className="text-sm text-harbour-600">Saturday, August 29 at 2:00 PM</p>
               <p className="text-sm text-harbour-400">
-                Events remain discoverable until midnight in Newfoundland.
+                Events stay listed until midnight in Newfoundland.
               </p>
             </div>
           </div>

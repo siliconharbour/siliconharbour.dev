@@ -9,7 +9,7 @@ import { EventCard } from "~/components/EventCard";
 import { format, parse } from "date-fns";
 import { parseEventsQuery } from "~/lib/public-query.server";
 import { buildSeoMeta } from "~/lib/seo";
-import { getEventTimingState } from "~/lib/event-timing";
+import { isActivePeriod } from "~/lib/event-display";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
@@ -44,10 +44,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function EventsIndex() {
   const { events, total, limit, offset, searchQuery, filter, dateFilter, isAdmin } =
     useLoaderData<typeof loader>();
-  const activePeriods = events.filter(
-    (event) =>
-      event.timeMode === "period" && getEventTimingState(event.dates) === "active",
-  );
+  const activePeriods = events.filter(isActivePeriod);
   const activePeriodIds = new Set(activePeriods.map((event) => event.id));
   const remainingEvents = events.filter((event) => !activePeriodIds.has(event.id));
 
@@ -151,7 +148,7 @@ export default function EventsIndex() {
 
             {activePeriods.length > 0 && (
               <section className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold text-green-700">Happening Now</h2>
+                <h2 className="text-lg font-semibold text-green-700">Happening now</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {activePeriods.map((event) => (
                     <EventCard key={event.id} event={event} />

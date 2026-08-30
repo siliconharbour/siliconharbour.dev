@@ -6,6 +6,7 @@ import "react-day-picker/style.css";
 import { ImageCropper } from "./ImageCropper";
 import type { Event, EventDate } from "~/db/schema";
 import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/timezone";
+import { EventTimingFields, type EventFormTiming } from "./EventTimingFields";
 
 type EventFormProps = {
   event?: Event & { dates: EventDate[] };
@@ -94,7 +95,7 @@ export function EventForm({
   const isExistingRecurring = !!event?.recurrenceRule;
 
   // Event type: "onetime" or "recurring"
-  const [eventType, setEventType] = useState<"onetime" | "recurring" | "period">(
+  const [eventType, setEventType] = useState<EventFormTiming>(
     event?.timeMode === "period" ? "period" : isExistingRecurring ? "recurring" : "onetime",
   );
 
@@ -465,83 +466,23 @@ export function EventForm({
           <input type="hidden" name="existingIconImage" value={event.iconImage} />
         )}
 
-        {/* Event Type Selection */}
-        <div>
-          <label className="block text-sm font-medium mb-2 text-harbour-700">Event Type *</label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="eventType"
-                value="onetime"
-                checked={eventType === "onetime"}
-                onChange={() => setEventType("onetime")}
-                className="accent-harbour-600"
-              />
-              <span className="text-harbour-600">One-time event</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="eventType"
-                value="recurring"
-                checked={eventType === "recurring"}
-                onChange={() => setEventType("recurring")}
-                className="accent-harbour-600"
-              />
-              <span className="text-harbour-600">Recurring event</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="eventType"
-                value="period"
-                checked={eventType === "period"}
-                onChange={() => {
-                  setEventType("period");
-                  setDates((current) => [
-                    {
-                      ...current[0],
-                      isRange: true,
-                      endDate: current[0].endDate ?? current[0].startDate,
-                    },
-                  ]);
-                }}
-                className="accent-harbour-600"
-              />
-              <span className="text-harbour-600">Time period</span>
-            </label>
-          </div>
-          <p className="mt-2 text-sm text-harbour-400">
-            Use a time period for a jam, application window, or activity that stays open across
-            several days.
-          </p>
-        </div>
-
-        {eventType !== "period" && periodOptions.length > 0 && (
-          <div>
-            <label
-              htmlFor="parentEventId"
-              className="block text-sm font-medium mb-1 text-harbour-700"
-            >
-              Part of a time period (optional)
-            </label>
-            <select
-              id="parentEventId"
-              name="parentEventId"
-              defaultValue={event?.parentEventId ?? ""}
-              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
-            >
-              <option value="">Standalone event</option>
-              {periodOptions.map((period) => (
-                <option key={period.id} value={period.id}>
-                  {period.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        {eventType === "period" && <input type="hidden" name="parentEventId" value="" />}
+        <EventTimingFields
+          value={eventType}
+          onChange={(value) => {
+            setEventType(value);
+            if (value === "period") {
+              setDates((current) => [
+                {
+                  ...current[0],
+                  isRange: true,
+                  endDate: current[0].endDate ?? current[0].startDate,
+                },
+              ]);
+            }
+          }}
+          periodOptions={periodOptions}
+          parentEventId={event?.parentEventId}
+        />
 
         {/* One-time Event Dates */}
         {eventType !== "recurring" && (
@@ -653,7 +594,7 @@ export function EventForm({
                         className="accent-harbour-600"
                       />
                       {eventType === "period"
-                        ? "Period has an end"
+                        ? "End date required"
                         : dateEntry.isAllDay
                           ? "Spans multiple days"
                           : "Has end time"}

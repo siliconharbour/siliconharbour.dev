@@ -1,7 +1,8 @@
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAuth } from "~/lib/session.server";
-import { getEventById, getPeriodOptions, updateEvent } from "~/lib/events.server";
+import { getEventById, updateEvent } from "~/lib/events.server";
+import { getPeriodOptions } from "~/lib/event-periods.server";
 import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
 import { EventForm } from "~/components/EventForm";
 import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
@@ -81,67 +82,71 @@ export async function action({ request, params }: Route.ActionArgs) {
       processor: processAndSaveCoverImage,
     }));
 
-  if (isRecurring) {
-    const parsedRecurring = parseEventRecurringForm(formData);
-    if (!parsedRecurring.success) {
-      return actionError(parsedRecurring.error);
-    }
+  try {
+    if (isRecurring) {
+      const parsedRecurring = parseEventRecurringForm(formData);
+      if (!parsedRecurring.success) {
+        return actionError(parsedRecurring.error);
+      }
 
-    await updateEvent(
-      id,
-      {
-        title: parsedBase.data.title,
-        description: parsedBase.data.description,
-        link: parsedBase.data.link,
-        location: parsedBase.data.location,
-        organizer: parsedBase.data.organizer,
-        requiresSignup: parsedBase.data.requiresSignup,
-        timeMode,
-        parentEventId: parsedBase.data.parentEventId,
-        ...(coverImage !== undefined && { coverImage }),
-        ...(iconImage !== undefined && { iconImage }),
-        recurrenceStart: parsedRecurring.data.recurrenceStart
-          ? new Date(parsedRecurring.data.recurrenceStart)
-          : null,
-        recurrenceRule: parsedRecurring.data.recurrenceRule,
-        recurrenceEnd: parsedRecurring.data.recurrenceEnd
-          ? new Date(parsedRecurring.data.recurrenceEnd)
-          : null,
-        defaultStartTime: parsedRecurring.data.defaultStartTime,
-        defaultEndTime: parsedRecurring.data.defaultEndTime,
-      },
-      [], // Clear explicit dates for recurring events
-    );
-  } else {
-    const parsedDates = parseOneTimeEventDates(formData);
-    if (!parsedDates.success) {
-      return actionError(parsedDates.error);
-    }
-    const periodError = validatePeriodDates(timeMode, parsedDates.data);
-    if (periodError) return actionError(periodError);
+      await updateEvent(
+        id,
+        {
+          title: parsedBase.data.title,
+          description: parsedBase.data.description,
+          link: parsedBase.data.link,
+          location: parsedBase.data.location,
+          organizer: parsedBase.data.organizer,
+          requiresSignup: parsedBase.data.requiresSignup,
+          timeMode,
+          parentEventId: parsedBase.data.parentEventId,
+          ...(coverImage !== undefined && { coverImage }),
+          ...(iconImage !== undefined && { iconImage }),
+          recurrenceStart: parsedRecurring.data.recurrenceStart
+            ? new Date(parsedRecurring.data.recurrenceStart)
+            : null,
+          recurrenceRule: parsedRecurring.data.recurrenceRule,
+          recurrenceEnd: parsedRecurring.data.recurrenceEnd
+            ? new Date(parsedRecurring.data.recurrenceEnd)
+            : null,
+          defaultStartTime: parsedRecurring.data.defaultStartTime,
+          defaultEndTime: parsedRecurring.data.defaultEndTime,
+        },
+        [], // Clear explicit dates for recurring events
+      );
+    } else {
+      const parsedDates = parseOneTimeEventDates(formData);
+      if (!parsedDates.success) {
+        return actionError(parsedDates.error);
+      }
+      const periodError = validatePeriodDates(timeMode, parsedDates.data);
+      if (periodError) return actionError(periodError);
 
-    await updateEvent(
-      id,
-      {
-        title: parsedBase.data.title,
-        description: parsedBase.data.description,
-        link: parsedBase.data.link,
-        location: parsedBase.data.location,
-        organizer: parsedBase.data.organizer,
-        requiresSignup: parsedBase.data.requiresSignup,
-        timeMode,
-        parentEventId: parsedBase.data.parentEventId,
-        ...(coverImage !== undefined && { coverImage }),
-        ...(iconImage !== undefined && { iconImage }),
-        // Clear recurrence when switching to one-time
-        recurrenceRule: null,
-        recurrenceStart: null,
-        recurrenceEnd: null,
-        defaultStartTime: null,
-        defaultEndTime: null,
-      },
-      parsedDates.data,
-    );
+      await updateEvent(
+        id,
+        {
+          title: parsedBase.data.title,
+          description: parsedBase.data.description,
+          link: parsedBase.data.link,
+          location: parsedBase.data.location,
+          organizer: parsedBase.data.organizer,
+          requiresSignup: parsedBase.data.requiresSignup,
+          timeMode,
+          parentEventId: parsedBase.data.parentEventId,
+          ...(coverImage !== undefined && { coverImage }),
+          ...(iconImage !== undefined && { iconImage }),
+          // Clear recurrence when switching to one-time
+          recurrenceRule: null,
+          recurrenceStart: null,
+          recurrenceEnd: null,
+          defaultStartTime: null,
+          defaultEndTime: null,
+        },
+        parsedDates.data,
+      );
+    }
+  } catch (error) {
+    return actionError(error instanceof Error ? error.message : "Could not save the event.");
   }
 
   // Toggle publish state if requested. Visibility rule everywhere is

@@ -13,7 +13,11 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
     .where(eq(eventDates.eventId, event.id))
     .orderBy(asc(eventDates.startDate));
   const parent = event.parentEventId
-    ? await db.select().from(events).where(eq(events.id, event.parentEventId)).get()
+    ? await db
+        .select()
+        .from(events)
+        .where(and(eq(events.id, event.parentEventId), isPubliclyVisible))
+        .get()
     : null;
   const children = await db
     .select({ id: events.id, slug: events.slug, title: events.title, timeMode: events.timeMode })

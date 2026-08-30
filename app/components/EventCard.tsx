@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import type { Event, EventDate } from "~/db/schema";
 import { RichMarkdown, type ResolvedRef } from "./RichMarkdown";
 import { formatInTimezone } from "~/lib/timezone";
+import { formatEventPeriodRange, getEventStatusLabel } from "~/lib/event-display";
 import { getEventTimingState } from "~/lib/event-timing";
 
 type EventCardProps = {
@@ -16,7 +17,8 @@ type EventCardProps = {
     | "coverImage"
     | "iconImage"
     | "recurrenceRule"
-  > & { timeMode?: Event["timeMode"]; dates: EventDate[] };
+    | "timeMode"
+  > & { dates: EventDate[] };
   variant?: "featured" | "default" | "compact";
   resolvedRefs?: Record<string, ResolvedRef>;
 };
@@ -99,18 +101,8 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
   const hasMultipleDates = event.dates.length > 1;
 
   const isFeatured = variant === "featured";
-  const timeMode = event.timeMode ?? "scheduled";
   const timingState = getEventTimingState(event.dates);
-  const periodLabel =
-    timeMode === "period"
-      ? timingState === "active"
-        ? "Happening now"
-        : timingState === "earlier-today"
-          ? "Earlier today"
-          : "Time period"
-      : timingState === "earlier-today"
-        ? "Earlier today"
-        : null;
+  const periodLabel = getEventStatusLabel(event);
   const periodLabelClasses =
     timingState === "active"
       ? "bg-green-100 text-green-700"
@@ -119,8 +111,8 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
         : "bg-harbour-100 text-harbour-600";
 
   const dateLabel = nextDate
-    ? timeMode === "period" && nextDate.endDate
-      ? `${formatInTimezone(nextDate.startDate, "MMM d")} - ${formatInTimezone(nextDate.endDate, "MMM d, yyyy")}`
+    ? event.timeMode === "period" && nextDate.endDate
+      ? formatEventPeriodRange(nextDate)
       : nextDate.isAllDay
         ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
         : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a")
@@ -182,7 +174,7 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
                 {nextDate && (
                   <div className="flex items-center gap-2">
                     <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>
-                    {nextDate.endDate && timeMode !== "period" && (
+                    {nextDate.endDate && event.timeMode !== "period" && (
                       <>
                         <span className="text-harbour-300">-</span>
                         <time dateTime={nextDate.endDate.toISOString()}>

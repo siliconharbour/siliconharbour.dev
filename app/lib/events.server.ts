@@ -25,6 +25,7 @@ import {
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { addDays, startOfDay } from "date-fns";
 import { siteDayBounds, validatePeriodDates } from "./event-timing";
+import { assertValidEventStructure } from "./event-periods.server";
 
 export type EventWithDates = Event & { dates: EventDate[] };
 export type EventSummary = Pick<Event, "id" | "slug" | "title" | "timeMode">;
@@ -56,6 +57,11 @@ async function attachDates(eventList: Event[]): Promise<EventWithDates[]> {
 
 /** Filter: show manually-created events (importStatus IS NULL) and published imports */
 const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
+
+/** Matches dates that occur on or after the given local calendar day. */
+function isCurrentOnOrAfter(dayStart: Date) {
+  return or(gte(eventDates.startDate, dayStart), gte(eventDates.endDate, dayStart));
+}
 
 /** An event date is "upcoming or in progress" if it starts in the future OR has already started but not yet ended */
 function isUpcomingOrInProgress(date: EventDate, now: Date): boolean {
@@ -121,10 +127,10 @@ export async function createEvent(
 ): Promise<EventWithDates> {
   const validationError = validatePeriodDates(event.timeMode ?? "scheduled", dates);
   if (validationError) throw new Error(validationError);
-  if ((event.timeMode ?? "scheduled") === "period" && event.parentEventId) {
-    throw new Error("A time period cannot be part of another event.");
-  }
-  await validateParentEvent(event.parentEventId ?? null);
+  await assertValidEventStructure({
+    nextTimeMode: event.timeMode ?? "scheduled",
+    parentEventId: event.parentEventId ?? null,
+  });
   // Generate unique slug from title
   const slug = await generateEventSlug(event.title);
 
@@ -165,11 +171,12 @@ export async function updateEvent(
   if (validationError) throw new Error(validationError);
   const nextParentEventId =
     event.parentEventId === undefined ? current.parentEventId : event.parentEventId;
-  if (nextTimeMode === "period" && nextParentEventId) {
-    throw new Error("A time period cannot be part of another event.");
-  }
-  if (event.parentEventId === id) throw new Error("An event cannot be part of itself.");
-  await validateParentEvent(nextParentEventId);
+  await assertValidEventStructure({
+    eventId: id,
+    currentTimeMode: current.timeMode,
+    nextTimeMode,
+    parentEventId: nextParentEventId,
+  });
   // If title is being updated, regenerate slug
   let updateData: Partial<NewEvent> = { ...event, updatedAt: new Date() };
   if (event.title) {
@@ -254,26 +261,6 @@ export async function getEventBySlug(slug: string): Promise<EventWithDates | nul
   return { ...event, dates };
 }
 
-async function validateParentEvent(parentEventId: number | null): Promise<void> {
-  if (parentEventId === null) return;
-  const parent = await db.select().from(events).where(eq(events.id, parentEventId)).get();
-  if (!parent) throw new Error("The selected parent event does not exist.");
-  if (parent.timeMode !== "period") throw new Error("An event can only be part of a time period.");
-  if (parent.parentEventId !== null)
-    throw new Error("Nested event relationships are not supported.");
-}
-
-export async function getPeriodOptions(excludeId?: number): Promise<EventSummary[]> {
-  const rows = await db
-    .select()
-    .from(events)
-    .where(eq(events.timeMode, "period"))
-    .orderBy(asc(events.title));
-  return rows
-    .filter((event) => event.id !== excludeId)
-    .map(({ id, slug, title, timeMode }) => ({ id, slug, title, timeMode }));
-}
-
 export async function getEventRelations(event: EventWithDates): Promise<EventWithRelations> {
   const parent = event.parentEventId
     ? await db.select().from(events).where(eq(events.id, event.parentEventId)).get()
@@ -320,16 +307,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   const upcomingEventIds = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(
-      or(
-        gte(eventDates.startDate, todayStart), // includes events earlier today
-        and(
-          // or: started already but end is still future
-          lte(eventDates.startDate, now),
-          gte(eventDates.endDate, now),
-        ),
-      ),
-    );
+    .where(isCurrentOnOrAfter(todayStart));
 
   // Also get recurring events
   const recurringEventsResult = await db
@@ -353,7 +331,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
 
   const eventsWithDates = batchedWithDates.map((eventData) => {
     if (eventData.recurrenceRule) {
-      const generatedDates = getGeneratedOccurrences(eventData, now, threeMonthsFromNow);
+      const generatedDates = getGeneratedOccurrences(eventData, todayStart, threeMonthsFromNow);
       const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
         const dateStr = getDateInTimezone(date);
         const startTime = eventData.defaultStartTime || "00:00";
@@ -603,7 +581,7 @@ export async function getPaginatedEvents(
     .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
   const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
   const recurringEventIds = recurringEvents
-    .filter((e) => !e.recurrenceEnd || e.recurrenceEnd > now)
+    .filter((e) => !e.recurrenceEnd || e.recurrenceEnd >= todayStart)
     .map((e) => e.id);
 
   // Get event IDs based on filter
@@ -640,7 +618,7 @@ export async function getPaginatedEvents(
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(or(gte(eventDates.startDate, todayStart), gte(eventDates.endDate, todayStart)));
+      .where(isCurrentOnOrAfter(todayStart));
 
     // Include recurring events as upcoming
     filteredEventIds = [...new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds])];
@@ -649,7 +627,7 @@ export async function getPaginatedEvents(
     const upcomingRows = await db
       .selectDistinct({ eventId: eventDates.eventId })
       .from(eventDates)
-      .where(or(gte(eventDates.startDate, todayStart), gte(eventDates.endDate, todayStart)));
+      .where(isCurrentOnOrAfter(todayStart));
     const upcomingIds = new Set([...upcomingRows.map((r) => r.eventId), ...recurringEventIds]);
 
     const allRows = await db.selectDistinct({ eventId: eventDates.eventId }).from(eventDates);
@@ -682,7 +660,7 @@ export async function getPaginatedEvents(
   // For recurring events, replace stored dates with generated synthetic ones
   const eventsWithDates: (EventWithDates | null)[] = batchedWithDates.map((event) => {
     if (event.recurrenceRule) {
-      const generatedDates = getGeneratedOccurrences(event, now, threeMonthsFromNow);
+      const generatedDates = getGeneratedOccurrences(event, todayStart, threeMonthsFromNow);
       const syntheticDates: EventDate[] = generatedDates.slice(0, 3).map((date, i) => {
         const dateStr = getDateInTimezone(date);
         const startTime = event.defaultStartTime || "00:00";
@@ -868,17 +846,19 @@ export function getGeneratedOccurrences(
  */
 export async function getEventWithOccurrences(
   eventId: number,
-  rangeStart: Date = new Date(),
+  rangeStart?: Date,
   rangeEnd: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
 ): Promise<EventWithOccurrences | null> {
   const event = await getEventById(eventId);
   if (!event) return null;
 
+  const effectiveRangeStart = rangeStart ?? siteDayBounds(new Date()).start;
+
   const occurrences: EventOccurrenceDisplay[] = [];
 
   // If this is a recurring event, generate occurrences
   if (event.recurrenceRule) {
-    const generatedDates = getGeneratedOccurrences(event, rangeStart, rangeEnd);
+    const generatedDates = getGeneratedOccurrences(event, effectiveRangeStart, rangeEnd);
     const overrides = await getEventOccurrenceOverrides(eventId);
 
     // Create a map of overrides by date (normalized to Newfoundland timezone date)

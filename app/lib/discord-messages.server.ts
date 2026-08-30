@@ -1,6 +1,7 @@
 import type { EventWithDates } from "~/lib/events.server";
 import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
 import { formatInTimezone } from "~/lib/timezone";
+import { formatEventPeriodRange } from "~/lib/event-display";
 
 const SITE_URL = process.env.SITE_URL || "https://siliconharbour.dev";
 const ACCENT_COLOR = 0x2b51d1; // harbour-600
@@ -33,7 +34,7 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
     if (nextDate) {
       dateLine =
         event.timeMode === "period" && nextDate.endDate
-          ? `${formatInTimezone(nextDate.startDate, "MMM d")} - ${formatInTimezone(nextDate.endDate, "MMM d, yyyy")} · Time period`
+          ? `${formatEventPeriodRange(nextDate)} · Time period`
           : nextDate.isAllDay
             ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
             : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a");
