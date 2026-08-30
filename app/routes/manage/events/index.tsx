@@ -18,7 +18,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const searchQuery = url.searchParams.get("q") || "";
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const offset = (page - 1) * PER_PAGE;
-  const { items: events, total } = await getPaginatedEvents(PER_PAGE, offset, searchQuery, "all");
+  const { items: events, total } = await getPaginatedEvents(
+    PER_PAGE,
+    offset,
+    searchQuery,
+    "all",
+    undefined,
+    "all",
+  );
   const totalPages = Math.ceil(total / PER_PAGE);
   return { events, searchQuery, currentPage: page, totalPages, total };
 }

@@ -2,7 +2,12 @@ import { describe, it, expect } from "vitest";
 import { db } from "~/db";
 import { events, groups, companies, references } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
-import { resolveReference, syncOrganizerReferences } from "~/lib/references.server";
+import {
+  getDetailedBacklinks,
+  getRichIncomingReferences,
+  resolveReference,
+  syncOrganizerReferences,
+} from "~/lib/references.server";
 
 // =============================================================================
 // resolveReference
@@ -207,6 +212,40 @@ describe("resolveReference", () => {
       name: "10am @ MUN",
       slug: "10am-at-mun",
     });
+  });
+});
+
+describe("event reference visibility", () => {
+  it("does not expose an unpublished event as a backlink", async () => {
+    const [company] = await db
+      .insert(companies)
+      .values({ slug: "public-company", name: "Public Company", description: "Public" })
+      .returning();
+    const [draft] = await db
+      .insert(events)
+      .values({
+        slug: "private-referencing-event",
+        title: "Private Referencing Event",
+        description: "Draft",
+        link: "https://example.com/draft",
+        importStatus: "pending_review",
+      })
+      .returning();
+    await db.insert(references).values({
+      sourceType: "event",
+      sourceId: draft.id,
+      targetType: "company",
+      targetId: company.id,
+      referenceText: company.name,
+    });
+
+    const [rich, detailed] = await Promise.all([
+      getRichIncomingReferences("company", company.id),
+      getDetailedBacklinks("company", company.id),
+    ]);
+
+    expect(rich).toEqual([]);
+    expect(detailed).toEqual([]);
   });
 });
 

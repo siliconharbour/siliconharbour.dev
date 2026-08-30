@@ -11,7 +11,8 @@ import {
   products,
   projects,
 } from "~/db/schema";
-import { eq, isNull, or, ne, isNotNull } from "drizzle-orm";
+import { eq, ne, isNotNull } from "drizzle-orm";
+import { publiclyVisibleEvent } from "~/lib/event-visibility";
 
 export interface SitemapEntry {
   url: string;
@@ -94,7 +95,7 @@ export async function getSitemapEntries(siteUrl: string): Promise<SitemapEntry[]
     db
       .select({ slug: events.slug, updatedAt: events.updatedAt })
       .from(events)
-      .where(or(isNull(events.importStatus), eq(events.importStatus, "published"))),
+      .where(publiclyVisibleEvent),
     db
       .select({ slug: jobs.slug, updatedAt: jobs.updatedAt })
       .from(jobs)

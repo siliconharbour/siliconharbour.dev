@@ -1,11 +1,12 @@
 import type { Route } from "./+types/events.$slug";
 import { db } from "~/db";
 import { events, eventDates } from "~/db/schema";
-import { and, eq, asc, or, isNull } from "drizzle-orm";
+import { and, eq, asc } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createDetailApiLoader } from "~/lib/api-route.server";
 import { eventRecurrence } from "~/lib/events-api.server";
 import { getTagsForEvents } from "~/lib/event-tags.server";
+import { publiclyVisibleEvent } from "~/lib/event-visibility";
 
 const mapEvent = async (event: typeof events.$inferSelect) => {
   const dates = await db
@@ -18,13 +19,13 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
     ? await db
         .select()
         .from(events)
-        .where(and(eq(events.id, event.parentEventId), isPubliclyVisible))
+        .where(and(eq(events.id, event.parentEventId), publiclyVisibleEvent))
         .get()
     : null;
   const children = await db
     .select({ id: events.id, slug: events.slug, title: events.title, timeMode: events.timeMode })
     .from(events)
-    .where(and(eq(events.parentEventId, event.id), isPubliclyVisible));
+    .where(and(eq(events.parentEventId, event.id), publiclyVisibleEvent));
 
   return {
     id: event.id,
@@ -51,17 +52,13 @@ const mapEvent = async (event: typeof events.$inferSelect) => {
   };
 };
 
-// Public-safe filter: manual events (importStatus IS NULL) or published imports.
-// Hides imports that are pending_review, hidden, or anything else.
-const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
-
 export const loader = createDetailApiLoader({
   entityName: "Event",
   loadBySlug: async (slug) => {
     const [event] = await db
       .select()
       .from(events)
-      .where(and(eq(events.slug, slug), isPubliclyVisible));
+      .where(and(eq(events.slug, slug), publiclyVisibleEvent));
     return event ?? null;
   },
   mapEntity: mapEvent,

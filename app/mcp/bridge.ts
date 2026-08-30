@@ -2354,7 +2354,7 @@ export function buildExecuteFunctions(): HostFunctions {
           case "job":
             return (read.jobs as HostFn)({});
           case "event":
-            return (read.events as HostFn)({});
+            return toPlain((await getPaginatedEvents(200, 0, undefined, "all", undefined, "all")).items);
           case "news":
             return (read.news as HostFn)({});
           case "company":

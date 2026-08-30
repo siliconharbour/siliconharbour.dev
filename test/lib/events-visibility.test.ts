@@ -9,7 +9,9 @@ import {
   createEvent,
   getPaginatedEvents,
   getEventsForMonth,
+  getEventRelations,
 } from "~/lib/events.server";
+import { buildReadFunctions } from "~/mcp/bridge";
 
 // =============================================================================
 // getPublicEventBySlug — visibility filtering
@@ -84,6 +86,81 @@ describe("getPublicEventBySlug", () => {
 });
 
 describe("event date filtering", () => {
+  it("only lets an explicit admin query include unpublished events", async () => {
+    const [draft] = await db
+      .insert(events)
+      .values({
+        slug: "private-draft",
+        title: "Private Draft",
+        description: "Not ready",
+        link: "https://example.com/draft",
+        importStatus: "pending_review",
+      })
+      .returning();
+    await db.insert(eventDates).values({
+      eventId: draft.id,
+      startDate: new Date("2099-06-01T18:00:00Z"),
+    });
+
+    const publicResult = await getPaginatedEvents(20, 0, undefined, "all");
+    const adminResult = await getPaginatedEvents(20, 0, undefined, "all", undefined, "all");
+
+    expect(publicResult.items.map((event) => event.slug)).not.toContain("private-draft");
+    expect(adminResult.items.map((event) => event.slug)).toContain("private-draft");
+  });
+
+  it("keeps unpublished events out of the unauthenticated MCP query surface", async () => {
+    const [draft] = await db
+      .insert(events)
+      .values({
+        slug: "private-mcp-draft",
+        title: "Private MCP Draft",
+        description: "Not ready",
+        link: "https://example.com/mcp-draft",
+        importStatus: "pending_review",
+      })
+      .returning();
+    await db.insert(eventDates).values({
+      eventId: draft.id,
+      startDate: new Date("2099-06-01T18:00:00Z"),
+    });
+
+    const result = (await buildReadFunctions().events({ limit: 100 })) as Array<{ slug: string }>;
+
+    expect(result.map((event) => event.slug)).not.toContain("private-mcp-draft");
+  });
+
+  it("does not reveal an unpublished parent through a published child", async () => {
+    const [parent] = await db
+      .insert(events)
+      .values({
+        slug: "private-parent",
+        title: "Private Parent",
+        description: "Not ready",
+        link: "https://example.com/parent",
+        importStatus: "pending_review",
+      })
+      .returning();
+    const [child] = await db
+      .insert(events)
+      .values({
+        slug: "public-child",
+        title: "Public Child",
+        description: "Ready",
+        link: "https://example.com/child",
+        importStatus: "published",
+        parentEventId: parent.id,
+      })
+      .returning();
+
+    const childWithDates = await getEventById(child.id);
+    const publicRelations = await getEventRelations(childWithDates!);
+    const adminRelations = await getEventRelations(childWithDates!, "all");
+
+    expect(publicRelations.parentEvent).toBeNull();
+    expect(adminRelations.parentEvent?.slug).toBe("private-parent");
+  });
+
   it("filters by Newfoundland calendar day near midnight", async () => {
     const [previousDay, selectedDay] = await db
       .insert(events)

@@ -28,6 +28,12 @@ import { addDays, startOfDay } from "date-fns";
 import { normalizeEventDates, siteDayBounds, validatePeriodDates } from "./event-timing";
 import { assertValidEventStructure } from "./event-periods.server";
 import { getTagsForEvents, setEventTags, validateEventTagIds } from "./event-tags.server";
+import {
+  isEventPublic,
+  publiclyVisibleEvent,
+  withEventVisibility,
+  type EventVisibility,
+} from "./event-visibility";
 
 export type EventWithDates = Event & { dates: EventDate[]; tags?: EventTag[] };
 export type EventSummary = Pick<Event, "id" | "slug" | "title" | "timeMode">;
@@ -61,9 +67,6 @@ async function attachDates(eventList: Event[]): Promise<EventWithDates[]> {
     tags: tagsByEvent.get(event.id) ?? [],
   }));
 }
-
-/** Filter: show manually-created events (importStatus IS NULL) and published imports */
-const isPubliclyVisible = or(isNull(events.importStatus), eq(events.importStatus, "published"));
 
 /** Matches dates that occur on or after the given local calendar day. */
 function isCurrentOnOrAfter(dayStart: Date) {
@@ -285,14 +288,21 @@ export async function getEventBySlug(slug: string): Promise<EventWithDates | nul
   return { ...event, dates, tags };
 }
 
-export async function getEventRelations(event: EventWithDates): Promise<EventWithRelations> {
+export async function getEventRelations(
+  event: EventWithDates,
+  visibility: EventVisibility = "public",
+): Promise<EventWithRelations> {
   const parent = event.parentEventId
-    ? await db.select().from(events).where(eq(events.id, event.parentEventId)).get()
+    ? await db
+        .select()
+        .from(events)
+        .where(withEventVisibility(eq(events.id, event.parentEventId), visibility))
+        .get()
     : null;
   const children = await db
     .select()
     .from(events)
-    .where(and(eq(events.parentEventId, event.id), isPubliclyVisible));
+    .where(withEventVisibility(eq(events.parentEventId, event.id), visibility));
   const childEvents = (await attachDates(children)).sort(
     (a, b) => (a.dates[0]?.startDate.getTime() ?? 0) - (b.dates[0]?.startDate.getTime() ?? 0),
   );
@@ -313,7 +323,7 @@ export async function getPublicEventBySlug(slug: string): Promise<EventWithDates
   const event = await getEventBySlug(slug);
   if (!event) return null;
   // Block access to unpublished imported events
-  if (event.importStatus !== null && event.importStatus !== "published") return null;
+  if (!isEventPublic(event)) return null;
   return event;
 }
 
@@ -337,7 +347,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   const recurringEventsResult = await db
     .select()
     .from(events)
-    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
+    .where(and(gte(events.recurrenceRule, ""), publiclyVisibleEvent));
 
   const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
 
@@ -383,7 +393,7 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
 
   // Filter unpublished imports, filter to only those with upcoming dates, and sort
   return eventsWithDates
-    .filter((e) => e.importStatus === null || e.importStatus === "published")
+    .filter(isEventPublic)
     .filter((e) => e.dates.some((d) => isUpcomingOrInProgress(d, now)))
     .sort((a, b) => {
       const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
@@ -450,7 +460,7 @@ export async function getEventsForMonth(
     const event = await db
       .select()
       .from(events)
-      .where(and(eq(events.id, eventId), isPubliclyVisible))
+      .where(and(eq(events.id, eventId), publiclyVisibleEvent))
       .get();
     if (event) {
       const dateStrs = new Set<string>();
@@ -488,7 +498,7 @@ export async function getEventsForMonth(
   const recurringEventsResult = await db
     .select()
     .from(events)
-    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
+    .where(and(gte(events.recurrenceRule, ""), publiclyVisibleEvent));
 
   const recurringEventsList = recurringEventsResult.filter((e) => e.recurrenceRule);
 
@@ -547,7 +557,7 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   const eventsWithDates = await attachDates(eventRows);
 
   return eventsWithDates
-    .filter((e) => e.importStatus === null || e.importStatus === "published")
+    .filter(isEventPublic)
     .filter((e) => !e.recurrenceRule) // exclude recurring even if they have explicit dates
     .sort((a, b) => {
       const aNext = a.dates.find((d) => d.startDate >= todayStart)?.startDate;
@@ -573,7 +583,7 @@ export async function getEventsByMonth(year: number, month: number): Promise<Eve
   const eventRows = await db.select().from(events).where(inArray(events.id, ids));
   const eventsWithDates = await attachDates(eventRows);
 
-  return eventsWithDates.filter((e) => e.importStatus === null || e.importStatus === "published");
+  return eventsWithDates.filter(isEventPublic);
 }
 
 // =============================================================================
@@ -593,6 +603,7 @@ export async function getPaginatedEvents(
   searchQuery?: string,
   filter: EventFilter = "upcoming",
   dateFilter?: string, // yyyy-MM-dd format
+  visibility: EventVisibility = "public",
 ): Promise<PaginatedEvents> {
   const now = new Date();
   const { start: todayStart } = siteDayBounds(now);
@@ -602,7 +613,7 @@ export async function getPaginatedEvents(
   const recurringEventsResult = await db
     .select()
     .from(events)
-    .where(and(gte(events.recurrenceRule, ""), isPubliclyVisible));
+    .where(withEventVisibility(gte(events.recurrenceRule, ""), visibility));
   const recurringEvents = recurringEventsResult.filter((e) => e.recurrenceRule);
   const recurringEventIds = recurringEvents
     .filter((e) => !e.recurrenceEnd || e.recurrenceEnd >= todayStart)
@@ -678,7 +689,10 @@ export async function getPaginatedEvents(
 
   // Fetch full event data with dates for all matching events in batch.
   // Sorting requires date data, so we fetch first and slice after.
-  const eventRows = await db.select().from(events).where(inArray(events.id, filteredEventIds));
+  const eventRows = await db
+    .select()
+    .from(events)
+    .where(withEventVisibility(inArray(events.id, filteredEventIds), visibility));
   const batchedWithDates = await attachDates(eventRows);
 
   // For recurring events, replace stored dates with generated synthetic ones
@@ -710,11 +724,9 @@ export async function getPaginatedEvents(
     return event;
   });
 
-  const items = eventsWithDates
-    .filter((e): e is EventWithDates => e !== null)
-    .filter((e) => e.importStatus === null || e.importStatus === "published");
+  const items = eventsWithDates.filter((e): e is EventWithDates => e !== null);
 
-  // Recompute total after filtering out non-published events
+  // Pagination happens after date-aware sorting, so the total comes from the final result set.
   const actualTotal = items.length;
 
   // Sort by next date

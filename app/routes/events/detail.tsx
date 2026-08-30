@@ -2,6 +2,7 @@ import type { Route } from "./+types/detail";
 import { Link, useLoaderData } from "react-router";
 import {
   getPublicEventBySlug,
+  getEventBySlug,
   getEventRelations,
   getEventWithOccurrences,
   type EventOccurrenceDisplay,
@@ -63,15 +64,16 @@ export function meta({ data, params }: Route.MetaArgs) {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const event = await getPublicEventBySlug(params.slug);
+  const user = await getOptionalUser(request);
+  const isAdmin = user?.user.role === "admin";
+  const event = isAdmin
+    ? await getEventBySlug(params.slug)
+    : await getPublicEventBySlug(params.slug);
   if (!event) {
     throw new Response("Event not found", { status: 404 });
   }
 
-  const user = await getOptionalUser(request);
-  const isAdmin = user?.user.role === "admin";
-
-  const eventWithRelations = await getEventRelations(event);
+  const eventWithRelations = await getEventRelations(event, isAdmin ? "all" : "public");
   const resolvedRefs = await prepareRefsForClient(event.description);
   const backlinks = await getDetailedBacklinks("event", event.id);
   const organizers = await resolveOrganizers(event.organizer);

@@ -10,6 +10,7 @@ import {
 } from "~/db/schema";
 import { siteDayBounds } from "~/lib/event-timing";
 import { eq, and, isNull, gte, or, sql, desc } from "drizzle-orm";
+import { publiclyVisibleEvent } from "~/lib/event-visibility";
 
 // ============================================================================
 // Unposted queries
@@ -69,7 +70,7 @@ export async function getUnpostedEvents() {
           sql`, `,
         )})`,
         isNull(dealtWith.eventId),
-        or(isNull(events.importStatus), eq(events.importStatus, "published")),
+        publiclyVisibleEvent,
       ),
     )
     .orderBy(events.title);

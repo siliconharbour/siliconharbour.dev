@@ -13,9 +13,10 @@ import {
   type ContentType,
   type Reference,
 } from "~/db/schema";
-import { eq, and, asc, gte, or, isNull } from "drizzle-orm";
+import { eq, and, asc, gte } from "drizzle-orm";
 import { parseReferences } from "~/lib/references/parser";
 import { getContentUrl } from "~/lib/references/url";
+import { publiclyVisibleEvent } from "~/lib/event-visibility";
 
 export { parseReferences } from "~/lib/references/parser";
 export { getContentUrl } from "~/lib/references/url";
@@ -26,7 +27,7 @@ export { getContentUrl } from "~/lib/references/url";
 
 /**
  * Check if an entity is visible (for content types that support visibility)
- * Returns true for content types without visibility (events, news, jobs)
+ * Returns true for content types without visibility controls.
  */
 async function isEntityVisible(type: ContentType, id: number): Promise<boolean> {
   switch (type) {
@@ -58,8 +59,14 @@ async function isEntityVisible(type: ContentType, id: number): Promise<boolean> 
         .where(eq(people.id, id));
       return p?.visible ?? false;
     }
+    case "event": {
+      const [event] = await db
+        .select({ id: events.id })
+        .from(events)
+        .where(and(eq(events.id, id), publiclyVisibleEvent));
+      return Boolean(event);
+    }
     // These content types don't have visibility - always visible
-    case "event":
     case "news":
     case "job":
     case "project":
@@ -110,7 +117,7 @@ export async function resolveReference(text: string): Promise<ResolveResult> {
     .where(
       and(
         eq(events.title, text),
-        or(isNull(events.importStatus), eq(events.importStatus, "published")),
+        publiclyVisibleEvent,
       ),
     );
   for (const e of eventMatches) {
@@ -545,7 +552,7 @@ export async function getRichIncomingReferences(
         const [e] = await db
           .select({ title: events.title, slug: events.slug })
           .from(events)
-          .where(eq(events.id, ref.sourceId));
+          .where(and(eq(events.id, ref.sourceId), publiclyVisibleEvent));
         if (e) {
           name = e.title;
           slug = e.slug;
@@ -737,7 +744,10 @@ export async function getDetailedBacklinks(
   for (const ref of refs) {
     switch (ref.sourceType) {
       case "event": {
-        const [event] = await db.select().from(events).where(eq(events.id, ref.sourceId));
+        const [event] = await db
+          .select()
+          .from(events)
+          .where(and(eq(events.id, ref.sourceId), publiclyVisibleEvent));
 
         if (event) {
           // Get upcoming dates for this event
