@@ -25,7 +25,7 @@ import {
 } from "./timezone";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { addDays, startOfDay } from "date-fns";
-import { siteDayBounds, validatePeriodDates } from "./event-timing";
+import { normalizeEventDates, siteDayBounds, validatePeriodDates } from "./event-timing";
 import { assertValidEventStructure } from "./event-periods.server";
 import { getTagsForEvents, setEventTags, validateEventTagIds } from "./event-tags.server";
 
@@ -134,10 +134,12 @@ export async function createEvent(
   tagIds: number[] = [],
 ): Promise<EventWithDates> {
   await validateEventTagIds(tagIds);
-  const validationError = validatePeriodDates(event.timeMode ?? "scheduled", dates);
+  const timeMode = event.timeMode ?? "scheduled";
+  const normalizedDates = normalizeEventDates(timeMode, dates);
+  const validationError = validatePeriodDates(timeMode, normalizedDates);
   if (validationError) throw new Error(validationError);
   await assertValidEventStructure({
-    nextTimeMode: event.timeMode ?? "scheduled",
+    nextTimeMode: timeMode,
     parentEventId: event.parentEventId ?? null,
   });
   // Generate unique slug from title
@@ -149,7 +151,7 @@ export async function createEvent(
     .returning();
 
   const newDates = await Promise.all(
-    dates.map(async (date) => {
+    normalizedDates.map(async (date) => {
       const [newDate] = await db
         .insert(eventDates)
         .values({ ...date, eventId: newEvent.id })
@@ -179,7 +181,11 @@ export async function updateEvent(
   const current = await db.select().from(events).where(eq(events.id, id)).get();
   if (!current) return null;
   const nextTimeMode = event.timeMode ?? current.timeMode;
-  const nextDates = dates ?? (await db.select().from(eventDates).where(eq(eventDates.eventId, id)));
+  const nextDates = normalizeEventDates(
+    nextTimeMode,
+    dates ?? (await db.select().from(eventDates).where(eq(eventDates.eventId, id))),
+  );
+  const shouldReplaceDates = dates !== undefined || nextTimeMode !== current.timeMode;
   const validationError = validatePeriodDates(nextTimeMode, nextDates);
   if (validationError) throw new Error(validationError);
   const nextParentEventId =
@@ -211,12 +217,12 @@ export async function updateEvent(
   }
   if (tagIds !== undefined) await setEventTags(id, tagIds);
 
-  if (dates) {
+  if (shouldReplaceDates) {
     // Delete existing dates and insert new ones
     await db.delete(eventDates).where(eq(eventDates.eventId, id));
 
     const newDates = await Promise.all(
-      dates.map(async (date) => {
+      nextDates.map(async (date) => {
         const [newDate] = await db
           .insert(eventDates)
           .values({ ...date, eventId: id })
@@ -694,6 +700,7 @@ export async function getPaginatedEvents(
           eventId: event.id,
           startDate: startDateTime,
           endDate: endDateTime,
+          isAllDay: !event.defaultStartTime,
         };
       });
 

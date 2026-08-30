@@ -38,3 +38,13 @@ export function validatePeriodDates(
   }
   return null;
 }
+
+export function normalizeEventDates<T extends { isAllDay?: boolean }>(
+  timeMode: EventTimeMode,
+  dates: T[],
+): Array<T & { isAllDay: boolean }> {
+  return dates.map((date) => ({
+    ...date,
+    isAllDay: timeMode === "period" ? true : (date.isAllDay ?? false),
+  }));
+}

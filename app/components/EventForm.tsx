@@ -7,6 +7,7 @@ import { ImageCropper } from "./ImageCropper";
 import type { Event, EventDate, EventTag } from "~/db/schema";
 import { formatInTimezone, getTimeInTimezone, getDateInTimezone } from "~/lib/timezone";
 import { EventTimingFields, type EventFormTiming } from "./EventTimingFields";
+import { EventTagPicker } from "./EventTagPicker";
 
 type EventFormProps = {
   event?: Event & { dates: EventDate[]; tags?: EventTag[] };
@@ -320,28 +321,7 @@ export function EventForm({
           />
         </div>
 
-        {availableTags.length > 0 && (
-          <fieldset className="flex flex-col gap-2">
-            <legend className="text-sm font-medium text-harbour-700">Tags (optional)</legend>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => (
-                <label
-                  key={tag.id}
-                  className="flex cursor-pointer items-center gap-2 border border-harbour-200 bg-white px-3 py-2 text-sm text-harbour-700 hover:border-harbour-300"
-                >
-                  <input
-                    type="checkbox"
-                    name="tagIds"
-                    value={tag.id}
-                    defaultChecked={event?.tags?.some((assigned) => assigned.id === tag.id)}
-                    className="h-4 w-4 border-harbour-300 text-harbour-600 focus:ring-harbour-500"
-                  />
-                  {tag.name}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        )}
+        <EventTagPicker availableTags={availableTags} selectedTags={event?.tags} />
 
         {/* Organizer */}
         <EntityPicker
@@ -500,6 +480,9 @@ export function EventForm({
                 {
                   ...current[0],
                   isRange: true,
+                  isAllDay: true,
+                  startTime: "",
+                  endTime: "",
                   endDate: current[0].endDate ?? current[0].startDate,
                 },
               ]);
@@ -591,6 +574,7 @@ export function EventForm({
                       <input
                         type="checkbox"
                         checked={dateEntry.isAllDay}
+                        disabled={eventType === "period"}
                         onChange={(e) =>
                           updateDate(dateEntry.id, {
                             isAllDay: e.target.checked,
@@ -603,7 +587,7 @@ export function EventForm({
                         }
                         className="accent-harbour-600"
                       />
-                      All day (no specific time)
+                      {eventType === "period" ? "All-day date range" : "All day (no specific time)"}
                     </label>
                     <label className="flex items-center gap-2 text-sm text-harbour-600">
                       <input

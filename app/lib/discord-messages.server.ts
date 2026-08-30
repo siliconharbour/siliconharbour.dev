@@ -34,7 +34,7 @@ export function buildEventsMessage(events: EventWithDates[], introText?: string)
     if (nextDate) {
       dateLine =
         event.timeMode === "period" && nextDate.endDate
-          ? formatEventPeriodRange(nextDate)
+          ? (formatEventPeriodRange(nextDate) ?? "Date TBD")
           : nextDate.isAllDay
             ? formatInTimezone(nextDate.startDate, "EEE, MMM d")
             : formatInTimezone(nextDate.startDate, "EEE, MMM d 'at' h:mm a");

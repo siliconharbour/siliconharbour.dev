@@ -112,6 +112,7 @@ describe("createEvent", () => {
     );
 
     expect(period.timeMode).toBe("period");
+    expect(period.dates[0].isAllDay).toBe(true);
     expect(showcase.parentEventId).toBe(period.id);
   });
 

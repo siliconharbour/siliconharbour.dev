@@ -120,6 +120,7 @@ export default function Home() {
                         key={event.id}
                         event={event}
                         linkedEvents={linkedEvents[event.id]}
+                        showStatus
                       />
                     ))}
                   </div>
@@ -137,6 +138,7 @@ export default function Home() {
                         variant="featured"
                         resolvedRefs={eventRefs[event.id]}
                         linkedEvents={linkedEvents[event.id]}
+                        showStatus
                       />
                     ))}
                   </div>
@@ -169,6 +171,7 @@ export default function Home() {
                               key={event.id}
                               event={event}
                               linkedEvents={linkedEvents[event.id]}
+                              showStatus
                             />
                           ))}
                         </div>
@@ -185,7 +188,7 @@ export default function Home() {
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {recurringEvents.map((event) => (
-                              <EventCard key={event.id} event={event} variant="compact" />
+                              <EventCard key={event.id} event={event} variant="compact" showStatus />
                             ))}
                           </div>
                         </>

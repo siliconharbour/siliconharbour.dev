@@ -69,7 +69,10 @@ export async function updateEventTag(id: number, name: string, color: EventTagCo
 }
 
 export async function deleteEventTag(id: number) {
-  await db.delete(eventTags).where(eq(eventTags.id, id));
+  db.transaction((tx) => {
+    tx.delete(eventTagAssignments).where(eq(eventTagAssignments.tagId, id)).run();
+    tx.delete(eventTags).where(eq(eventTags.id, id)).run();
+  });
 }
 
 export async function getTagsForEvents(eventIds: number[]): Promise<Map<number, EventTag[]>> {
@@ -103,10 +106,14 @@ export async function validateEventTagIds(tagIds: number[]) {
 
 export async function setEventTags(eventId: number, tagIds: number[]) {
   const uniqueTagIds = await validateEventTagIds(tagIds);
-  await db.delete(eventTagAssignments).where(eq(eventTagAssignments.eventId, eventId));
-  if (uniqueTagIds.length > 0) {
-    await db.insert(eventTagAssignments).values(uniqueTagIds.map((tagId) => ({ eventId, tagId })));
-  }
+  db.transaction((tx) => {
+    tx.delete(eventTagAssignments).where(eq(eventTagAssignments.eventId, eventId)).run();
+    if (uniqueTagIds.length > 0) {
+      tx.insert(eventTagAssignments)
+        .values(uniqueTagIds.map((tagId) => ({ eventId, tagId })))
+        .run();
+    }
+  });
 }
 
 export async function getEventTagIdsBySlugs(slugs: string[]): Promise<number[]> {

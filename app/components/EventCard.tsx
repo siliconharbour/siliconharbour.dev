@@ -24,6 +24,7 @@ type EventCardProps = {
   variant?: "featured" | "default" | "compact";
   resolvedRefs?: Record<string, ResolvedRef>;
   linkedEvents?: Array<Pick<Event, "id" | "slug" | "title"> & { dates: EventDate[] }>;
+  showStatus?: boolean;
 };
 
 function LinkedEventDates({ events }: { events: NonNullable<EventCardProps["linkedEvents"]> }) {
@@ -134,13 +135,14 @@ export function EventCard({
   variant = "default",
   resolvedRefs,
   linkedEvents = [],
+  showStatus = false,
 }: EventCardProps) {
   const nextDate = event.dates[0];
   const hasMultipleDates = event.dates.length > 1;
 
   const isFeatured = variant === "featured";
   const timingState = getEventTimingState(event.dates);
-  const periodLabel = getEventStatusLabel(event);
+  const periodLabel = showStatus ? getEventStatusLabel(event) : null;
   const periodLabelClasses =
     timingState === "active"
       ? "bg-green-50 text-green-700"
