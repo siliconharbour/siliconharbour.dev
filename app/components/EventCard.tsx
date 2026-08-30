@@ -179,7 +179,7 @@ export function EventCard({
           >
             <div className="flex items-start gap-3">
               {event.iconImage && (
-                <div className="img-tint relative w-14 h-14 flex-shrink-0">
+                <div className="relative w-14 h-14 flex-shrink-0">
                   <img
                     src={`/images/${event.iconImage}`}
                     alt=""
@@ -273,7 +273,7 @@ export function EventCard({
           <div className="relative bg-white p-3">
             <div className="flex items-start gap-2.5">
               {event.iconImage && (
-                <div className="img-tint relative w-10 h-10 flex-shrink-0">
+                <div className="relative w-10 h-10 flex-shrink-0">
                   <img
                     src={`/images/${event.iconImage}`}
                     alt=""
@@ -345,7 +345,7 @@ export function EventCard({
         >
           <div className="flex items-start gap-3">
             {event.iconImage && (
-              <div className="img-tint relative w-14 h-14 flex-shrink-0">
+              <div className="relative w-14 h-14 flex-shrink-0">
                 <img
                   src={`/images/${event.iconImage}`}
                   alt=""

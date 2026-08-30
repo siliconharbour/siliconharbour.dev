@@ -218,7 +218,7 @@ button {
 
 .img-tint:hover::after,
 .img-tint:focus-within::after,
-.group:hover .img-tint::after,
-.group:focus-within .img-tint::after {
+.group:hover > .img-tint::after,
+.group:focus-within > .img-tint::after {
   opacity: 0;
 }
