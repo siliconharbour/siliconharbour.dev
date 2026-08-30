@@ -39,10 +39,26 @@ export async function loader({}: Route.LoaderArgs) {
 
   const activePeriods = upcoming.filter(isActivePeriod);
   const activePeriodIds = new Set(activePeriods.map((event) => event.id));
-  const visibleThisWeek = thisWeek.filter((event) => !activePeriodIds.has(event.id));
+  const upcomingIds = new Set(upcoming.map((event) => event.id));
+  const linkedEventIds = new Set(
+    upcoming
+      .filter((event) => event.parentEventId && upcomingIds.has(event.parentEventId))
+      .map((event) => event.id),
+  );
+  const linkedEvents = upcoming.reduce<Record<number, typeof upcoming>>((groups, event) => {
+    if (!event.parentEventId || !linkedEventIds.has(event.id)) return groups;
+    (groups[event.parentEventId] ??= []).push(event);
+    return groups;
+  }, {});
+  const visibleThisWeek = thisWeek.filter(
+    (event) => !activePeriodIds.has(event.id) && !linkedEventIds.has(event.id),
+  );
   const thisWeekIds = new Set(visibleThisWeek.map((e) => e.id));
   const futureEvents = upcoming.filter(
-    (event) => !thisWeekIds.has(event.id) && !activePeriodIds.has(event.id),
+    (event) =>
+      !thisWeekIds.has(event.id) &&
+      !activePeriodIds.has(event.id) &&
+      !linkedEventIds.has(event.id),
   );
 
   // Prepare refs for featured events (thisWeek events that show descriptions)
@@ -63,6 +79,7 @@ export async function loader({}: Route.LoaderArgs) {
     jobs, // Daily-randomized sample of 4 jobs from different companies
     featuredProjects,
     eventRefs,
+    linkedEvents,
     visibility,
   };
 }
@@ -78,6 +95,7 @@ export default function Home() {
     jobs,
     featuredProjects,
     eventRefs,
+    linkedEvents,
     visibility,
   } = useLoaderData<typeof loader>();
 
@@ -98,7 +116,11 @@ export default function Home() {
                   <h2 className="text-lg font-semibold text-green-700">Happening now</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {activePeriods.map((event) => (
-                      <EventCard key={event.id} event={event} />
+                      <EventCard
+                        key={event.id}
+                        event={event}
+                        linkedEvents={linkedEvents[event.id]}
+                      />
                     ))}
                   </div>
                 </section>
@@ -114,6 +136,7 @@ export default function Home() {
                         event={event}
                         variant="featured"
                         resolvedRefs={eventRefs[event.id]}
+                        linkedEvents={linkedEvents[event.id]}
                       />
                     ))}
                   </div>
@@ -142,7 +165,11 @@ export default function Home() {
                       {oneOffEvents.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {oneOffEvents.slice(0, 4).map((event) => (
-                            <EventCard key={event.id} event={event} />
+                            <EventCard
+                              key={event.id}
+                              event={event}
+                              linkedEvents={linkedEvents[event.id]}
+                            />
                           ))}
                         </div>
                       )}

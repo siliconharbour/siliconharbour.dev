@@ -21,7 +21,38 @@ type EventCardProps = {
   > & { dates: EventDate[] };
   variant?: "featured" | "default" | "compact";
   resolvedRefs?: Record<string, ResolvedRef>;
+  linkedEvents?: Array<Pick<Event, "id" | "slug" | "title"> & { dates: EventDate[] }>;
 };
+
+function LinkedEventDates({ events }: { events: NonNullable<EventCardProps["linkedEvents"]> }) {
+  if (events.length === 0) return null;
+
+  return (
+    <div className="-mt-px bg-harbour-50 px-4 py-3 ring-1 ring-harbour-200/50">
+      {events.map((linkedEvent) => {
+        const date = linkedEvent.dates[0];
+        return (
+          <Link
+            key={linkedEvent.id}
+            to={`/events/${linkedEvent.slug}`}
+            className="group/link flex flex-col gap-0.5 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+          >
+            <span className="font-medium text-harbour-700 group-hover/link:text-harbour-600">
+              {linkedEvent.title}
+            </span>
+            {date && (
+              <time dateTime={date.startDate.toISOString()} className="shrink-0 text-harbour-500">
+                {date.isAllDay
+                  ? formatInTimezone(date.startDate, "EEE, MMM d")
+                  : formatInTimezone(date.startDate, "EEE, MMM d 'at' h:mm a")}
+              </time>
+            )}
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
 
 function describeRecurrence(rule: string | null): string | null {
   if (!rule) return null;
@@ -96,7 +127,12 @@ function StackedWrapper({
   );
 }
 
-export function EventCard({ event, variant = "default", resolvedRefs }: EventCardProps) {
+export function EventCard({
+  event,
+  variant = "default",
+  resolvedRefs,
+  linkedEvents = [],
+}: EventCardProps) {
   const nextDate = event.dates[0];
   const hasMultipleDates = event.dates.length > 1;
 
@@ -121,10 +157,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
   if (isFeatured) {
     return (
       <StackedWrapper isRecurring={!!event.recurrenceRule}>
-        <Link
-          to={`/events/${event.slug}`}
-          className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
-        >
+        <div>
+          <Link
+            to={`/events/${event.slug}`}
+            className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+          >
           {event.coverImage && (
             <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
               <img
@@ -209,7 +246,9 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
               </div>
             </div>
           </div>
-        </Link>
+          </Link>
+          <LinkedEventDates events={linkedEvents} />
+        </div>
       </StackedWrapper>
     );
   }
@@ -268,10 +307,11 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
   // Default (non-featured) card
   return (
     <StackedWrapper isRecurring={!!event.recurrenceRule}>
-      <Link
-        to={`/events/${event.slug}`}
-        className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
-      >
+      <div>
+        <Link
+          to={`/events/${event.slug}`}
+          className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+        >
         {event.coverImage && (
           <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
             <img
@@ -335,7 +375,9 @@ export function EventCard({ event, variant = "default", resolvedRefs }: EventCar
             )}
           </div>
         </div>
-      </Link>
+        </Link>
+        <LinkedEventDates events={linkedEvents} />
+      </div>
     </StackedWrapper>
   );
 }
