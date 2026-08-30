@@ -5,6 +5,7 @@ import { formatInTimezone } from "~/lib/timezone";
 import { formatEventPeriodRange, getEventStatusLabel } from "~/lib/event-display";
 import { getEventTimingState } from "~/lib/event-timing";
 import { eventTagColorStyles } from "~/lib/event-tags";
+import { TintedImage } from "./TintedImage";
 
 type EventCardProps = {
   event: Pick<
@@ -161,16 +162,16 @@ export function EventCard({
         <div>
           <Link
             to={`/events/${event.slug}`}
-            className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+            className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
           >
           {event.coverImage && (
-            <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
+            <TintedImage className="aspect-[3/1] overflow-hidden bg-harbour-100">
               <img
                 src={`/images/${event.coverImage}`}
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
               />
-            </div>
+            </TintedImage>
           )}
 
           {/* Overlapping content card */}
@@ -327,16 +328,16 @@ export function EventCard({
       <div>
         <Link
           to={`/events/${event.slug}`}
-          className={`group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+          className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
         >
         {event.coverImage && (
-          <div className="img-tint aspect-[3/1] relative overflow-hidden bg-harbour-100">
+          <TintedImage className="aspect-[3/1] overflow-hidden bg-harbour-100">
             <img
               src={`/images/${event.coverImage}`}
               alt=""
               className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
             />
-          </div>
+          </TintedImage>
         )}
 
         {/* Overlapping content card */}

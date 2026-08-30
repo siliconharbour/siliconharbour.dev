@@ -203,22 +203,3 @@ a:focus {
 button {
   @apply cursor-pointer;
 }
-
-/* Blue tint overlay for images - wrap img in .img-tint div */
-.img-tint {
-  @apply relative;
-}
-
-.img-tint::after {
-  content: "";
-  @apply absolute inset-0 pointer-events-none transition-all;
-  background: var(--color-harbour-200);
-  opacity: 0.15;
-}
-
-.img-tint:hover::after,
-.img-tint:focus-within::after,
-.group:hover > .img-tint::after,
-.group:focus-within > .img-tint::after {
-  opacity: 0;
-}

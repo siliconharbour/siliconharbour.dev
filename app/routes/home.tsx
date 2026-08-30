@@ -15,6 +15,7 @@ import { Footer } from "~/components/Footer";
 import { Header } from "~/components/Header";
 import { buildSeoMeta } from "~/lib/seo";
 import { isActivePeriod } from "~/lib/event-display";
+import { TintedImage } from "~/components/TintedImage";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
@@ -215,16 +216,16 @@ export default function Home() {
                       <Link
                         key={article.id}
                         to={`/news/${article.slug}`}
-                        className="group flex flex-col sm:flex-row gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+                        className="group group/image-tint flex flex-col sm:flex-row gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {article.coverImage && (
-                          <div className="img-tint w-full sm:w-32 h-24 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+                          <TintedImage className="w-full sm:w-32 h-24 overflow-hidden bg-harbour-100 flex-shrink-0">
                             <img
                               src={`/images/${article.coverImage}`}
                               alt=""
                               className="absolute inset-0 w-full h-full object-cover"
                             />
-                          </div>
+                          </TintedImage>
                         )}
                         <div className="flex flex-col gap-1">
                           <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">

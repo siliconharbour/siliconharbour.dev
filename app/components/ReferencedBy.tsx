@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import type { DetailedBacklink } from "~/lib/references.server";
 
 import { EventCard } from "./EventCard";
+import { TintedImage } from "./TintedImage";
 
 interface ReferencedByProps {
   backlinks: DetailedBacklink[];
@@ -131,16 +132,16 @@ function NewsCard({
   return (
     <Link
       to={`/news/${data.slug}`}
-      className="group flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.coverImage ? (
-        <div className="img-tint w-16 h-16 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-16 h-16 overflow-hidden bg-harbour-100 flex-shrink-0">
           <img
             src={`/images/${data.coverImage}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
-        </div>
+        </TintedImage>
       ) : (
         <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center flex-shrink-0">
           <svg
@@ -201,16 +202,16 @@ function CompanyCard({
   return (
     <Link
       to={`/directory/companies/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""
             className="absolute inset-0 w-full h-full object-contain"
           />
-        </div>
+        </TintedImage>
       ) : (
         <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
           <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
@@ -234,16 +235,16 @@ function ProjectCard({
   return (
     <Link
       to={`/directory/projects/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""
             className="absolute inset-0 w-full h-full object-contain"
           />
-        </div>
+        </TintedImage>
       ) : (
         <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
           <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
@@ -267,16 +268,16 @@ function GroupCard({
   return (
     <Link
       to={`/directory/groups/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""
             className="absolute inset-0 w-full h-full object-contain"
           />
-        </div>
+        </TintedImage>
       ) : (
         <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
           <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
@@ -299,16 +300,16 @@ function PersonCard({
   return (
     <Link
       to={`/directory/people/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.avatar ? (
-        <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 rounded-full flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 rounded-full flex-shrink-0">
           <img
             src={`/images/${data.avatar}`}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
-        </div>
+        </TintedImage>
       ) : (
         <div className="w-10 h-10 bg-harbour-100 rounded-full flex items-center justify-center flex-shrink-0">
           <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
@@ -332,16 +333,16 @@ function EducationCard({
   return (
     <Link
       to={`/directory/education/${data.slug}`}
-      className="group flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <div className="img-tint w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""
             className="absolute inset-0 w-full h-full object-contain"
           />
-        </div>
+        </TintedImage>
       ) : (
         <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
           <svg
