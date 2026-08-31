@@ -12,8 +12,7 @@ import {
   undoDiscordBatch,
 } from "~/lib/discord-posts.server";
 import { buildEventsMessage } from "~/lib/discord-messages.server";
-import { postMessage } from "~/lib/discord.server";
-import { discordErrorDetails, logDiscord } from "~/lib/discord-logging.server";
+import { logDiscord, postMessage } from "~/lib/discord.server";
 import { format } from "date-fns";
 import { getGeneratedOccurrences } from "~/lib/events.server";
 import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
@@ -86,15 +85,8 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "post") {
-    const requestId = crypto.randomUUID();
-    const requestStartedAt = Date.now();
     const destinations = await listDestinations("events");
     if (destinations.length === 0) {
-      logDiscord("warn", "batch.rejected", {
-        requestId,
-        channelType: "events",
-        reason: "no_destinations",
-      });
       return {
         error: "No event destinations configured. Add one in Settings.",
       };
@@ -107,26 +99,11 @@ export async function action({ request }: Route.ActionArgs) {
 
     const introText = (formData.get("introText") as string) || null;
 
-    logDiscord("info", "batch.request_received", {
-      requestId,
-      channelType: "events",
-      requestedItemIds: selectedIds,
-      requestedItemCount: selectedIds.length,
-      destinationCount: destinations.length,
-      introTextPresent: Boolean(introText?.trim()),
-    });
-
     // Fetch the full event data for selected events
     const allUnposted = await getUnpostedEvents();
     const selectedEvents = allUnposted.filter((e) => selectedIds.includes(e.id));
 
     if (selectedEvents.length === 0) {
-      logDiscord("warn", "batch.rejected", {
-        requestId,
-        channelType: "events",
-        reason: "items_no_longer_available",
-        requestedItemIds: selectedIds,
-      });
       return { error: "Selected events are no longer available" };
     }
 
@@ -151,32 +128,22 @@ export async function action({ request }: Route.ActionArgs) {
     // Fan-out: post to each destination, record one discord_posts row per
     // destination, all sharing a batch_id.
     const batchId = crypto.randomUUID();
-    const successes: Array<{
-      destination: (typeof destinations)[number];
-      messageId: string | null;
-    }> = [];
-    const failures: Array<{ destination: (typeof destinations)[number]; error: string }> = [];
+    const successes: Array<{ destination: typeof destinations[number]; messageId: string | null }> = [];
+    const failures: Array<{ destination: typeof destinations[number]; error: string }> = [];
 
-    logDiscord("info", "batch.started", {
-      requestId,
+    logDiscord("batch.started", {
       batchId,
       channelType: "events",
       itemIds: selectedEvents.map((event) => event.id),
-      itemCount: selectedEvents.length,
       destinationCount: destinations.length,
-      messageCountPerDestination: 1,
+      chunkCount: 1,
     });
 
     for (const destination of destinations) {
       const result = await postMessage(destination.channelId, components, config.botToken, {
-        requestId,
         batchId,
         channelType: "events",
         destinationId: destination.id,
-        guildId: destination.guildId,
-        guildName: destination.guildName,
-        channelId: destination.channelId,
-        channelName: destination.channelName,
         chunkIndex: 1,
         chunkCount: 1,
       });
@@ -188,14 +155,6 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (successes.length === 0) {
-      logDiscord("error", "batch.failed", {
-        requestId,
-        batchId,
-        channelType: "events",
-        reason: "no_destinations_succeeded",
-        failureCount: failures.length,
-        durationMs: Date.now() - requestStartedAt,
-      });
       return {
         error: `Failed to post to any destination: ${failures
           .map((f) => `#${f.destination.channelName} (${f.error})`)
@@ -206,51 +165,23 @@ export async function action({ request }: Route.ActionArgs) {
     // Attach items to the first successful row; siblings reference the same batch.
     for (let i = 0; i < successes.length; i++) {
       const { destination, messageId } = successes[i];
-      try {
-        const post = await createDiscordPost({
-          channelType: "events",
-          discordMessageId: messageId,
-          destination: { guildId: destination.guildId, channelId: destination.channelId },
-          batchId,
-          introText,
-          itemIds: selectedIds,
-          itemType: "event",
-          attachItems: i === 0,
-        });
-        logDiscord("info", "database.post_recorded", {
-          requestId,
-          batchId,
-          channelType: "events",
-          destinationId: destination.id,
-          channelId: destination.channelId,
-          discordMessageId: messageId,
-          discordPostId: post.id,
-          itemsAttached: i === 0,
-        });
-      } catch (error) {
-        logDiscord("error", "database.post_record_failed", {
-          requestId,
-          batchId,
-          channelType: "events",
-          destinationId: destination.id,
-          channelId: destination.channelId,
-          discordMessageId: messageId,
-          itemsAttached: i === 0,
-          ...discordErrorDetails(error),
-        });
-        throw error;
-      }
+      await createDiscordPost({
+        channelType: "events",
+        discordMessageId: messageId,
+        destination: { guildId: destination.guildId, channelId: destination.channelId },
+        batchId,
+        introText,
+        itemIds: selectedIds,
+        itemType: "event",
+        attachItems: i === 0,
+      });
     }
 
-    logDiscord("info", "batch.completed", {
-      requestId,
+    logDiscord("batch.recorded", {
       batchId,
       channelType: "events",
-      itemCount: selectedEvents.length,
       destinationSuccessCount: successes.length,
       destinationFailureCount: failures.length,
-      discordMessageIds: successes.map((success) => success.messageId),
-      durationMs: Date.now() - requestStartedAt,
     });
 
     return {
@@ -292,10 +223,7 @@ export default function DiscordEvents() {
     navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
 
   const hasFailures =
-    actionData &&
-    "failures" in actionData &&
-    Array.isArray(actionData.failures) &&
-    actionData.failures.length > 0;
+    actionData && "failures" in actionData && Array.isArray(actionData.failures) && actionData.failures.length > 0;
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -334,10 +262,7 @@ export default function DiscordEvents() {
               <span className="font-medium text-harbour-700">
                 Posting to {destinations.length} channel{destinations.length !== 1 ? "s" : ""}:
               </span>
-              <Link
-                to="/manage/settings"
-                className="text-xs text-harbour-400 hover:text-harbour-600"
-              >
+              <Link to="/manage/settings" className="text-xs text-harbour-400 hover:text-harbour-600">
                 Edit
               </Link>
             </div>
@@ -363,8 +288,7 @@ export default function DiscordEvents() {
             {actionData.destinations} channel{actionData.destinations !== 1 ? "s" : ""}.
             {hasFailures && (
               <div className="mt-2 text-red-700">
-                Failed to post to:{" "}
-                {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
+                Failed to post to: {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
               </div>
             )}
           </div>
@@ -404,7 +328,10 @@ export default function DiscordEvents() {
                     const dateLine = nextDate
                       ? nextDate.isAllDay
                         ? formatInTimezone(new Date(nextDate.startDate), "EEE, MMM d")
-                        : formatInTimezone(new Date(nextDate.startDate), "EEE, MMM d 'at' h:mm a")
+                        : formatInTimezone(
+                            new Date(nextDate.startDate),
+                            "EEE, MMM d 'at' h:mm a",
+                          )
                       : "Recurring";
                     return (
                       <div
@@ -473,8 +400,7 @@ export default function DiscordEvents() {
             <div className="flex flex-col divide-y divide-harbour-100">
               {history.map((batch) => {
                 const key = batch.batchId ?? `single-${batch.destinations[0]?.id}`;
-                const isSkip =
-                  batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
+                const isSkip = batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
                 const channelCount = batch.destinations.length;
                 return (
                   <div key={key} className="py-3 flex items-start justify-between text-sm gap-3">
@@ -485,7 +411,9 @@ export default function DiscordEvents() {
                           : `Posted ${batch.itemCount} event${batch.itemCount !== 1 ? "s" : ""} to ${channelCount} channel${channelCount !== 1 ? "s" : ""}`}
                       </span>
                       {batch.introText && (
-                        <span className="text-harbour-400 text-xs truncate">{batch.introText}</span>
+                        <span className="text-harbour-400 text-xs truncate">
+                          {batch.introText}
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
@@ -501,11 +429,7 @@ export default function DiscordEvents() {
                         ) : (
                           <>
                             <input type="hidden" name="intent" value="undo" />
-                            <input
-                              type="hidden"
-                              name="postId"
-                              value={batch.destinations[0]?.id ?? ""}
-                            />
+                            <input type="hidden" name="postId" value={batch.destinations[0]?.id ?? ""} />
                           </>
                         )}
                         <button
