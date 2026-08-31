@@ -1,4 +1,5 @@
-import { REST, DiscordAPIError, HTTPError } from "@discordjs/rest";
+import { createHash } from "node:crypto";
+import { REST, RESTEvents, DefaultRestOptions, DiscordAPIError, HTTPError } from "@discordjs/rest";
 import {
   Routes,
   ChannelType,
@@ -18,6 +19,7 @@ import {
   type RESTGetAPIGuildRolesResult,
   type RESTPostAPIChannelMessageResult,
 } from "discord-api-types/v10";
+import { discordErrorDetails, logDiscord } from "~/lib/discord-logging.server";
 
 // =============================================================================
 // REST client
@@ -97,6 +99,33 @@ export interface PostMessageResult {
   error?: string;
 }
 
+export interface PostMessageLogContext {
+  requestId: string;
+  batchId: string;
+  channelType: "events" | "jobs";
+  destinationId: number;
+  guildId: string;
+  guildName: string;
+  channelId: string;
+  channelName: string;
+  chunkIndex: number;
+  chunkCount: number;
+}
+
+function countComponents(components: object[]): number {
+  let count = 0;
+  for (const component of components) {
+    count += 1;
+    if (
+      "components" in component &&
+      Array.isArray((component as { components?: unknown }).components)
+    ) {
+      count += countComponents((component as { components: object[] }).components);
+    }
+  }
+  return count;
+}
+
 /**
  * Post a Components v2 message to a Discord channel.
  *
@@ -107,16 +136,97 @@ export async function postMessage(
   channelId: string,
   components: object[],
   token: string,
+  context: PostMessageLogContext,
 ): Promise<PostMessageResult> {
+  const startedAt = Date.now();
+  const payloadHash = createHash("sha256")
+    .update(JSON.stringify({ flags: MessageFlags.IsComponentsV2, components }))
+    .digest("hex")
+    .slice(0, 16);
+  let responseCount = 0;
+  let maxLibraryRetryCount = 0;
+  let physicalAttemptCount = 0;
+
+  logDiscord("info", "message.send_started", {
+    ...context,
+    payloadHash,
+    componentCount: countComponents(components),
+  });
+
   try {
-    const result = (await makeRest(token).post(Routes.channelMessages(channelId), {
+    const rest = new REST({
+      version: "10",
+      makeRequest: async (url, init) => {
+        physicalAttemptCount += 1;
+        const attemptStartedAt = Date.now();
+        try {
+          return await DefaultRestOptions.makeRequest(url, init);
+        } catch (error) {
+          logDiscord("warn", "rest.network_error", {
+            ...context,
+            payloadHash,
+            physicalAttempt: physicalAttemptCount,
+            durationMs: Date.now() - attemptStartedAt,
+            ...discordErrorDetails(error),
+          });
+          throw error;
+        }
+      },
+    }).setToken(token);
+    rest.on(RESTEvents.Response, (request, response) => {
+      responseCount += 1;
+      maxLibraryRetryCount = Math.max(maxLibraryRetryCount, request.retries);
+      const willRetry =
+        response.status === 429 ||
+        (response.status >= 500 && response.status < 600 && request.retries < rest.options.retries);
+
+      logDiscord(willRetry ? "warn" : "info", "rest.response", {
+        ...context,
+        payloadHash,
+        physicalAttempt: physicalAttemptCount,
+        responseSequence: responseCount,
+        libraryRetryCount: request.retries,
+        status: response.status,
+        retryAfter: response.headers.get("retry-after"),
+        willRetry,
+      });
+    });
+    rest.on(RESTEvents.RateLimited, (rateLimit) => {
+      logDiscord("warn", "rest.rate_limited", {
+        ...context,
+        payloadHash,
+        global: rateLimit.global,
+        rateLimitScope: rateLimit.scope,
+        retryAfterMs: rateLimit.retryAfter,
+      });
+    });
+
+    const result = (await rest.post(Routes.channelMessages(channelId), {
       body: {
         flags: MessageFlags.IsComponentsV2,
         components,
       },
     })) as RESTPostAPIChannelMessageResult;
+    logDiscord("info", "message.send_succeeded", {
+      ...context,
+      payloadHash,
+      discordMessageId: result.id,
+      physicalAttemptCount,
+      responseCount,
+      maxLibraryRetryCount,
+      durationMs: Date.now() - startedAt,
+    });
     return { success: true, messageId: result.id };
   } catch (error) {
+    logDiscord("error", "message.send_failed", {
+      ...context,
+      payloadHash,
+      physicalAttemptCount,
+      responseCount,
+      maxLibraryRetryCount,
+      durationMs: Date.now() - startedAt,
+      ...discordErrorDetails(error),
+    });
     return { success: false, error: formatError(error) };
   }
 }
@@ -235,10 +345,7 @@ export interface GetBotMemberResult {
  * the snowflake validator runs before path matching. We resolve the bot's
  * actual user id (once per token, cached forever) and pass that instead.
  */
-export async function getBotMember(
-  guildId: string,
-  token: string,
-): Promise<GetBotMemberResult> {
+export async function getBotMember(guildId: string, token: string): Promise<GetBotMemberResult> {
   return cached(token, ["guild", guildId, "me"], async () => {
     try {
       const botUserId = await getBotUserId(token);
@@ -258,10 +365,7 @@ export interface GetGuildRolesResult {
   error?: string;
 }
 
-export async function getGuildRoles(
-  guildId: string,
-  token: string,
-): Promise<GetGuildRolesResult> {
+export async function getGuildRoles(guildId: string, token: string): Promise<GetGuildRolesResult> {
   return cached(token, ["guild", guildId, "roles"], async () => {
     try {
       const roles = (await makeRest(token).get(

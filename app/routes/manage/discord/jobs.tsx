@@ -13,6 +13,7 @@ import {
 } from "~/lib/discord-posts.server";
 import { buildJobsMessage } from "~/lib/discord-messages.server";
 import { postMessage } from "~/lib/discord.server";
+import { discordErrorDetails, logDiscord } from "~/lib/discord-logging.server";
 import { format } from "date-fns";
 
 export function meta({}: Route.MetaArgs) {
@@ -79,8 +80,15 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (intent === "post") {
+    const requestId = crypto.randomUUID();
+    const requestStartedAt = Date.now();
     const destinations = await listDestinations("jobs");
     if (destinations.length === 0) {
+      logDiscord("warn", "batch.rejected", {
+        requestId,
+        channelType: "jobs",
+        reason: "no_destinations",
+      });
       return {
         error: "No job destinations configured. Add one in Settings.",
       };
@@ -93,10 +101,25 @@ export async function action({ request }: Route.ActionArgs) {
 
     const introText = (formData.get("introText") as string) || null;
 
+    logDiscord("info", "batch.request_received", {
+      requestId,
+      channelType: "jobs",
+      requestedItemIds: selectedIds,
+      requestedItemCount: selectedIds.length,
+      destinationCount: destinations.length,
+      introTextPresent: Boolean(introText?.trim()),
+    });
+
     const allUnposted = await getUnpostedJobs();
     const selectedJobs = allUnposted.filter((j) => selectedIds.includes(j.id));
 
     if (selectedJobs.length === 0) {
+      logDiscord("warn", "batch.rejected", {
+        requestId,
+        channelType: "jobs",
+        reason: "items_no_longer_available",
+        requestedItemIds: selectedIds,
+      });
       return { error: "Selected jobs are no longer available" };
     }
 
@@ -116,16 +139,42 @@ export async function action({ request }: Route.ActionArgs) {
     // chunk failure, mark the destination as failed and continue to the next.
     const batchId = crypto.randomUUID();
     const successes: Array<{
-      destination: typeof destinations[number];
-      firstMessageId: string | null;
+      destination: (typeof destinations)[number];
+      messageIds: string[];
     }> = [];
-    const failures: Array<{ destination: typeof destinations[number]; error: string }> = [];
+    const failures: Array<{
+      destination: (typeof destinations)[number];
+      error: string;
+      sentMessageIds: string[];
+    }> = [];
+
+    logDiscord("info", "batch.started", {
+      requestId,
+      batchId,
+      channelType: "jobs",
+      itemIds: selectedJobs.map((job) => job.id),
+      itemCount: selectedJobs.length,
+      destinationCount: destinations.length,
+      messageCountPerDestination: messages.length,
+    });
 
     for (const destination of destinations) {
       const messageIds: string[] = [];
       let chunkError: string | null = null;
-      for (const components of messages) {
-        const result = await postMessage(destination.channelId, components, config.botToken);
+      for (let chunkIndex = 0; chunkIndex < messages.length; chunkIndex++) {
+        const components = messages[chunkIndex];
+        const result = await postMessage(destination.channelId, components, config.botToken, {
+          requestId,
+          batchId,
+          channelType: "jobs",
+          destinationId: destination.id,
+          guildId: destination.guildId,
+          guildName: destination.guildName,
+          channelId: destination.channelId,
+          channelName: destination.channelName,
+          chunkIndex: chunkIndex + 1,
+          chunkCount: messages.length,
+        });
         if (!result.success) {
           chunkError = `${result.error}${messageIds.length > 0 ? ` (${messageIds.length} message(s) already sent)` : ""}`;
           break;
@@ -134,13 +183,34 @@ export async function action({ request }: Route.ActionArgs) {
       }
 
       if (chunkError) {
-        failures.push({ destination, error: chunkError });
+        failures.push({ destination, error: chunkError, sentMessageIds: messageIds });
+        if (messageIds.length > 0) {
+          logDiscord("error", "destination.partially_sent", {
+            requestId,
+            batchId,
+            channelType: "jobs",
+            destinationId: destination.id,
+            channelId: destination.channelId,
+            sentMessageIds: messageIds,
+            sentChunkCount: messageIds.length,
+            expectedChunkCount: messages.length,
+          });
+        }
       } else {
-        successes.push({ destination, firstMessageId: messageIds[0] ?? null });
+        successes.push({ destination, messageIds });
       }
     }
 
     if (successes.length === 0) {
+      logDiscord("error", "batch.failed", {
+        requestId,
+        batchId,
+        channelType: "jobs",
+        reason: "no_destinations_succeeded",
+        failureCount: failures.length,
+        partiallySentMessageIds: failures.flatMap((failure) => failure.sentMessageIds),
+        durationMs: Date.now() - requestStartedAt,
+      });
       return {
         error: `Failed to post to any destination: ${failures
           .map((f) => `#${f.destination.channelName} (${f.error})`)
@@ -150,18 +220,56 @@ export async function action({ request }: Route.ActionArgs) {
 
     // Attach items to the first successful row only; siblings share batch_id.
     for (let i = 0; i < successes.length; i++) {
-      const { destination, firstMessageId } = successes[i];
-      await createDiscordPost({
-        channelType: "jobs",
-        discordMessageId: firstMessageId,
-        destination: { guildId: destination.guildId, channelId: destination.channelId },
-        batchId,
-        introText,
-        itemIds: selectedIds,
-        itemType: "job",
-        attachItems: i === 0,
-      });
+      const { destination, messageIds } = successes[i];
+      const firstMessageId = messageIds[0] ?? null;
+      try {
+        const post = await createDiscordPost({
+          channelType: "jobs",
+          discordMessageId: firstMessageId,
+          destination: { guildId: destination.guildId, channelId: destination.channelId },
+          batchId,
+          introText,
+          itemIds: selectedIds,
+          itemType: "job",
+          attachItems: i === 0,
+        });
+        logDiscord("info", "database.post_recorded", {
+          requestId,
+          batchId,
+          channelType: "jobs",
+          destinationId: destination.id,
+          channelId: destination.channelId,
+          discordMessageIds: messageIds,
+          discordPostId: post.id,
+          itemsAttached: i === 0,
+        });
+      } catch (error) {
+        logDiscord("error", "database.post_record_failed", {
+          requestId,
+          batchId,
+          channelType: "jobs",
+          destinationId: destination.id,
+          channelId: destination.channelId,
+          discordMessageIds: messageIds,
+          itemsAttached: i === 0,
+          ...discordErrorDetails(error),
+        });
+        throw error;
+      }
     }
+
+    logDiscord("info", "batch.completed", {
+      requestId,
+      batchId,
+      channelType: "jobs",
+      itemCount: selectedJobs.length,
+      messageCountPerDestination: messages.length,
+      destinationSuccessCount: successes.length,
+      destinationFailureCount: failures.length,
+      discordMessageIds: successes.flatMap((success) => success.messageIds),
+      partiallySentMessageIds: failures.flatMap((failure) => failure.sentMessageIds),
+      durationMs: Date.now() - requestStartedAt,
+    });
 
     return {
       success: true,
@@ -227,7 +335,12 @@ function JobRow({
         </span>
         <span className="text-sm text-harbour-400">
           {[job.companyName, job.location, job.workplaceType].filter(Boolean).join(" \u2022 ")}
-          {job.postedAt && <> {"\u2022"} {format(new Date(job.postedAt), "MMM d")}</>}
+          {job.postedAt && (
+            <>
+              {" "}
+              {"\u2022"} {format(new Date(job.postedAt), "MMM d")}
+            </>
+          )}
         </span>
       </div>
       <Form method="post" className="flex-shrink-0">
@@ -263,7 +376,10 @@ export default function DiscordJobs() {
   const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
 
   const hasFailures =
-    actionData && "failures" in actionData && Array.isArray(actionData.failures) && actionData.failures.length > 0;
+    actionData &&
+    "failures" in actionData &&
+    Array.isArray(actionData.failures) &&
+    actionData.failures.length > 0;
 
   return (
     <div className="min-h-screen p-4 md:p-6">
@@ -302,7 +418,10 @@ export default function DiscordJobs() {
               <span className="font-medium text-harbour-700">
                 Posting to {destinations.length} channel{destinations.length !== 1 ? "s" : ""}:
               </span>
-              <Link to="/manage/settings" className="text-xs text-harbour-400 hover:text-harbour-600">
+              <Link
+                to="/manage/settings"
+                className="text-xs text-harbour-400 hover:text-harbour-600"
+              >
                 Edit
               </Link>
             </div>
@@ -328,7 +447,8 @@ export default function DiscordJobs() {
             {actionData.destinations} channel{actionData.destinations !== 1 ? "s" : ""}.
             {hasFailures && (
               <div className="mt-2 text-red-700">
-                Failed to post to: {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
+                Failed to post to:{" "}
+                {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
               </div>
             )}
           </div>
@@ -454,9 +574,7 @@ export default function DiscordJobs() {
                           : `Posted ${batch.itemCount} job${batch.itemCount !== 1 ? "s" : ""} to ${channelCount} channel${channelCount !== 1 ? "s" : ""}`}
                       </span>
                       {batch.introText && (
-                        <span className="text-harbour-400 text-xs truncate">
-                          {batch.introText}
-                        </span>
+                        <span className="text-harbour-400 text-xs truncate">{batch.introText}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
