@@ -62,7 +62,7 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
   return (
     <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-3">
       {article.coverImage && (
-        <TintedImage className="aspect-video overflow-hidden bg-harbour-100">
+        <TintedImage className="aspect-video overflow-hidden">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -90,7 +90,7 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
   return (
     <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-2">
       {article.coverImage && (
-        <TintedImage className="aspect-video overflow-hidden bg-harbour-100">
+        <TintedImage className="aspect-video overflow-hidden">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -125,7 +125,7 @@ function ListItem({ article, showTypeBadge }: { article: News; showTypeBadge: bo
       className="group group/image-tint flex gap-4 py-4 border-b border-harbour-100 last:border-b-0"
     >
       {article.coverImage && (
-        <TintedImage className="w-28 h-20 overflow-hidden bg-harbour-100 flex-shrink-0 hidden sm:block">
+        <TintedImage className="w-28 h-20 overflow-hidden flex-shrink-0 hidden sm:block">
           <img
             src={`/images/${article.coverImage}`}
             alt=""

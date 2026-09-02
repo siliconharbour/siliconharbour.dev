@@ -167,7 +167,7 @@ export function EventCard({
             className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
           >
           {event.coverImage && (
-            <TintedImage className="aspect-[3/1] overflow-hidden bg-harbour-100">
+            <TintedImage className="aspect-[3/1] overflow-hidden">
               <img
                 src={`/images/${event.coverImage}`}
                 alt=""
@@ -333,7 +333,7 @@ export function EventCard({
           className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
         >
         {event.coverImage && (
-          <TintedImage className="aspect-[3/1] overflow-hidden bg-harbour-100">
+          <TintedImage className="aspect-[3/1] overflow-hidden">
             <img
               src={`/images/${event.coverImage}`}
               alt=""

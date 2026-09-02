@@ -72,7 +72,7 @@ export default function DirectoryProjects() {
                 className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all overflow-hidden"
               >
                 {project.coverImage ? (
-                  <div className="aspect-video relative overflow-hidden bg-harbour-100">
+                  <div className="aspect-video relative overflow-hidden">
                     <img
                       src={`/images/${project.coverImage}`}
                       alt=""

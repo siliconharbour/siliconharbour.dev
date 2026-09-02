@@ -155,7 +155,7 @@ export default function ProjectDetail() {
     <div className="max-w-4xl mx-auto p-4 py-8">
       <article className="flex flex-col gap-6">
         {project.coverImage && (
-          <div className="aspect-video relative overflow-hidden bg-harbour-100">
+          <div className="aspect-video relative overflow-hidden">
             <img
               src={`/images/${project.coverImage}`}
               alt=""
@@ -166,7 +166,7 @@ export default function ProjectDetail() {
 
         <div className="flex items-start gap-4">
           {project.logo && (
-            <div className="w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+            <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
                 src={`/images/${project.logo}`}
                 alt=""

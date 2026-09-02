@@ -282,7 +282,7 @@ export default function CompanyDetail() {
       )}
       <article className="flex flex-col gap-6">
         {company.coverImage && (
-          <div className="aspect-video relative overflow-hidden bg-harbour-100">
+          <div className="aspect-video relative overflow-hidden">
             <img
               src={`/images/${company.coverImage}`}
               alt=""
@@ -293,7 +293,7 @@ export default function CompanyDetail() {
 
         <div className="flex items-start gap-4">
           {company.logo ? (
-            <div className="w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+            <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
                 src={`/images/${company.logo}`}
                 alt={`${company.name} logo`}

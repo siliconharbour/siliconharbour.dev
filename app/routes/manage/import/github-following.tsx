@@ -604,7 +604,7 @@ export default function ImportGitHubFollowing() {
                     <img
                       src={user.avatar_url}
                       alt=""
-                      className="w-10 h-10 object-cover  bg-harbour-100"
+                      className="w-10 h-10 object-cover "
                       loading="lazy"
                     />
                   ) : (

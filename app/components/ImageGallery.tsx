@@ -43,7 +43,7 @@ export function ImageGallery({ images }: ImageGalleryProps) {
           <button
             key={image.id}
             onClick={() => openLightbox(index)}
-            className="aspect-video relative overflow-hidden bg-harbour-100 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-harbour-400"
+            className="aspect-video relative overflow-hidden cursor-pointer group focus:outline-none focus:ring-2 focus:ring-harbour-400"
           >
             <img
               src={`/images/${image.image}`}

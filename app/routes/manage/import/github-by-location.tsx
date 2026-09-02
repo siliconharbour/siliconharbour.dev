@@ -760,7 +760,7 @@ export default function ImportGitHub() {
                     <img
                       src={user.avatar_url}
                       alt=""
-                      className={`w-10 h-10 object-cover  bg-harbour-100 ${blocked ? "grayscale" : ""}`}
+                      className={`w-10 h-10 object-cover  ${blocked ? "grayscale" : ""}`}
                       loading="lazy"
                     />
                   ) : (

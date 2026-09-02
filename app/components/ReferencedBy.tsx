@@ -146,7 +146,7 @@ function NewsCard({
       className="group group/image-tint flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.coverImage ? (
-        <TintedImage className="w-16 h-16 overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-16 h-16 overflow-hidden flex-shrink-0">
           <img
             src={`/images/${data.coverImage}`}
             alt=""
@@ -216,7 +216,7 @@ function CompanyCard({
       className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""
@@ -249,7 +249,7 @@ function ProjectCard({
       className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""
@@ -282,7 +282,7 @@ function GroupCard({
       className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""
@@ -314,7 +314,7 @@ function PersonCard({
       className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.avatar ? (
-        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 rounded-full flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden rounded-full flex-shrink-0">
           <img
             src={`/images/${data.avatar}`}
             alt=""
@@ -347,7 +347,7 @@ function EducationCard({
       className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
     >
       {data.logo ? (
-        <TintedImage className="w-10 h-10 overflow-hidden bg-harbour-100 flex-shrink-0">
+        <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
           <img
             src={`/images/${data.logo}`}
             alt=""

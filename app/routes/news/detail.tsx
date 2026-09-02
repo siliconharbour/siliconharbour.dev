@@ -140,7 +140,7 @@ export default function NewsDetail() {
         ) : (
           <>
             {article.coverImage && (
-              <TintedImage className="aspect-video overflow-hidden bg-harbour-100">
+              <TintedImage className="aspect-video overflow-hidden">
                 <img
                   src={`/images/${article.coverImage}`}
                   alt=""

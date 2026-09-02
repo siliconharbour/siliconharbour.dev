@@ -52,7 +52,7 @@ export default function ProductDetail() {
     <div className="max-w-4xl mx-auto p-4 py-8">
       <article className="flex flex-col gap-6">
         {product.coverImage && (
-          <div className="aspect-video relative overflow-hidden bg-harbour-100">
+          <div className="aspect-video relative overflow-hidden">
             <img
               src={`/images/${product.coverImage}`}
               alt=""
@@ -63,7 +63,7 @@ export default function ProductDetail() {
 
         <div className="flex items-start gap-4">
           {product.logo && (
-            <div className="w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+            <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
                 src={`/images/${product.logo}`}
                 alt=""

@@ -60,7 +60,7 @@ export default function DirectoryEducation() {
               className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
             >
               {item.logo ? (
-                <div className="w-16 h-16 relative overflow-hidden bg-harbour-100">
+                <div className="w-16 h-16 relative overflow-hidden">
                   <img
                     src={`/images/${item.logo}`}
                     alt=""

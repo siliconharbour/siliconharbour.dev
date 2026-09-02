@@ -75,7 +75,7 @@ export default function GroupDetail() {
       )}
       <article className="flex flex-col gap-6">
         {group.coverImage && (
-          <div className="aspect-video relative overflow-hidden bg-harbour-100">
+          <div className="aspect-video relative overflow-hidden">
             <img
               src={`/images/${group.coverImage}`}
               alt=""
@@ -86,7 +86,7 @@ export default function GroupDetail() {
 
         <div className="flex items-start gap-4">
           {group.logo && (
-            <div className="w-20 h-20 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+            <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
                 src={`/images/${group.logo}`}
                 alt={`${group.name} logo`}

@@ -159,7 +159,7 @@ export default function EventDetail() {
         {/* Cover image - full width */}
         {event.coverImage && (
           <div className="max-w-4xl mx-auto w-full px-4">
-            <div className="aspect-[3/1] relative overflow-hidden bg-harbour-100">
+            <div className="aspect-[3/1] relative overflow-hidden">
               <img
                 src={`/images/${event.coverImage}`}
                 alt=""

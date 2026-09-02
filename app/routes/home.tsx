@@ -222,7 +222,7 @@ export default function Home() {
                         className="group group/image-tint flex flex-col sm:flex-row gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {article.coverImage && (
-                          <TintedImage className="w-full sm:w-32 h-24 overflow-hidden bg-harbour-100 flex-shrink-0">
+                          <TintedImage className="w-full sm:w-32 h-24 overflow-hidden flex-shrink-0">
                             <img
                               src={`/images/${article.coverImage}`}
                               alt=""
@@ -271,7 +271,7 @@ export default function Home() {
                         className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {company.logo ? (
-                          <div className="w-12 h-12 relative overflow-hidden bg-harbour-100">
+                          <div className="w-12 h-12 relative overflow-hidden">
                             <img
                               src={`/images/${company.logo}`}
                               alt={`${company.name} logo`}
@@ -314,7 +314,7 @@ export default function Home() {
                         className="group flex flex-col items-center gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
                       >
                         {project.logo ? (
-                          <div className="w-12 h-12 relative overflow-hidden bg-harbour-100">
+                          <div className="w-12 h-12 relative overflow-hidden">
                             <img
                               src={`/images/${project.logo}`}
                               alt=""
@@ -357,7 +357,7 @@ export default function Home() {
                       >
                         <div className="flex items-center gap-5">
                           {job.companyLogo ? (
-                            <div className="w-10 h-10 relative overflow-hidden bg-harbour-100 flex-shrink-0">
+                            <div className="w-10 h-10 relative overflow-hidden flex-shrink-0">
                               <img
                                 src={`/images/${job.companyLogo}`}
                                 alt={`${job.companyName || "Company"} logo`}
