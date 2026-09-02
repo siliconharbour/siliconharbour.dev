@@ -10,6 +10,7 @@ import {
   getAllPendingEvents,
   deleteEventImportSource,
   createEventImportSource,
+  resolveImportedOrganizer,
 } from "~/lib/event-importers/sync.server";
 
 // =============================================================================
@@ -59,6 +60,18 @@ async function seedEvent(sourceId: number, importStatus: string, externalId?: st
 
   return event;
 }
+
+describe("resolveImportedOrganizer", () => {
+  it("prefers the organizer configured on the import source", () => {
+    expect(resolveImportedOrganizer("Memorial Centre for Entrepreneurship", "MCE")).toBe(
+      "Memorial Centre for Entrepreneurship",
+    );
+  });
+
+  it("falls back to the organizer supplied by the feed", () => {
+    expect(resolveImportedOrganizer(null, "MCE")).toBe("MCE");
+  });
+});
 
 // =============================================================================
 // Status transitions

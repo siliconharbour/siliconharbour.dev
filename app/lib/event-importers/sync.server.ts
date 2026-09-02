@@ -11,6 +11,7 @@ import { eq, and, inArray, asc } from "drizzle-orm";
 import { generateEventSlug } from "~/lib/events.server";
 import { fetchImage } from "~/lib/scraper.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
+import { syncOrganizerReferences } from "~/lib/references.server";
 import type { EventSyncResult, ImportSourceConfig, FetchedEvent } from "./types";
 import { getEventImporter } from "./index";
 
@@ -290,6 +291,13 @@ async function getEventsBySourceId(sourceId: number) {
   return db.select().from(events).where(eq(events.importSourceId, sourceId));
 }
 
+export function resolveImportedOrganizer(
+  sourceOrganizer: string | null,
+  fetchedOrganizer: string | null,
+): string {
+  return sourceOrganizer || fetchedOrganizer || "";
+}
+
 async function insertImportedEvent(
   sourceId: number,
   sourceOrganizer: string | null,
@@ -297,6 +305,7 @@ async function insertImportedEvent(
 ): Promise<number> {
   const now = new Date();
   const slug = await generateEventSlug(fetched.title);
+  const organizer = resolveImportedOrganizer(sourceOrganizer, fetched.organizer);
 
   const [newEvent] = await db
     .insert(events)
@@ -306,7 +315,7 @@ async function insertImportedEvent(
       description: fetched.description,
       location: fetched.location ?? "",
       link: fetched.link,
-      organizer: fetched.organizer || sourceOrganizer || "",
+      organizer,
       coverImageUrl: fetched.coverImageUrl,
       importSourceId: sourceId,
       externalId: fetched.externalId,
@@ -331,12 +340,18 @@ async function insertImportedEvent(
     startDate,
     endDate,
   });
+  await syncOrganizerReferences(newEvent.id, organizer);
 
   return newEvent.id;
 }
 
-async function refreshPendingEvent(eventId: number, fetched: FetchedEvent) {
+async function refreshPendingEvent(
+  eventId: number,
+  sourceOrganizer: string | null,
+  fetched: FetchedEvent,
+) {
   const now = new Date();
+  const organizer = resolveImportedOrganizer(sourceOrganizer, fetched.organizer);
   await db
     .update(events)
     .set({
@@ -344,7 +359,7 @@ async function refreshPendingEvent(eventId: number, fetched: FetchedEvent) {
       description: fetched.description,
       location: fetched.location ?? "",
       link: fetched.link,
-      organizer: fetched.organizer,
+      organizer,
       lastSeenAt: now,
       updatedAt: now,
     })
@@ -370,6 +385,7 @@ async function refreshPendingEvent(eventId: number, fetched: FetchedEvent) {
   } else {
     await db.insert(eventDates).values({ eventId, startDate, endDate });
   }
+  await syncOrganizerReferences(eventId, organizer);
 }
 
 export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
@@ -408,7 +424,7 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
           results.added++;
         } else {
           // Re-appeared: reset to pending_review and refresh fields
-          await refreshPendingEvent(existing.id, fetched);
+          await refreshPendingEvent(existing.id, source.organizer ?? null, fetched);
           await db
             .update(events)
             .set({ importStatus: "pending_review", updatedAt: new Date() })
@@ -417,7 +433,7 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
         }
       } else if (existing.importStatus === "pending_review") {
         // Still pending — refresh fields from source
-        await refreshPendingEvent(existing.id, fetched);
+        await refreshPendingEvent(existing.id, source.organizer ?? null, fetched);
       } else {
         // approved / published / hidden — lock rule: only update lastSeenAt
         await db
