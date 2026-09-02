@@ -67,7 +67,7 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
         const bDate = b.type === "event" && b.data.dates?.[0]?.startDate
           ? new Date(b.data.dates[0].startDate).getTime()
           : 0;
-        return aDate - bDate;
+        return bDate - aDate; // newest first
       });
     }
     if (type === "news") {
