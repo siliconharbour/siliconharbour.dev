@@ -4,6 +4,7 @@
 
 import { rawDb } from "~/db";
 import type { ContentType } from "~/db/schema";
+import { sql, type AnyColumn, type SQL } from "drizzle-orm";
 
 // FTS table names mapped to content types
 const ftsTableMap: Record<ContentType, string> = {
@@ -125,6 +126,14 @@ export function searchContentIds(contentType: ContentType, query: string): numbe
     console.error(`FTS5 search error for ${contentType}:`, error);
     return [];
   }
+}
+
+/** Preserve the rank returned by searchContentIds when fetching matching rows with Drizzle. */
+export function searchRankOrder(column: AnyColumn, rankedIds: number[]): SQL {
+  if (rankedIds.length === 0) return sql`0`;
+
+  const ranks = rankedIds.map((id, rank) => sql`WHEN ${id} THEN ${rank}`);
+  return sql`CASE ${column} ${sql.join(ranks, sql` `)} ELSE ${rankedIds.length} END`;
 }
 
 /**

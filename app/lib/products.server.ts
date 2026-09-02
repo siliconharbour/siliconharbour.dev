@@ -1,9 +1,9 @@
 import { db } from "~/db";
 import { products, companies, type Product, type NewProduct, type Company } from "~/db/schema";
-import { eq, desc, count, inArray } from "drizzle-orm";
+import { eq, asc, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
-import { searchContentIds } from "./search.server";
+import { searchContentIds, searchRankOrder } from "./search.server";
 
 // =============================================================================
 // Slug generation
@@ -87,7 +87,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getAllProducts(): Promise<Product[]> {
-  return db.select().from(products).orderBy(desc(products.createdAt));
+  return db.select().from(products).orderBy(asc(products.name));
 }
 
 // =============================================================================
@@ -170,7 +170,7 @@ export async function getPaginatedProducts(
       .select()
       .from(products)
       .where(inArray(products.id, matchingIds))
-      .orderBy(desc(products.createdAt))
+      .orderBy(searchRankOrder(products.id, matchingIds))
       .limit(limit)
       .offset(offset);
 
@@ -204,7 +204,7 @@ export async function getPaginatedProducts(
   const productList = await db
     .select()
     .from(products)
-    .orderBy(desc(products.createdAt))
+    .orderBy(asc(products.name))
     .limit(limit)
     .offset(offset);
 
@@ -236,5 +236,5 @@ export async function getProductsByCompany(companyId: number): Promise<Product[]
     .select()
     .from(products)
     .where(eq(products.companyId, companyId))
-    .orderBy(desc(products.createdAt));
+    .orderBy(asc(products.name));
 }

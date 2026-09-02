@@ -12,7 +12,7 @@ import { asc, and, or, eq, isNull, notInArray, count as countFn } from "drizzle-
 import type { SQL } from "drizzle-orm";
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
-import { searchContentIds } from "~/lib/search.server";
+import { searchContentIds, searchRankOrder } from "~/lib/search.server";
 import { inArray } from "drizzle-orm";
 
 const PER_PAGE = 50;
@@ -61,6 +61,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   // Build WHERE conditions
   const conditions: SQL[] = [];
+  let rankedSearchIds: number[] | null = null;
 
   // Search filter
   if (searchQuery.trim()) {
@@ -82,6 +83,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         filterCounts: {} as Record<string, number>,
       };
     }
+    rankedSearchIds = matchingIds;
     conditions.push(inArray(companies.id, matchingIds));
   }
 
@@ -102,7 +104,11 @@ export async function loader({ request }: Route.LoaderArgs) {
       .select()
       .from(companies)
       .where(whereClause)
-      .orderBy(asc(companies.name))
+      .orderBy(
+        rankedSearchIds
+          ? searchRankOrder(companies.id, rankedSearchIds)
+          : asc(companies.name),
+      )
       .limit(PER_PAGE)
       .offset(offset),
   ]);

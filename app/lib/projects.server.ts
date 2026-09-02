@@ -6,10 +6,10 @@ import {
   type NewProject,
   type ProjectImage,
 } from "~/db/schema";
-import { eq, desc, asc, count, inArray, isNotNull } from "drizzle-orm";
+import { eq, asc, count, inArray, isNotNull } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
-import { searchContentIds } from "./search.server";
+import { searchContentIds, searchRankOrder } from "./search.server";
 
 // =============================================================================
 // Slug generation
@@ -93,7 +93,7 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 }
 
 export async function getAllProjects(): Promise<Project[]> {
-  return db.select().from(projects).orderBy(desc(projects.createdAt));
+  return db.select().from(projects).orderBy(asc(projects.name));
 }
 
 /**
@@ -236,7 +236,7 @@ export async function getPaginatedProjects(
       .select()
       .from(projects)
       .where(inArray(projects.id, matchingIds))
-      .orderBy(desc(projects.createdAt))
+      .orderBy(searchRankOrder(projects.id, matchingIds))
       .limit(limit)
       .offset(offset);
 
@@ -249,7 +249,7 @@ export async function getPaginatedProjects(
   const items = await db
     .select()
     .from(projects)
-    .orderBy(desc(projects.createdAt))
+    .orderBy(asc(projects.name))
     .limit(limit)
     .offset(offset);
 

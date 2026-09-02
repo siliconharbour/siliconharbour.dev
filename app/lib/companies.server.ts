@@ -3,7 +3,7 @@ import { companies, type Company, type NewCompany } from "~/db/schema";
 import { eq, desc, asc, count, inArray, and, isNotNull, sql } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
-import { searchContentIds } from "./search.server";
+import { searchContentIds, searchRankOrder } from "./search.server";
 
 export interface PaginatedCompanies {
   items: Company[];
@@ -192,7 +192,7 @@ export async function getPaginatedCompanies(
       .select()
       .from(companies)
       .where(whereClause)
-      .orderBy(asc(companies.name))
+      .orderBy(searchRankOrder(companies.id, matchingIds))
       .limit(limit)
       .offset(offset);
 

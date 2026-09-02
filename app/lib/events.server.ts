@@ -621,6 +621,7 @@ export async function getPaginatedEvents(
 
   // Get event IDs based on filter
   let filteredEventIds: number[];
+  let rankedSearchIds: number[] | null = null;
 
   // If filtering by specific date, get events on that date
   if (dateFilter) {
@@ -680,6 +681,7 @@ export async function getPaginatedEvents(
   // If searching, intersect with FTS results
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("event", searchQuery);
+    rankedSearchIds = matchingIds;
     filteredEventIds = filteredEventIds.filter((id) => matchingIds.includes(id));
 
     if (filteredEventIds.length === 0) {
@@ -729,31 +731,40 @@ export async function getPaginatedEvents(
   // Pagination happens after date-aware sorting, so the total comes from the final result set.
   const actualTotal = items.length;
 
-  // Sort by next date
-  items.sort((a, b) => {
-    if (filter === "past") {
-      // Past: most recent first (use last date)
-      const aDate = a.dates[a.dates.length - 1]?.startDate;
-      const bDate = b.dates[b.dates.length - 1]?.startDate;
-      if (!aDate || !bDate) return 0;
-      return bDate.getTime() - aDate.getTime();
-    }
+  if (rankedSearchIds) {
+    const rankById = new Map(rankedSearchIds.map((id, rank) => [id, rank]));
+    items.sort(
+      (a, b) =>
+        (rankById.get(a.id) ?? rankedSearchIds.length) -
+        (rankById.get(b.id) ?? rankedSearchIds.length),
+    );
+  } else {
+    // Sort by next date
+    items.sort((a, b) => {
+      if (filter === "past") {
+        // Past: most recent first (use last date)
+        const aDate = a.dates[a.dates.length - 1]?.startDate;
+        const bDate = b.dates[b.dates.length - 1]?.startDate;
+        if (!aDate || !bDate) return 0;
+        return bDate.getTime() - aDate.getTime();
+      }
 
-    // Upcoming and All: upcoming events first (soonest), then past (most recent first)
-    const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
-    const bNext = b.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
+      // Upcoming and All: upcoming events first (soonest), then past (most recent first)
+      const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
+      const bNext = b.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
 
-    // Both have upcoming dates: sort soonest first
-    if (aNext && bNext) return aNext.getTime() - bNext.getTime();
-    // Only one has upcoming: it goes first
-    if (aNext && !bNext) return -1;
-    if (!aNext && bNext) return 1;
-    // Neither has upcoming (both past): most recent first
-    const aLast = a.dates[a.dates.length - 1]?.startDate;
-    const bLast = b.dates[b.dates.length - 1]?.startDate;
-    if (!aLast || !bLast) return 0;
-    return bLast.getTime() - aLast.getTime();
-  });
+      // Both have upcoming dates: sort soonest first
+      if (aNext && bNext) return aNext.getTime() - bNext.getTime();
+      // Only one has upcoming: it goes first
+      if (aNext && !bNext) return -1;
+      if (!aNext && bNext) return 1;
+      // Neither has upcoming (both past): most recent first
+      const aLast = a.dates[a.dates.length - 1]?.startDate;
+      const bLast = b.dates[b.dates.length - 1]?.startDate;
+      if (!aLast || !bLast) return 0;
+      return bLast.getTime() - aLast.getTime();
+    });
+  }
 
   // Paginate after sorting
   const paginatedItems = items.slice(offset, offset + limit);

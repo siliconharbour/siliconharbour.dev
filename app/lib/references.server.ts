@@ -13,7 +13,7 @@ import {
   type ContentType,
   type Reference,
 } from "~/db/schema";
-import { eq, and, asc, gte } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import { parseReferences } from "~/lib/references/parser";
 import { getContentUrl } from "~/lib/references/url";
 import { publiclyVisibleEvent } from "~/lib/event-visibility";
@@ -750,12 +750,16 @@ export async function getDetailedBacklinks(
           .where(and(eq(events.id, ref.sourceId), publiclyVisibleEvent));
 
         if (event) {
-          // Get upcoming dates for this event
-          const dates = await db
+          const allDates = await db
             .select()
             .from(eventDates)
-            .where(and(eq(eventDates.eventId, event.id), gte(eventDates.startDate, now)))
+            .where(eq(eventDates.eventId, event.id))
             .orderBy(asc(eventDates.startDate));
+          const currentOrUpcomingDates = allDates.filter(
+            (date) => date.startDate >= now || (date.endDate !== null && date.endDate >= now),
+          );
+          const dates =
+            currentOrUpcomingDates.length > 0 ? currentOrUpcomingDates : allDates.slice(-1);
 
           backlinks.push({
             type: "event",

@@ -9,6 +9,17 @@ interface ReferencedByProps {
   backlinks: DetailedBacklink[];
 }
 
+function backlinkLabel(backlink: DetailedBacklink): string {
+  switch (backlink.type) {
+    case "event":
+    case "news":
+    case "job":
+      return backlink.data.title;
+    default:
+      return backlink.data.name;
+  }
+}
+
 export function ReferencedBy({ backlinks }: ReferencedByProps) {
   if (backlinks.length === 0) return null;
 
@@ -61,11 +72,11 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
   const sorted = (() => {
     if (type === "event") {
       return [...backlinks].sort((a, b) => {
-        const aDate = a.type === "event" && a.data.dates?.[0]?.startDate
-          ? new Date(a.data.dates[0].startDate).getTime()
+        const aDate = a.type === "event"
+          ? new Date(a.data.dates[0]?.startDate ?? a.data.createdAt).getTime()
           : 0;
-        const bDate = b.type === "event" && b.data.dates?.[0]?.startDate
-          ? new Date(b.data.dates[0].startDate).getTime()
+        const bDate = b.type === "event"
+          ? new Date(b.data.dates[0]?.startDate ?? b.data.createdAt).getTime()
           : 0;
         return bDate - aDate; // newest first
       });
@@ -81,7 +92,7 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
         return bDate - aDate; // newest first
       });
     }
-    return backlinks;
+    return [...backlinks].sort((a, b) => backlinkLabel(a).localeCompare(backlinkLabel(b)));
   })();
 
   const gridClass =

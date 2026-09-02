@@ -182,6 +182,38 @@ describe("GET /api/events/:slug — recurrence field", () => {
 // ---------------------------------------------------------------------------
 
 describe("GET /api/events — recurrence field", () => {
+  it("orders upcoming events chronologically rather than alphabetically", async () => {
+    const [later, sooner] = await db
+      .insert(events)
+      .values([
+        {
+          slug: "alphabetically-first-but-later",
+          title: "A Later Event",
+          description: "later",
+          link: "https://example.com/later",
+        },
+        {
+          slug: "alphabetically-last-but-sooner",
+          title: "Z Sooner Event",
+          description: "sooner",
+          link: "https://example.com/sooner",
+        },
+      ])
+      .returning();
+    await db.insert(eventDates).values([
+      { eventId: later.id, startDate: new Date(Date.now() + 48 * 60 * 60 * 1000) },
+      { eventId: sooner.id, startDate: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+    ]);
+
+    const { body } = await callJson(eventsListLoader, "/api/events");
+    const slugs = (body as { data: EventResponse[] }).data.map((event) => event.slug);
+
+    expect(slugs).toEqual([
+      "alphabetically-last-but-sooner",
+      "alphabetically-first-but-later",
+    ]);
+  });
+
   it("includes a recurring-only event (no explicit dates) and emits its recurrence block", async () => {
     await db.insert(events).values({
       slug: "weekly-only",

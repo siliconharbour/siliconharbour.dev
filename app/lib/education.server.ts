@@ -2,7 +2,7 @@ import { db } from "~/db";
 import { education, companies, type Education, type NewEducation } from "~/db/schema";
 import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
 import { syncReferences } from "./references.server";
-import { searchContentIds } from "./search.server";
+import { searchContentIds, searchRankOrder } from "./search.server";
 import { generateEntitySlug, getPaginatedBySearch } from "./crud-helpers.server";
 
 async function getExistingSlugs(): Promise<string[]> {
@@ -135,7 +135,7 @@ export async function getPaginatedEducation(
         .select()
         .from(education)
         .where(whereClause)
-        .orderBy(asc(education.name))
+        .orderBy(searchRankOrder(education.id, matchingIds))
         .limit(limit)
         .offset(offset);
       const [{ total }] = await db.select({ total: count() }).from(education).where(whereClause);

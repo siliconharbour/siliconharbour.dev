@@ -2,7 +2,7 @@ import { db } from "~/db";
 import { groups, type Group, type NewGroup } from "~/db/schema";
 import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
 import { syncReferences } from "./references.server";
-import { searchContentIds } from "./search.server";
+import { searchContentIds, searchRankOrder } from "./search.server";
 import { generateEntitySlug, getPaginatedBySearch } from "./crud-helpers.server";
 
 async function getExistingSlugs(): Promise<string[]> {
@@ -117,7 +117,7 @@ export async function getPaginatedGroups(
         .select()
         .from(groups)
         .where(whereClause)
-        .orderBy(asc(groups.name))
+        .orderBy(searchRankOrder(groups.id, matchingIds))
         .limit(limit)
         .offset(offset);
       const [{ total }] = await db.select({ total: count() }).from(groups).where(whereClause);

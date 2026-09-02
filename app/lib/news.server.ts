@@ -3,7 +3,7 @@ import { news, type News, type NewNews, type NewsType, newsTypes } from "~/db/sc
 import { eq, desc, and, count, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
-import { searchContentIds } from "./search.server";
+import { searchContentIds, searchRankOrder } from "./search.server";
 
 export { newsTypes, type NewsType };
 
@@ -96,6 +96,7 @@ export async function getPaginatedNews(
   typeFilter?: NewsType,
 ): Promise<PaginatedNews> {
   const conditions = [eq(news.status, "published")];
+  let rankedIds: number[] | null = null;
 
   if (typeFilter) {
     conditions.push(eq(news.type, typeFilter));
@@ -106,6 +107,7 @@ export async function getPaginatedNews(
     if (matchingIds.length === 0) {
       return { items: [], total: 0 };
     }
+    rankedIds = matchingIds;
     conditions.push(inArray(news.id, matchingIds));
   }
 
@@ -118,7 +120,7 @@ export async function getPaginatedNews(
     .select()
     .from(news)
     .where(and(...conditions))
-    .orderBy(desc(news.publishedAt))
+    .orderBy(rankedIds ? searchRankOrder(news.id, rankedIds) : desc(news.publishedAt))
     .limit(limit)
     .offset(offset);
 

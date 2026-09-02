@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { db } from "~/db";
-import { events, groups, companies, references } from "~/db/schema";
+import { events, eventDates, groups, companies, references } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import {
   getDetailedBacklinks,
@@ -216,6 +216,42 @@ describe("resolveReference", () => {
 });
 
 describe("event reference visibility", () => {
+  it("keeps the latest past date available for display and sorting", async () => {
+    const [group] = await db
+      .insert(groups)
+      .values({ slug: "past-events", name: "Past Events", description: "History" })
+      .returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        slug: "past-event",
+        title: "Past Event",
+        description: "Already happened",
+        link: "https://example.com/past",
+      })
+      .returning();
+    const latestDate = new Date("2025-06-01T18:00:00Z");
+    await db.insert(eventDates).values([
+      { eventId: event.id, startDate: new Date("2025-01-01T18:00:00Z") },
+      { eventId: event.id, startDate: latestDate },
+    ]);
+    await db.insert(references).values({
+      sourceType: "event",
+      sourceId: event.id,
+      targetType: "group",
+      targetId: group.id,
+      referenceText: group.name,
+    });
+
+    const [backlink] = await getDetailedBacklinks("group", group.id);
+
+    expect(backlink.type).toBe("event");
+    if (backlink.type === "event") {
+      expect(backlink.data.dates).toHaveLength(1);
+      expect(backlink.data.dates[0].startDate).toEqual(latestDate);
+    }
+  });
+
   it("does not expose an unpublished event as a backlink", async () => {
     const [company] = await db
       .insert(companies)

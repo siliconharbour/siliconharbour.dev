@@ -1,34 +1,32 @@
 import type { Route } from "./+types/events";
 import { db } from "~/db";
-import { events, eventDates } from "~/db/schema";
-import { asc, count } from "drizzle-orm";
+import { eventDates } from "~/db/schema";
+import { asc, inArray } from "drizzle-orm";
 import { imageUrl, contentUrl } from "~/lib/api.server";
 import { createPaginatedApiLoader } from "~/lib/api-route.server";
 import { eventRecurrence } from "~/lib/events-api.server";
-import { getTagsForEvents } from "~/lib/event-tags.server";
-import { publiclyVisibleEvent } from "~/lib/event-visibility";
+import { getPaginatedEvents } from "~/lib/events.server";
 
 export const loader = createPaginatedApiLoader({
   loadPage: async ({ limit, offset }) => {
-    const [{ total }] = await db.select({ total: count() }).from(events).where(publiclyVisibleEvent);
-    const eventsPage = await db
-      .select()
-      .from(events)
-      .where(publiclyVisibleEvent)
-      .orderBy(asc(events.title))
-      .limit(limit)
-      .offset(offset);
-
+    const { items: eventsPage, total } = await getPaginatedEvents(
+      limit,
+      offset,
+      undefined,
+      "all",
+    );
     const eventIds = eventsPage.map((event) => event.id);
-    const tagsByEvent = await getTagsForEvents(eventIds);
     const allDates =
       eventIds.length > 0
-        ? await db.select().from(eventDates).orderBy(asc(eventDates.startDate))
+        ? await db
+            .select()
+            .from(eventDates)
+            .where(inArray(eventDates.eventId, eventIds))
+            .orderBy(asc(eventDates.startDate))
         : [];
 
     const datesMap = new Map<number, typeof allDates>();
     for (const date of allDates) {
-      if (!eventIds.includes(date.eventId)) continue;
       if (!datesMap.has(date.eventId)) {
         datesMap.set(date.eventId, []);
       }
@@ -46,7 +44,7 @@ export const loader = createPaginatedApiLoader({
       coverImage: imageUrl(event.coverImage),
       timeMode: event.timeMode,
       parentEventId: event.parentEventId,
-      tags: tagsByEvent.get(event.id) ?? [],
+      tags: event.tags ?? [],
       dates: (datesMap.get(event.id) || []).map((date) => ({
         startDate: date.startDate.toISOString(),
         endDate: date.endDate?.toISOString() || null,

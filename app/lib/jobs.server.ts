@@ -11,7 +11,7 @@ import {
 import { eq, desc, and, count, inArray, isNotNull, like, gte } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
-import { searchContentIds } from "./search.server";
+import { searchContentIds, searchRankOrder } from "./search.server";
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: jobs.slug }).from(jobs).where(isNotNull(jobs.slug));
@@ -301,7 +301,7 @@ export async function getPaginatedJobs(
       .leftJoin(companies, eq(jobs.companyId, companies.id))
       .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
       .where(and(baseCondition, inArray(jobs.id, matchingIds)))
-      .orderBy(desc(jobs.postedAt))
+      .orderBy(searchRankOrder(jobs.id, matchingIds))
       .limit(limit)
       .offset(offset);
 
@@ -368,7 +368,8 @@ export interface CompanyWithJobs {
 
 /**
  * Get active jobs grouped by company
- * Returns companies sorted by most recent job posting, with jobs within each company
+ * Companies are shuffled deterministically each day for fair exposure; jobs within each company
+ * remain sorted by most recent posting.
  */
 export async function getJobsGroupedByCompany(options?: {
   includeNonTechnical?: boolean;
