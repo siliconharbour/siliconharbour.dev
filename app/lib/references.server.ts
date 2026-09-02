@@ -276,10 +276,24 @@ export async function getIncomingReferences(
   targetType: ContentType,
   targetId: number,
 ): Promise<Reference[]> {
-  return db
+  const incoming = await db
     .select()
     .from(references)
-    .where(and(eq(references.targetType, targetType), eq(references.targetId, targetId)));
+    .where(and(eq(references.targetType, targetType), eq(references.targetId, targetId)))
+    .orderBy(asc(references.id));
+
+  // A source may mention the same target in multiple fields. Keep those occurrences in the
+  // database for field-scoped syncing, but expose one logical backlink per source entity.
+  const bySource = new Map<string, Reference>();
+  for (const reference of incoming) {
+    const key = `${reference.sourceType}:${reference.sourceId}`;
+    const existing = bySource.get(key);
+    if (!existing || (!existing.relation && reference.relation)) {
+      bySource.set(key, reference);
+    }
+  }
+
+  return [...bySource.values()];
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { Route } from "./+types/index.md";
-import { getPaginatedEvents, type EventFilter } from "~/lib/events.server";
+import { getPaginatedEvents } from "~/lib/events.server";
+import type { EventFilter } from "~/lib/event-timing";
 import { buildMarkdownListResponse } from "~/lib/markdown-route.server";
 import { parseMarkdownListParams } from "~/lib/public-query.server";
 

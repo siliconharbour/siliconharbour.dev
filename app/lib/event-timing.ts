@@ -4,6 +4,7 @@ import type { EventDate, EventTimeMode } from "~/db/schema";
 import { SITE_TIMEZONE } from "~/lib/timezone";
 
 export type EventTimingState = "upcoming" | "active" | "earlier-today" | "past";
+export type EventFilter = "upcoming" | "past" | "all";
 
 export function siteDayBounds(now: Date): { start: Date; end: Date } {
   const localNow = toZonedTime(now, SITE_TIMEZONE);
@@ -23,6 +24,37 @@ export function getEventTimingState(dates: EventDate[], now = new Date()): Event
   if (finalEnd >= now.getTime()) return "active";
   if (finalEnd >= todayStart.getTime()) return "earlier-today";
   return "past";
+}
+
+/** True when a date has not ended before the current local calendar day. */
+export function isCurrentOrUpcomingEventDate(date: EventDate, now: Date): boolean {
+  const { start: todayStart } = siteDayBounds(now);
+  return (date.endDate ?? date.startDate) >= todayStart;
+}
+
+/** Compare sorted date collections in the order expected by an event list filter. */
+export function compareEventDateOrder(
+  aDates: EventDate[],
+  bDates: EventDate[],
+  filter: EventFilter,
+  now: Date,
+): number {
+  const aLast = aDates[aDates.length - 1]?.startDate;
+  const bLast = bDates[bDates.length - 1]?.startDate;
+
+  if (filter === "past") {
+    if (!aLast || !bLast) return 0;
+    return bLast.getTime() - aLast.getTime();
+  }
+
+  const aNext = aDates.find((date) => isCurrentOrUpcomingEventDate(date, now))?.startDate;
+  const bNext = bDates.find((date) => isCurrentOrUpcomingEventDate(date, now))?.startDate;
+
+  if (aNext && bNext) return aNext.getTime() - bNext.getTime();
+  if (aNext) return -1;
+  if (bNext) return 1;
+  if (!aLast || !bLast) return 0;
+  return bLast.getTime() - aLast.getTime();
 }
 
 export function validatePeriodDates(

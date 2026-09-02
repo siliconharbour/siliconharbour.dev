@@ -25,7 +25,14 @@ import {
 } from "./timezone";
 import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { addDays, startOfDay } from "date-fns";
-import { normalizeEventDates, siteDayBounds, validatePeriodDates } from "./event-timing";
+import {
+  compareEventDateOrder,
+  isCurrentOrUpcomingEventDate,
+  normalizeEventDates,
+  siteDayBounds,
+  validatePeriodDates,
+  type EventFilter,
+} from "./event-timing";
 import { assertValidEventStructure } from "./event-periods.server";
 import { getTagsForEvents, setEventTags, validateEventTagIds } from "./event-tags.server";
 import {
@@ -71,12 +78,6 @@ async function attachDates(eventList: Event[]): Promise<EventWithDates[]> {
 /** Matches dates that occur on or after the given local calendar day. */
 function isCurrentOnOrAfter(dayStart: Date) {
   return or(gte(eventDates.startDate, dayStart), gte(eventDates.endDate, dayStart));
-}
-
-/** An event date is "upcoming or in progress" if it starts in the future OR has already started but not yet ended */
-function isUpcomingOrInProgress(date: EventDate, now: Date): boolean {
-  const { start: todayStart } = siteDayBounds(now);
-  return (date.endDate ?? date.startDate) >= todayStart;
 }
 
 /**
@@ -394,12 +395,10 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
   // Filter unpublished imports, filter to only those with upcoming dates, and sort
   return eventsWithDates
     .filter(isEventPublic)
-    .filter((e) => e.dates.some((d) => isUpcomingOrInProgress(d, now)))
+    .filter((e) => e.dates.some((d) => isCurrentOrUpcomingEventDate(d, now)))
     .sort((a, b) => {
-      const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
-      const bNext = b.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
-      if (!aNext || !bNext) return 0;
-      return aNext.getTime() - bNext.getTime();
+      const dateOrder = compareEventDateOrder(a.dates, b.dates, "upcoming", now);
+      return dateOrder || a.title.localeCompare(b.title) || a.id - b.id;
     });
 }
 
@@ -595,8 +594,6 @@ export interface PaginatedEvents {
   total: number;
 }
 
-export type EventFilter = "upcoming" | "past" | "all";
-
 export async function getPaginatedEvents(
   limit: number,
   offset: number,
@@ -739,30 +736,9 @@ export async function getPaginatedEvents(
         (rankById.get(b.id) ?? rankedSearchIds.length),
     );
   } else {
-    // Sort by next date
     items.sort((a, b) => {
-      if (filter === "past") {
-        // Past: most recent first (use last date)
-        const aDate = a.dates[a.dates.length - 1]?.startDate;
-        const bDate = b.dates[b.dates.length - 1]?.startDate;
-        if (!aDate || !bDate) return 0;
-        return bDate.getTime() - aDate.getTime();
-      }
-
-      // Upcoming and All: upcoming events first (soonest), then past (most recent first)
-      const aNext = a.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
-      const bNext = b.dates.find((d) => isUpcomingOrInProgress(d, now))?.startDate;
-
-      // Both have upcoming dates: sort soonest first
-      if (aNext && bNext) return aNext.getTime() - bNext.getTime();
-      // Only one has upcoming: it goes first
-      if (aNext && !bNext) return -1;
-      if (!aNext && bNext) return 1;
-      // Neither has upcoming (both past): most recent first
-      const aLast = a.dates[a.dates.length - 1]?.startDate;
-      const bLast = b.dates[b.dates.length - 1]?.startDate;
-      if (!aLast || !bLast) return 0;
-      return bLast.getTime() - aLast.getTime();
+      const dateOrder = compareEventDateOrder(a.dates, b.dates, filter, now);
+      return dateOrder || a.title.localeCompare(b.title) || a.id - b.id;
     });
   }
 

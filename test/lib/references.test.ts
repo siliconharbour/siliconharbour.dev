@@ -4,8 +4,10 @@ import { events, eventDates, groups, companies, references } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 import {
   getDetailedBacklinks,
+  getIncomingReferences,
   getRichIncomingReferences,
   resolveReference,
+  syncReferences,
   syncOrganizerReferences,
 } from "~/lib/references.server";
 
@@ -216,6 +218,43 @@ describe("resolveReference", () => {
 });
 
 describe("event reference visibility", () => {
+  it("shows one backlink when the same entity is linked from two fields", async () => {
+    const [company] = await db
+      .insert(companies)
+      .values({
+        slug: "shared-reference-company",
+        name: "Shared Reference Company",
+        description: "Public company",
+      })
+      .returning();
+    const [event] = await db
+      .insert(events)
+      .values({
+        slug: "shared-reference-event",
+        title: "Shared Reference Event",
+        description: "Organized by [[Shared Reference Company]].",
+        organizer: company.name,
+        link: "https://example.com/shared-reference",
+      })
+      .returning();
+
+    await syncReferences("event", event.id, event.description);
+    await syncOrganizerReferences(event.id, event.organizer);
+
+    const stored = await db
+      .select()
+      .from(references)
+      .where(and(eq(references.sourceType, "event"), eq(references.sourceId, event.id)));
+    const incoming = await getIncomingReferences("company", company.id);
+    const detailed = await getDetailedBacklinks("company", company.id);
+
+    expect(stored).toHaveLength(2);
+    expect(incoming).toHaveLength(1);
+    expect(incoming[0].relation).toBe("Organizer");
+    expect(detailed).toHaveLength(1);
+    expect(detailed[0].relation).toBe("Organizer");
+  });
+
   it("keeps the latest past date available for display and sorting", async () => {
     const [group] = await db
       .insert(groups)

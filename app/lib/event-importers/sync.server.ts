@@ -293,9 +293,9 @@ async function getEventsBySourceId(sourceId: number) {
 
 export function resolveImportedOrganizer(
   sourceOrganizer: string | null,
-  fetchedOrganizer: string | null,
+  fetchedOrganizer: string,
 ): string {
-  return sourceOrganizer || fetchedOrganizer || "";
+  return sourceOrganizer ?? fetchedOrganizer;
 }
 
 async function insertImportedEvent(

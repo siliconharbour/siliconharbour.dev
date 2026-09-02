@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { getEventTimingState, validatePeriodDates } from "~/lib/event-timing";
+import {
+  compareEventDateOrder,
+  getEventTimingState,
+  validatePeriodDates,
+} from "~/lib/event-timing";
 import { formatEventPeriodRange, getEventStatusLabel } from "~/lib/event-display";
 import type { EventDate } from "~/db/schema";
 
@@ -27,6 +31,18 @@ describe("event timing", () => {
   it("reports an in-progress period as active", () => {
     const dates = [date("2026-09-12T05:00:00Z", "2026-09-26T05:00:00Z")];
     expect(getEventTimingState(dates, new Date("2026-09-20T12:00:00Z"))).toBe("active");
+  });
+
+  it("orders upcoming dates soonest first and past dates newest first", () => {
+    const now = new Date("2026-09-02T15:00:00Z");
+    const past = [date("2026-08-01T15:00:00Z")];
+    const recentPast = [date("2026-09-01T15:00:00Z")];
+    const upcoming = [date("2026-09-03T15:00:00Z")];
+    const later = [date("2026-09-04T15:00:00Z")];
+
+    expect(compareEventDateOrder(upcoming, later, "upcoming", now)).toBeLessThan(0);
+    expect(compareEventDateOrder(upcoming, recentPast, "all", now)).toBeLessThan(0);
+    expect(compareEventDateOrder(recentPast, past, "past", now)).toBeLessThan(0);
   });
 });
 

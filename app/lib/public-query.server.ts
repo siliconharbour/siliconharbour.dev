@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { parsePagination, type PaginationParams } from "./api.server";
-import type { EventFilter } from "./events.server";
+import type { EventFilter } from "./event-timing";
 import { jobsWorkplaceFilterOptions, type JobsWorkplaceFilterType } from "./public-query";
 
 const searchSchema = z.object({
