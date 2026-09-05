@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { REST, DiscordAPIError, HTTPError } from "@discordjs/rest";
 import {
   Routes,
@@ -112,6 +113,18 @@ export function logDiscord(event: string, details: Record<string, unknown>): voi
 }
 
 /**
+ * Discord retries can repeat a successful create-message request when its
+ * response is lost or arrives after the REST client's timeout. A stable nonce
+ * makes those retries idempotent. Discord limits nonces to 25 characters.
+ */
+function messageNonce(channelId: string, context: PostMessageContext): string {
+  return createHash("sha256")
+    .update(`${context.batchId}:${channelId}:${context.chunkIndex}`)
+    .digest("hex")
+    .slice(0, 25);
+}
+
+/**
  * Post a Components v2 message to a Discord channel.
  *
  * `components` is the components array; this function wraps it with the
@@ -124,16 +137,20 @@ export async function postMessage(
   context: PostMessageContext,
 ): Promise<PostMessageResult> {
   const startedAt = Date.now();
+  const nonce = messageNonce(channelId, context);
   try {
     const result = (await makeRest(token).post(Routes.channelMessages(channelId), {
       body: {
         flags: MessageFlags.IsComponentsV2,
         components,
+        nonce,
+        enforce_nonce: true,
       },
     })) as RESTPostAPIChannelMessageResult;
     logDiscord("message.sent", {
       ...context,
       channelId,
+      nonce,
       discordMessageId: result.id,
       durationMs: Date.now() - startedAt,
     });
@@ -147,6 +164,7 @@ export async function postMessage(
         event: "message.failed",
         ...context,
         channelId,
+        nonce,
         durationMs: Date.now() - startedAt,
         error: message,
       }),
@@ -269,10 +287,7 @@ export interface GetBotMemberResult {
  * the snowflake validator runs before path matching. We resolve the bot's
  * actual user id (once per token, cached forever) and pass that instead.
  */
-export async function getBotMember(
-  guildId: string,
-  token: string,
-): Promise<GetBotMemberResult> {
+export async function getBotMember(guildId: string, token: string): Promise<GetBotMemberResult> {
   return cached(token, ["guild", guildId, "me"], async () => {
     try {
       const botUserId = await getBotUserId(token);
@@ -292,10 +307,7 @@ export interface GetGuildRolesResult {
   error?: string;
 }
 
-export async function getGuildRoles(
-  guildId: string,
-  token: string,
-): Promise<GetGuildRolesResult> {
+export async function getGuildRoles(guildId: string, token: string): Promise<GetGuildRolesResult> {
   return cached(token, ["guild", guildId, "roles"], async () => {
     try {
       const roles = (await makeRest(token).get(
