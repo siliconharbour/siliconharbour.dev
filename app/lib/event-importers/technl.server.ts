@@ -57,44 +57,10 @@ function formatLocalDateTime(isoString: string, timezone: string): { date: strin
   return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
 }
 
-function collectSetCookies(response: Response): string[] {
-  const getSetCookie = (response.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie;
-  if (getSetCookie) return getSetCookie.call(response.headers);
-
-  const header = response.headers.get("set-cookie");
-  return header ? [header] : [];
-}
-
-function mergeCookieHeader(existing: string, setCookies: string[]): string {
-  const cookies = new Map<string, string>();
-
-  for (const cookie of existing.split(";")) {
-    const trimmed = cookie.trim();
-    if (!trimmed) continue;
-    const [name, ...value] = trimmed.split("=");
-    cookies.set(name, value.join("="));
-  }
-
-  for (const cookie of setCookies) {
-    const pair = cookie.split(";")[0]?.trim();
-    if (!pair) continue;
-    const [name, ...value] = pair.split("=");
-    cookies.set(name, value.join("="));
-  }
-
-  return Array.from(cookies, ([name, value]) => `${name}=${value}`).join("; ");
-}
-
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) throw new Error(`Request failed for ${url}: ${response.status}`);
   return response.json() as Promise<T>;
-}
-
-interface CrmAuthorizeResponse {
-  code?: string;
-  error?: string;
-  error_description?: string;
 }
 
 interface CrmTokenResponse {
@@ -150,28 +116,8 @@ interface NeonPublicTokenResponse {
 }
 
 async function getCrmJwt(): Promise<string> {
-  let cookieHeader = "orgId=technl";
-  const authParams = new URLSearchParams({
-    scope: "openid",
-    response_type: "code",
-    client_id: JWT_CLIENT_ID,
-    redirect_uri: "",
-    state: "",
-  });
-
-  const authResponse = await fetch(`${CRM_BASE}/np/jwt/authorize.do?${authParams}`, {
-    headers: { cookie: cookieHeader, accept: "application/json" },
-  });
-  cookieHeader = mergeCookieHeader(cookieHeader, collectSetCookies(authResponse));
-  if (!authResponse.ok) throw new Error(`Failed to authorize techNL NeonCRM token: ${authResponse.status}`);
-
-  const auth = (await authResponse.json()) as CrmAuthorizeResponse;
-  if (!auth.code) {
-    throw new Error(auth.error_description ?? auth.error ?? "techNL NeonCRM authorization did not return a code");
-  }
-
-  const tokenResponse = await fetch(`${CRM_BASE}/np/jwt/token.do?code=${encodeURIComponent(auth.code)}`, {
-    headers: { cookie: cookieHeader, accept: "application/json" },
+  const tokenResponse = await fetch(`${CRM_BASE}/jwt/token?client_id=${JWT_CLIENT_ID}`, {
+    headers: { cookie: "orgId=technl", accept: "application/json" },
   });
   if (!tokenResponse.ok) throw new Error(`Failed to fetch techNL NeonCRM token: ${tokenResponse.status}`);
 
