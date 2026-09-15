@@ -8,7 +8,11 @@ allowBuilds:
   sharp: true
 
 minimumReleaseAgeExclude:
-  - discord-api-types@0.38.54
+  - '@react-router/dev@8.4.0'
+  - '@react-router/express@8.4.0'
+  - '@react-router/node@8.4.0'
+  - '@react-router/serve@8.4.0'
+  - react-router@8.4.0
 
 onlyBuiltDependencies:
   - bcrypt

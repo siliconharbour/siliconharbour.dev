@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   compareEventDateOrder,
   getEventTimingState,
@@ -78,7 +78,12 @@ describe("event display", () => {
     );
   });
 
-  it("does not add a redundant label to an upcoming period", () => {
+  it("does not add a redundant label to an upcoming period", ({ onTestFinished }) => {
+    vi.useFakeTimers();
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    vi.setSystemTime(new Date("2026-09-01T12:00:00Z"));
     const dates = [date("2026-09-12T05:00:00Z", "2026-09-26T05:00:00Z")];
     expect(
       getEventStatusLabel({

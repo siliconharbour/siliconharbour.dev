@@ -38,10 +38,6 @@ export default defineConfig({
       // We never want a passing local run to be blocked by 100% in the
       // text report when there's no threshold gate.
       skipFull: false,
-      // Include every covered + every uncovered source file in the
-      // report. Without this, files with zero references show as
-      // missing rather than 0% — and we WANT to see the 0%s.
-      all: true,
     },
   },
 });
