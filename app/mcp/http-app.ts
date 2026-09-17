@@ -17,6 +17,8 @@ export interface CreateSiliconHarbourHttpAppOptions {
 export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourHttpAppOptions = {}) {
   const { includeFrontend = true } = options;
   const app = express();
+  // Production is reachable only through Traefik, which supplies the public HTTPS origin.
+  if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
   const issuer = getOAuthIssuerUrl();
   const resource = getMcpResourceUrl();
   const oauthMetadata: OAuthMetadata = {
