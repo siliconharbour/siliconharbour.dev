@@ -70,6 +70,9 @@ function parseListingPage(
       if (!title) continue;
 
       const metaNode = link.querySelector(".ATS-commitment-and-location");
+      for (const bullet of Array.from(metaNode?.querySelectorAll(".ATS-bullet-point") ?? [])) {
+        bullet.replaceWith(" • ");
+      }
       const parts = (metaNode?.textContent ?? "")
         .split("•")
         .map((part) => part.trim())
