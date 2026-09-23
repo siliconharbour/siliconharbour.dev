@@ -105,6 +105,7 @@ describe("job search enrichment", () => {
     ["https://boards.greenhouse.io/colabsoftware/jobs/1", "greenhouse", "colabsoftware", "high"],
     ["https://nasdaq.wd1.myworkdayjobs.com/en-US/site/job/1", "workday", null, "medium"],
     ["https://careers.subsea7.com/job/St-Johns-Designer/123/", "successfactors", "careers.subsea7.com", "medium"],
+    ["https://fonemed.applytojob.com/apply/2eP6IqhZEf/Project-Manager", "jazzhr", "fonemed", "high"],
   ])("detects ATS source information from %s", (url, sourceType, identifier, confidence) => {
     expect(__testables.detectAts(url)).toMatchObject({
       sourceType,

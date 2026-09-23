@@ -20,6 +20,7 @@ import { jibeImporter } from "./jibe.server";
 import { oracleHcmImporter } from "./oracle-hcm.server";
 import { successfactorsImporter } from "./successfactors.server";
 import { dayforceImporter } from "./dayforce.server";
+import { jazzhrImporter } from "./jazzhr.server";
 import { customImporter } from "./custom.server";
 
 // Registry of all available importers
@@ -40,6 +41,7 @@ const importers: Record<string, JobImporter> = {
   "oracle-hcm": oracleHcmImporter,
   successfactors: successfactorsImporter,
   dayforce: dayforceImporter,
+  jazzhr: jazzhrImporter,
   custom: customImporter,
 };
 

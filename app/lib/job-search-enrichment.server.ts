@@ -111,6 +111,9 @@ function detectAts(urlValue: string | null | undefined): JobSearchEnrichment["di
   }
   if (host === "ats.rippling.com") return result("rippling", parts[0] ?? null);
   if (host === "apply.workable.com") return result("workable", parts[0] ?? null);
+  if (host.endsWith(".applytojob.com") && parts[0] === "apply") {
+    return result("jazzhr", host.split(".")[0]);
+  }
   if (host.includes("myworkdayjobs.com")) return result("workday", null, "medium");
   if (host.includes("icims.com")) return result("icims", host.split(".")[0], "medium");
   if (host.includes("oraclecloud.com")) return result("oracle-hcm", null, "medium");

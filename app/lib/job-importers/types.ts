@@ -23,6 +23,7 @@ export const jobSourceTypes = [
   "oracle-hcm",
   "successfactors",
   "dayforce",
+  "jazzhr",
   "custom",
 ] as const;
 export type JobSourceType = (typeof jobSourceTypes)[number];
@@ -172,6 +173,8 @@ export const sourceTypeLabels: Record<JobSourceType, string> = {
   jibe: "Jibe",
   "oracle-hcm": "Oracle HCM",
   successfactors: "SuccessFactors",
+  dayforce: "Dayforce",
+  jazzhr: "JazzHR",
   custom: "Custom",
 };
 
@@ -196,5 +199,7 @@ export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   "oracle-hcm":
     "e.g., emit.fa.ca3.oraclecloud.com:CX_2001:St. John's (host:siteNumber:keyword)",
   successfactors: "e.g., jobs.hatch.com:St. John's (host:location)",
+  dayforce: "e.g., tml:CANDIDATEPORTALTML (namespace:boardCode)",
+  jazzhr: "e.g., fonemed (from fonemed.applytojob.com/apply)",
   custom: "Custom identifier or URL",
 };

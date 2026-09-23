@@ -795,6 +795,7 @@ export const atsSourceTypes = [
   "oracle-hcm",
   "successfactors",
   "dayforce",
+  "jazzhr",
   "custom",
 ] as const;
 export type AtsSourceType = (typeof atsSourceTypes)[number];
