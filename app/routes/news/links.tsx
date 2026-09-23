@@ -4,7 +4,7 @@ import { NewsListing } from "~/components/news/NewsListing";
 import { loadNewsListingData } from "~/lib/news-listing.server";
 
 export function meta({}: Route.MetaArgs) {
-  return [{ title: "Links - News - siliconharbour.dev" }];
+  return [{ title: "Tech Links | siliconharbour.dev" }];
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

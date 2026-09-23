@@ -58,7 +58,7 @@ export function meta({ data }: Route.MetaArgs) {
     ? stripMarkdown(company.description)
     : `${name} is a tech company in St. John's, NL.`;
   return buildSeoMeta({
-    title: `${name} — St. John's Tech Company`,
+    title: name,
     description,
     url: `/directory/companies/${company?.slug ?? ""}`,
   });

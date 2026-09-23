@@ -22,7 +22,7 @@ export function meta({ data }: Route.MetaArgs) {
   const slug = (job as { slug?: string } | undefined)?.slug ?? "";
   const postedAt = (job as { postedAt?: string | Date } | undefined)?.postedAt;
   const seoTags = buildSeoMeta({
-    title: `${title}${companyStr} — St. John's Tech Job`,
+    title: `${title}${companyStr}`,
     description,
     url: `/jobs/${slug}`,
   });

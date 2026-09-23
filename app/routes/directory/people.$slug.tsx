@@ -14,7 +14,7 @@ export function meta({ data }: Route.MetaArgs) {
     ? stripMarkdown(person.bio)
     : `${name} — a tech professional in St. John's, NL.`;
   return buildSeoMeta({
-    title: `${name} — St. John's Tech`,
+    title: name,
     description,
     url: `/directory/people/${person?.slug ?? ""}`,
   });

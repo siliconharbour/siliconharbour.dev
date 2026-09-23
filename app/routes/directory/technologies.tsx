@@ -7,7 +7,7 @@ import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
-    title: "Technologies Used in St. John's Tech Companies",
+    title: "Technologies at St. John's Tech Companies",
     description:
       "Programming languages, frameworks, and technologies used by tech companies in St. John's, Newfoundland & Labrador.",
     url: "/directory/technologies",

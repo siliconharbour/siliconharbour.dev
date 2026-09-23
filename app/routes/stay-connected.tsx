@@ -5,7 +5,7 @@ import { buildSeoMeta } from "~/lib/seo";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
-    title: "Stay Connected with St. John's Tech",
+    title: "St. John's Tech Feeds and Updates",
     description:
       "Subscribe to the St. John's tech community calendar, RSS feeds, newsletter, and MCP server. Never miss a local tech event or update.",
     url: "/stay-connected",

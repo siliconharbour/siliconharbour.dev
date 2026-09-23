@@ -14,7 +14,7 @@ export function meta({ data }: Route.MetaArgs) {
     ? stripMarkdown(group.description)
     : `${name} is a tech community group in St. John's, NL.`;
   return buildSeoMeta({
-    title: `${name} — St. John's Tech Group`,
+    title: name,
     description,
     url: `/directory/groups/${group?.slug ?? ""}`,
   });

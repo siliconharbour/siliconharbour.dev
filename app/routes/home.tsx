@@ -19,7 +19,7 @@ import { TintedImage } from "~/components/TintedImage";
 
 export function meta({}: Route.MetaArgs) {
   return buildSeoMeta({
-    title: "St. John's Tech Scene — Events, Jobs & Companies",
+    title: "St. John's Tech Jobs, Events and Companies",
     description:
       "Discover the tech scene in St. John's, NL. Find local events, companies, jobs, groups, and people in the Newfoundland tech community.",
     url: "/",
