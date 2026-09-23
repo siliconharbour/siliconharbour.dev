@@ -12,6 +12,20 @@ function boardUrl(identifier: string): string {
   return `https://${identifier}.applytojob.com/apply`;
 }
 
+function isRelevantFonemedJob(job: Listing): boolean {
+  const location = job.location ?? "";
+  const inNewfoundland = /\bNL\b|Newfoundland|St\.? John'?s/i.test(location);
+  const technicalTitle =
+    /\b(software|developer|engineer|engineering|devops|data|product|digital|cybersecurity|programmer|systems|web|applications?|UX|QA)\b|\bIT\b/i.test(
+      job.title,
+    );
+  return inNewfoundland && technicalTitle;
+}
+
+function selectListings(identifier: string, listings: Listing[]): Listing[] {
+  return identifier === "fonemed" ? listings.filter(isRelevantFonemedJob) : listings;
+}
+
 async function fetchPage(url: string): Promise<string> {
   const response = await fetch(url, { headers: { Accept: "text/html" } });
   if (!response.ok) throw new Error(`JazzHR fetch failed (${response.status}): ${url}`);
@@ -52,12 +66,14 @@ export const jazzhrImporter: JobImporter = {
     approach: "Parses public applytojob.com career listings and job detail pages.",
     style: "HTML listing and detail parsing",
     reliability: "medium",
+    quirks: "Fonemed listings are limited to Newfoundland technology roles by title and location.",
   },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
     const baseUrl = boardUrl(config.sourceIdentifier);
-    const listings = parseListings(await fetchPage(baseUrl), baseUrl);
-    if (listings.length === 0) throw new Error(`No JazzHR listings found at ${baseUrl}`);
+    const allListings = parseListings(await fetchPage(baseUrl), baseUrl);
+    if (allListings.length === 0) throw new Error(`No JazzHR listings found at ${baseUrl}`);
+    const listings = selectListings(config.sourceIdentifier, allListings);
 
     const limit = pLimit(5);
     return Promise.all(
@@ -75,8 +91,9 @@ export const jazzhrImporter: JobImporter = {
   async validateConfig(config: Omit<ImportSourceConfig, "id">) {
     try {
       const baseUrl = boardUrl(config.sourceIdentifier);
-      const listings = parseListings(await fetchPage(baseUrl), baseUrl);
-      if (listings.length === 0) return { valid: false, error: "No jobs found on JazzHR board" };
+      const allListings = parseListings(await fetchPage(baseUrl), baseUrl);
+      if (allListings.length === 0) return { valid: false, error: "No jobs found on JazzHR board" };
+      const listings = selectListings(config.sourceIdentifier, allListings);
       return { valid: true, jobCount: listings.length };
     } catch (error) {
       return { valid: false, error: error instanceof Error ? error.message : String(error) };
