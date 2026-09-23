@@ -5,12 +5,11 @@
  * Each company has a custom scraper in ./custom/ that handles their
  * specific career page format (WordPress, Webflow, Squarespace, etc.)
  *
- * sourceIdentifier is the company slug (e.g., "strobeltek", "c-core")
+ * sourceIdentifier is the company slug (e.g., "c-core")
  */
 
 import type { JobImporter, ImportSourceConfig, FetchedJob, ValidationResult } from "./types";
 import type { CustomScraper } from "./custom/utils";
-import { scrapeStrobeltek } from "./custom/strobeltek";
 import { scrapeCCore } from "./custom/c-core";
 import { scrapeVirtualMarine } from "./custom/virtual-marine";
 import { scrapeNetbenefit } from "./custom/netbenefit";
@@ -34,7 +33,6 @@ import { scrapeGovernmentNewfoundlandLabrador } from "./custom/government-newfou
  * Registry of custom scrapers by company identifier
  */
 const scrapers: Record<string, CustomScraper> = {
-  strobeltek: () => scrapeStrobeltek(),
   "c-core": () => scrapeCCore(),
   "virtual-marine": () => scrapeVirtualMarine(),
   netbenefit: () => scrapeNetbenefit(),
