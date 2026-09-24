@@ -24,6 +24,20 @@ pnpm run dev
 
 App runs at `http://localhost:3000`
 
+### Local newsletter testbed
+
+Run the sibling Lists project alongside this app. From `../lists`, start its Compose stack using
+the port overrides in [its local development guide](https://github.com/jackharrhy/lists/blob/main/LOCAL_DEVELOPMENT.md). For example,
+Lists can run at `http://localhost:18080` and its Mailpit inbox at `http://localhost:18025` while
+Silicon Harbour runs at `http://localhost:3000` with `pnpm run dev`. Mailpit captures confirmation
+and campaign messages; the local stack does not send real email.
+
+Lists' local integration test covers subscriber API signup, confirmation, campaign creation and
+editing, and Mailpit delivery. Silicon Harbour does not yet have a Lists client or newsletter UI,
+so there is no cross-app browser test yet. When those are added, configure a server-side Lists URL
+and scoped token for the local instance; keep the token out of browser code. Create a local
+`lists.local` list in Lists, and reserve campaign sending for its admin UI.
+
 ### Database Commands
 
 ```bash
