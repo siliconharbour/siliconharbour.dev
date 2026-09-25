@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getNewsletterFlags,
+  getNewsletterSends,
   setNewsletterFlags,
   sendNewsletterTest,
 } from "~/lib/newsletter.server";
+import { newsletterAudience } from "~/lib/newsletter-audience";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -11,6 +13,20 @@ afterEach(() => {
 });
 
 describe("newsletter rollout", () => {
+  it("distinguishes a selected pilot audience from the full list", () => {
+    expect(newsletterAudience({ audienceType: "list", audienceData: null })).toEqual({ label: "Full list", testCount: null });
+    expect(newsletterAudience({ audienceType: "list", audienceData: '{"testSubscriberIds":[16,1980]}' })).toEqual({ label: "Pilot test · 2 selected", testCount: 2 });
+  });
+
+  it("reads actual campaign send records through Lists", async () => {
+    vi.stubEnv("LISTS_API_URL", "http://lists.test:8080");
+    vi.stubEnv("LISTS_API_TOKEN", "test-token");
+    const fetchMock = vi.fn(async (_url: URL) => new Response(JSON.stringify({ data: [{ id: 5, subscriberId: 16, email: "pilot@example.com", status: "delivered" }] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await getNewsletterSends(12, 50)).toMatchObject([{ email: "pilot@example.com", status: "delivered" }]);
+    expect(String(fetchMock.mock.calls[0][0])).toContain("/api/v1/campaigns/12/sends?limit=50&offset=50");
+  });
+
   it("starts disabled and persists each setting", async () => {
     expect(await getNewsletterFlags()).toEqual({ publicSignup: false, liveSend: false });
     await setNewsletterFlags({ publicSignup: true, liveSend: false });

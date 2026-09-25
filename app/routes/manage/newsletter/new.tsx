@@ -32,7 +32,7 @@ export default function NewNewsletterCampaign() {
   const actionData = useActionData<typeof action>();
   return (
     <div className="mx-auto max-w-4xl p-4 md:p-6">
-      <Link to="/manage/newsletter" className="text-sm text-harbour-600 underline">&larr; Newsletter</Link>
+      <Link to="/manage/newsletter/campaigns" className="text-sm text-harbour-600 underline">&larr; Campaigns</Link>
       <h1 className="mt-4 text-2xl font-semibold text-harbour-700">New campaign</h1>
       <p className="mt-1 text-sm text-harbour-500">Write a digest in Markdown. Links to site content can be included in the body.</p>
       {actionData?.error && <p className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{actionData.error}</p>}

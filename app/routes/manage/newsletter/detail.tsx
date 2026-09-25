@@ -8,10 +8,12 @@ import {
   getNewsletterFlags,
   getNewsletterList,
   getNewsletterPreview,
+  getNewsletterSends,
   saveNewsletterCampaign,
   sendNewsletterLive,
   sendNewsletterTest,
 } from "~/lib/newsletter.server";
+import { newsletterAudience } from "~/lib/newsletter-audience";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Newsletter campaign - siliconharbour.dev" }];
@@ -21,13 +23,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
   const id = z.coerce.number().int().positive().parse(params.id);
   const list = await getNewsletterList();
-  const [campaign, preview, flags, pilotIds] = await Promise.all([
-    getNewsletterCampaign(id, list.id),
+  const campaign = await getNewsletterCampaign(id, list.id);
+  const page = Math.max(1, Number.parseInt(new URL(request.url).searchParams.get("page") ?? "1", 10) || 1);
+  const [preview, flags, pilotIds, sends] = await Promise.all([
     getNewsletterPreview(id),
     getNewsletterFlags(),
     getConfirmedPilotSubscriberIds(list.id),
+    getNewsletterSends(id, (page - 1) * 50),
   ]);
-  return { campaign, preview, flags, pilotCount: pilotIds.length };
+  return { campaign, preview, flags, pilotCount: pilotIds.length, sends, page };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -64,15 +68,19 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function NewsletterCampaignDetail() {
-  const { campaign, preview, flags, pilotCount } = useLoaderData<typeof loader>();
+  const { campaign, preview, flags, pilotCount, sends, page } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const audience = newsletterAudience(campaign);
   return (
     <div className="mx-auto max-w-5xl p-4 md:p-6">
-      <Link to="/manage/newsletter" className="text-sm text-harbour-600 underline">&larr; Newsletter</Link>
+      <Link to="/manage/newsletter/campaigns" className="text-sm text-harbour-600 underline">&larr; Campaigns</Link>
       <div className="mt-4 flex flex-wrap items-center gap-3"><h1 className="text-2xl font-semibold text-harbour-700">{campaign.subject}</h1><span className="bg-harbour-100 px-1.5 py-0.5 text-xs text-harbour-600">{campaign.status}</span></div>
+      <p className="mt-2 text-sm text-harbour-600">Audience: <strong>{audience.label}</strong>{audience.testCount !== null && " · Only selected pilot addresses were eligible for this campaign."}</p>
+      {campaign.status !== "draft" && <p className="mt-1 text-sm text-harbour-500">The send records below show who was actually sent this campaign.</p>}
       {"error" in (actionData ?? {}) && <p className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{actionData?.error}</p>}
       {"success" in (actionData ?? {}) && <p className="mt-4 border border-green-200 bg-green-50 p-3 text-green-700">{actionData?.success}</p>}
       {campaign.lastError && <p className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{campaign.lastError}</p>}
+      {campaign.status !== "draft" && <section className="mt-6 border border-harbour-200 bg-white"><h2 className="border-b border-harbour-200 bg-harbour-50 p-3 font-semibold text-harbour-700">Actual sends ({Object.values(campaign.deliveryCounts ?? {}).reduce((total, count) => total + count, 0)})</h2><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-harbour-50 text-harbour-700"><tr><th className="px-4 py-2">Recipient</th><th className="px-4 py-2">Status</th><th className="px-4 py-2">Delivered</th></tr></thead><tbody className="divide-y divide-harbour-100">{sends.map((send) => <tr key={send.id}><td className="px-4 py-2 text-harbour-700">{send.email ?? `Subscriber #${send.subscriberId}`}</td><td className="px-4 py-2"><span className={`px-1.5 py-0.5 text-xs ${send.status === "delivered" ? "bg-green-100 text-green-700" : send.status === "bounced" || send.status === "failed" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>{send.status}</span></td><td className="px-4 py-2 text-harbour-500">{send.deliveredAt ? new Date(send.deliveredAt).toLocaleString() : "—"}</td></tr>)}</tbody></table>{sends.length === 0 && <p className="p-4 text-sm text-harbour-500">No sends recorded.</p>}</div><div className="flex gap-4 p-3 text-sm">{page > 1 && <Link to={`?page=${page - 1}`} className="text-harbour-600 underline">Previous</Link>}{sends.length === 50 && <Link to={`?page=${page + 1}`} className="text-harbour-600 underline">Next</Link>}</div></section>}
       {campaign.status === "draft" && <Form method="post" className="mt-6 space-y-4 border border-harbour-200 p-4">
         <input type="hidden" name="intent" value="save" />
         <label className="block text-sm font-medium text-harbour-700">Subject<input name="subject" defaultValue={campaign.subject} required maxLength={255} className="mt-1 block w-full border border-harbour-200 p-2" /></label>

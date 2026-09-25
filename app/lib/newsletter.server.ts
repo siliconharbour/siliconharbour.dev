@@ -30,11 +30,23 @@ export type Campaign = {
   fromName: string | null;
   audienceType: "list" | "tag" | "all" | "subscribers";
   audienceId: number | null;
+  audienceData: string | null;
   status: "draft" | "scheduled" | "sending" | "sent" | "failed";
   createdAt: string;
   sentAt: string | null;
   lastError: string | null;
   deliveryCounts?: Record<string, number>;
+};
+
+export type CampaignSend = {
+  id: number;
+  subscriberId: number;
+  email: string | null;
+  status: string;
+  attemptCount: number;
+  acceptedAt: string | null;
+  deliveredAt: string | null;
+  lastError: string | null;
 };
 
 export type ListStats = { listId: number; confirmed: number; unconfirmed: number; unsubscribed: number };
@@ -174,6 +186,11 @@ export async function getNewsletterCampaign(id: number, listId: number) {
   if (campaign.audienceType !== "list" || campaign.audienceId !== listId)
     throw new Error("Campaign does not belong to the Silicon Harbour list");
   return campaign;
+}
+
+export async function getNewsletterSends(id: number, offset = 0) {
+  const params = new URLSearchParams({ limit: "50", offset: String(offset) });
+  return listsRequest<CampaignSend[]>(`/campaigns/${id}/sends?${params}`);
 }
 
 export async function getNewsletterPreview(id: number) {

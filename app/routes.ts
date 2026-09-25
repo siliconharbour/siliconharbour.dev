@@ -151,6 +151,9 @@ export default [
     route("settings", "routes/manage/settings.tsx"),
     ...prefix("newsletter", [
       index("routes/manage/newsletter/index.tsx"),
+      route("campaigns", "routes/manage/newsletter/campaigns.tsx"),
+      route("subscribers", "routes/manage/newsletter/subscribers.tsx"),
+      route("subscribers/new", "routes/manage/newsletter/subscriber-new.tsx"),
       route("new", "routes/manage/newsletter/new.tsx"),
       route("settings", "routes/manage/newsletter/settings.tsx"),
       route(":id", "routes/manage/newsletter/detail.tsx"),
