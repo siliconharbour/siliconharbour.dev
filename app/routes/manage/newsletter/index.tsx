@@ -25,6 +25,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (!isNewsletterConfigured()) return { configured: false as const, flags };
   const url = new URL(request.url);
   const search = url.searchParams.get("search")?.trim().slice(0, 255) ?? "";
+  const notice = url.searchParams.get("notice") ?? "";
   const list = await getNewsletterList();
   const [stats, subscribers, campaigns] = await Promise.all([
     getNewsletterStats(list.id),
@@ -39,6 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     subscribers,
     campaigns,
     search,
+    notice,
     pilotCount: pilotEmails().length,
   };
 }
@@ -53,7 +55,18 @@ export async function action({ request }: Route.ActionArgs) {
     if (intent === "add-pilot") {
       const emails = pilotEmails();
       if (emails.length === 0) return { error: "No pilot addresses are configured." };
-      for (const email of emails) await subscribeToNewsletter(email, "Jack", pilotProviderLabel(email));
+      const list = await getNewsletterList();
+      let skipped = 0;
+      for (const email of emails) {
+        const matches = await getNewsletterSubscribers(list.id, email);
+        const existing = matches.find((item) => item.email.toLowerCase() === email);
+        if (existing?.status === "blocklisted" || existing?.membershipStatus === "confirmed") {
+          skipped++;
+          continue;
+        }
+        await subscribeToNewsletter(email, "Jack", pilotProviderLabel(email));
+      }
+      if (skipped === emails.length) return { error: "All pilot addresses are already confirmed or blocklisted." };
       return redirect("/manage/newsletter?notice=pilot-added");
     }
     if (intent === "add" || intent === "resend") {
@@ -106,6 +119,7 @@ export default function NewsletterIndex() {
         </div>
 
         {actionData?.error && <p className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionData.error}</p>}
+        {data.configured && data.notice && <p className="border border-green-200 bg-green-50 p-3 text-sm text-green-700">{data.notice === "unsubscribed" ? "Subscriber unsubscribed." : "Confirmation requested for eligible addresses."}</p>}
         {!data.configured ? (
           <p className="border border-amber-200 bg-amber-50 p-4 text-amber-700">
             Set LISTS_API_URL and LISTS_API_TOKEN on the server to connect the newsletter.
