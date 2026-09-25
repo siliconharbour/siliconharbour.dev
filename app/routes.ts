@@ -149,6 +149,12 @@ export default [
     index("routes/manage/index.tsx"),
     route("review", "routes/manage/review.tsx"),
     route("settings", "routes/manage/settings.tsx"),
+    ...prefix("newsletter", [
+      index("routes/manage/newsletter/index.tsx"),
+      route("new", "routes/manage/newsletter/new.tsx"),
+      route("settings", "routes/manage/newsletter/settings.tsx"),
+      route(":id", "routes/manage/newsletter/detail.tsx"),
+    ]),
     route("tools/orphaned-images", "routes/manage/tools/orphaned-images.tsx"),
     route("comments", "routes/manage/comments.tsx"),
     ...prefix("events", [

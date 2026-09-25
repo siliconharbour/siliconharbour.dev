@@ -75,6 +75,25 @@ docker run -p 3000:3000 -v ./data:/app/data siliconharbour
 | `SESSION_SECRET`  | Signs login and OAuth sessions      | Required in prod    |
 | `SITE_URL`        | Public application/MCP resource URL | Production URL      |
 | `OAUTH_ISSUER_URL` | OAuth issuer URL (if different)    | `SITE_URL`          |
+| `LISTS_API_URL` | Lists server base URL (server only) | Unset |
+| `LISTS_API_TOKEN` | Lists token for the Silicon Harbour list | Unset |
+| `LISTS_LIST_SLUG` | Lists mailing list slug | `siliconharbour` |
+| `LISTS_FROM_ADDRESS` | Campaign sender address | `hello@siliconharbour.dev` |
+| `LISTS_PILOT_EMAILS` | Comma-separated addresses allowed for pilot sends | Unset |
+
+## Newsletter development
+
+Run Lists with its `compose.yml` (Mailpit captures outgoing mail at port 8025), create a list
+named `Silicon Harbour` with slug `siliconharbour`, and create a member token assigned only to
+that list. Give it `lists:read`, `subscribers:read`, `subscribers:write`, `campaigns:read`,
+`campaigns:write`, and `campaigns:send` scopes. Point `LISTS_API_URL` at the local Lists app,
+set `LISTS_API_TOKEN`, and use `LISTS_FROM_ADDRESS=news@lists.local` when the local Lists
+sender domain is `lists.local`. Set `LISTS_PILOT_EMAILS` to test addresses captured by Mailpit.
+
+The newsletter starts with public signup and full-list sending disabled. Admins can add pilot
+subscribers, confirm through Mailpit, preview drafts, and use pilot send without enabling either
+rollout setting. The token remains on the Silicon Harbour server. Production should use a
+dedicated Lists member assigned only to this list.
 
 ## MCP access
 

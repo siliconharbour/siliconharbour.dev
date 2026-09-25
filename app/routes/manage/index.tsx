@@ -187,6 +187,7 @@ export default function ManageIndex() {
             </ToolGroup>
             <ToolGroup label="Data">
               <ToolLink to="/manage/export">Export Data</ToolLink>
+              <ToolLink to="/manage/newsletter">Newsletter</ToolLink>
             </ToolGroup>
             <ToolGroup label="Maintenance">
               <ToolLink to="/manage/tools/orphaned-images">Orphaned Images</ToolLink>
