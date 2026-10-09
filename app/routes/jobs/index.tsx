@@ -31,12 +31,23 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const { searchQuery, showNonTechnical, selectedWorkplaceTypes } = parseJobsQuery(url);
+  const { searchQuery, showNonTechnical, selectedWorkplaceTypes, companySlug, sort } =
+    parseJobsQuery(url);
 
   const user = await getOptionalUser(request);
   const isAdmin = user?.user.role === "admin";
 
   let companiesWithJobs = await getJobsGroupedByCompany({ includeNonTechnical: showNonTechnical });
+
+  const companyOptions = companiesWithJobs
+    .map(({ company }) => ({
+      value: company.slug,
+      label: company.name,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  if (companySlug) {
+    companiesWithJobs = companiesWithJobs.filter(({ company }) => company.slug === companySlug);
+  }
 
   // Filter by workplace type
   companiesWithJobs = companiesWithJobs
@@ -66,9 +77,21 @@ export async function loader({ request }: Route.LoaderArgs) {
       .filter((cwj) => cwj.jobs.length > 0);
   }
 
+  const newestJobs = companiesWithJobs
+    .flatMap(({ company, jobs }) => jobs.map((job) => ({ company, job })))
+    .sort(
+      (a, b) =>
+        new Date(b.job.firstSeenAt ?? b.job.createdAt).getTime() -
+          new Date(a.job.firstSeenAt ?? a.job.createdAt).getTime() || b.job.id - a.job.id,
+    );
+
   const totalJobs = companiesWithJobs.reduce((sum, cwj) => sum + cwj.jobs.length, 0);
   return {
     companiesWithJobs,
+    newestJobs,
+    companyOptions,
+    companySlug,
+    sort,
     totalJobs,
     searchQuery,
     isAdmin,
@@ -80,6 +103,10 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function JobsIndex() {
   const {
     companiesWithJobs,
+    newestJobs,
+    companyOptions,
+    companySlug,
+    sort,
     totalJobs,
     searchQuery,
     isAdmin,
@@ -92,6 +119,13 @@ export default function JobsIndex() {
   const navigateWithParams = (params: URLSearchParams) => {
     const query = params.toString().replaceAll("%7C", "|");
     navigate(query ? `?${query}` : "");
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) params.set(name, value);
+    else params.delete(name);
+    navigateWithParams(params);
   };
 
   const handleShowNonTechnicalChange = (checked: boolean) => {
@@ -146,8 +180,43 @@ export default function JobsIndex() {
             <div className="flex-1 min-w-[200px]">
               <SearchInput
                 placeholder="Search jobs..."
-                preserveParams={["technical", "workplace"]}
+                preserveParams={["technical", "workplace", "company", "sort"]}
               />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm text-harbour-600">
+                Company
+                <select
+                  value={companySlug}
+                  onChange={(e) => handleSelectChange("company", e.target.value)}
+                  className="px-3 py-2 bg-white border border-harbour-200 text-harbour-700"
+                >
+                  <option value="">All companies</option>
+                  {companyOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                  {companySlug &&
+                    !companyOptions.some((option) => option.value === companySlug) && (
+                      <option value={companySlug}>Unavailable company</option>
+                    )}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm text-harbour-600">
+                Sort
+                <select
+                  value={sort}
+                  onChange={(e) =>
+                    handleSelectChange("sort", e.target.value === "company" ? "" : e.target.value)
+                  }
+                  className="px-3 py-2 bg-white border border-harbour-200 text-harbour-700"
+                >
+                  <option value="company">Grouped by company</option>
+                  <option value="newest">Newest first</option>
+                </select>
+              </label>
             </div>
 
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -180,17 +249,22 @@ export default function JobsIndex() {
           </div>
 
           {/* Result count */}
-          {searchQuery && (
+          {(searchQuery || companySlug || sort === "newest") && (
             <p className="text-sm text-harbour-500">
-              {totalJobs} result{totalJobs !== 1 ? "s" : ""} for "{searchQuery}"
+              {totalJobs} result{totalJobs !== 1 ? "s" : ""}
+              {searchQuery && <> for "{searchQuery}"</>}
             </p>
           )}
         </div>
 
         {companiesWithJobs.length === 0 ? (
-          <p className="text-harbour-400">
-            {searchQuery ? "No jobs match your search." : "No job listings at the moment."}
-          </p>
+          <p className="text-harbour-400">No jobs match these filters.</p>
+        ) : sort === "newest" ? (
+          <div className="border border-harbour-200 bg-white divide-y divide-harbour-100">
+            {newestJobs.map(({ company, job }) => (
+              <JobRow key={job.id} job={job} company={company} />
+            ))}
+          </div>
         ) : (
           <div className="flex flex-col gap-6">
             {companiesWithJobs.map((cwj) => (
@@ -277,49 +351,61 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
       {/* Jobs List */}
       <div className="divide-y divide-harbour-100">
         {jobs.map((job) => (
-          <a
-            key={job.id}
-            href={job.url || "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 hover:bg-harbour-50 transition-colors"
-          >
-            <div className="flex flex-col gap-1">
-              <h3 className="font-medium text-harbour-700 group-hover:text-harbour-600">
-                {job.title}
-              </h3>
-              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
-                {job.location && <span>{job.location}</span>}
-                {job.department && <span>{job.department}</span>}
-                {job.postedAt ? (
-                  <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>
-                ) : job.firstSeenAt ? (
-                  <span>First seen {format(job.firstSeenAt, "MMM d, yyyy")}</span>
-                ) : null}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {!job.isTechnical && (
-                <span className="text-xs px-2 py-1 bg-slate-100 text-slate-600">Non-technical</span>
-              )}
-              {job.workplaceType === "remote" && (
-                <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700">Remote</span>
-              )}
-              {job.workplaceType === "hybrid" && (
-                <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700">Hybrid</span>
-              )}
-              {job.workplaceType === "onsite" && (
-                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700">Onsite</span>
-              )}
-              {job.salaryRange && (
-                <span className="text-xs px-2 py-1 bg-harbour-100 text-harbour-600">
-                  {job.salaryRange}
-                </span>
-              )}
-            </div>
-          </a>
+          <JobRow key={job.id} job={job} />
         ))}
       </div>
     </div>
+  );
+}
+
+function JobRow({
+  job,
+  company,
+}: {
+  job: CompanyWithJobs["jobs"][number];
+  company?: CompanyWithJobs["company"];
+}) {
+  return (
+    <a
+      href={job.url || `/jobs/${job.slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 hover:bg-harbour-50 transition-colors"
+    >
+      <div className="flex flex-col gap-1">
+        {company && <span className="text-sm text-harbour-600">{company.name}</span>}
+        <h3 className="font-medium text-harbour-700 group-hover:text-harbour-600">{job.title}</h3>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
+          {job.location && <span>{job.location}</span>}
+          {job.department && <span>{job.department}</span>}
+          {company ? (
+            <span>First seen {format(job.firstSeenAt ?? job.createdAt, "MMM d, yyyy")}</span>
+          ) : job.postedAt ? (
+            <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>
+          ) : job.firstSeenAt ? (
+            <span>First seen {format(job.firstSeenAt, "MMM d, yyyy")}</span>
+          ) : null}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {!job.isTechnical && (
+          <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">Non-technical</span>
+        )}
+        {job.workplaceType === "remote" && (
+          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700">Remote</span>
+        )}
+        {job.workplaceType === "hybrid" && (
+          <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-700">Hybrid</span>
+        )}
+        {job.workplaceType === "onsite" && (
+          <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700">Onsite</span>
+        )}
+        {job.salaryRange && (
+          <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+            {job.salaryRange}
+          </span>
+        )}
+      </div>
+    </a>
   );
 }

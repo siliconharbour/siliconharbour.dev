@@ -50,6 +50,8 @@ export function parseJobsQuery(url: URL): {
   searchQuery: string;
   showNonTechnical: boolean;
   selectedWorkplaceTypes: JobsWorkplaceFilterType[];
+  companySlug: string;
+  sort: "company" | "newest";
 } {
   const parsed = z
     .object({
@@ -70,6 +72,8 @@ export function parseJobsQuery(url: URL): {
 
   return {
     searchQuery: parsed.q,
+    companySlug: url.searchParams.get("company") ?? "",
+    sort: url.searchParams.get("sort") === "newest" ? "newest" : "company",
     showNonTechnical: parsed.technical === "false",
     selectedWorkplaceTypes:
       selectedWorkplaceTypes.length > 0 ? selectedWorkplaceTypes : [...jobsWorkplaceFilterOptions],
