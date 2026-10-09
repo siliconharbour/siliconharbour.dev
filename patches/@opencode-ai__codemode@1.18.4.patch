@@ -1,0 +1,62 @@
+diff --git a/dist/openapi/index.js b/dist/openapi/index.js
+index 49e31df15ce3eb8dbdb111211e784a9c181b751f..63461de95c0e5c505e2470ffd2910dc0df2caf15 100644
+--- a/dist/openapi/index.js
++++ b/dist/openapi/index.js
+@@ -1,4 +1,4 @@
+-import { HttpClient } from "effect/unstable/http";
++import { HttpClient } from "effect/http";
+ import { make } from "../tool.js";
+ import { invoke } from "./runtime.js";
+ import { componentDefinitions, hasDirectionalSchemas, inputSchema, isRecord, methods, nonEmptyString, operationInput, operationOutput, operationPath, operationSecurityRequirements, securityRequirements, securitySchemes, specServerUrl, validateBaseUrl, } from "./spec.js";
+diff --git a/dist/openapi/runtime.d.ts b/dist/openapi/runtime.d.ts
+index 86ae0c3d2183e89bc3d83c1548d860bc8d69c78b..2da6eeb1b50263f69bc593a4fe0eb0cc4cc3a1d3 100644
+--- a/dist/openapi/runtime.d.ts
++++ b/dist/openapi/runtime.d.ts
+@@ -1,4 +1,4 @@
+ import { Effect } from "effect";
+-import { HttpClient } from "effect/unstable/http";
++import { HttpClient } from "effect/http";
+ import type { Plan } from "./types.js";
+ export declare const invoke: (plan: Plan, input: unknown) => Effect.Effect<unknown, unknown, HttpClient.HttpClient>;
+diff --git a/dist/openapi/runtime.js b/dist/openapi/runtime.js
+index 0b54ab2e5002dc966230d316a437c114ca1f895e..e1fa7202302bae49d42508a66755281f4a9aa05b 100644
+--- a/dist/openapi/runtime.js
++++ b/dist/openapi/runtime.js
+@@ -1,5 +1,5 @@
+ import { Effect, Option, Schema, Stream } from "effect";
+-import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/unstable/http";
++import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
+ import { ToolError, toolError } from "../tool-error.js";
+ import { isRecord, own } from "./spec.js";
+ const decodeJson = Schema.decodeUnknownOption(Schema.UnknownFromJsonString);
+diff --git a/dist/openapi/types.d.ts b/dist/openapi/types.d.ts
+index 52d2cb7dbb75f6998a9dd2a4ad4e8a780ba9ceb0..80e1db35c82b1434144608a797077030f2c386b1 100644
+--- a/dist/openapi/types.d.ts
++++ b/dist/openapi/types.d.ts
+@@ -1,5 +1,5 @@
+ import { Effect } from "effect";
+-import { HttpClient } from "effect/unstable/http";
++import { HttpClient } from "effect/http";
+ import type { Tool, JsonSchema } from "../tool.js";
+ /** A parsed OpenAPI 3.x document. YAML must be parsed by the host. */
+ export type Document = Record<string, unknown>;
+diff --git a/dist/openapi/types.js b/dist/openapi/types.js
+index bc386d2cd78bffa1bd1f76bf98509183f61c57d1..483cc3fd953ab434bf0209462d9a88ddce404fb0 100644
+--- a/dist/openapi/types.js
++++ b/dist/openapi/types.js
+@@ -1,2 +1,2 @@
+ import { Effect } from "effect";
+-import { HttpClient } from "effect/unstable/http";
++import { HttpClient } from "effect/http";
+diff --git a/dist/tool-error.js b/dist/tool-error.js
+index 8c0bbec796086947a0281acfd77fc7f1c466a67c..d030d11f0fa57607b42611fdc2d42bb2a426723f 100644
+--- a/dist/tool-error.js
++++ b/dist/tool-error.js
+@@ -1,6 +1,6 @@
+ import { Schema } from "effect";
+ /** Safe operational refusal from a standard tool pack, reported as `ToolFailure`. */
+-export class ToolError extends Schema.TaggedErrorClass()("ToolError", {
++export class ToolError extends Schema.TaggedError()("ToolError", {
+     message: Schema.String,
+     cause: Schema.optionalKey(Schema.Defect()),
+ }) {
