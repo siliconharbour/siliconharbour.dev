@@ -31,7 +31,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
-  const { searchQuery, showNonTechnical, selectedWorkplaceTypes, companySlug, sort } =
+  const { searchQuery, showNonTechnical, selectedWorkplaceTypes, companySlugs, sort } =
     parseJobsQuery(url);
 
   const user = await getOptionalUser(request);
@@ -43,10 +43,22 @@ export async function loader({ request }: Route.LoaderArgs) {
     .map(({ company }) => ({
       value: company.slug,
       label: company.name,
+      imageSrc: company.logo ? `/images/${company.logo}` : undefined,
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
-  if (companySlug) {
-    companiesWithJobs = companiesWithJobs.filter(({ company }) => company.slug === companySlug);
+  for (const slug of companySlugs) {
+    if (!companyOptions.some((option) => option.value === slug)) {
+      companyOptions.push({
+        value: slug,
+        label: `Unavailable company (${slug})`,
+        imageSrc: undefined,
+      });
+    }
+  }
+  if (companySlugs.length > 0) {
+    companiesWithJobs = companiesWithJobs.filter(({ company }) =>
+      companySlugs.includes(company.slug),
+    );
   }
 
   // Filter by workplace type
@@ -90,7 +102,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     companiesWithJobs,
     newestJobs,
     companyOptions,
-    companySlug,
+    companySlugs,
     sort,
     totalJobs,
     searchQuery,
@@ -105,7 +117,7 @@ export default function JobsIndex() {
     companiesWithJobs,
     newestJobs,
     companyOptions,
-    companySlug,
+    companySlugs,
     sort,
     totalJobs,
     searchQuery,
@@ -187,22 +199,15 @@ export default function JobsIndex() {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-sm text-harbour-600">
                 Company
-                <select
-                  value={companySlug}
-                  onChange={(e) => handleSelectChange("company", e.target.value)}
-                  className="px-3 py-2 bg-white border border-harbour-200 text-harbour-700"
-                >
-                  <option value="">All companies</option>
-                  {companyOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                  {companySlug &&
-                    !companyOptions.some((option) => option.value === companySlug) && (
-                      <option value={companySlug}>Unavailable company</option>
-                    )}
-                </select>
+                <BaseMultiSelect
+                  name="company"
+                  options={companyOptions}
+                  selectedValues={companySlugs}
+                  onChange={(values) => handleSelectChange("company", values.join("|"))}
+                  placeholder="All companies"
+                  showSelectedChipsInTrigger
+                  showSelectedChipsBelow={false}
+                />
               </label>
               <label className="flex flex-col gap-1 text-sm text-harbour-600">
                 Sort
@@ -249,7 +254,7 @@ export default function JobsIndex() {
           </div>
 
           {/* Result count */}
-          {(searchQuery || companySlug || sort === "newest") && (
+          {(searchQuery || companySlugs.length > 0 || sort === "newest") && (
             <p className="text-sm text-harbour-500">
               {totalJobs} result{totalJobs !== 1 ? "s" : ""}
               {searchQuery && <> for "{searchQuery}"</>}

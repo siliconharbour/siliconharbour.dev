@@ -90,7 +90,7 @@ describe("parseJobsQuery", () => {
   it("returns defaults when no params", () => {
     const result = parseJobsQuery(url("/api/jobs"));
     expect(result.searchQuery).toBe("");
-    expect(result.companySlug).toBe("");
+    expect(result.companySlugs).toEqual([]);
     expect(result.sort).toBe("company");
     expect(result.showNonTechnical).toBe(false);
     expect(result.selectedWorkplaceTypes).toEqual(["remote", "hybrid", "onsite", "unknown"]);
@@ -98,9 +98,13 @@ describe("parseJobsQuery", () => {
 
   it("parses company and newest sorting, falling back for unknown sorts", () => {
     expect(parseJobsQuery(url("/jobs?company=acme&sort=newest"))).toMatchObject({
-      companySlug: "acme",
+      companySlugs: ["acme"],
       sort: "newest",
     });
+    expect(parseJobsQuery(url("/jobs?company=acme|beta|acme||")).companySlugs).toEqual([
+      "acme",
+      "beta",
+    ]);
     expect(parseJobsQuery(url("/jobs?sort=bogus")).sort).toBe("company");
   });
 

@@ -15,7 +15,7 @@ async function load(query = "") {
 function seed() {
   db.insert(companies)
     .values([
-      { id: 1, name: "Acme", slug: "acme", description: "" },
+      { id: 1, name: "Acme", slug: "acme", description: "", logo: "acme.png" },
       { id: 2, name: "Beta", slug: "beta", description: "" },
     ])
     .run();
@@ -78,7 +78,17 @@ describe("jobs listing", () => {
     const result = await load("?company=acme&q=engineer&workplace=remote&sort=newest");
     expect(result.newestJobs.map(({ job }) => job.id)).toEqual([3, 1]);
     expect(result.companyOptions.map(({ value }) => value)).toEqual(["acme", "beta"]);
+    const multiple = await load("?company=acme|beta&sort=newest");
+    expect(multiple.newestJobs.map(({ job }) => job.id)).toEqual([3, 2, 1]);
+    expect(multiple.companyOptions[0].imageSrc).toBe("/images/acme.png");
+    expect((await load("?company=")).totalJobs).toBe(3);
     expect((await load("?company=acme&technical=false")).totalJobs).toBe(3);
-    expect((await load("?company=missing")).totalJobs).toBe(0);
+    const unavailable = await load("?company=missing");
+    expect(unavailable.totalJobs).toBe(0);
+    expect(unavailable.companyOptions).toContainEqual({
+      value: "missing",
+      label: "Unavailable company (missing)",
+      imageSrc: undefined,
+    });
   });
 });

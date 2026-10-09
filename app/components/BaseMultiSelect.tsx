@@ -3,6 +3,7 @@ import { Select } from "@base-ui/react/select";
 interface BaseMultiSelectOption {
   value: string;
   label: string;
+  imageSrc?: string;
 }
 
 interface BaseMultiSelectProps {
@@ -24,9 +25,7 @@ export function BaseMultiSelect({
   showSelectedChipsInTrigger = false,
   showSelectedChipsBelow = true,
 }: BaseMultiSelectProps) {
-  const selectedOptionLabels = options
-    .filter((option) => selectedValues.includes(option.value))
-    .map((option) => option.label);
+  const selectedOptions = options.filter((option) => selectedValues.includes(option.value));
 
   return (
     <div className="flex flex-col gap-2">
@@ -46,9 +45,9 @@ export function BaseMultiSelect({
                       .map((option) => (
                         <span
                           key={option.value}
-                          className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700"
+                          className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700"
                         >
-                          {option.label}
+                          <OptionLabel option={option} />
                         </span>
                       ))}
                   </div>
@@ -72,7 +71,9 @@ export function BaseMultiSelect({
                     value={option.value}
                     className="px-2 py-1.5 text-sm text-harbour-700 flex items-center justify-between cursor-default select-none data-[highlighted]:bg-harbour-100"
                   >
-                    <Select.ItemText>{option.label}</Select.ItemText>
+                    <Select.ItemText>
+                      <OptionLabel option={option} />
+                    </Select.ItemText>
                     <Select.ItemIndicator className="text-harbour-600">✓</Select.ItemIndicator>
                   </Select.Item>
                 ))}
@@ -86,15 +87,29 @@ export function BaseMultiSelect({
         <input key={value} type="hidden" name={name} value={value} />
       ))}
 
-      {showSelectedChipsBelow && selectedOptionLabels.length > 0 && (
+      {showSelectedChipsBelow && selectedOptions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {selectedOptionLabels.map((label) => (
-            <span key={label} className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700">
-              {label}
+          {selectedOptions.map((option) => (
+            <span
+              key={option.value}
+              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700"
+            >
+              <OptionLabel option={option} />
             </span>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function OptionLabel({ option }: { option: BaseMultiSelectOption }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      {option.imageSrc && (
+        <img src={option.imageSrc} alt="" className="w-5 h-5 shrink-0 object-contain" />
+      )}
+      <span>{option.label}</span>
+    </span>
   );
 }
