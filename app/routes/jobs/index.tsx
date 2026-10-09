@@ -201,6 +201,7 @@ export default function JobsIndex() {
                 Company
                 <BaseMultiSelect
                   name="company"
+                  className="flex-1"
                   options={companyOptions}
                   selectedValues={companySlugs}
                   onChange={(values) => handleSelectChange("company", values.join("|"))}
@@ -216,7 +217,7 @@ export default function JobsIndex() {
                   onChange={(e) =>
                     handleSelectChange("sort", e.target.value === "company" ? "" : e.target.value)
                   }
-                  className="px-3 py-2 bg-white border border-harbour-200 text-harbour-700"
+                  className="min-h-11 flex-1 px-3 py-2 bg-white border border-harbour-200 text-harbour-700"
                 >
                   <option value="company">Grouped by company</option>
                   <option value="newest">Newest first</option>

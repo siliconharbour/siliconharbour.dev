@@ -8,6 +8,7 @@ interface BaseMultiSelectOption {
 
 interface BaseMultiSelectProps {
   name: string;
+  className?: string;
   options: BaseMultiSelectOption[];
   selectedValues: string[];
   onChange: (values: string[]) => void;
@@ -18,6 +19,7 @@ interface BaseMultiSelectProps {
 
 export function BaseMultiSelect({
   name,
+  className = "",
   options,
   selectedValues,
   onChange,
@@ -28,9 +30,9 @@ export function BaseMultiSelect({
   const selectedOptions = options.filter((option) => selectedValues.includes(option.value));
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={`flex flex-col gap-2 ${className}`}>
       <Select.Root multiple value={selectedValues} onValueChange={onChange}>
-        <Select.Trigger className="w-full px-3 py-2 border border-harbour-300 bg-white text-left text-harbour-700 flex items-center justify-between gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-harbour-500 data-[popup-open]:border-harbour-500">
+        <Select.Trigger className="min-h-11 w-full flex-1 px-3 py-2 border border-harbour-300 bg-white text-left text-harbour-700 flex items-center justify-between gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-harbour-500 data-[popup-open]:border-harbour-500">
           <Select.Value placeholder={placeholder} className="min-w-0 flex-1">
             {(value) =>
               Array.isArray(value) && value.length > 0 ? (
