@@ -11,7 +11,7 @@ const eventFilterSchema = z.enum(["upcoming", "past", "all"] satisfies EventFilt
 
 const technicalSchema = z.enum(["false"]).optional();
 
-const workplaceSchema = z
+const multiSelectSchema = z
   .string()
   .optional()
   .transform((value) =>
@@ -50,17 +50,21 @@ export function parseJobsQuery(url: URL): {
   searchQuery: string;
   showNonTechnical: boolean;
   selectedWorkplaceTypes: JobsWorkplaceFilterType[];
+  companySlugs: string[];
+  sort: "company" | "newest";
 } {
   const parsed = z
     .object({
       q: z.string().optional().default(""),
       technical: technicalSchema,
-      workplace: workplaceSchema,
+      workplace: multiSelectSchema,
+      company: multiSelectSchema,
     })
     .parse({
       q: url.searchParams.get("q") ?? undefined,
       technical: url.searchParams.get("technical") ?? undefined,
       workplace: url.searchParams.get("workplace") ?? undefined,
+      company: url.searchParams.get("company") ?? undefined,
     });
 
   const selectedWorkplaceTypes = parsed.workplace.filter(
@@ -70,6 +74,8 @@ export function parseJobsQuery(url: URL): {
 
   return {
     searchQuery: parsed.q,
+    companySlugs: [...new Set(parsed.company)],
+    sort: url.searchParams.get("sort") === "newest" ? "newest" : "company",
     showNonTechnical: parsed.technical === "false",
     selectedWorkplaceTypes:
       selectedWorkplaceTypes.length > 0 ? selectedWorkplaceTypes : [...jobsWorkplaceFilterOptions],
