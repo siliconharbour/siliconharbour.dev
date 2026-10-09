@@ -67,11 +67,11 @@ function formatModuleHint(query: string): string | null {
   if (!matched) return null;
   const [, fnName] = matched;
   if (fnName === null) {
-    return "siliconharbour module: (no dedicated function — query companies instead)";
+    return "tools.siliconharbour: (no dedicated function — query companies instead)";
   }
   const doc = readByName.get(fnName);
   if (!doc) return null; // function removed from bridge
-  return `siliconharbour module: ${doc.signature}\n  ${doc.description}`;
+  return `tools.siliconharbour.${doc.signature}\n  ${doc.description}`;
 }
 
 /**
@@ -103,11 +103,7 @@ function renderVariant(unionName: string, v: EntityVariantDoc): string {
 function matchVariants(unions: UnionSchemaDoc[], q: string): string[] {
   // Normalise: agents may ask "type:event", "createEntity person",
   // "event-source", "person", etc. Pull out the candidate words.
-  const tokens = q
-    .toLowerCase()
-    .replace(/[:,]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
+  const tokens = q.toLowerCase().replace(/[:,]/g, " ").split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return [];
 
   const results: string[] = [];
@@ -118,9 +114,7 @@ function matchVariants(unions: UnionSchemaDoc[], q: string): string[] {
       // Direct match: the variant type appears as a token, OR the type
       // appears as a substring of any token (handles "event-source",
       // "news-article", "type-event" etc.).
-      const variantTokenMatch = tokens.some(
-        (t) => t === variantType || t.includes(variantType),
-      );
+      const variantTokenMatch = tokens.some((t) => t === variantType || t.includes(variantType));
       if (variantTokenMatch || (unionTokenMatch && tokens.length === 1)) {
         results.push(renderVariant(u.unionName, v));
       }
@@ -150,17 +144,20 @@ export function searchSpec(query: string): string {
   }
 
   // Search the host-function docs themselves. Lets agents ask
-  // "siliconharbour module" or function-name queries.
+  // "siliconharbour tools" or function-name queries.
   const fnDocs = getHostFunctionDocs();
   const matchingFns = fnDocs.execute.filter(
-    (d) => d.name.toLowerCase().includes(q) || d.description.toLowerCase().includes(q),
+    (d) =>
+      q === "siliconharbour tools" ||
+      d.name.toLowerCase().includes(q) ||
+      d.description.toLowerCase().includes(q),
   );
   if (matchingFns.length > 0) {
     results.push(
-      "### siliconharbour module functions\n" +
+      "### tools.siliconharbour functions\n" +
         matchingFns
           .slice(0, 12)
-          .map((d) => `  ${d.signature}\n    — ${d.description}`)
+          .map((d) => `  tools.siliconharbour.${d.signature}\n    — ${d.description}`)
           .join("\n"),
     );
   }
@@ -177,7 +174,7 @@ export function searchSpec(query: string): string {
     return [
       `No matches for "${query}".`,
       "Available entities: event, job, company, group, person, education, technology, product, project, news",
-      "For all module functions: search('siliconharbour module')",
+      "For all tools.siliconharbour functions: search('siliconharbour tools')",
     ].join("\n");
   }
 
@@ -185,7 +182,9 @@ export function searchSpec(query: string): string {
 
   const parts = [results.slice(0, 6).join("\n\n")];
   if (hint)
-    parts.push(`\nUsage in query/execute tool:\nimport { ... } from 'siliconharbour'\n${hint}`);
+    parts.push(
+      `\nUsage in query/execute tool (call the function with one input object and return its result):\n${hint}`,
+    );
 
   return parts.join("").trim();
 }

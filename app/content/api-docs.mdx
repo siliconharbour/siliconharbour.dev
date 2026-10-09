@@ -82,29 +82,32 @@ OAuth is optional. To use the `execute` tool, start your MCP client's sign-in ac
 
 The `execute` tool requires the `mcp:write` OAuth scope and an administrator account. It can run imports, create or update records, and perform review actions. An invalid or expired OAuth session is rejected instead of falling back to public access.
 
+Programs run in OpenCode CodeMode, a restricted JavaScript interpreter. Call functions through `tools.siliconharbour` with one input object (`{}` when no parameters are needed), then `return` the result. Imports and module exports are unavailable. Use `await` for every started call, and `Promise.all` for independent calls.
+
+Inside a program, `search({ query: "company" })` discovers tool signatures. The separate MCP `search` tool also provides entity field details.
+
+Responses contain `ok`, `value` or `error`, `toolCalls`, and optional `logs`, `warnings`, and `truncated`. Queries have a 10-second timeout; authenticated actions have 60 seconds. Both allow at most 100 tool calls and retain up to 64 KiB of result and logs. Narrow results or paginate when output is truncated. A failed execution can have completed earlier writes; inspect `toolCalls` before retrying. Timeouts do not undo writes or cancel existing database/import operations.
+
 ### Example queries
 
 ```js
 // Upcoming events
-import { events } from "siliconharbour";
-export default await events({ upcoming: true, limit: 5 });
+return await tools.siliconharbour.events({ upcoming: true, limit: 5 });
 ```
 
 ```js
 // Jobs filtered by keyword
-import { jobs } from "siliconharbour";
-export default await jobs({ query: "developer", limit: 10 });
+return await tools.siliconharbour.jobs({ query: "developer", limit: 10 });
 ```
 
 ```js
 // Cross-entity query
-import { events, companies, groups } from "siliconharbour";
 const [upcoming, cos, grps] = await Promise.all([
-  events({ upcoming: true }),
-  companies({ limit: 5 }),
-  groups({ limit: 5 }),
+  tools.siliconharbour.events({ upcoming: true }),
+  tools.siliconharbour.companies({ limit: 5 }),
+  tools.siliconharbour.groups({ limit: 5 }),
 ]);
-export default {
+return {
   upcoming: upcoming.length,
   companies: cos.map((c) => c.name),
   groups: grps.map((g) => g.name),

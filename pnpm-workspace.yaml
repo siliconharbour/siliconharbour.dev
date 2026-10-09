@@ -6,6 +6,7 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   sharp: true
+  msgpackr-extract: false
 
 minimumReleaseAgeExclude:
   - '@react-router/dev@8.4.0'

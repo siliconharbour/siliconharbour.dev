@@ -4,10 +4,7 @@ import { createSiliconHarbourHttpApp } from "~/mcp/http-app";
 import { db } from "~/db";
 import { oauthClients, oauthTokens, users } from "~/db/schema";
 
-async function createAccessToken(
-  scopes = "mcp:read",
-  role: "regular" | "admin" = "admin",
-) {
+async function createAccessToken(scopes = "mcp:read", role: "regular" | "admin" = "admin") {
   const token = `test-access-token-${role}-${scopes.replaceAll(" ", "-")}`;
   const [user] = await db
     .insert(users)
@@ -170,7 +167,7 @@ describe("Silicon Harbour MCP stateless transport", () => {
         params: {
           name: "execute",
           arguments: {
-            code: "export default await createEntity({ type: 'company', name: 'Nope' })",
+            code: "return await tools.siliconharbour.createEntity({ type: 'company', name: 'Nope' })",
           },
         },
       }),
