@@ -378,7 +378,18 @@ function JobRow({
       className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 hover:bg-harbour-50 transition-colors"
     >
       <div className="flex flex-col gap-1">
-        {company && <span className="text-sm text-harbour-600">{company.name}</span>}
+        {company && (
+          <span className="flex items-center gap-2 text-sm text-harbour-600">
+            {company.logo && (
+              <img
+                src={`/images/${company.logo}`}
+                alt=""
+                className="w-6 h-6 shrink-0 object-contain"
+              />
+            )}
+            {company.name}
+          </span>
+        )}
         <h3 className="font-medium text-harbour-700 group-hover:text-harbour-600">{job.title}</h3>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
           {job.location && <span>{job.location}</span>}
