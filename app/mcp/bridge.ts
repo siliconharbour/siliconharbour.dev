@@ -1,10 +1,4 @@
-/**
- * Host bridge: real DB/sync functions exposed directly into the CodeMode interpreter.
- * Each function is called on demand by user code. Nothing is prefetched.
- */
-
 import { z } from "zod";
-import type { HostFunctions } from "./sandbox.js";
 import { getAsyncSync, listAsyncSyncs, startAsyncSync } from "./async-syncs.js";
 import {
   getUpcomingEvents,
@@ -134,17 +128,6 @@ import {
 } from "~/db/schema";
 import { eq, and, isNull, count } from "drizzle-orm";
 
-// ── Host function documentation helper ─────────────────────────────────
-// Wraps every host function exposed to the CodeMode interpreter with metadata
-// stashed on the function itself. Consumed by:
-//   - /api docs page (auto-generated tool listing per MCP tool)
-//   - searchSpec()  (tools.siliconharbour hints)
-//   - server.ts     (renders the `execute` tool description prompt)
-//
-// Co-locating with the implementation means a new bridge function CANNOT
-// drift. Its docs travel with it, and getHostFunctionDocs() reads them
-// straight off the live function references.
-
 export type HostFnCategory =
   | "read"
   | "sources"
@@ -161,74 +144,38 @@ export interface HostFnDoc {
   category: HostFnCategory;
 }
 
-type HostFn = (...args: unknown[]) => Promise<unknown>;
-type DocumentedHostFn = HostFn & { __doc: HostFnDoc };
+type HostFn = (input: unknown) => Promise<unknown>;
+export type HostFunction = HostFn & { doc: HostFnDoc; inputSchema: z.ZodType };
+export type HostFunctions = Record<string, HostFunction>;
 
-/**
- * Tag a host function with documentation. Returns the original function
- * unchanged (apart from a non-enumerable __doc property) so existing
- * call sites continue to work.
- */
-function host<F extends HostFn>(
+function host(
   signature: string,
   description: string,
   category: HostFnCategory,
-  fn: F,
+  fn: HostFn,
   inputSchema: z.ZodType,
-): F {
-  Object.defineProperty(fn, "__doc", {
-    value: { signature, description, category } satisfies HostFnDoc,
-    enumerable: false,
-    writable: false,
+): HostFunction {
+  return Object.assign(fn, {
+    doc: { signature, description, category },
+    inputSchema,
   });
-  Object.defineProperty(fn, "__inputSchema", { value: inputSchema });
-  return fn;
-}
-
-/** Read the documentation off a host function, or null if untagged. */
-export function getHostFnDoc(fn: unknown): HostFnDoc | null {
-  if (typeof fn !== "function") return null;
-  const doc = (fn as DocumentedHostFn).__doc;
-  return doc ?? null;
 }
 
 export interface HostFunctionDocsEntry extends HostFnDoc {
   name: string;
-  status: "documented" | "undocumented";
 }
 
 export interface HostFunctionDocs {
-  /** Functions available via the public `query` MCP tool. */
   read: HostFunctionDocsEntry[];
-  /** Functions available via the authenticated `execute` MCP tool (superset of read). */
   execute: HostFunctionDocsEntry[];
 }
 
 function entriesFor(fns: HostFunctions): HostFunctionDocsEntry[] {
   return Object.entries(fns)
-    .map(([name, fn]) => {
-      const doc = getHostFnDoc(fn);
-      if (doc) {
-        return { name, status: "documented" as const, ...doc };
-      }
-      return {
-        name,
-        status: "undocumented" as const,
-        signature: `${name}(...)`,
-        description:
-          "(undocumented; wrap this function with host('signature', 'description', category, fn) in app/mcp/bridge.ts)",
-        category: "read" as HostFnCategory,
-      };
-    })
+    .map(([name, fn]) => ({ name, ...fn.doc }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/**
- * Walks the live host-function bindings and pulls __doc off each entry.
- * Used by the /api docs page, the searchSpec module hints, and server.ts
- * to build the `execute` tool description prompt, so there is exactly
- * one source of truth (the call site in this file).
- */
 export function getHostFunctionDocs(): HostFunctionDocs {
   return {
     read: entriesFor(buildReadFunctions()),
@@ -759,15 +706,6 @@ const SearchJobsSchema = z.object({
   limit: z.number().default(25),
   hoursOld: z.number().optional(),
 });
-
-// ── Entity schema introspection ───────────────────────────────────────
-//
-// Walks the discriminated-union schemas (CreateEntitySchema,
-// UpdateEntitySchema, ReviewEntitySchema) and yields per-variant field
-// docs. Used by server.ts to pre-render type docs into the execute
-// prompt, and by search.ts to answer `search('createEntity person')`.
-// Single source of truth: the zod schemas themselves. Adding a new
-// variant or field updates both surfaces automatically.
 
 export interface EntityFieldDoc {
   name: string;

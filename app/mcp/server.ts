@@ -1,12 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { searchSpec } from "./search.js";
-import { CodeMode, searchSignature } from "@opencode-ai/codemode";
+import { type CodeMode, searchSignature } from "@opencode-ai/codemode";
 import { Effect } from "effect";
-import { createCodeMode, QUERY_LIMITS, EXECUTE_LIMITS } from "./sandbox.js";
+import { createCodeMode, QUERY_LIMITS, EXECUTE_LIMITS } from "./code-mode.js";
 import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
 
-function describeRuntime(runtime: CodeMode.Runtime, timeoutSeconds: number): string {
+function describeRuntime(runtime: CodeMode.Runtime, limits: typeof QUERY_LIMITS): string {
   const catalog = runtime.catalog();
   const entries: string[] = [];
   let characters = 0;
@@ -18,14 +18,14 @@ function describeRuntime(runtime: CodeMode.Runtime, timeoutSeconds: number): str
   }
 
   return [
-    "Run a restricted JavaScript program using OpenCode CodeMode. Call tools.siliconharbour.<function>(input) and return the fields you need.",
+    "Run a confined JavaScript orchestration script to access SiliconHarbour tools. Call tools.siliconharbour.<function>(input) and return the fields you need.",
     "Each tool takes one input object; use {} for tools with no parameters. Inputs are validated by the host's Zod schemas.",
     "Use await and try/catch for tool calls. Use Promise.all for independent calls. Await every started call before returning.",
     "Imports, export default, eval, modules, process, filesystem, fetch, timers, classes, and prototype access are unavailable.",
     "Use the MCP search tool for entity field details. Inside this program, search({ query }) discovers tool signatures; it is distinct from the MCP search tool. Search for a function name when its signature is not shown below.",
     searchSignature,
     "Tool results have unknown shapes: inspect and narrow them before accessing fields. Filter and aggregate results in code.",
-    `Limits: ${timeoutSeconds} seconds, 100 tool calls, 64 KiB of result and logs. Output may be truncated; narrow results or paginate.`,
+    `Limits: ${limits.timeoutMs / 1_000} seconds, ${limits.maxToolCalls} tool calls, ${limits.maxOutputBytes / 1_024} KiB of result and logs. Output may be truncated; narrow results or paginate.`,
     "Returns JSON with ok, value or error, toolCalls, and optional logs, warnings, and truncated. A failed execution may have completed earlier writes; inspect toolCalls before retrying.",
     "",
     `Available tools (${catalog.length} total): ${catalog.map((tool) => tool.path).join(", ")}`,
@@ -34,7 +34,7 @@ function describeRuntime(runtime: CodeMode.Runtime, timeoutSeconds: number): str
   ].join("\n");
 }
 
-async function runSandboxTool(code: string, runtime: CodeMode.Runtime) {
+async function runCode(code: string, runtime: CodeMode.Runtime) {
   const result = await Effect.runPromise(runtime.execute(code));
   return {
     content: [{ type: "text" as const, text: JSON.stringify(result) }],
@@ -45,7 +45,7 @@ async function runSandboxTool(code: string, runtime: CodeMode.Runtime) {
 function buildExecuteDescription(runtime: CodeMode.Runtime): string {
   return [
     "Requires the mcp:write OAuth scope. Exposes read, sync, creation, and review functions.",
-    describeRuntime(runtime, 60),
+    describeRuntime(runtime, EXECUTE_LIMITS),
     "",
     "JOB REVIEW CRITERIA:",
     "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",
@@ -58,8 +58,6 @@ function buildExecuteDescription(runtime: CodeMode.Runtime): string {
   ].join("\n");
 }
 
-// ── Server factory ─────────────────────────────────────────────────────
-
 export async function createMcpServer(authenticated = false): Promise<McpServer> {
   const server = new McpServer({
     name: "siliconharbour",
@@ -68,7 +66,6 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
 
   const queryRuntime = createCodeMode(buildReadFunctions(), QUERY_LIMITS);
 
-  // ── Tool 1: search ──────────────────────────────────────────────────
   server.registerTool(
     "search",
     {
@@ -86,12 +83,11 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
     }),
   );
 
-  // ── Tool 2: query ───────────────────────────────────────────────────
   server.registerTool(
     "query",
     {
       title: "Query SiliconHarbour data",
-      description: describeRuntime(queryRuntime, 10),
+      description: describeRuntime(queryRuntime, QUERY_LIMITS),
       inputSchema: {
         code: z
           .string()
@@ -100,10 +96,9 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
           ),
       },
     },
-    async ({ code }) => runSandboxTool(code, queryRuntime),
+    async ({ code }) => runCode(code, queryRuntime),
   );
 
-  // ── Tool 3: execute (authenticated sessions only) ───────────────────
   if (authenticated) {
     const executeRuntime = createCodeMode(buildExecuteFunctions(), EXECUTE_LIMITS);
     server.registerTool(
@@ -119,7 +114,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
             ),
         },
       },
-      async ({ code }) => runSandboxTool(code, executeRuntime),
+      async ({ code }) => runCode(code, executeRuntime),
     );
   }
 

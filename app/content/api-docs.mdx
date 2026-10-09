@@ -82,7 +82,7 @@ OAuth is optional. To use the `execute` tool, start your MCP client's sign-in ac
 
 The `execute` tool requires the `mcp:write` OAuth scope and an administrator account. It can run imports, create or update records, and perform review actions. An invalid or expired OAuth session is rejected instead of falling back to public access.
 
-Programs run in OpenCode CodeMode, a restricted JavaScript interpreter. Call functions through `tools.siliconharbour` with one input object (`{}` when no parameters are needed), then `return` the result. Imports and module exports are unavailable. Use `await` for every started call, and `Promise.all` for independent calls.
+Programs run in Code Mode, a restricted JavaScript interpreter. Call functions through `tools.siliconharbour` with one input object (`{}` when no parameters are needed), then `return` the result. Imports and module exports are unavailable. Use `await` for every started call, and `Promise.all` for independent calls.
 
 Inside a program, `search({ query: "company" })` discovers tool signatures. The separate MCP `search` tool also provides entity field details.
 

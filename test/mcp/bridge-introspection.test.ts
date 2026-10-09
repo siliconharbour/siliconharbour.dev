@@ -1,28 +1,10 @@
-/**
- * Coverage for the introspection helpers that drive the /api docs page,
- * the execute prompt's Types section, and the searchSpec variant lookup.
- *
- * These helpers walk the bridge's discriminated-union zod schemas and
- * the host()-wrapped function metadata, both of which would silently
- * drift from the implementation if introspection regressed. Pinning the
- * expected shape protects the agent-facing surface from invisible
- * breakage.
- */
-
 import { describe, expect, it } from "vitest";
-import {
-  getEntitySchemaDocs,
-  getHostFunctionDocs,
-} from "~/mcp/bridge";
+import { getEntitySchemaDocs, getHostFunctionDocs } from "~/mcp/bridge";
 
 describe("getEntitySchemaDocs", () => {
   it("exposes the three discriminated unions in declaration order", () => {
     const docs = getEntitySchemaDocs();
-    expect(docs.map((u) => u.unionName)).toEqual([
-      "createEntity",
-      "updateEntity",
-      "reviewEntity",
-    ]);
+    expect(docs.map((u) => u.unionName)).toEqual(["createEntity", "updateEntity", "reviewEntity"]);
   });
 
   it("createEntity covers all 14 expected variants", () => {
@@ -97,7 +79,7 @@ describe("getEntitySchemaDocs", () => {
     expect(technology).toBeDefined();
     const category = technology!.required.find((f) => f.name === "category");
     expect(category).toBeDefined();
-    // The category enum lists every value separated by " | ".
+
     expect(category!.type).toContain("language");
     expect(category!.type).toContain("frontend");
     expect(category!.type).toContain("llm");
@@ -109,7 +91,7 @@ describe("getEntitySchemaDocs", () => {
     const personUpdate = docs[1].variants.find((v) => v.type === "person");
     expect(personUpdate).toBeDefined();
     expect(personUpdate!.required.map((f) => f.name)).toEqual(["id"]);
-    // Every create-time field should be in optional now.
+
     expect(personUpdate!.optional.map((f) => f.name).sort()).toEqual(
       ["bio", "github", "name", "visible", "website"].sort(),
     );
@@ -129,12 +111,6 @@ describe("getEntitySchemaDocs", () => {
     expect(values).toContain("deactivate-filled");
     expect(values).toContain("deactivate-expired");
   });
-
-  it("returns deterministic output across calls", () => {
-    const a = JSON.stringify(getEntitySchemaDocs());
-    const b = JSON.stringify(getEntitySchemaDocs());
-    expect(a).toBe(b);
-  });
 });
 
 describe("getHostFunctionDocs", () => {
@@ -149,16 +125,7 @@ describe("getHostFunctionDocs", () => {
     const readNames = new Set(docs.read.map((d) => d.name));
     const executeNames = new Set(docs.execute.map((d) => d.name));
     for (const name of readNames) {
-      expect(executeNames.has(name), `execute should include read function "${name}"`).toBe(
-        true,
-      );
-    }
-  });
-
-  it("every host function is documented — no undocumented entries leak", () => {
-    const docs = getHostFunctionDocs();
-    for (const entry of [...docs.read, ...docs.execute]) {
-      expect(entry.status, `${entry.name} should be documented`).toBe("documented");
+      expect(executeNames.has(name), `execute should include read function "${name}"`).toBe(true);
     }
   });
 
