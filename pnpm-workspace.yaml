@@ -20,3 +20,10 @@ onlyBuiltDependencies:
   - better-sqlite3
   - esbuild
   - sharp
+
+# Code Mode 1.18.4 pins an Effect beta; its patch adapts the renamed stable APIs.
+overrides:
+  '@opencode-ai/codemode>effect': '4.0.2'
+
+patchedDependencies:
+  '@opencode-ai/codemode@1.18.4': patches/@opencode-ai__codemode@1.18.4.patch
