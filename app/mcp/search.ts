@@ -40,12 +40,6 @@ function endpointToText(path: string, methods: PathMethods): string {
     .join("\n");
 }
 
-/**
- * Map a search noun → host function name. Mostly the noun pluralised,
- * but some entities (person/people) need an alias and some have no
- * dedicated function. Resolved against the live host-function docs so
- * signatures stay correct as the bridge evolves.
- */
 const HOST_FN_NAME_FOR_ENTITY: Record<string, string | null> = {
   event: "events",
   job: "jobs",
@@ -67,18 +61,13 @@ function formatModuleHint(query: string): string | null {
   if (!matched) return null;
   const [, fnName] = matched;
   if (fnName === null) {
-    return "siliconharbour module: (no dedicated function — query companies instead)";
+    return "tools.siliconharbour: (no dedicated function — query companies instead)";
   }
   const doc = readByName.get(fnName);
   if (!doc) return null; // function removed from bridge
-  return `siliconharbour module: ${doc.signature}\n  ${doc.description}`;
+  return `tools.siliconharbour.${doc.signature}\n  ${doc.description}`;
 }
 
-/**
- * Render a single variant of a discriminated union (a `type:` of
- * createEntity / updateEntity / reviewEntity) with its required and
- * optional fields. Used when the agent searches for a variant by name.
- */
 function renderVariant(unionName: string, v: EntityVariantDoc): string {
   const lines = [`### ${unionName} type=${JSON.stringify(v.type)}`];
   if (v.required.length) {
@@ -95,19 +84,8 @@ function renderVariant(unionName: string, v: EntityVariantDoc): string {
   return lines.join("\n");
 }
 
-/**
- * Find every union variant whose `type` value matches the query. This
- * lets the agent discover field requirements with queries like
- * "createEntity person", "type:event", "event-source", "news-link", etc.
- */
 function matchVariants(unions: UnionSchemaDoc[], q: string): string[] {
-  // Normalise: agents may ask "type:event", "createEntity person",
-  // "event-source", "person", etc. Pull out the candidate words.
-  const tokens = q
-    .toLowerCase()
-    .replace(/[:,]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
+  const tokens = q.toLowerCase().replace(/[:,]/g, " ").split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return [];
 
   const results: string[] = [];
@@ -115,12 +93,8 @@ function matchVariants(unions: UnionSchemaDoc[], q: string): string[] {
     const unionTokenMatch = tokens.includes(u.unionName.toLowerCase());
     for (const v of u.variants) {
       const variantType = v.type.toLowerCase();
-      // Direct match: the variant type appears as a token, OR the type
-      // appears as a substring of any token (handles "event-source",
-      // "news-article", "type-event" etc.).
-      const variantTokenMatch = tokens.some(
-        (t) => t === variantType || t.includes(variantType),
-      );
+
+      const variantTokenMatch = tokens.some((t) => t === variantType || t.includes(variantType));
       if (variantTokenMatch || (unionTokenMatch && tokens.length === 1)) {
         results.push(renderVariant(u.unionName, v));
       }
@@ -133,7 +107,6 @@ export function searchSpec(query: string): string {
   const q = query.toLowerCase();
   const results: string[] = [];
 
-  // Match schemas
   for (const [name, schema] of Object.entries(spec.components?.schemas ?? {})) {
     const text = `${name} ${JSON.stringify(schema)}`.toLowerCase();
     if (text.includes(q)) {
@@ -141,7 +114,6 @@ export function searchSpec(query: string): string {
     }
   }
 
-  // Match endpoints
   for (const [path, methods] of Object.entries(spec.paths ?? {})) {
     if (`${path} ${JSON.stringify(methods)}`.toLowerCase().includes(q)) {
       const line = endpointToText(path, methods);
@@ -149,24 +121,23 @@ export function searchSpec(query: string): string {
     }
   }
 
-  // Search the host-function docs themselves. Lets agents ask
-  // "siliconharbour module" or function-name queries.
   const fnDocs = getHostFunctionDocs();
   const matchingFns = fnDocs.execute.filter(
-    (d) => d.name.toLowerCase().includes(q) || d.description.toLowerCase().includes(q),
+    (d) =>
+      q === "siliconharbour tools" ||
+      d.name.toLowerCase().includes(q) ||
+      d.description.toLowerCase().includes(q),
   );
   if (matchingFns.length > 0) {
     results.push(
-      "### siliconharbour module functions\n" +
+      "### tools.siliconharbour functions\n" +
         matchingFns
           .slice(0, 12)
-          .map((d) => `  ${d.signature}\n    — ${d.description}`)
+          .map((d) => `  tools.siliconharbour.${d.signature}\n    — ${d.description}`)
           .join("\n"),
     );
   }
 
-  // Match union variants — answers "createEntity person", "type:event",
-  // "event-source", etc. with the variant's required/optional fields.
   const unions = getEntitySchemaDocs();
   const variantMatches = matchVariants(unions, q);
   if (variantMatches.length > 0) {
@@ -177,7 +148,7 @@ export function searchSpec(query: string): string {
     return [
       `No matches for "${query}".`,
       "Available entities: event, job, company, group, person, education, technology, product, project, news",
-      "For all module functions: search('siliconharbour module')",
+      "For all tools.siliconharbour functions: search('siliconharbour tools')",
     ].join("\n");
   }
 
@@ -185,7 +156,9 @@ export function searchSpec(query: string): string {
 
   const parts = [results.slice(0, 6).join("\n\n")];
   if (hint)
-    parts.push(`\nUsage in query/execute tool:\nimport { ... } from 'siliconharbour'\n${hint}`);
+    parts.push(
+      `\nUsage in query/execute tool (call the function with one input object and return its result):\n${hint}`,
+    );
 
   return parts.join("").trim();
 }

@@ -1,162 +1,51 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { searchSpec } from "./search.js";
-import { formatSandboxError, runInSandbox } from "./sandbox.js";
-import type { HostFunctions } from "./sandbox.js";
-import {
-  buildReadFunctions,
-  buildExecuteFunctions,
-  getHostFunctionDocs,
-  getEntitySchemaDocs,
-  type HostFnCategory,
-  type HostFunctionDocsEntry,
-  type UnionSchemaDoc,
-} from "./bridge.js";
+import { type CodeMode, searchSignature } from "@opencode-ai/codemode";
+import { Effect } from "effect";
+import { createCodeMode, QUERY_LIMITS, EXECUTE_LIMITS } from "./code-mode.js";
+import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
 
-// ── Shared sandbox result handler ──────────────────────────────────────
-
-async function runSandboxTool(code: string, fns: HostFunctions, timeout: number) {
-  try {
-    const result = await runInSandbox(code, fns, timeout);
-    if (result.ok) {
-      return { content: [{ type: "text" as const, text: JSON.stringify(result.data, null, 2) }] };
-    }
-    return { content: [{ type: "text" as const, text: `Error: ${result.error}` }], isError: true };
-  } catch (err) {
-    return {
-      content: [
-        { type: "text" as const, text: `Error: ${formatSandboxError(err)}` },
-      ],
-      isError: true,
-    };
+function describeRuntime(runtime: CodeMode.Runtime, limits: typeof QUERY_LIMITS): string {
+  const catalog = runtime.catalog();
+  const entries: string[] = [];
+  let characters = 0;
+  for (const tool of [...catalog].sort((a, b) => a.signature.length - b.signature.length)) {
+    const entry = `${tool.signature}\n  ${tool.description}`;
+    if (characters + entry.length > 8_000) continue;
+    entries.push(entry);
+    characters += entry.length;
   }
-}
 
-// ── Tool descriptions ──────────────────────────────────────────────────
-
-// Render order for categories in the auto-generated tool descriptions.
-const CATEGORY_ORDER: HostFnCategory[] = [
-  "read",
-  "sources",
-  "sync",
-  "async-sync",
-  "creation",
-  "lookup",
-  "search",
-  "lifecycle",
-];
-
-const CATEGORY_LABELS: Record<HostFnCategory, string> = {
-  read: "Read",
-  sources: "Import sources",
-  sync: "Synchronous sync",
-  "async-sync": "Background sync",
-  creation: "Creation",
-  lookup: "Lookup / detail",
-  search: "External search",
-  lifecycle: "Lifecycle / review",
-};
-
-function groupByCategory(entries: HostFunctionDocsEntry[]) {
-  const byCat = new Map<HostFnCategory, HostFunctionDocsEntry[]>();
-  for (const entry of entries) {
-    const arr = byCat.get(entry.category) ?? [];
-    arr.push(entry);
-    byCat.set(entry.category, arr);
-  }
-  return byCat;
-}
-
-/**
- * Verbose renderer — emits signature + description per function. Used
- * for the `query` tool which only exposes the small read surface, so
- * the prompt cost stays bounded.
- */
-function describeEntriesVerbose(entries: HostFunctionDocsEntry[]): string {
-  const byCat = groupByCategory(entries);
-  return CATEGORY_ORDER.filter((cat) => byCat.has(cat))
-    .map((cat) => {
-      const items = byCat.get(cat) ?? [];
-      const lines = items.map((e) => `- ${e.signature}\n  ${e.description}`).join("\n");
-      return `${CATEGORY_LABELS[cat]}:\n${lines}`;
-    })
-    .join("\n\n");
-}
-
-/**
- * Terse renderer — emits category-grouped name-only lists. Used for the
- * `execute` tool which exposes 50+ functions; the agent gets a fast
- * inventory of what's available, and can call the `search` tool with a
- * function name to retrieve the full signature and description on
- * demand (searchSpec already cross-references getHostFunctionDocs()).
- */
-function describeEntriesTerse(entries: HostFunctionDocsEntry[]): string {
-  const byCat = groupByCategory(entries);
-  return CATEGORY_ORDER.filter((cat) => byCat.has(cat))
-    .map((cat) => {
-      const items = byCat.get(cat) ?? [];
-      const names = items.map((e) => e.name).join(", ");
-      return `${CATEGORY_LABELS[cat]}: ${names}`;
-    })
-    .join("\n");
-}
-
-/**
- * Render the per-variant field docs for the discriminated-union host
- * functions (createEntity, updateEntity, reviewEntity). Each variant
- * gets one line listing required and optional fields with their types.
- * Sourced from getEntitySchemaDocs() so the prompt and the search tool
- * can never disagree on what fields a variant accepts.
- */
-function describeEntitySchemas(unions: UnionSchemaDoc[]): string {
-  const renderField = (f: { name: string; type: string }) => {
-    // Quote string-literal enums for clarity; bare names for primitives.
-    return `${f.name}: ${f.type}`;
-  };
-
-  return unions
-    .map((u) => {
-      const lines = u.variants.map((v) => {
-        const req = v.required.length
-          ? `required ${v.required.map(renderField).join(", ")}`
-          : "";
-        const opt = v.optional.length
-          ? `optional ${v.optional.map(renderField).join(", ")}`
-          : "";
-        const parts = [req, opt].filter(Boolean).join("; ");
-        return `  - ${v.type}: ${parts || "no fields"}`;
-      });
-      return `${u.unionName} variants:\n${lines.join("\n")}`;
-    })
-    .join("\n\n");
-}
-
-function buildQueryDescription(): string {
-  const docs = getHostFunctionDocs();
   return [
-    "Execute JavaScript in a secure QuickJS sandbox to query SiliconHarbour community data.",
-    "Each function calls the real database on-demand — no pre-fetching.",
-    "Your code must export a default value. Use 'search' first to discover available fields.",
-    "Example: import { events } from 'siliconharbour'; export default await events({ upcoming: true, limit: 5 })",
-    "Timeout: 10 seconds.",
+    "Run a confined JavaScript orchestration script to access SiliconHarbour tools. Call tools.siliconharbour.<function>(input) and return the fields you need.",
+    "Each tool takes one input object; use {} for tools with no parameters. Inputs are validated by the host's Zod schemas.",
+    "Use await and try/catch for tool calls. Use Promise.all for independent calls. Await every started call before returning.",
+    "Imports, export default, eval, modules, process, filesystem, fetch, timers, classes, and prototype access are unavailable.",
+    "Use the MCP search tool for entity field details. Inside this program, search({ query }) discovers tool signatures; it is distinct from the MCP search tool. Search for a function name when its signature is not shown below.",
+    searchSignature,
+    "Tool results have unknown shapes: inspect and narrow them before accessing fields. Filter and aggregate results in code.",
+    `Limits: ${limits.timeoutMs / 1_000} seconds, ${limits.maxToolCalls} tool calls, ${limits.maxOutputBytes / 1_024} KiB of result and logs. Output may be truncated; narrow results or paginate.`,
+    "Returns JSON with ok, value or error, toolCalls, and optional logs, warnings, and truncated. A failed execution may have completed earlier writes; inspect toolCalls before retrying.",
     "",
-    "Imports from 'siliconharbour':",
-    "",
-    describeEntriesVerbose(docs.read),
+    `Available tools (${catalog.length} total): ${catalog.map((tool) => tool.path).join(", ")}`,
+    `Inline signatures (${entries.length} of ${catalog.length} shown; use search for the rest):`,
+    ...entries,
   ].join("\n");
 }
 
-function buildExecuteDescription(): string {
-  const docs = getHostFunctionDocs();
-  const unions = getEntitySchemaDocs();
+async function runCode(code: string, runtime: CodeMode.Runtime) {
+  const result = await Effect.runPromise(runtime.execute(code));
+  return {
+    content: [{ type: "text" as const, text: JSON.stringify(result) }],
+    isError: !result.ok,
+  };
+}
+
+function buildExecuteDescription(runtime: CodeMode.Runtime): string {
   return [
-    "Like 'query' but also exposes sync, creation, and review functions. Requires the mcp:write OAuth scope.",
-    "",
-    "Imports from 'siliconharbour' (call search('fnName') for signatures):",
-    "",
-    describeEntriesTerse(docs.execute),
-    "",
-    describeEntitySchemas(unions),
+    "Requires the mcp:write OAuth scope. Exposes read, sync, creation, and review functions.",
+    describeRuntime(runtime, EXECUTE_LIMITS),
     "",
     "JOB REVIEW CRITERIA:",
     "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",
@@ -165,19 +54,18 @@ function buildExecuteDescription(): string {
     "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech.",
     "When uncertain, lean toward 'approve-non-technical' over 'hide'.",
     "",
-    "All functions hit the real DB on-demand. Timeout: 60s. For long imports prefer asyncSyncAllSources() and poll getAsyncSync(runId).",
+    "For long imports prefer tools.siliconharbour.asyncSyncAllSources({}) and poll tools.siliconharbour.getAsyncSync({ runId }).",
   ].join("\n");
 }
-
-// ── Server factory ─────────────────────────────────────────────────────
 
 export async function createMcpServer(authenticated = false): Promise<McpServer> {
   const server = new McpServer({
     name: "siliconharbour",
-    version: "1.0.0",
+    version: "2.0.0",
   });
 
-  // ── Tool 1: search ──────────────────────────────────────────────────
+  const queryRuntime = createCodeMode(buildReadFunctions(), QUERY_LIMITS);
+
   server.registerTool(
     "search",
     {
@@ -185,7 +73,7 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
       description:
         "Search the SiliconHarbour API schema to discover available data types and field shapes. " +
         "Call this first to learn what entities exist and what fields they have, then use 'query' to fetch data. " +
-        "Example queries: 'event', 'job fields', 'company', 'what entities are available', 'siliconharbour module'.",
+        "Example queries: 'event', 'job fields', 'company', 'what entities are available', 'siliconharbour tools'.",
       inputSchema: {
         query: z.string().describe("What to search for, e.g. 'event', 'job', 'company schema'"),
       },
@@ -195,41 +83,40 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
     }),
   );
 
-  // ── Tool 2: query ───────────────────────────────────────────────────
   server.registerTool(
     "query",
     {
       title: "Query SiliconHarbour data",
-      description: buildQueryDescription(),
+      description: describeRuntime(queryRuntime, QUERY_LIMITS),
       inputSchema: {
         code: z
           .string()
           .describe(
-            "JavaScript module with 'export default' returning the data you want. " +
-              "Can import functions from 'siliconharbour' — each call hits the real DB.",
+            "JavaScript program calling tools.siliconharbour functions with one input object and returning the data you want. Example: return await tools.siliconharbour.events({ upcoming: true, limit: 5 });",
           ),
       },
     },
-    async ({ code }) => runSandboxTool(code, buildReadFunctions(), 10_000),
+    async ({ code }) => runCode(code, queryRuntime),
   );
 
-  // ── Tool 3: execute (authenticated sessions only) ───────────────────
-  if (authenticated)
+  if (authenticated) {
+    const executeRuntime = createCodeMode(buildExecuteFunctions(), EXECUTE_LIMITS);
     server.registerTool(
       "execute",
       {
         title: "Execute authenticated SiliconHarbour actions",
-        description: buildExecuteDescription(),
+        description: buildExecuteDescription(executeRuntime),
         inputSchema: {
           code: z
             .string()
             .describe(
-              "JavaScript module with 'export default'. Can import any siliconharbour function.",
+              "JavaScript program calling tools.siliconharbour functions with one input object. Use return for the result; await every started call.",
             ),
         },
       },
-      async ({ code }) => runSandboxTool(code, buildExecuteFunctions(), 60_000),
+      async ({ code }) => runCode(code, executeRuntime),
     );
+  }
 
   return server;
 }

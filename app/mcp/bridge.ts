@@ -1,10 +1,4 @@
-/**
- * Host bridge: real DB/sync functions exposed directly into the QuickJS sandbox.
- * Each function is called on demand by user code. Nothing is prefetched.
- */
-
 import { z } from "zod";
-import type { HostFunctions } from "./sandbox.js";
 import { getAsyncSync, listAsyncSyncs, startAsyncSync } from "./async-syncs.js";
 import {
   getUpcomingEvents,
@@ -134,17 +128,6 @@ import {
 } from "~/db/schema";
 import { eq, and, isNull, count } from "drizzle-orm";
 
-// ── Host function documentation helper ─────────────────────────────────
-// Wraps every host function exposed to the QuickJS sandbox with metadata
-// stashed on the function itself. Consumed by:
-//   - /api docs page (auto-generated tool listing per MCP tool)
-//   - searchSpec()  ("siliconharbour module: ..." hints)
-//   - server.ts     (renders the `execute` tool description prompt)
-//
-// Co-locating with the implementation means a new bridge function CANNOT
-// drift. Its docs travel with it, and getHostFunctionDocs() reads them
-// straight off the live function references.
-
 export type HostFnCategory =
   | "read"
   | "sources"
@@ -161,72 +144,38 @@ export interface HostFnDoc {
   category: HostFnCategory;
 }
 
-type HostFn = (...args: unknown[]) => Promise<unknown>;
-type DocumentedHostFn = HostFn & { __doc: HostFnDoc };
+type HostFn = (input: unknown) => Promise<unknown>;
+export type HostFunction = HostFn & { doc: HostFnDoc; inputSchema: z.ZodType };
+export type HostFunctions = Record<string, HostFunction>;
 
-/**
- * Tag a host function with documentation. Returns the original function
- * unchanged (apart from a non-enumerable __doc property) so existing
- * call sites continue to work.
- */
-function host<F extends HostFn>(
+function host(
   signature: string,
   description: string,
   category: HostFnCategory,
-  fn: F,
-): F {
-  Object.defineProperty(fn, "__doc", {
-    value: { signature, description, category } satisfies HostFnDoc,
-    enumerable: false,
-    writable: false,
+  fn: HostFn,
+  inputSchema: z.ZodType,
+): HostFunction {
+  return Object.assign(fn, {
+    doc: { signature, description, category },
+    inputSchema,
   });
-  return fn;
-}
-
-/** Read the documentation off a host function, or null if untagged. */
-export function getHostFnDoc(fn: unknown): HostFnDoc | null {
-  if (typeof fn !== "function") return null;
-  const doc = (fn as DocumentedHostFn).__doc;
-  return doc ?? null;
 }
 
 export interface HostFunctionDocsEntry extends HostFnDoc {
   name: string;
-  status: "documented" | "undocumented";
 }
 
 export interface HostFunctionDocs {
-  /** Functions available via the public `query` MCP tool. */
   read: HostFunctionDocsEntry[];
-  /** Functions available via the authenticated `execute` MCP tool (superset of read). */
   execute: HostFunctionDocsEntry[];
 }
 
 function entriesFor(fns: HostFunctions): HostFunctionDocsEntry[] {
   return Object.entries(fns)
-    .map(([name, fn]) => {
-      const doc = getHostFnDoc(fn);
-      if (doc) {
-        return { name, status: "documented" as const, ...doc };
-      }
-      return {
-        name,
-        status: "undocumented" as const,
-        signature: `${name}(...)`,
-        description:
-          "(undocumented; wrap this function with host('signature', 'description', category, fn) in app/mcp/bridge.ts)",
-        category: "read" as HostFnCategory,
-      };
-    })
+    .map(([name, fn]) => ({ name, ...fn.doc }))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/**
- * Walks the live host-function bindings and pulls __doc off each entry.
- * Used by the /api docs page, the searchSpec module hints, and server.ts
- * to build the `execute` tool description prompt, so there is exactly
- * one source of truth (the call site in this file).
- */
 export function getHostFunctionDocs(): HostFunctionDocs {
   return {
     read: entriesFor(buildReadFunctions()),
@@ -255,6 +204,9 @@ const JobQuerySchema = z.object({
   location: z.string().optional(),
   lastSeenAfter: z.coerce.date().optional(),
 });
+
+const AsyncSyncLookupSchema = z.object({ runId: z.string().min(1) });
+const TechNLJobLookupSchema = z.object({ link: z.string().min(1) });
 
 // ── Union CRUD for entities ────────────────────────────────────────────
 //
@@ -755,15 +707,6 @@ const SearchJobsSchema = z.object({
   hoursOld: z.number().optional(),
 });
 
-// ── Entity schema introspection ───────────────────────────────────────
-//
-// Walks the discriminated-union schemas (CreateEntitySchema,
-// UpdateEntitySchema, ReviewEntitySchema) and yields per-variant field
-// docs. Used by server.ts to pre-render type docs into the execute
-// prompt, and by search.ts to answer `search('createEntity person')`.
-// Single source of truth: the zod schemas themselves. Adding a new
-// variant or field updates both surfaces automatically.
-
 export interface EntityFieldDoc {
   name: string;
   type: string;
@@ -975,6 +918,7 @@ export function buildReadFunctions(): HostFunctions {
         const { items } = await getPaginatedEvents(limit, offset);
         return toPlain(items);
       },
+      PaginationSchema,
     ),
 
     jobs: host(
@@ -995,6 +939,7 @@ export function buildReadFunctions(): HostFunctions {
         });
         return toPlain(result.items);
       },
+      JobQuerySchema,
     ),
 
     companies: host(
@@ -1006,6 +951,7 @@ export function buildReadFunctions(): HostFunctions {
         const result = await getPaginatedCompanies(o.limit ?? 20, o.offset ?? 0, o.query);
         return toPlain(result.items);
       },
+      PaginationSchema,
     ),
 
     groups: host(
@@ -1017,6 +963,7 @@ export function buildReadFunctions(): HostFunctions {
         const result = await getPaginatedGroups(o.limit ?? 20, o.offset ?? 0);
         return toPlain(result.items);
       },
+      PaginationSchema,
     ),
 
     people: host(
@@ -1028,6 +975,7 @@ export function buildReadFunctions(): HostFunctions {
         const result = await getPaginatedPeople(o.limit ?? 20, o.offset ?? 0, o.query);
         return toPlain(result.items);
       },
+      PaginationSchema,
     ),
 
     technologies: host(
@@ -1040,6 +988,7 @@ export function buildReadFunctions(): HostFunctions {
         const offset = o.offset ?? 0;
         return toPlain(all.slice(offset, offset + (o.limit ?? 20)));
       },
+      PaginationSchema,
     ),
 
     education: host(
@@ -1051,6 +1000,7 @@ export function buildReadFunctions(): HostFunctions {
         const result = await getPaginatedEducation(o.limit ?? 20, o.offset ?? 0);
         return toPlain(result.items);
       },
+      PaginationSchema,
     ),
 
     news: host(
@@ -1062,6 +1012,7 @@ export function buildReadFunctions(): HostFunctions {
         const result = await getPaginatedNews(o.limit ?? 20, o.offset ?? 0, o.query);
         return toPlain(result.items);
       },
+      PaginationSchema,
     ),
   };
 }
@@ -1123,7 +1074,7 @@ export function buildExecuteFunctions(): HostFunctions {
     // ── Import-source listings ───────────────────────────────────────
 
     eventImportSources: host(
-      "eventImportSources()",
+      "eventImportSources({})",
       "List all event import sources with id, sourceType, fetchStatus, lastFetchedAt, and pendingCount.",
       "sources",
       async () => {
@@ -1140,19 +1091,21 @@ export function buildExecuteFunctions(): HostFunctions {
           })),
         );
       },
+      z.object({}),
     ),
 
     jobImportSources: host(
-      "jobImportSources()",
+      "jobImportSources({})",
       "List job import sources with company identity, configuration, fetch health, and counts for every job lifecycle status.",
       "sources",
       async () => {
         return toPlain(await listJobImportSourcesForMcp());
       },
+      z.object({}),
     ),
 
     newsImportSources: host(
-      "newsImportSources()",
+      "newsImportSources({})",
       "List all news import sources (RSS feeds and custom) with enabled flag, lastSyncStatus, and pendingCount.",
       "sources",
       async () => {
@@ -1182,13 +1135,15 @@ export function buildExecuteFunctions(): HostFunctions {
         );
         return toPlain(enriched);
       },
+      z.object({}),
     ),
 
     eventTags: host(
-      "eventTags()",
+      "eventTags({})",
       "List configured event tags, their colour token, and the number of assigned events.",
       "lookup",
       async () => toPlain(await getEventTagsWithUsage()),
+      z.object({}),
     ),
 
     saveEventTag: host(
@@ -1204,6 +1159,7 @@ export function buildExecuteFunctions(): HostFunctions {
         const tag = await createEventTagRecord(o.name, o.color);
         return toPlain({ saved: true, tag });
       },
+      EventTagSaveSchema,
     ),
 
     deleteEventTag: host(
@@ -1215,15 +1171,17 @@ export function buildExecuteFunctions(): HostFunctions {
         await deleteEventTagRecord(o.id);
         return { deleted: true, id: o.id };
       },
+      EventTagDeleteSchema,
     ),
 
     listImporterTypes: host(
-      "listImporterTypes()",
+      "listImporterTypes({})",
       "Return the name, approach, reliability, and quirks for every job importer type, including greenhouse, ashby, workday, bamboohr, lever, and custom.",
       "sources",
       async () => {
         return getAllImporterMeta();
       },
+      z.object({}),
     ),
 
     // ── Sync ─────────────────────────────────────────────────────────
@@ -1243,6 +1201,7 @@ export function buildExecuteFunctions(): HostFunctions {
             return toPlain(await syncNewsSourceRecord(o.sourceId));
         }
       },
+      SyncSourceSchema,
     ),
 
     syncAllSources: host(
@@ -1282,11 +1241,12 @@ export function buildExecuteFunctions(): HostFunctions {
         }
         return toPlain(results);
       },
+      SyncAllSchema,
     ),
 
     asyncSyncAllSources: host(
       "asyncSyncAllSources({ type? }) where type is 'event'|'job'|'news' (omit to sync all)",
-      "Start a background sync of all sources of the given type. If type is omitted, queues every event, job, and news source in one run. Returns a runId to poll with getAsyncSync(runId).",
+      "Start a background sync of all sources of the given type. If type is omitted, queues every event, job, and news source in one run. Returns a runId to poll with getAsyncSync({ runId }).",
       "async-sync",
       async (opts: unknown) => {
         const o = SyncAllSchema.parse(opts ?? {});
@@ -1329,25 +1289,28 @@ export function buildExecuteFunctions(): HostFunctions {
 
         return toPlain(startAsyncSync(steps));
       },
+      SyncAllSchema,
     ),
 
     getAsyncSync: host(
-      "getAsyncSync(runId)",
+      "getAsyncSync({ runId })",
       "Get the live status of a background sync run: { status, completed, failed, current, steps[] }.",
       "async-sync",
-      async (runId: unknown) => {
-        if (!runId || typeof runId !== "string") throw new Error("runId is required (string)");
+      async (opts: unknown) => {
+        const { runId } = AsyncSyncLookupSchema.parse(opts);
         return toPlain(getAsyncSync(runId) ?? { found: false, runId });
       },
+      AsyncSyncLookupSchema,
     ),
 
     listAsyncSyncs: host(
-      "listAsyncSyncs()",
+      "listAsyncSyncs({})",
       "List recent background sync runs (most recent first, max 20 stored).",
       "async-sync",
       async () => {
         return toPlain(listAsyncSyncs());
       },
+      z.object({}),
     ),
 
     // ── Entity CRUD ──────────────────────────────────────────────────
@@ -1702,6 +1665,7 @@ export function buildExecuteFunctions(): HostFunctions {
           }
         }
       },
+      CreateEntitySchema,
     ),
 
     updateEntity: host(
@@ -2033,6 +1997,7 @@ export function buildExecuteFunctions(): HostFunctions {
           }
         }
       },
+      UpdateEntitySchema,
     ),
 
     deleteEntity: host(
@@ -2074,6 +2039,7 @@ export function buildExecuteFunctions(): HostFunctions {
         })();
         return { deleted: ok, type: o.type, id: o.id };
       },
+      DeleteEntitySchema,
     ),
 
     getEntity: host(
@@ -2237,6 +2203,7 @@ export function buildExecuteFunctions(): HostFunctions {
         }
         return toPlain({ found: true, type: o.type, entity });
       },
+      GetEntitySchema,
     ),
 
     listEntities: host(
@@ -2354,7 +2321,9 @@ export function buildExecuteFunctions(): HostFunctions {
           case "job":
             return (read.jobs as HostFn)({});
           case "event":
-            return toPlain((await getPaginatedEvents(200, 0, undefined, "all", undefined, "all")).items);
+            return toPlain(
+              (await getPaginatedEvents(200, 0, undefined, "all", undefined, "all")).items,
+            );
           case "news":
             return (read.news as HostFn)({});
           case "company":
@@ -2401,6 +2370,7 @@ export function buildExecuteFunctions(): HostFunctions {
           }
         }
       },
+      ListEntitiesSchema,
     ),
 
     // ── Lifecycle / review ───────────────────────────────────────────
@@ -2476,6 +2446,7 @@ export function buildExecuteFunctions(): HostFunctions {
             return { type: "news", id: o.id, action: o.action, success: true };
         }
       },
+      ReviewEntitySchema,
     ),
 
     // ── External search ──────────────────────────────────────────────
@@ -2488,6 +2459,7 @@ export function buildExecuteFunctions(): HostFunctions {
         const o = SearchJobsSchema.parse(opts ?? {});
         return searchIndeedWithMatches(o);
       },
+      SearchJobsSchema,
     ),
 
     searchLinkedInJobs: host(
@@ -2498,10 +2470,11 @@ export function buildExecuteFunctions(): HostFunctions {
         const o = SearchJobsSchema.parse(opts ?? {});
         return searchLinkedInWithMatches(o);
       },
+      SearchJobsSchema,
     ),
 
     listTechNLJobs: host(
-      "listTechNLJobs()",
+      "listTechNLJobs({})",
       "Live technl.ca job board with company-match info so you can spot which postings we already have via createEntity({ type:'job' }) or an importer.",
       "search",
       async () => {
@@ -2523,15 +2496,15 @@ export function buildExecuteFunctions(): HostFunctions {
           })),
         );
       },
+      z.object({}),
     ),
 
     getTechNLJob: host(
-      "getTechNLJob(link)",
+      "getTechNLJob({ link })",
       "Full HTML/text description for one TechNL posting by its link.",
       "search",
-      async (link: unknown) => {
-        const target = typeof link === "string" ? link : String(link ?? "");
-        if (!target) return { found: false, message: "link is required" } as const;
+      async (opts: unknown) => {
+        const { link: target } = TechNLJobLookupSchema.parse(opts);
         const result = await fetchTechNLJobsWithMatches();
         const job = result.jobs.find((j) => j.link === target);
         if (!job) {
@@ -2542,6 +2515,7 @@ export function buildExecuteFunctions(): HostFunctions {
         }
         return toPlain({ found: true, job });
       },
+      TechNLJobLookupSchema,
     ),
   };
 }

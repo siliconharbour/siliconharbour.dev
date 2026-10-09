@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { formatSandboxError } from "./sandbox.js";
+import { formatError } from "./errors.js";
 
 type AsyncSyncStatus = "running" | "completed" | "failed";
 
@@ -76,7 +76,7 @@ async function runTasks(run: AsyncSync, tasks: AsyncSyncTask[]) {
       run.completed += 1;
     } catch (error) {
       step.status = "failed";
-      step.error = formatSandboxError(error);
+      step.error = formatError(error);
       run.failed += 1;
     } finally {
       step.finishedAt = nowIso();
@@ -118,7 +118,7 @@ export function startAsyncSync(tasks: AsyncSyncTask[]) {
       startedAt: run.startedAt,
       finishedAt: run.finishedAt,
       durationMs: run.durationMs,
-      error: formatSandboxError(error),
+      error: formatError(error),
     });
     trimStoredRuns();
   });

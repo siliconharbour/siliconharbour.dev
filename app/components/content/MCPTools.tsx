@@ -1,20 +1,11 @@
 import { useRouteLoaderData } from "react-router";
-import type {
-  HostFnCategory,
-  HostFunctionDocs,
-  HostFunctionDocsEntry,
-} from "~/mcp/bridge";
+import type { HostFnCategory, HostFunctionDocs, HostFunctionDocsEntry } from "~/mcp/bridge";
 
 interface ToolMeta {
   name: string;
   title: string;
   description: string;
   auth: "Public" | "Authenticated";
-  /**
-   * Which set of host functions this tool exposes. `search` has no
-   * sandbox bindings (it queries the OpenAPI schema), so it renders
-   * a hand-written summary instead of a function table.
-   */
   bindings: "none" | "read" | "execute";
 }
 
@@ -32,8 +23,8 @@ const TOOLS: ToolMeta[] = [
     name: "query",
     title: "query",
     description:
-      "Execute JavaScript in a secure QuickJS sandbox to read SiliconHarbour data. Imports below " +
-      "are available from the 'siliconharbour' module. Each call hits the real database on-demand. " +
+      "Execute restricted JavaScript in Code Mode to read SiliconHarbour data. Functions below " +
+      "are available through tools.siliconharbour. Each call hits the real database on-demand. " +
       "Timeout: 10 seconds.",
     auth: "Public",
     bindings: "read",
@@ -94,12 +85,7 @@ function FunctionTable({ entries }: { entries: HostFunctionDocsEntry[] }) {
             {byCat.get(cat)?.map((entry) => (
               <div key={entry.name} className="px-3 py-2 text-sm flex flex-col gap-1">
                 <div className="flex items-baseline gap-2 flex-wrap">
-                  <code className="text-harbour-700 text-xs">{entry.signature}</code>
-                  {entry.status === "undocumented" && (
-                    <span className="text-xs px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200">
-                      undocumented
-                    </span>
-                  )}
+                  <code className="text-harbour-700 text-xs">{`tools.siliconharbour.${entry.signature}`}</code>
                 </div>
                 <div className="text-harbour-500 text-xs">{entry.description}</div>
               </div>
@@ -115,11 +101,6 @@ interface LoaderData {
   mcpDocs?: HostFunctionDocs;
 }
 
-/**
- * Auto-generated MCP tool listing for the /api docs page.
- * Pulls metadata off the host() wrappers in app/mcp/bridge.ts via the
- * api-docs.tsx loader, so the listing can never drift from the bridge.
- */
 export function MCPTools() {
   const data = useRouteLoaderData<LoaderData>("routes/api-docs");
   const docs = data?.mcpDocs;
@@ -127,7 +108,12 @@ export function MCPTools() {
   return (
     <div className="not-prose flex flex-col gap-3">
       {TOOLS.map((tool) => {
-        const entries = tool.bindings === "execute" ? docs?.execute : tool.bindings === "read" ? docs?.read : undefined;
+        const entries =
+          tool.bindings === "execute"
+            ? docs?.execute
+            : tool.bindings === "read"
+              ? docs?.read
+              : undefined;
         return (
           <details key={tool.name} className="border border-harbour-200 bg-white">
             <summary className="px-4 py-3 text-sm cursor-pointer hover:bg-harbour-50 flex items-center justify-between gap-3">
