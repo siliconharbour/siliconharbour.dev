@@ -1,6 +1,6 @@
 # Theme studio
 
-Open the faint 🎨 button at the bottom left of any page, or add `?studio=1` to its URL. Drag the panel by its title; arrow keys move the focused title (Shift moves farther). The panel stays open across React Router navigation. Escape closes it without discarding the preview.
+Open the faint 🎨 button at the bottom left of any page, or add `?studio=1` to its URL. Drag the panel by its title; arrow keys move the focused title (Shift moves farther). On `/design`, the site header stays visible above a split workspace: examples scroll on the left and the studio scrolls on the right. On small screens, the controls stack above the examples. The studio is always shown there; navigating elsewhere restores the floating panel. The panel stays open across React Router navigation. Escape closes it without discarding the preview.
 
 Colours use OKLCH. The main colour drives the harbour ramp and its semantic roles (body 600, headings 700, muted 500, borders 200); white surfaces and status colours remain neutral. Edit individual ramp stops to set their lightness, chroma and hue offsets from the main colour. Stops follow later changes to the main colour. Individual roles can be overridden; clearing an override relinks it. Colours outside sRGB are indicated and rendered using the browser’s gamut mapping.
 

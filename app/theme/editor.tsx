@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useMatch } from "react-router";
 import { useTheme } from "./provider";
 import { DEFAULT_THEME, themeUrl, themeVariables, type Theme } from "./tokens";
 import "./editor.css";
@@ -15,7 +15,8 @@ const sliders = [
   { key: "panelRadius", label: "Card corners", min: 0, max: 32, step: 1, unit: "px" },
 ] as const;
 const editorTheme = themeVariables(DEFAULT_THEME) as CSSProperties;
-export function ThemeEditor() {
+export function ThemeEditor({ docked = false }: { docked?: boolean }) {
+  const onDesign = !!useMatch("/design");
   const { theme, setTheme, open, setOpen, error, fontError } = useTheme();
   const location = useLocation();
   const launcher = useRef<HTMLButtonElement>(null);
@@ -32,12 +33,15 @@ export function ThemeEditor() {
     });
   }
   useEffect(() => {
-    if (!open) return;
+    if (!open || docked || onDesign) return;
     const handle = () => move(position.x, position.y);
     handle();
     window.addEventListener("resize", handle);
     return () => window.removeEventListener("resize", handle);
-  }, [open, position.x, position.y]);
+  }, [open, docked, onDesign, position.x, position.y]);
+  useEffect(() => {
+    if (docked) setOpen(true);
+  }, [docked, setOpen]);
   useEffect(() => {
     setShareLink("");
     setStatus("");
@@ -62,79 +66,91 @@ export function ThemeEditor() {
     }
   }
   const designParams = new URL(themeUrl(new URL("https://example.invalid/design"), theme)).search;
+  if (onDesign && !docked) return null;
   return (
-    <div className="theme-editor" style={editorTheme}>
-      <button
-        ref={launcher}
-        type="button"
-        className="theme-launcher"
-        aria-label="Open design studio"
-        aria-expanded={open}
-        aria-controls="theme-studio"
-        onClick={() => setOpen(!open)}
-        title="Design studio"
-      >
-        🎨
-      </button>
-      {open && (
+    <div className={`theme-editor${docked ? " theme-editor--docked" : ""}`} style={editorTheme}>
+      {!docked && (
+        <button
+          ref={launcher}
+          type="button"
+          className="theme-launcher"
+          aria-label="Open design studio"
+          aria-expanded={open}
+          aria-controls="theme-studio"
+          onClick={() => setOpen(!open)}
+          title="Design studio"
+        >
+          🎨
+        </button>
+      )}
+      {(docked || open) && (
         <aside
           ref={panel}
           id="theme-studio"
           className="theme-panel"
           aria-label="Design studio"
-          style={{ left: position.x, top: position.y }}
+          style={docked ? undefined : { left: position.x, top: position.y }}
           onKeyDown={(event) => {
-            if (event.key === "Escape") {
+            if (!docked && event.key === "Escape") {
               event.stopPropagation();
               close();
             }
           }}
         >
           <div className="theme-panel-header">
-            <div
-              className="theme-panel-handle"
-              tabIndex={0}
-              role="button"
-              aria-label="Move design studio. Use arrow keys to move."
-              onPointerDown={startDrag}
-              onPointerMove={(event) => {
-                if (drag.current)
-                  move(
-                    drag.current.x + event.clientX - drag.current.startX,
-                    drag.current.y + event.clientY - drag.current.startY,
-                  );
-              }}
-              onPointerUp={() => {
-                drag.current = null;
-              }}
-              onPointerCancel={() => {
-                drag.current = null;
-              }}
-              onKeyDown={(event) => {
-                const step = event.shiftKey ? 40 : 10;
-                const directions: Record<string, [number, number]> = {
-                  ArrowLeft: [-step, 0],
-                  ArrowRight: [step, 0],
-                  ArrowUp: [0, -step],
-                  ArrowDown: [0, step],
-                };
-                if (directions[event.key]) {
-                  event.preventDefault();
-                  move(
-                    position.x + directions[event.key][0],
-                    position.y + directions[event.key][1],
-                  );
-                }
-              }}
-            >
+            {docked ? (
               <div>
                 <strong>Design studio</strong>
-                <span>Drag to move · preview only</span>
+                <span>Live controls · preview on the left</span>
               </div>
-            </div>
-            <button type="button" onClick={close} aria-label="Close design studio">
-              ×
-            </button>
+            ) : (
+              <>
+                <div
+                  className="theme-panel-handle"
+                  tabIndex={0}
+                  role="button"
+                  aria-label="Move design studio. Use arrow keys to move."
+                  onPointerDown={startDrag}
+                  onPointerMove={(event) => {
+                    if (drag.current)
+                      move(
+                        drag.current.x + event.clientX - drag.current.startX,
+                        drag.current.y + event.clientY - drag.current.startY,
+                      );
+                  }}
+                  onPointerUp={() => {
+                    drag.current = null;
+                  }}
+                  onPointerCancel={() => {
+                    drag.current = null;
+                  }}
+                  onKeyDown={(event) => {
+                    const step = event.shiftKey ? 40 : 10;
+                    const directions: Record<string, [number, number]> = {
+                      ArrowLeft: [-step, 0],
+                      ArrowRight: [step, 0],
+                      ArrowUp: [0, -step],
+                      ArrowDown: [0, step],
+                    };
+                    if (directions[event.key]) {
+                      event.preventDefault();
+                      move(
+                        position.x + directions[event.key][0],
+                        position.y + directions[event.key][1],
+                      );
+                    }
+                  }}
+                >
+                  <div>
+                    <strong>Design studio</strong>
+                    <span>Drag to move · preview only</span>
+                  </div>
+                </div>
+                <button type="button" onClick={close} aria-label="Close design studio">
+                  ×
+                </button>
+              </>
+            )}
           </div>
           <div className="theme-panel-body">
             {error && <p className="theme-notice">{error}</p>}

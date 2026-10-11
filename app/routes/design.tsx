@@ -36,8 +36,8 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-gap-4">
           <h2 className="text-lg font-semibold text-heading">Live theme tokens</h2>
           <p className="text-muted">
-            Open the 🎨 button in the bottom-left corner to experiment. Your preview stays active
-            as you browse; copy a share link to show it to someone else.
+            Use the studio beside the examples to experiment. Your preview stays active as you
+            browse; copy a share link to show it to someone else.
           </p>
           <div className="grid sm:grid-cols-3 gap-gap-4">
             <div className="p-pad-4 border border-line bg-surface rounded-panel">

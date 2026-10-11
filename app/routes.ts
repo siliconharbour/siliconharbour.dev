@@ -91,7 +91,7 @@ export default [
   route("api/entities/search", "routes/api/entities.search.tsx"),
 
   // Design system reference
-  route("design", "routes/design.tsx"),
+  layout("routes/design-layout.tsx", [route("design", "routes/design.tsx")]),
 
   // Home page has its own hero header design
   index("routes/home.tsx"),
