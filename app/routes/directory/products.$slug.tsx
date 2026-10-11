@@ -41,7 +41,7 @@ const typeColors: Record<ProductType, string> = {
   mobile: "bg-purple-100 text-purple-700",
   physical: "bg-amber-100 text-amber-700",
   service: "bg-green-100 text-green-700",
-  other: "bg-harbour-100 text-harbour-500",
+  other: "bg-tint text-muted",
 };
 
 export default function ProductDetail() {
@@ -49,8 +49,8 @@ export default function ProductDetail() {
     useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
-      <article className="flex flex-col gap-6">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
+      <article className="flex flex-col gap-gap-6">
         {product.coverImage && (
           <div className="aspect-video relative overflow-hidden">
             <img
@@ -61,7 +61,7 @@ export default function ProductDetail() {
           </div>
         )}
 
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-gap-4">
           {product.logo && (
             <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
@@ -71,13 +71,13 @@ export default function ProductDetail() {
               />
             </div>
           )}
-          <div className="flex flex-col gap-1 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold text-harbour-700">{product.name}</h1>
+          <div className="flex flex-col gap-gap-1 flex-1">
+            <div className="flex items-center gap-gap-2">
+              <h1 className="text-3xl font-bold text-heading">{product.name}</h1>
               {isAdmin && (
                 <Link
                   to={`/manage/products/${product.id}`}
-                  className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                  className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -91,14 +91,14 @@ export default function ProductDetail() {
                 </Link>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-xs px-1.5 py-0.5 ${typeColors[product.type]}`}>
+            <div className="flex items-center gap-gap-2 flex-wrap">
+              <span className={`text-xs px-pad-1-5 py-pad-0-5 ${typeColors[product.type]}`}>
                 {typeLabels[product.type]}
               </span>
               {product.company && (
                 <Link
                   to={`/directory/companies/${product.company.slug}`}
-                  className="text-sm text-harbour-500 hover:text-harbour-700"
+                  className="text-sm text-muted hover:text-heading"
                 >
                   by {product.company.name}
                 </Link>
@@ -113,12 +113,12 @@ export default function ProductDetail() {
 
         {/* Links */}
         {product.website && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-gap-2">
             <a
               href={product.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors"
+              className="inline-flex items-center gap-gap-2 px-pad-3 py-pad-1-5 text-sm bg-tint text-heading hover:bg-harbour-200 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

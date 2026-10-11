@@ -102,16 +102,16 @@ export default function ManageJobsIndex() {
     <ManagePage
       title="Jobs"
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-gap-2">
           <Link
             to="/manage/import/jobs"
-            className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-tint hover:bg-harbour-200 text-heading font-medium transition-colors"
           >
             Import Sources
           </Link>
           <Link
             to="/manage/jobs/new"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
           >
             New Manual Job
           </Link>
@@ -128,39 +128,39 @@ export default function ManageJobsIndex() {
         <ManageList>
           {jobs.map((job) => (
             <ManageListItem key={job.id}>
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-medium truncate text-harbour-700">{job.title}</h2>
+              <div className="flex-1 min-w-0 flex flex-col gap-gap-0-5">
+                <div className="flex items-center gap-gap-2">
+                  <h2 className="font-medium truncate text-heading">{job.title}</h2>
                   {job.sourceType === "imported" && (
-                    <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700">
+                    <span className="text-xs px-pad-1-5 py-pad-0-5 bg-blue-100 text-blue-700">
                       Imported
                     </span>
                   )}
                   {job.sourceType === "manual" && (
-                    <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">
+                    <span className="text-xs px-pad-1-5 py-pad-0-5 bg-green-100 text-green-700">
                       Manual
                     </span>
                   )}
                   {job.workplaceType === "remote" && (
-                    <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700">
+                    <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-heading">
                       Remote
                     </span>
                   )}
                   {job.status !== "active" && (
                     <span
-                      className={`text-xs px-1.5 py-0.5 ${
+                      className={`text-xs px-pad-1-5 py-pad-0-5 ${
                         job.status === "hidden"
                           ? "bg-amber-100 text-amber-700"
                           : job.status === "removed"
                             ? "bg-red-100 text-red-700"
-                            : "bg-harbour-100 text-harbour-600"
+                            : "bg-tint text-body"
                       }`}
                     >
                       {job.status}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-harbour-400">
+                <p className="text-sm text-subtle">
                   {job.companyName && `${job.companyName} - `}
                   {job.location && `${job.location} - `}
                   {job.postedAt && `Posted ${format(job.postedAt, "MMM d, yyyy")}`}
@@ -172,13 +172,13 @@ export default function ManageJobsIndex() {
                   <>
                     <Link
                       to={`/manage/jobs/${job.id}`}
-                      className="px-3 py-1.5 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
+                      className="px-pad-3 py-pad-1-5 text-sm font-medium text-body hover:bg-soft transition-colors"
                     >
                       Edit
                     </Link>
                     <Link
                       to={`/manage/jobs/${job.id}/delete`}
-                      className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      className="px-pad-3 py-pad-1-5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                     >
                       Delete
                     </Link>
@@ -190,7 +190,7 @@ export default function ManageJobsIndex() {
                         href={job.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-3 py-1.5 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
+                        className="px-pad-3 py-pad-1-5 text-sm font-medium text-body hover:bg-soft transition-colors"
                       >
                         View
                       </a>
@@ -198,7 +198,7 @@ export default function ManageJobsIndex() {
                     {job.sourceId && (
                       <Link
                         to={`/manage/import/jobs/${job.sourceId}`}
-                        className="px-3 py-1.5 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
+                        className="px-pad-3 py-pad-1-5 text-sm font-medium text-body hover:bg-soft transition-colors"
                       >
                         Source
                       </Link>
@@ -215,7 +215,7 @@ export default function ManageJobsIndex() {
                       <input type="hidden" name="jobId" value={job.id} />
                       <button
                         type="submit"
-                        className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        className="px-pad-3 py-pad-1-5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                       >
                         Hard Delete
                       </button>

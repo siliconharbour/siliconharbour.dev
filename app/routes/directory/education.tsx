@@ -52,12 +52,12 @@ export default function DirectoryEducation() {
       hasItems={items.length > 0}
     >
       <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gap-4">
           {items.map((item) => (
             <a
               key={item.id}
               href={`/directory/education/${item.slug}`}
-              className="group flex flex-col gap-3 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+              className="group flex flex-col gap-gap-3 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
             >
               {item.logo ? (
                 <div className="w-16 h-16 relative overflow-hidden">
@@ -68,15 +68,15 @@ export default function DirectoryEducation() {
                   />
                 </div>
               ) : (
-                <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center">
-                  <span className="text-2xl text-harbour-400">{item.name.charAt(0)}</span>
+                <div className="w-16 h-16 bg-tint flex items-center justify-center">
+                  <span className="text-2xl text-subtle">{item.name.charAt(0)}</span>
                 </div>
               )}
-              <div className="flex flex-col gap-1">
-                <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <h2 className="link-title font-semibold text-heading group-hover:text-body">
                   {item.name}
                 </h2>
-                <p className="text-sm text-harbour-400">{typeLabels[item.type] ?? item.type}</p>
+                <p className="text-sm text-subtle">{typeLabels[item.type] ?? item.type}</p>
               </div>
             </a>
           ))}

@@ -23,7 +23,7 @@ export default function ConductPage() {
   const { content } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-3xl mx-auto p-4 py-8">
+    <div className="max-w-3xl mx-auto p-pad-4 py-pad-8">
       <article className="prose">
         <Markdown>{content}</Markdown>
       </article>

@@ -121,7 +121,7 @@ function ReviewButton({
       <button
         type="submit"
         disabled={isSubmitting}
-        className={`border px-2 py-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${tones[tone]}`}
+        className={`border px-pad-2 py-pad-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${tones[tone]}`}
       >
         {isSubmitting ? "Working…" : children}
       </button>
@@ -141,12 +141,12 @@ function QueueSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex min-h-0 flex-col border border-harbour-200 bg-white">
-      <header className="flex items-center justify-between border-b border-harbour-200 bg-harbour-50 px-3 py-2">
-        <h2 className="font-semibold text-harbour-700">
-          {title} <span className="ml-1 text-xs font-normal text-harbour-500">{count}</span>
+    <section className="flex min-h-0 flex-col border border-line bg-surface rounded-panel">
+      <header className="flex items-center justify-between border-b border-line bg-soft px-pad-3 py-pad-2">
+        <h2 className="font-semibold text-heading">
+          {title} <span className="ml-1 text-xs font-normal text-muted">{count}</span>
         </h2>
-        <Link to={manageTo} className="text-xs text-harbour-500 hover:text-harbour-700">
+        <Link to={manageTo} className="text-xs text-muted hover:text-heading">
           Manage all
         </Link>
       </header>
@@ -156,7 +156,7 @@ function QueueSection({
 }
 
 function EmptyQueue() {
-  return <p className="p-6 text-center text-sm text-harbour-400">Nothing pending.</p>;
+  return <p className="p-pad-6 text-center text-sm text-subtle">Nothing pending.</p>;
 }
 
 export default function ManageReview() {
@@ -164,41 +164,41 @@ export default function ManageReview() {
   const total = pendingEvents.length + pendingNews.length + pendingJobs.length;
 
   return (
-    <div className="p-4 md:p-6">
-      <div className="mx-auto flex max-w-screen-2xl flex-col gap-5">
+    <div className="p-pad-4 md:p-pad-6">
+      <div className="mx-auto flex max-w-screen-2xl flex-col gap-gap-5">
         <div>
-          <h1 className="text-2xl font-semibold text-harbour-700">Review Queue</h1>
-          <p className="mt-1 text-sm text-harbour-500">
+          <h1 className="text-2xl font-semibold text-heading">Review Queue</h1>
+          <p className="mt-1 text-sm text-muted">
             {total === 0 ? "Everything is reviewed." : `${total} items waiting for review.`}
           </p>
         </div>
 
-        <div className="grid gap-4 xl:max-h-[calc(100vh-10rem)] xl:grid-cols-3">
+        <div className="grid gap-gap-4 xl:max-h-[calc(100vh-10rem)] xl:grid-cols-3">
           <QueueSection title="Events" count={pendingEvents.length} manageTo="/manage/events">
             {pendingEvents.length === 0 ? (
               <EmptyQueue />
             ) : (
               pendingEvents.map((event) => (
-                <article key={event.id} className="flex flex-col gap-2 p-3">
+                <article key={event.id} className="flex flex-col gap-gap-2 p-pad-3">
                   <div>
-                    <h3 className="font-medium text-harbour-700">{event.title}</h3>
-                    <p className="text-xs text-harbour-400">
+                    <h3 className="font-medium text-heading">{event.title}</h3>
+                    <p className="text-xs text-subtle">
                       {[event.organizer || event.sourceName, event.location]
                         .filter(Boolean)
                         .join(" • ")}
                     </p>
                     {event.startDate && (
-                      <p className="text-xs text-harbour-500">
+                      <p className="text-xs text-muted">
                         {formatInTimezone(event.startDate, "MMM d, yyyy 'at' h:mm a")}
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-gap-1">
                     <a
                       href={event.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="border border-harbour-200 px-2 py-1 text-xs text-harbour-600 hover:bg-harbour-50"
+                      className="border border-line px-pad-2 py-pad-1 text-xs text-body hover:bg-soft"
                     >
                       View
                     </a>
@@ -216,7 +216,7 @@ export default function ManageReview() {
                     </ReviewButton>
                     <Link
                       to={`/manage/events/${event.id}`}
-                      className="ml-auto px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700"
+                      className="ml-auto px-pad-2 py-pad-1 text-xs text-muted hover:text-heading"
                     >
                       Edit
                     </Link>
@@ -231,23 +231,23 @@ export default function ManageReview() {
               <EmptyQueue />
             ) : (
               pendingNews.map((item) => (
-                <article key={item.id} className="flex flex-col gap-2 p-3">
+                <article key={item.id} className="flex flex-col gap-gap-2 p-pad-3">
                   <div>
-                    <h3 className="font-medium text-harbour-700">{item.title}</h3>
-                    <p className="text-xs text-harbour-400">
+                    <h3 className="font-medium text-heading">{item.title}</h3>
+                    <p className="text-xs text-subtle">
                       {[item.sourceName, item.sourceType].filter(Boolean).join(" • ")}
                     </p>
                     {item.excerpt && (
-                      <p className="mt-1 line-clamp-2 text-xs text-harbour-500">{item.excerpt}</p>
+                      <p className="mt-1 line-clamp-2 text-xs text-muted">{item.excerpt}</p>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-gap-1">
                     {item.externalUrl && (
                       <a
                         href={item.externalUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="border border-harbour-200 px-2 py-1 text-xs text-harbour-600 hover:bg-harbour-50"
+                        className="border border-line px-pad-2 py-pad-1 text-xs text-body hover:bg-soft"
                       >
                         View
                       </a>
@@ -260,7 +260,7 @@ export default function ManageReview() {
                     </ReviewButton>
                     <Link
                       to={`/manage/news/${item.id}`}
-                      className="ml-auto px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700"
+                      className="ml-auto px-pad-2 py-pad-1 text-xs text-muted hover:text-heading"
                     >
                       Edit
                     </Link>
@@ -275,22 +275,22 @@ export default function ManageReview() {
               <EmptyQueue />
             ) : (
               pendingJobs.map((job) => (
-                <article key={job.id} className="flex flex-col gap-2 p-3">
+                <article key={job.id} className="flex flex-col gap-gap-2 p-pad-3">
                   <div>
-                    <h3 className="font-medium text-harbour-700">{job.title}</h3>
-                    <p className="text-xs text-harbour-400">
+                    <h3 className="font-medium text-heading">{job.title}</h3>
+                    <p className="text-xs text-subtle">
                       {[job.companyName, job.location, job.workplaceType]
                         .filter(Boolean)
                         .join(" • ")}
                     </p>
                   </div>
-                  <div className="flex flex-wrap items-center gap-1">
+                  <div className="flex flex-wrap items-center gap-gap-1">
                     {job.url && (
                       <a
                         href={job.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="border border-harbour-200 px-2 py-1 text-xs text-harbour-600 hover:bg-harbour-50"
+                        className="border border-line px-pad-2 py-pad-1 text-xs text-body hover:bg-soft"
                       >
                         View
                       </a>

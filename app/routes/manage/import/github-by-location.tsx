@@ -456,17 +456,17 @@ export default function ImportGitHub() {
       backLabel="Back to Dashboard"
       maxWidthClassName="max-w-6xl"
     >
-      <p className="text-harbour-500">
+      <p className="text-muted">
         Search for GitHub users in Newfoundland & Labrador and import them as people. Use "Import
         All" for automatic bulk import with rate limit handling.
       </p>
 
       {/* Bulk Import Section */}
-      <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
-        <h2 className="font-semibold text-harbour-700">Bulk Import (Recommended)</h2>
+      <div className="border border-line p-pad-4 bg-soft flex flex-col gap-gap-4">
+        <h2 className="font-semibold text-heading">Bulk Import (Recommended)</h2>
 
-        <div className="flex items-center gap-4 flex-wrap">
-          <label className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-gap-4 flex-wrap">
+          <label className="flex items-center gap-gap-2 text-sm">
             <input
               type="checkbox"
               checked={downloadAvatars}
@@ -481,7 +481,7 @@ export default function ImportGitHub() {
               type="button"
               onClick={handleBulkStart}
               disabled={isBulkRunning}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isBulkRunning ? "Starting..." : "Import All Users"}
             </button>
@@ -493,7 +493,7 @@ export default function ImportGitHub() {
                 <button
                   type="button"
                   onClick={handleBulkPause}
-                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+                  className="px-pad-4 py-pad-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
                 >
                   Pause
                 </button>
@@ -502,7 +502,7 @@ export default function ImportGitHub() {
                   type="button"
                   onClick={handleBulkStart}
                   disabled={isBulkRunning}
-                  className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+                  className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
                 >
                   {isBulkRunning ? "Resuming..." : "Resume"}
                 </button>
@@ -511,7 +511,7 @@ export default function ImportGitHub() {
               <button
                 type="button"
                 onClick={handleBulkReset}
-                className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                className="px-pad-4 py-pad-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
               >
                 Reset
               </button>
@@ -522,7 +522,7 @@ export default function ImportGitHub() {
             <button
               type="button"
               onClick={handleBulkReset}
-              className="px-4 py-2 border border-harbour-300 text-harbour-600 hover:bg-harbour-100 font-medium transition-colors"
+              className="px-pad-4 py-pad-2 border border-harbour-300 text-body hover:bg-tint font-medium transition-colors"
             >
               Start New Import
             </button>
@@ -534,14 +534,14 @@ export default function ImportGitHub() {
                 type="button"
                 onClick={handleBulkStart}
                 disabled={isBulkRunning}
-                className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+                className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
               >
                 Retry
               </button>
               <button
                 type="button"
                 onClick={handleBulkReset}
-                className="px-4 py-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                className="px-pad-4 py-pad-2 border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
               >
                 Reset
               </button>
@@ -551,10 +551,10 @@ export default function ImportGitHub() {
 
         {/* Progress display */}
         {bulkProgress.status !== "idle" && (
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-col gap-gap-2">
+            <div className="flex items-center gap-gap-4 text-sm">
               <span
-                className={`px-2 py-0.5 font-medium ${
+                className={`px-pad-2 py-pad-0-5 font-medium ${
                   bulkProgress.status === "running"
                     ? "bg-green-100 text-green-700"
                     : bulkProgress.status === "paused"
@@ -568,13 +568,13 @@ export default function ImportGitHub() {
                 {autoRun && bulkProgress.status === "running" && " (auto)"}
               </span>
 
-              <span className="text-harbour-600">
+              <span className="text-body">
                 {bulkProgress.processedItems} / {bulkProgress.totalItems} users ({progressPercent}
                 %)
               </span>
 
               {bulkProgress.rateLimitRemaining !== null && (
-                <span className="text-harbour-400">
+                <span className="text-subtle">
                   API: {bulkProgress.rateLimitRemaining} remaining
                 </span>
               )}
@@ -595,7 +595,7 @@ export default function ImportGitHub() {
             </div>
 
             {/* Stats */}
-            <div className="flex gap-4 text-xs text-harbour-500">
+            <div className="flex gap-gap-4 text-xs text-muted">
               <span>Imported: {bulkProgress.importedCount}</span>
               <span>Skipped: {bulkProgress.skippedCount}</span>
               <span>Errors: {bulkProgress.errorCount}</span>
@@ -606,7 +606,7 @@ export default function ImportGitHub() {
 
             {/* Rate limit warning */}
             {bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset && (
-              <div className="text-sm text-amber-600 bg-amber-50 p-2">
+              <div className="text-sm text-amber-600 bg-amber-50 p-pad-2">
                 Rate limited. {autoRun ? "Will auto-resume" : "Can resume"} at{" "}
                 {bulkProgress.rateLimitReset.toLocaleTimeString()}
               </div>
@@ -614,20 +614,20 @@ export default function ImportGitHub() {
 
             {/* Error display */}
             {bulkProgress.lastError && bulkProgress.status === "error" && (
-              <div className="text-sm text-red-600 bg-red-50 p-2">{bulkProgress.lastError}</div>
+              <div className="text-sm text-red-600 bg-red-50 p-pad-2">{bulkProgress.lastError}</div>
             )}
 
             {/* Recent activity log */}
             {recentActivity.length > 0 && (
               <details className="text-xs" open={bulkProgress.status === "running"}>
-                <summary className="cursor-pointer text-harbour-500 hover:text-harbour-700">
+                <summary className="cursor-pointer text-muted hover:text-heading">
                   Recent activity ({recentActivity.length})
                 </summary>
-                <div className="mt-1 max-h-32 overflow-y-auto bg-white border border-harbour-100 p-2 font-mono">
+                <div className="mt-1 max-h-32 overflow-y-auto bg-surface border border-harbour-100 p-pad-2 font-mono rounded-panel">
                   {recentActivity.map((item, i) => (
                     <div
                       key={i}
-                      className={item.startsWith("ERROR:") ? "text-red-600" : "text-harbour-600"}
+                      className={item.startsWith("ERROR:") ? "text-red-600" : "text-body"}
                     >
                       {item}
                     </div>
@@ -640,16 +640,16 @@ export default function ImportGitHub() {
       </div>
 
       {/* Divider */}
-      <div className="border-t border-harbour-200 pt-4">
-        <h2 className="font-semibold text-harbour-700 mb-2">Manual Import</h2>
-        <p className="text-sm text-harbour-400 mb-4">
+      <div className="border-t border-line pt-pad-4">
+        <h2 className="font-semibold text-heading mb-2">Manual Import</h2>
+        <p className="text-sm text-subtle mb-4">
           Or search and select individual users to import.
         </p>
       </div>
 
       {/* Rate limit info */}
       {rateLimit && (
-        <div className="text-sm text-harbour-400">
+        <div className="text-sm text-subtle">
           API Rate Limit: {rateLimit.remaining}/{rateLimit.limit} remaining
           {rateLimit.remaining < 10 && (
             <span className="text-amber-600 ml-2">
@@ -665,7 +665,7 @@ export default function ImportGitHub() {
           type="button"
           onClick={() => handleSearch(1)}
           disabled={isSearching}
-          className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors self-start"
+          className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors self-start"
         >
           {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland & Labrador"}
         </button>
@@ -673,14 +673,14 @@ export default function ImportGitHub() {
 
       {/* Error display */}
       {fetcherData?.intent === "search" && fetcherData.error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600">{fetcherData.error}</div>
+        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{fetcherData.error}</div>
       )}
 
       {/* Import results */}
       {fetcherData?.intent === "import" && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-gap-2">
           {fetcherData.imported && fetcherData.imported.length > 0 && (
-            <div className="p-4 bg-green-50 border border-green-200 text-green-700">
+            <div className="p-pad-4 bg-green-50 border border-green-200 text-green-700">
               Successfully processed {fetcherData.imported.length} users
               <ul className="list-disc list-inside mt-2 text-sm">
                 {fetcherData.imported.slice(0, 10).map((name, i) => (
@@ -693,7 +693,7 @@ export default function ImportGitHub() {
             </div>
           )}
           {fetcherData.errors && fetcherData.errors.length > 0 && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+            <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
               <p className="font-medium">Errors:</p>
               <ul className="list-disc list-inside mt-2">
                 {fetcherData.errors.map((e, i) => (
@@ -708,27 +708,27 @@ export default function ImportGitHub() {
       {/* Users list */}
       {fetchedUsers.length > 0 && (
         <>
-          <div className="flex items-center gap-4 flex-wrap">
-            <span className="text-harbour-500">
+          <div className="flex items-center gap-gap-4 flex-wrap">
+            <span className="text-muted">
               Found {totalUsers} users (showing page {currentPage} of {totalPages})
             </span>
             <button
               type="button"
               onClick={selectAll}
-              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              className="text-sm text-body hover:text-harbour-800 underline"
             >
               Select all new
             </button>
             <button
               type="button"
               onClick={selectNone}
-              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              className="text-sm text-body hover:text-harbour-800 underline"
             >
               Select none
             </button>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-gap-2">
             {fetchedUsers.map((user) => {
               const existingStatus = isExisting(user);
               const blocked = isUserBlocked(user);
@@ -736,16 +736,16 @@ export default function ImportGitHub() {
               return (
                 <div
                   key={user.login}
-                  className={`flex items-center gap-4 p-3 border ${
+                  className={`flex items-center gap-gap-4 p-pad-3 border ${
                     blocked
                       ? "bg-red-50 border-red-200 opacity-50"
                       : existingStatus === "github"
-                        ? "bg-harbour-50 border-harbour-200 opacity-60"
+                        ? "bg-soft border-line opacity-60"
                         : selected.has(user.login)
                           ? "bg-blue-50 border-blue-300"
                           : existingStatus === "name"
                             ? "bg-amber-50 border-amber-200"
-                            : "bg-white border-harbour-200"
+                            : "bg-surface border-line"
                   }`}
                 >
                   <input
@@ -764,36 +764,36 @@ export default function ImportGitHub() {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-10 h-10 bg-harbour-100 " />
+                    <div className="w-10 h-10 bg-tint " />
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-gap-2 flex-wrap">
                       <span
-                        className={`font-medium ${blocked ? "line-through text-harbour-400" : ""}`}
+                        className={`font-medium ${blocked ? "line-through text-subtle" : ""}`}
                       >
                         {displayName}
                       </span>
-                      <span className="text-sm text-harbour-400">@{user.login}</span>
+                      <span className="text-sm text-subtle">@{user.login}</span>
                       {blocked && (
-                        <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
+                        <span className="text-xs px-pad-2 py-pad-0-5 bg-red-200 text-red-700">
                           Import blocked
                         </span>
                       )}
                       {!blocked && existingStatus === "github" && (
-                        <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
+                        <span className="text-xs px-pad-2 py-pad-0-5 bg-harbour-200 text-body">
                           Already imported
                         </span>
                       )}
                       {!blocked && existingStatus === "name" && (
-                        <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
+                        <span className="text-xs px-pad-2 py-pad-0-5 bg-amber-200 text-amber-700">
                           Will merge
                         </span>
                       )}
                     </div>
-                    {user.bio && <p className="text-sm text-harbour-500 truncate">{user.bio}</p>}
-                    <div className="flex items-center gap-3 text-sm text-harbour-400 flex-wrap">
-                      {user.company && <span className="text-harbour-600">{user.company}</span>}
+                    {user.bio && <p className="text-sm text-muted truncate">{user.bio}</p>}
+                    <div className="flex items-center gap-gap-3 text-sm text-subtle flex-wrap">
+                      {user.company && <span className="text-body">{user.company}</span>}
                       {user.location && <span>{user.location}</span>}
                       {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
                       {user.blog && (
@@ -801,7 +801,7 @@ export default function ImportGitHub() {
                           href={user.blog.startsWith("http") ? user.blog : `https://${user.blog}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:text-harbour-600 truncate"
+                          className="hover:text-body truncate"
                         >
                           {user.blog}
                         </a>
@@ -809,12 +809,12 @@ export default function ImportGitHub() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-gap-2">
                     <a
                       href={user.html_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-harbour-400 hover:text-harbour-600"
+                      className="text-sm text-subtle hover:text-body"
                     >
                       View
                     </a>
@@ -822,7 +822,7 @@ export default function ImportGitHub() {
                       <button
                         type="button"
                         onClick={() => handleUnblock(user)}
-                        className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                        className="text-xs px-pad-2 py-pad-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
                       >
                         Remove block
                       </button>
@@ -830,7 +830,7 @@ export default function ImportGitHub() {
                       <button
                         type="button"
                         onClick={() => handleBlock(user)}
-                        className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
+                        className="text-xs px-pad-2 py-pad-1 text-muted hover:bg-tint transition-colors"
                       >
                         Import block
                       </button>
@@ -843,41 +843,41 @@ export default function ImportGitHub() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-gap-2">
               <button
                 type="button"
                 onClick={() => handleSearch(currentPage - 1)}
                 disabled={currentPage <= 1 || isSearching}
-                className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-pad-3 py-pad-1-5 text-sm border border-harbour-300 hover:bg-soft disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Previous
               </button>
-              <span className="text-sm text-harbour-500">
+              <span className="text-sm text-muted">
                 Page {currentPage} of {totalPages}
               </span>
               <button
                 type="button"
                 onClick={() => handleSearch(currentPage + 1)}
                 disabled={currentPage >= totalPages || isSearching}
-                className="px-3 py-1.5 text-sm border border-harbour-300 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-pad-3 py-pad-1-5 text-sm border border-harbour-300 hover:bg-soft disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
             </div>
           )}
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-gap-4">
             <button
               type="button"
               onClick={handleImport}
               disabled={selected.size === 0 || isImporting}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isImporting ? "Importing..." : `Import ${selected.size} Selected Users`}
             </button>
 
             {selected.size > 0 && (
-              <span className="text-sm text-harbour-500">{selected.size} users selected</span>
+              <span className="text-sm text-muted">{selected.size} users selected</span>
             )}
           </div>
         </>

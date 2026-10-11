@@ -6,7 +6,7 @@ export function ManageErrorAlert({ error }: { error: string }) {
 }
 
 export function ManageForm({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-6">{children}</div>;
+  return <div className="flex flex-col gap-gap-6">{children}</div>;
 }
 
 export function ManageField({
@@ -21,12 +21,12 @@ export function ManageField({
   hint?: string;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={htmlFor} className="font-medium text-harbour-700">
+    <div className="flex flex-col gap-gap-2">
+      <label htmlFor={htmlFor} className="font-medium text-heading">
         {label}
       </label>
       {children}
-      {hint ? <p className="text-xs text-harbour-400">{hint}</p> : null}
+      {hint ? <p className="text-xs text-subtle">{hint}</p> : null}
     </div>
   );
 }

@@ -55,8 +55,8 @@ export function TechnologySelect({
   const selectedTechs = technologies.filter((t) => selected.has(t.id));
 
   return (
-    <div className="flex flex-col gap-2">
-      <label className="font-medium text-harbour-700">Technologies</label>
+    <div className="flex flex-col gap-gap-2">
+      <label className="font-medium text-heading">Technologies</label>
 
       {/* Hidden inputs for form submission */}
       {Array.from(selected).map((id) => (
@@ -65,13 +65,13 @@ export function TechnologySelect({
 
       {/* Selected tags display */}
       {selectedTechs.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 p-2 bg-harbour-50 border border-harbour-200">
+        <div className="flex flex-wrap gap-gap-1-5 p-pad-2 bg-soft border border-line">
           {selectedTechs.map((tech) => (
             <button
               key={tech.id}
               type="button"
               onClick={() => toggleTech(tech.id)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 bg-harbour-600 text-white text-sm hover:bg-harbour-700 transition-colors"
+              className="inline-flex items-center gap-gap-1 px-pad-2 py-pad-0-5 bg-primary text-white text-sm hover:bg-primary-hover transition-colors"
             >
               {tech.name}
               <span className="text-harbour-300">&times;</span>
@@ -84,46 +84,46 @@ export function TechnologySelect({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-2 border border-harbour-300 text-left text-harbour-600 hover:border-harbour-400 transition-colors flex items-center justify-between"
+        className="px-pad-3 py-pad-2 border border-harbour-300 text-left text-body hover:border-harbour-400 transition-colors flex items-center justify-between"
       >
         <span>{selected.size === 0 ? "Select technologies..." : `${selected.size} selected`}</span>
-        <span className="text-harbour-400">{isOpen ? "▲" : "▼"}</span>
+        <span className="text-subtle">{isOpen ? "▲" : "▼"}</span>
       </button>
 
       {/* Dropdown panel */}
       {isOpen && (
-        <div className="border border-harbour-300 bg-white max-h-80 overflow-y-auto">
+        <div className="border border-harbour-300 bg-surface max-h-80 overflow-y-auto rounded-panel">
           {/* Search input */}
-          <div className="p-2 border-b border-harbour-200 sticky top-0 bg-white">
+          <div className="p-pad-2 border-b border-line sticky top-0 bg-surface rounded-panel">
             <input
               type="text"
               placeholder="Search technologies..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full px-2 py-1 border border-harbour-200 text-sm focus:border-harbour-400 focus:outline-none"
+              className="w-full px-pad-2 py-pad-1 border border-line text-sm focus:border-harbour-400 focus:outline-none"
             />
           </div>
 
           {/* Technology list by category */}
-          <div className="p-2">
+          <div className="p-pad-2">
             {Object.entries(filteredByCategory).length === 0 ? (
-              <p className="text-sm text-harbour-400 p-2">No technologies found</p>
+              <p className="text-sm text-subtle p-pad-2">No technologies found</p>
             ) : (
               Object.entries(filteredByCategory).map(([category, techs]) => (
                 <div key={category} className="mb-3 last:mb-0">
-                  <h4 className="text-xs font-medium text-harbour-500 uppercase tracking-wide mb-1">
+                  <h4 className="text-xs font-medium text-muted uppercase tracking-wide mb-1">
                     {categoryLabels[category as TechnologyCategory]}
                   </h4>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-gap-1">
                     {techs.map((tech) => (
                       <button
                         key={tech.id}
                         type="button"
                         onClick={() => toggleTech(tech.id)}
-                        className={`px-2 py-0.5 text-sm border transition-colors ${
+                        className={`px-pad-2 py-pad-0-5 text-sm border transition-colors ${
                           selected.has(tech.id)
-                            ? "bg-harbour-600 text-white border-harbour-600"
-                            : "bg-white text-harbour-700 border-harbour-200 hover:border-harbour-400"
+                            ? "bg-primary text-white border-harbour-600"
+                            : "bg-surface text-heading border-line hover:border-harbour-400"
                         }`}
                       >
                         {tech.name}
@@ -137,7 +137,7 @@ export function TechnologySelect({
         </div>
       )}
 
-      <p className="text-xs text-harbour-400">
+      <p className="text-xs text-subtle">
         Click to select/deselect technologies used by this company
       </p>
     </div>

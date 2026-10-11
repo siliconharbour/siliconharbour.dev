@@ -4,8 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@12.11.1",
   "scripts": {
-    "build": "react-router build",
-    "dev": "tsx watch server.ts",
+    "build": "tsx scripts/generate-theme.ts && react-router build",
+    "dev": "tsx scripts/generate-theme.ts && tsx watch server.ts",
     "dev:preview": "bash scripts/dev-preview.sh",
     "start": "NODE_ENV=production tsx server.ts",
     "lint": "oxlint",

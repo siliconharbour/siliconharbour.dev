@@ -66,23 +66,23 @@ export default function NewEducation() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/education" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/education" className="text-sm text-subtle hover:text-body">
             &larr; Back to Education
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Education Institution</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Education Institution</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="name" className="font-medium text-heading">
               Name *
             </label>
             <input
@@ -90,12 +90,12 @@ export default function NewEducation() {
               id="name"
               name="name"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="description" className="font-medium text-heading">
               Description * (Markdown)
             </label>
             <textarea
@@ -103,19 +103,19 @@ export default function NewEducation() {
               name="description"
               required
               rows={8}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="type" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="type" className="font-medium text-heading">
               Type
             </label>
             <select
               id="type"
               name="type"
               defaultValue="other"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             >
               <option value="university">University</option>
               <option value="college">College</option>
@@ -125,19 +125,19 @@ export default function NewEducation() {
             </select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="website" className="font-medium text-heading">
               Website
             </label>
             <input
               type="url"
               id="website"
               name="website"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"
@@ -154,23 +154,23 @@ export default function NewEducation() {
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">Directory Listings</span>
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">Directory Listings</span>
+            <div className="flex gap-gap-6">
+              <label className="flex items-center gap-gap-2">
                 <input type="checkbox" name="technl" className="border border-harbour-300" />
-                <span className="text-sm text-harbour-600">TechNL Member</span>
+                <span className="text-sm text-body">TechNL Member</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-gap-2">
                 <input type="checkbox" name="genesis" className="border border-harbour-300" />
-                <span className="text-sm text-harbour-600">Genesis Centre</span>
+                <span className="text-sm text-body">Genesis Centre</span>
               </label>
             </div>
           </div>
 
           <button
             type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
           >
             Create Institution
           </button>

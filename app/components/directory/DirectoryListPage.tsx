@@ -33,12 +33,12 @@ export function DirectoryListPage({
   children,
 }: DirectoryListPageProps) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-gap-6">
       {isAdmin && (
         <div className="flex justify-end">
           <Link
             to={adminCreateTo}
-            className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+            className="px-pad-3 py-pad-1-5 text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
           >
             + {adminCreateLabel}
           </Link>
@@ -46,10 +46,10 @@ export function DirectoryListPage({
       )}
 
       {(total > limit || searchQuery) && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-gap-2">
           <SearchInput placeholder={searchPlaceholder} />
           {searchQuery && (
-            <p className="text-sm text-harbour-500">
+            <p className="text-sm text-muted">
               {total} result{total !== 1 ? "s" : ""} for "{searchQuery}"
             </p>
           )}
@@ -59,7 +59,7 @@ export function DirectoryListPage({
       {hasItems ? (
         children
       ) : (
-        <p className="text-harbour-400">{searchQuery ? emptySearchMessage : emptyMessage}</p>
+        <p className="text-subtle">{searchQuery ? emptySearchMessage : emptyMessage}</p>
       )}
 
       <Pagination total={total} limit={limit} offset={offset} />

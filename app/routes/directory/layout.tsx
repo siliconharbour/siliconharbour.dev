@@ -26,26 +26,26 @@ export default function DirectoryLayout() {
   const location = useLocation();
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-bold text-harbour-700">Directory</h1>
-            <p className="text-harbour-500">
+    <div className="max-w-6xl mx-auto px-pad-4 py-pad-8">
+      <div className="flex flex-col gap-gap-8">
+        <div className="flex flex-col gap-gap-4">
+          <div className="flex flex-col gap-gap-2">
+            <h1 className="text-3xl font-bold text-heading">Directory</h1>
+            <p className="text-muted">
               Companies, groups, people, and projects in the tech community
             </p>
           </div>
 
           {/* Tabs - extend to edges on mobile */}
-          <div className="flex gap-1 border-b border-harbour-200 -mx-4 px-4 overflow-x-auto">
+          <div className="flex gap-gap-1 border-b border-line -mx-4 px-pad-4 overflow-x-auto">
             {tabs.map((tab) => (
               <Link
                 key={tab.path}
                 to={tab.path}
-                className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
+                className={`px-pad-4 py-pad-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
                   location.pathname.startsWith(tab.path)
-                    ? "border-harbour-600 text-harbour-700"
-                    : "border-transparent text-harbour-400 hover:text-harbour-600"
+                    ? "border-harbour-600 text-heading"
+                    : "border-transparent text-subtle hover:text-body"
                 }`}
               >
                 {tab.label}

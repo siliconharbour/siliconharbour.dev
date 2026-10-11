@@ -32,6 +32,7 @@ COPY ./app/assets /app/app/assets
 COPY ./app/content /app/app/content
 COPY ./app/mcp /app/app/mcp
 COPY ./app/lib /app/app/lib
+COPY ./app/theme /app/app/theme
 COPY ./app/db /app/app/db
 COPY ./public /app/public
 COPY server.ts /app/server.ts

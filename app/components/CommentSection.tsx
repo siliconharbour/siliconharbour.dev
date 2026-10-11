@@ -83,9 +83,9 @@ export function CommentSection({
   const hasAnyComments = publicCount > 0 || (isAdmin && privateCount > 0);
 
   return (
-    <div className="border-t border-harbour-200/50 pt-4 mt-6 text-sm">
+    <div className="border-t border-line/50 pt-pad-4 mt-6 text-sm">
       <details className="group">
-        <summary className="cursor-pointer select-none text-harbour-500 hover:text-harbour-600 list-none flex items-center gap-2">
+        <summary className="cursor-pointer select-none text-muted hover:text-body list-none flex items-center gap-gap-2">
           <svg
             className="w-4 h-4 transition-transform group-open:rotate-90"
             fill="none"
@@ -97,7 +97,7 @@ export function CommentSection({
           <span>{summaryText}</span>
         </summary>
 
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-4 flex flex-col gap-gap-3">
           {/* Threaded Comments */}
           {publicTree.length > 0 && (
             <div className="flex flex-col">
@@ -119,8 +119,8 @@ export function CommentSection({
 
           {/* Private Comments (Admin Only) */}
           {isAdmin && privateTree.length > 0 && (
-            <div className="border-t border-harbour-200/50 pt-4 mt-2">
-              <p className="text-xs font-medium text-amber-600 mb-2 flex items-center gap-1">
+            <div className="border-t border-line/50 pt-pad-4 mt-2">
+              <p className="text-xs font-medium text-amber-600 mb-2 flex items-center gap-gap-1">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -153,7 +153,7 @@ export function CommentSection({
           {/* Top-level Comment Form */}
           {hasAnyComments ? (
             <details className="mt-2" open>
-              <summary className="cursor-pointer select-none text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-2 text-xs">
+              <summary className="cursor-pointer select-none text-subtle hover:text-muted list-none flex items-center gap-gap-2 text-xs">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
@@ -215,7 +215,7 @@ function CommentThread({
 
   return (
     <div
-      className={`${isRoot ? "" : "ml-4 pl-3 border-l-2 border-harbour-200 hover:border-harbour-400 transition-colors"}`}
+      className={`${isRoot ? "" : "ml-4 pl-pad-3 border-l-2 border-line hover:border-harbour-400 transition-colors"}`}
     >
       <CommentCard
         comment={node}
@@ -242,7 +242,7 @@ function CommentThread({
         // At max depth: show "continue thread" link instead of inline replies
         <div className="mt-2 ml-4">
           <details className="group/continue">
-            <summary className="cursor-pointer select-none text-xs text-harbour-500 hover:text-harbour-600 list-none flex items-center gap-1 py-1">
+            <summary className="cursor-pointer select-none text-xs text-muted hover:text-body list-none flex items-center gap-gap-1 py-pad-1">
               <svg
                 className="w-3 h-3 transition-transform group-open/continue:rotate-90"
                 fill="none"
@@ -261,7 +261,7 @@ function CommentThread({
               </span>
             </summary>
             {/* Reset depth to 0 when expanding "continue thread" */}
-            <div className="flex flex-col mt-1 pt-2 border-t border-harbour-100">
+            <div className="flex flex-col mt-1 pt-pad-2 border-t border-harbour-100">
               {node.children.map((child) => (
                 <CommentThread
                   key={child.id}
@@ -283,7 +283,7 @@ function CommentThread({
       ) : hasReplies ? (
         // Normal inline replies
         <details className="mt-1 group/replies" open>
-          <summary className="cursor-pointer select-none text-xs text-harbour-400 hover:text-harbour-500 list-none flex items-center gap-1 ml-4 py-1">
+          <summary className="cursor-pointer select-none text-xs text-subtle hover:text-muted list-none flex items-center gap-gap-1 ml-4 py-pad-1">
             <svg
               className="w-3 h-3 transition-transform group-open/replies:rotate-90"
               fill="none"
@@ -354,27 +354,27 @@ function TopLevelCommentForm({
       ref={formRef}
       method="post"
       action="/api/comments"
-      className="mt-3 flex flex-col gap-3"
+      className="mt-3 flex flex-col gap-gap-3"
     >
       <input type="hidden" name="contentType" value={contentType} />
       <input type="hidden" name="contentId" value={contentId} />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="authorName" className="text-xs font-medium text-harbour-500">
-          Name <span className="text-harbour-400 font-normal">(optional)</span>
+      <div className="flex flex-col gap-gap-1">
+        <label htmlFor="authorName" className="text-xs font-medium text-muted">
+          Name <span className="text-subtle font-normal">(optional)</span>
         </label>
         <input
           type="text"
           id="authorName"
           name="authorName"
           placeholder="Anonymous"
-          className="px-2 py-1.5 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
+          className="px-pad-2 py-pad-1-5 text-sm border border-line focus:border-harbour-400 focus:outline-none text-heading"
           disabled={isSubmitting}
         />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="content" className="text-xs font-medium text-harbour-500">
+      <div className="flex flex-col gap-gap-1">
+        <label htmlFor="content" className="text-xs font-medium text-muted">
           Comment
         </label>
         <textarea
@@ -383,34 +383,34 @@ function TopLevelCommentForm({
           rows={3}
           required
           placeholder="Share your thoughts..."
-          className="px-2 py-1.5 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700 resize-y"
+          className="px-pad-2 py-pad-1-5 text-sm border border-line focus:border-harbour-400 focus:outline-none text-heading resize-y"
           disabled={isSubmitting}
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label className="flex items-center gap-2 cursor-pointer">
+      <div className="flex flex-col gap-gap-2">
+        <label className="flex items-center gap-gap-2 cursor-pointer">
           <input
             type="checkbox"
             name="isPrivate"
             value="true"
             checked={showPrivateOption}
             onChange={(e) => setShowPrivateOption(e.target.checked)}
-            className="w-3 h-3 border-harbour-300 text-harbour-600 focus:ring-harbour-500"
+            className="w-3 h-3 border-harbour-300 text-body focus:ring-harbour-500"
             disabled={isSubmitting}
           />
-          <span className="text-xs text-harbour-500">Send as private feedback to webmasters</span>
+          <span className="text-xs text-muted">Send as private feedback to webmasters</span>
         </label>
         {showPrivateOption && (
-          <p className="text-xs text-harbour-400 ml-5">
+          <p className="text-xs text-subtle ml-5">
             Private feedback is only visible to site administrators.
           </p>
         )}
       </div>
 
-      <p className="text-xs text-harbour-400">
+      <p className="text-xs text-subtle">
         By submitting, you agree to our{" "}
-        <a href="/conduct" className="link-inline text-harbour-500">
+        <a href="/conduct" className="link-inline text-muted">
           community guidelines
         </a>
         .
@@ -429,7 +429,7 @@ function TopLevelCommentForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="self-start px-3 py-1.5 text-xs bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="self-start px-pad-3 py-pad-1-5 text-xs bg-primary text-white font-medium hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isSubmitting ? "Posting..." : "Post Comment"}
       </button>
@@ -470,18 +470,18 @@ function ReplyForm({
       ref={formRef}
       method="post"
       action="/api/comments"
-      className="flex flex-col gap-2 p-3 bg-harbour-50 ring-1 ring-harbour-200/50"
+      className="flex flex-col gap-gap-2 p-pad-3 bg-soft ring-1 ring-harbour-200/50"
     >
       <input type="hidden" name="contentType" value={contentType} />
       <input type="hidden" name="contentId" value={contentId} />
       <input type="hidden" name="parentId" value={parentId} />
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-gap-1">
         <input
           type="text"
           name="authorName"
           placeholder="Name (optional)"
-          className="px-2 py-1 text-xs border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700"
+          className="px-pad-2 py-pad-1 text-xs border border-line focus:border-harbour-400 focus:outline-none text-heading"
           disabled={isSubmitting}
         />
       </div>
@@ -491,7 +491,7 @@ function ReplyForm({
         rows={2}
         required
         placeholder="Write a reply..."
-        className="px-2 py-1 text-xs border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700 resize-y"
+        className="px-pad-2 py-pad-1 text-xs border border-line focus:border-harbour-400 focus:outline-none text-heading resize-y"
         disabled={isSubmitting}
         autoFocus
       />
@@ -502,11 +502,11 @@ function ReplyForm({
         <p className="text-red-600 text-xs">{(fetcher.data as { error: string }).error}</p>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-gap-2">
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-2 py-1 text-xs bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-pad-2 py-pad-1 text-xs bg-primary text-white font-medium hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Posting..." : "Reply"}
         </button>
@@ -514,7 +514,7 @@ function ReplyForm({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 transition-colors disabled:opacity-50"
+          className="px-pad-2 py-pad-1 text-xs text-muted hover:text-heading transition-colors disabled:opacity-50"
         >
           Cancel
         </button>
@@ -541,16 +541,16 @@ function CommentCard({
 
   return (
     <div
-      className={`p-3 text-sm ${
-        isPrivate ? "bg-amber-50 ring-1 ring-amber-200" : "bg-white ring-1 ring-harbour-200/50"
+      className={`p-pad-3 text-sm ${
+        isPrivate ? "bg-amber-50 ring-1 ring-amber-200" : "bg-surface ring-1 ring-harbour-200/50"
       } ${isDeleting ? "opacity-50" : ""}`}
     >
       <div className="flex items-center justify-between mb-1">
-        <span className="font-medium text-harbour-700 text-xs">
+        <span className="font-medium text-heading text-xs">
           {comment.authorName || "Anonymous"}
         </span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-harbour-400">
+        <div className="flex items-center gap-gap-2">
+          <span className="text-xs text-subtle">
             {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
           </span>
           {isAdmin && (
@@ -575,12 +575,12 @@ function CommentCard({
           )}
         </div>
       </div>
-      <p className="text-harbour-600 whitespace-pre-wrap">{comment.content}</p>
-      <div className="flex items-center gap-2 mt-2">
+      <p className="text-body whitespace-pre-wrap">{comment.content}</p>
+      <div className="flex items-center gap-gap-2 mt-2">
         {!isReplyFormOpen && (
           <button
             onClick={onReply}
-            className="text-xs text-harbour-400 hover:text-harbour-600 flex items-center gap-1"
+            className="text-xs text-subtle hover:text-body flex items-center gap-gap-1"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -594,7 +594,7 @@ function CommentCard({
           </button>
         )}
         {isPrivate && (
-          <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">Private</span>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-amber-100 text-amber-700">Private</span>
         )}
       </div>
     </div>

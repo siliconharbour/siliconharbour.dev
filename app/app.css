@@ -1,26 +1,10 @@
 @import "tailwindcss";
 
-@theme {
-  --font-sans:
-    "Inter", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
-
-  /* Custom blue palette from siliconharbour.svg */
-  --color-harbour-50: #e8f0ff;
-  --color-harbour-100: #d1e0ff;
-  --color-harbour-200: #89adff;
-  --color-harbour-300: #7593fa;
-  --color-harbour-400: #587bf0;
-  --color-harbour-500: #4166e2;
-  --color-harbour-600: #2b51d1;
-  --color-harbour-700: #2144bb;
-  --color-harbour-800: #1a369a;
-  --color-harbour-900: #142a7a;
-}
+@import "./styles/theme.css";
 
 html,
 body {
-  @apply bg-white;
+  @apply bg-page;
 }
 
 /* =============================================================================
@@ -35,7 +19,7 @@ a:focus {
 /* Hover color change for links (apply via .link-hover or within .prose) */
 .link-hover:hover,
 .prose a:hover {
-  @apply text-harbour-700;
+  @apply text-heading;
 }
 
 /* Card title underline - for titles within clickable cards */
@@ -54,7 +38,7 @@ a:focus {
 }
 
 .link-inline:hover {
-  @apply decoration-harbour-500 text-harbour-700;
+  @apply decoration-harbour-500 text-heading;
 }
 
 /* External link indicator - adds icon after link */
@@ -80,7 +64,7 @@ a:focus {
    ============================================================================= */
 
 .prose {
-  @apply text-harbour-600 leading-relaxed;
+  @apply text-body leading-relaxed;
 }
 
 .prose p {
@@ -96,20 +80,20 @@ a:focus {
 }
 
 .prose h1 {
-  @apply text-3xl font-bold text-harbour-700 mt-8 mb-4;
+  @apply text-3xl font-bold text-heading mt-8 mb-4;
 }
 
 .prose h2 {
-  @apply text-xl font-semibold text-harbour-700 mt-8 mb-4;
+  @apply text-xl font-semibold text-heading mt-8 mb-4;
 }
 
 .prose h3 {
-  @apply text-lg font-semibold text-harbour-700 mt-6 mb-3;
+  @apply text-lg font-semibold text-heading mt-6 mb-3;
 }
 
 .prose ul,
 .prose ol {
-  @apply my-4 pl-6;
+  @apply my-4 pl-pad-6;
 }
 
 .prose ul {
@@ -125,23 +109,23 @@ a:focus {
 }
 
 .prose strong {
-  @apply font-semibold text-harbour-700;
+  @apply font-semibold text-heading;
 }
 
 /* Code blocks — rehype-pretty-code output */
 .prose pre {
-  @apply bg-harbour-50 border border-harbour-200 overflow-x-auto my-6;
+  @apply bg-soft border border-line overflow-x-auto my-6;
   padding: 1rem 1.25rem;
 }
 
 .prose pre code {
-  @apply text-sm font-mono bg-transparent p-0 border-0;
+  @apply text-sm font-mono bg-transparent p-pad-0 border-0;
   counter-reset: none;
 }
 
 /* Inline code */
 .prose :not(pre) > code {
-  @apply bg-harbour-100 text-harbour-700 text-sm font-mono px-1.5 py-0.5;
+  @apply bg-tint text-heading text-sm font-mono px-pad-1-5 py-pad-0-5;
 }
 
 /* rehype-pretty-code wraps blocks in a figure */
@@ -155,7 +139,7 @@ a:focus {
 
 /* Language label above the code block */
 .prose figcaption[data-rehype-pretty-code-title] {
-  @apply text-xs text-harbour-400 bg-harbour-100 border border-b-0 border-harbour-200 px-3 py-1.5 font-mono;
+  @apply text-xs text-subtle bg-tint border border-b-0 border-line px-pad-3 py-pad-1-5 font-mono;
 }
 
 .prose table {
@@ -163,23 +147,23 @@ a:focus {
 }
 
 .prose th {
-  @apply text-left px-3 py-2 bg-harbour-50 font-medium text-harbour-600 border border-harbour-200;
+  @apply text-left px-pad-3 py-pad-2 bg-soft font-medium text-body border border-line;
 }
 
 .prose td {
-  @apply px-3 py-2 border border-harbour-200 text-harbour-700 align-top;
+  @apply px-pad-3 py-pad-2 border border-line text-heading align-top;
 }
 
 .prose tr:nth-child(even) td {
-  @apply bg-harbour-50/50;
+  @apply bg-soft/50;
 }
 
 .prose a {
-  @apply text-harbour-600 underline decoration-harbour-200 underline-offset-2 transition-colors;
+  @apply text-body underline decoration-harbour-200 underline-offset-2 transition-colors;
 }
 
 .prose a:hover {
-  @apply text-harbour-700 decoration-harbour-500;
+  @apply text-heading decoration-harbour-500;
 }
 
 /* Prose external links get the indicator */
@@ -202,4 +186,27 @@ a:focus {
 
 button {
   @apply cursor-pointer;
+}
+
+@layer base {
+  body {
+    font-family: var(--theme-font-body);
+    font-size: var(--text-base);
+    line-height: var(--text-base--line-height);
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--theme-font-heading);
+  }
+  [class~="bg-primary"],
+  button,
+  select,
+  textarea,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]) {
+    border-radius: var(--theme-control-radius);
+  }
 }

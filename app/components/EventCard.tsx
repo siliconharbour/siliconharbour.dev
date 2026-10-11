@@ -31,20 +31,20 @@ function LinkedEventDates({ events }: { events: NonNullable<EventCardProps["link
   if (events.length === 0) return null;
 
   return (
-    <div className="-mt-px bg-harbour-50 px-4 py-3 ring-1 ring-harbour-200/50">
+    <div className="-mt-px bg-soft px-pad-4 py-pad-3 ring-1 ring-harbour-200/50">
       {events.map((linkedEvent) => {
         const date = linkedEvent.dates[0];
         return (
           <Link
             key={linkedEvent.id}
             to={`/events/${linkedEvent.slug}`}
-            className="group/link flex flex-col gap-0.5 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+            className="group/link flex flex-col gap-gap-0-5 text-sm sm:flex-row sm:items-baseline sm:justify-between sm:gap-gap-4"
           >
-            <span className="font-medium text-harbour-700 group-hover/link:text-harbour-600">
+            <span className="font-medium text-heading group-hover/link:text-body">
               {linkedEvent.title}
             </span>
             {date && (
-              <time dateTime={date.startDate.toISOString()} className="shrink-0 text-harbour-500">
+              <time dateTime={date.startDate.toISOString()} className="shrink-0 text-muted">
                 {date.isAllDay
                   ? formatInTimezone(date.startDate, "EEE, MMM d")
                   : formatInTimezone(date.startDate, "EEE, MMM d 'at' h:mm a")}
@@ -121,9 +121,9 @@ function StackedWrapper({
   return (
     <div className="relative pb-[6px] pr-[6px]">
       {/* Back card (furthest) */}
-      <div className="absolute top-[6px] left-[6px] right-0 bottom-0 ring-1 ring-harbour-200/50 bg-harbour-50" />
+      <div className="absolute top-[6px] left-[6px] right-0 bottom-0 ring-1 ring-harbour-200/50 bg-soft" />
       {/* Middle card */}
-      <div className="absolute top-[3px] left-[3px] right-[3px] bottom-[3px] ring-1 ring-harbour-200/70 bg-harbour-50" />
+      <div className="absolute top-[3px] left-[3px] right-[3px] bottom-[3px] ring-1 ring-harbour-200/70 bg-soft" />
       {/* Front card (the actual content) */}
       <div className="relative">{children}</div>
     </div>
@@ -147,8 +147,8 @@ export function EventCard({
     timingState === "active"
       ? "bg-green-50 text-green-700"
       : timingState === "earlier-today"
-        ? "bg-harbour-50 text-harbour-500"
-        : "bg-harbour-100 text-harbour-600";
+        ? "bg-soft text-muted"
+        : "bg-tint text-body";
 
   const dateLabel = nextDate
     ? event.timeMode === "period" && nextDate.endDate
@@ -164,100 +164,100 @@ export function EventCard({
         <div>
           <Link
             to={`/events/${event.slug}`}
-            className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+            className={`group group/image-tint relative block bg-surface rounded-panel ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-pad-3" : ""}`}
           >
-          {event.coverImage && (
-            <TintedImage className="aspect-[3/1] overflow-hidden">
-              <img
-                src={`/images/${event.coverImage}`}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
-              />
-            </TintedImage>
-          )}
+            {event.coverImage && (
+              <TintedImage className="aspect-[3/1] overflow-hidden">
+                <img
+                  src={`/images/${event.coverImage}`}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+                />
+              </TintedImage>
+            )}
 
-          {/* Overlapping content card */}
-          <div
-            className={`relative bg-white p-3 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
-          >
-            <div className="flex items-start gap-3">
-              {event.iconImage && (
-                <div className="relative w-14 h-14 flex-shrink-0">
-                  <img
-                    src={`/images/${event.iconImage}`}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
-              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-semibold text-lg leading-tight text-harbour-700 group-hover:text-harbour-600">
-                    {event.title}
-                  </h3>
-                  {event.recurrenceRule && (
-                    <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
-                      Recurring
-                    </span>
-                  )}
-                  {event.tags?.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className={`px-1.5 py-0.5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                  {periodLabel && (
-                    <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
-                      {periodLabel}
-                    </span>
-                  )}
-                </div>
-                {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
-              </div>
-            </div>
-
-            <div className="mt-2 flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-harbour-500">
-                {nextDate && (
-                  <div className="flex items-center gap-2">
-                    <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>
-                    {nextDate.endDate && event.timeMode !== "period" && (
-                      <>
-                        <span className="text-harbour-300">-</span>
-                        <time dateTime={nextDate.endDate.toISOString()}>
-                          {nextDate.isAllDay
-                            ? formatInTimezone(nextDate.endDate, "EEE, MMM d")
-                            : formatTimedRangeEnd(nextDate.startDate, nextDate.endDate)}
-                        </time>
-                      </>
-                    )}
+            {/* Overlapping content card */}
+            <div
+              className={`relative bg-surface p-pad-3 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
+            >
+              <div className="flex items-start gap-gap-3">
+                {event.iconImage && (
+                  <div className="relative w-14 h-14 flex-shrink-0">
+                    <img
+                      src={`/images/${event.iconImage}`}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 )}
-                {event.recurrenceRule ? (
-                  <span className="text-xs text-harbour-400">
-                    {describeRecurrence(event.recurrenceRule)}
-                  </span>
-                ) : hasMultipleDates ? (
-                  <span className="text-xs text-harbour-400">
-                    +{event.dates.length - 1} more date{event.dates.length > 2 ? "s" : ""}
-                  </span>
-                ) : null}
-                {event.location && (
-                  <span className="text-harbour-400 truncate">{event.location}</span>
-                )}
+                <div className="min-w-0 flex-1 flex flex-col gap-gap-0-5">
+                  <div className="flex flex-wrap items-center gap-gap-2">
+                    <h3 className="font-semibold text-lg leading-tight text-heading group-hover:text-body">
+                      {event.title}
+                    </h3>
+                    {event.recurrenceRule && (
+                      <span className="px-pad-1-5 py-pad-0-5 bg-tint text-body text-xs shrink-0">
+                        Recurring
+                      </span>
+                    )}
+                    {event.tags?.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className={`px-pad-1-5 py-pad-0-5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                    {periodLabel && (
+                      <span
+                        className={`px-pad-1-5 py-pad-0-5 text-xs shrink-0 ${periodLabelClasses}`}
+                      >
+                        {periodLabel}
+                      </span>
+                    )}
+                  </div>
+                  {event.organizer && <p className="text-sm text-subtle">{event.organizer}</p>}
+                </div>
               </div>
 
-              <div className="text-sm text-harbour-500 line-clamp-2">
-                <RichMarkdown
-                  content={event.description}
-                  resolvedRefs={resolvedRefs}
-                  className="prose-harbour"
-                />
+              <div className="mt-2 flex flex-col gap-gap-2">
+                <div className="flex flex-wrap items-center gap-x-gap-3 gap-y-gap-1 text-sm text-muted">
+                  {nextDate && (
+                    <div className="flex items-center gap-gap-2">
+                      <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>
+                      {nextDate.endDate && event.timeMode !== "period" && (
+                        <>
+                          <span className="text-harbour-300">-</span>
+                          <time dateTime={nextDate.endDate.toISOString()}>
+                            {nextDate.isAllDay
+                              ? formatInTimezone(nextDate.endDate, "EEE, MMM d")
+                              : formatTimedRangeEnd(nextDate.startDate, nextDate.endDate)}
+                          </time>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {event.recurrenceRule ? (
+                    <span className="text-xs text-subtle">
+                      {describeRecurrence(event.recurrenceRule)}
+                    </span>
+                  ) : hasMultipleDates ? (
+                    <span className="text-xs text-subtle">
+                      +{event.dates.length - 1} more date{event.dates.length > 2 ? "s" : ""}
+                    </span>
+                  ) : null}
+                  {event.location && <span className="text-subtle truncate">{event.location}</span>}
+                </div>
+
+                <div className="text-sm text-muted line-clamp-2">
+                  <RichMarkdown
+                    content={event.description}
+                    resolvedRefs={resolvedRefs}
+                    className="prose-harbour"
+                  />
+                </div>
               </div>
             </div>
-          </div>
           </Link>
           <LinkedEventDates events={linkedEvents} />
         </div>
@@ -271,10 +271,10 @@ export function EventCard({
       <StackedWrapper isRecurring={!!event.recurrenceRule}>
         <Link
           to={`/events/${event.slug}`}
-          className="group relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+          className="group relative block bg-surface rounded-panel ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
         >
-          <div className="relative bg-white p-3">
-            <div className="flex items-start gap-2.5">
+          <div className="relative bg-surface p-pad-3">
+            <div className="flex items-start gap-gap-2-5">
               {event.iconImage && (
                 <div className="relative w-10 h-10 flex-shrink-0">
                   <img
@@ -284,38 +284,36 @@ export function EventCard({
                   />
                 </div>
               )}
-              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                <h3 className="font-semibold text-sm leading-tight text-harbour-700 group-hover:text-harbour-600">
+              <div className="min-w-0 flex-1 flex flex-col gap-gap-0-5">
+                <h3 className="font-semibold text-sm leading-tight text-heading group-hover:text-body">
                   {event.title}
                 </h3>
                 {periodLabel && (
-                  <span className={`self-start px-1.5 py-0.5 text-xs ${periodLabelClasses}`}>
+                  <span
+                    className={`self-start px-pad-1-5 py-pad-0-5 text-xs ${periodLabelClasses}`}
+                  >
                     {periodLabel}
                   </span>
                 )}
                 {event.tags?.map((tag) => (
                   <span
                     key={tag.id}
-                    className={`self-start px-1.5 py-0.5 text-xs ${eventTagColorStyles[tag.color]}`}
+                    className={`self-start px-pad-1-5 py-pad-0-5 text-xs ${eventTagColorStyles[tag.color]}`}
                   >
                     {tag.name}
                   </span>
                 ))}
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-harbour-500">
+                <div className="flex flex-wrap items-center gap-x-gap-2 gap-y-gap-0-5 text-xs text-muted">
                   {event.recurrenceRule && (
-                    <span className="text-harbour-400">
-                      {describeRecurrence(event.recurrenceRule)}
-                    </span>
+                    <span className="text-subtle">{describeRecurrence(event.recurrenceRule)}</span>
                   )}
                   {nextDate && (
-                    <span className="text-harbour-400">
+                    <span className="text-subtle">
                       Next: {formatInTimezone(nextDate.startDate, "MMM d")}
                     </span>
                   )}
                 </div>
-                {event.location && (
-                  <p className="text-xs text-harbour-400 truncate">{event.location}</p>
-                )}
+                {event.location && <p className="text-xs text-subtle truncate">{event.location}</p>}
               </div>
             </div>
           </div>
@@ -330,79 +328,77 @@ export function EventCard({
       <div>
         <Link
           to={`/events/${event.slug}`}
-          className={`group group/image-tint relative block bg-white ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-3" : ""}`}
+          className={`group group/image-tint relative block bg-surface rounded-panel ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-pad-3" : ""}`}
         >
-        {event.coverImage && (
-          <TintedImage className="aspect-[3/1] overflow-hidden">
-            <img
-              src={`/images/${event.coverImage}`}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
-            />
-          </TintedImage>
-        )}
+          {event.coverImage && (
+            <TintedImage className="aspect-[3/1] overflow-hidden">
+              <img
+                src={`/images/${event.coverImage}`}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
+              />
+            </TintedImage>
+          )}
 
-        {/* Overlapping content card */}
-        <div
-          className={`relative bg-white p-4 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
-        >
-          <div className="flex items-start gap-3">
-            {event.iconImage && (
-              <div className="relative w-14 h-14 flex-shrink-0">
-                <img
-                  src={`/images/${event.iconImage}`}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+          {/* Overlapping content card */}
+          <div
+            className={`relative bg-surface p-pad-4 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
+          >
+            <div className="flex items-start gap-gap-3">
+              {event.iconImage && (
+                <div className="relative w-14 h-14 flex-shrink-0">
+                  <img
+                    src={`/images/${event.iconImage}`}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="min-w-0 flex-1 flex flex-col gap-gap-0-5">
+                <div className="flex flex-wrap items-center gap-gap-2">
+                  <h3 className="font-semibold text-base leading-tight text-heading group-hover:text-body">
+                    {event.title}
+                  </h3>
+                  {event.recurrenceRule && (
+                    <span className="px-pad-1-5 py-pad-0-5 bg-tint text-body text-xs shrink-0">
+                      Recurring
+                    </span>
+                  )}
+                  {event.tags?.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className={`px-pad-1-5 py-pad-0-5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                  {periodLabel && (
+                    <span
+                      className={`px-pad-1-5 py-pad-0-5 text-xs shrink-0 ${periodLabelClasses}`}
+                    >
+                      {periodLabel}
+                    </span>
+                  )}
+                </div>
+                {event.organizer && <p className="text-sm text-subtle">{event.organizer}</p>}
               </div>
-            )}
-            <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-base leading-tight text-harbour-700 group-hover:text-harbour-600">
-                  {event.title}
-                </h3>
-                {event.recurrenceRule && (
-                  <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
-                    Recurring
-                  </span>
-                )}
-                {event.tags?.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className={`px-1.5 py-0.5 text-xs shrink-0 ${eventTagColorStyles[tag.color]}`}
-                  >
-                    {tag.name}
-                  </span>
-                ))}
-                {periodLabel && (
-                  <span className={`px-1.5 py-0.5 text-xs shrink-0 ${periodLabelClasses}`}>
-                    {periodLabel}
-                  </span>
-                )}
-              </div>
-              {event.organizer && <p className="text-sm text-harbour-400">{event.organizer}</p>}
-            </div>
-          </div>
-
-          <div className="mt-2 flex flex-col gap-1">
-            <div className="text-sm text-harbour-500">
-              {nextDate && <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>}
-              {event.recurrenceRule ? (
-                <span className="text-xs text-harbour-400 ml-2">
-                  {describeRecurrence(event.recurrenceRule)}
-                </span>
-              ) : hasMultipleDates ? (
-                <span className="text-xs text-harbour-400 ml-2">
-                  +{event.dates.length - 1} more
-                </span>
-              ) : null}
             </div>
 
-            {event.location && (
-              <p className="text-sm text-harbour-400 truncate">{event.location}</p>
-            )}
+            <div className="mt-2 flex flex-col gap-gap-1">
+              <div className="text-sm text-muted">
+                {nextDate && <time dateTime={nextDate.startDate.toISOString()}>{dateLabel}</time>}
+                {event.recurrenceRule ? (
+                  <span className="text-xs text-subtle ml-2">
+                    {describeRecurrence(event.recurrenceRule)}
+                  </span>
+                ) : hasMultipleDates ? (
+                  <span className="text-xs text-subtle ml-2">+{event.dates.length - 1} more</span>
+                ) : null}
+              </div>
+
+              {event.location && <p className="text-sm text-subtle truncate">{event.location}</p>}
+            </div>
           </div>
-        </div>
         </Link>
         <LinkedEventDates events={linkedEvents} />
       </div>

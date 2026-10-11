@@ -18,9 +18,9 @@ export default function NewsLayout() {
   const location = useLocation();
 
   return (
-    <div className="max-w-6xl mx-auto p-4 py-8">
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center gap-4">
+    <div className="max-w-6xl mx-auto p-pad-4 py-pad-8">
+      <div className="flex flex-col gap-gap-6">
+        <div className="flex flex-wrap items-center gap-gap-4">
           {filters.map((filter) => {
             const isActive = filter.exact
               ? location.pathname === filter.path
@@ -29,8 +29,8 @@ export default function NewsLayout() {
               <Link
                 key={filter.path}
                 to={filter.path}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                  isActive ? "bg-harbour-600 text-white" : "text-harbour-600 hover:bg-harbour-50"
+                className={`px-pad-3 py-pad-1-5 text-sm font-medium transition-colors ${
+                  isActive ? "bg-primary text-white" : "text-body hover:bg-soft"
                 }`}
               >
                 {filter.label}

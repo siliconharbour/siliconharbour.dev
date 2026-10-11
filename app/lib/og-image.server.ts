@@ -1,4 +1,5 @@
 import { formatTimedRangeEnd, isSameSiteDay } from "~/lib/event-display";
+import { BRAND_LOGO, DEFAULT_OG_COLORS } from "~/theme/tokens";
 import satori from "satori";
 import sharp from "sharp";
 import { createHash } from "crypto";
@@ -27,23 +28,11 @@ const interRegular = readFileSync(join(process.cwd(), "app/assets/fonts/Inter-Re
 const interBold = readFileSync(join(process.cwd(), "app/assets/fonts/Inter-Bold.ttf"));
 
 // Load logo SVG and convert to base64
-const logoSvg = readFileSync(join(process.cwd(), "public/siliconharbour.svg"));
+const logoSvg = readFileSync(join(process.cwd(), `public${BRAND_LOGO}`));
 const logoBase64 = `data:image/svg+xml;base64,${logoSvg.toString("base64")}`;
 
 // Harbour color palette
-const colors = {
-  harbour50: "#e8f0ff",
-  harbour100: "#d1e0ff",
-  harbour200: "#89adff",
-  harbour300: "#7593fa",
-  harbour400: "#587bf0",
-  harbour500: "#4166e2",
-  harbour600: "#2b51d1",
-  harbour700: "#2144bb",
-  harbour800: "#1a369a",
-  harbour900: "#142a7a",
-  white: "#ffffff",
-};
+const colors = DEFAULT_OG_COLORS;
 
 export interface OGImageData {
   title: string;

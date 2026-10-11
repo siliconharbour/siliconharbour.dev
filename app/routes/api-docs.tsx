@@ -24,7 +24,7 @@ export async function loader(_args: Route.LoaderArgs) {
 
 export default function ApiDocsPage() {
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
       <article className="prose">
         <ApiDocsContent />
       </article>

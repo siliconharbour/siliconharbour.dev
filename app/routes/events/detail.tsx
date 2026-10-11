@@ -119,7 +119,7 @@ function OrganizerLinks({ organizers }: { organizers: OrganizerItem[] }) {
   if (organizers.length === 0) return null;
 
   return (
-    <p className="text-harbour-500 mt-1">
+    <p className="text-muted mt-1">
       Organized by{" "}
       {organizers.map((org, i) => (
         <span key={org.text}>
@@ -127,7 +127,7 @@ function OrganizerLinks({ organizers }: { organizers: OrganizerItem[] }) {
           {org.resolved && org.url ? (
             <Link
               to={org.url}
-              className="text-harbour-600 hover:text-harbour-700 underline decoration-harbour-200 hover:decoration-harbour-500 underline-offset-2"
+              className="text-body hover:text-heading underline decoration-harbour-200 hover:decoration-harbour-500 underline-offset-2"
             >
               {org.name || org.text}
             </Link>
@@ -155,11 +155,11 @@ export default function EventDetail() {
   const eventLinkDomain = getEventLinkDomain(event.link);
 
   return (
-    <div className="py-8">
-      <article className="flex flex-col gap-6">
+    <div className="py-pad-8">
+      <article className="flex flex-col gap-gap-6">
         {/* Cover image - full width */}
         {event.coverImage && (
-          <div className="max-w-4xl mx-auto w-full px-4">
+          <div className="max-w-4xl mx-auto w-full px-pad-4">
             <div className="aspect-[3/1] relative overflow-hidden">
               <img
                 src={`/images/${event.coverImage}`}
@@ -172,23 +172,23 @@ export default function EventDetail() {
 
         {/* Content container - 60ch centered */}
         <div
-          className={`max-w-[60ch] mx-auto w-full px-4 flex flex-col gap-6 ${event.coverImage ? "-mt-12 relative z-10" : ""}`}
+          className={`max-w-[60ch] mx-auto w-full px-pad-4 flex flex-col gap-gap-6 ${event.coverImage ? "-mt-12 relative z-10" : ""}`}
         >
           {/* Event info card with ring border */}
-          <div className="bg-white p-4 ring-1 ring-harbour-200/50 flex flex-col gap-4">
+          <div className="bg-surface p-pad-4 ring-1 ring-harbour-200/50 flex flex-col gap-gap-4 rounded-panel">
             {event.parentEvent && (
-              <p className="text-sm text-harbour-500">
+              <p className="text-sm text-muted">
                 Part of{" "}
                 <Link
                   to={`/events/${event.parentEvent.slug}`}
-                  className="font-medium text-harbour-600 hover:text-harbour-700"
+                  className="font-medium text-body hover:text-heading"
                 >
                   {event.parentEvent.title}
                 </Link>
               </p>
             )}
             {/* Title with icon */}
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-gap-4">
               {event.iconImage && (
                 <div className="relative w-20 h-20 flex-shrink-0">
                   <img
@@ -199,12 +199,12 @@ export default function EventDetail() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-3xl font-bold text-harbour-700">{event.title}</h1>
+                <div className="flex items-center gap-gap-2">
+                  <h1 className="text-3xl font-bold text-heading">{event.title}</h1>
                   {isAdmin && (
                     <Link
                       to={`/manage/events/${event.id}`}
-                      className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                      className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                       title="Edit"
                     >
                       <svg
@@ -225,11 +225,11 @@ export default function EventDetail() {
                 </div>
                 {organizers.length > 0 && <OrganizerLinks organizers={organizers} />}
                 {event.tags && event.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="mt-2 flex flex-wrap gap-gap-2">
                     {event.tags.map((tag) => (
                       <span
                         key={tag.id}
-                        className={`px-1.5 py-0.5 text-xs ${eventTagColorStyles[tag.color]}`}
+                        className={`px-pad-1-5 py-pad-0-5 text-xs ${eventTagColorStyles[tag.color]}`}
                       >
                         {tag.name}
                       </span>
@@ -241,8 +241,8 @@ export default function EventDetail() {
 
             {/* Recurring event badge */}
             {isRecurring && recurrenceDescription && (
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2 py-1 bg-harbour-100 text-harbour-700 text-sm">
+              <div className="flex items-center gap-gap-2">
+                <span className="inline-flex items-center gap-gap-1 px-pad-2 py-pad-1 bg-tint text-heading text-sm">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
@@ -253,43 +253,43 @@ export default function EventDetail() {
                   </svg>
                   Recurring Event
                 </span>
-                <span className="text-harbour-600">{recurrenceDescription}</span>
+                <span className="text-body">{recurrenceDescription}</span>
               </div>
             )}
             {/* When */}
-            <div className="flex gap-2">
-              <span className="text-harbour-500">{isPeriod ? "Runs from:" : "When:"}</span>
-              <div className="flex flex-col gap-1">
+            <div className="flex gap-gap-2">
+              <span className="text-muted">{isPeriod ? "Runs from:" : "When:"}</span>
+              <div className="flex flex-col gap-gap-1">
                 {isRecurring ? (
                   occurrences.length > 0 ? (
                     <>
                       {occurrences.slice(0, 3).map((occ, i) => (
                         <div
                           key={i}
-                          className={`${occ.cancelled ? "line-through text-harbour-400" : ""}`}
+                          className={`${occ.cancelled ? "line-through text-subtle" : ""}`}
                         >
                           <time
                             dateTime={occ.date.toISOString()}
-                            className="font-semibold text-harbour-700"
+                            className="font-semibold text-heading"
                           >
                             {formatInTimezone(occ.date, "EEEE, MMMM d, yyyy 'at' h:mm a")}
                           </time>
                           {occ.endDate && (
-                            <span className="font-semibold text-harbour-700">
+                            <span className="font-semibold text-heading">
                               {" - "}
                               {formatTimedRangeEnd(occ.date, occ.endDate)}
                             </span>
                           )}
                           {occ.cancelled && <span className="ml-2 text-red-500">(Cancelled)</span>}
                           {occ.location && occ.location !== event.location && (
-                            <span className="ml-2 text-harbour-400">at {occ.location}</span>
+                            <span className="ml-2 text-subtle">at {occ.location}</span>
                           )}
                         </div>
                       ))}
-                      {occurrences.length > 3 && <span className="text-harbour-400">&hellip;</span>}
+                      {occurrences.length > 3 && <span className="text-subtle">&hellip;</span>}
                     </>
                   ) : (
-                    <p className="text-harbour-400">No upcoming dates scheduled</p>
+                    <p className="text-subtle">No upcoming dates scheduled</p>
                   )
                 ) : (
                   event.dates.map((date, i) => {
@@ -302,14 +302,14 @@ export default function EventDetail() {
                       <div key={i}>
                         <time
                           dateTime={date.startDate.toISOString()}
-                          className="font-semibold text-harbour-700"
+                          className="font-semibold text-heading"
                         >
                           {date.isAllDay
                             ? startDay
                             : formatInTimezone(date.startDate, "EEEE, MMMM d, yyyy 'at' h:mm a")}
                         </time>
                         {date.endDate && (
-                          <span className="font-semibold text-harbour-700">
+                          <span className="font-semibold text-heading">
                             {" - "}
                             {date.isAllDay
                               ? sameDay
@@ -329,9 +329,9 @@ export default function EventDetail() {
 
             {/* Where */}
             {event.location && (
-              <div className="flex gap-2">
-                <span className="text-harbour-500">Where:</span>
-                <span className="font-semibold text-harbour-700">{event.location}</span>
+              <div className="flex gap-gap-2">
+                <span className="text-muted">Where:</span>
+                <span className="font-semibold text-heading">{event.location}</span>
               </div>
             )}
 
@@ -340,7 +340,7 @@ export default function EventDetail() {
               href={event.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors self-start"
+              className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary text-white font-medium hover:bg-primary-hover transition-colors self-start"
             >
               {isPeriod
                 ? `Visit on ${eventLinkDomain}`
@@ -362,9 +362,9 @@ export default function EventDetail() {
           </div>
 
           {event.childEvents.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h2 className="text-lg font-semibold text-harbour-700">Schedule</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <section className="flex flex-col gap-gap-3">
+              <h2 className="text-lg font-semibold text-heading">Schedule</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-gap-4">
                 {event.childEvents.map((child) => (
                   <EventCard key={child.id} event={child} />
                 ))}

@@ -1,19 +1,19 @@
 import type { ReactNode } from "react";
 
 export function ManageListEmpty({ children }: { children: ReactNode }) {
-  return <div className="text-center p-12 text-harbour-400">{children}</div>;
+  return <div className="text-center p-pad-12 text-subtle">{children}</div>;
 }
 
 export function ManageList({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col gap-4">{children}</div>;
+  return <div className="flex flex-col gap-gap-4">{children}</div>;
 }
 
 export function ManageListItem({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-4 p-4 bg-white border border-harbour-200">{children}</div>
+    <div className="flex flex-wrap items-center gap-gap-4 p-pad-4 bg-surface border border-line rounded-panel">{children}</div>
   );
 }
 
 export function ManageListActions({ children }: { children: ReactNode }) {
-  return <div className="flex items-center gap-2">{children}</div>;
+  return <div className="flex items-center gap-gap-2">{children}</div>;
 }

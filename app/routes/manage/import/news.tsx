@@ -78,7 +78,7 @@ function formatDate(date: Date | null | undefined): string {
 }
 
 function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-harbour-400">-</span>;
+  if (!status) return <span className="text-subtle">-</span>;
 
   const colors: Record<string, string> = {
     success: "bg-green-100 text-green-700",
@@ -88,7 +88,7 @@ function StatusBadge({ status }: { status: string | null }) {
 
   return (
     <span
-      className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}
+      className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}
     >
       {status}
     </span>
@@ -112,30 +112,30 @@ function PendingNewsRow({
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 border border-harbour-200 bg-white ${isActing ? "opacity-50" : ""}`}
+      className={`flex items-center gap-gap-3 p-pad-3 border border-line bg-surface ${isActing ? "opacity-50" : ""}`}
     >
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-harbour-700 truncate">{item.title}</span>
+        <div className="flex items-center gap-gap-2">
+          <span className="font-medium text-heading truncate">{item.title}</span>
           {item.sourceName && (
-            <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-500">
+            <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-muted">
               {item.sourceName}
             </span>
           )}
         </div>
         {item.excerpt && (
-          <p className="text-sm text-harbour-400 truncate">
+          <p className="text-sm text-subtle truncate">
             {item.excerpt.length > 120 ? item.excerpt.slice(0, 120) + "..." : item.excerpt}
           </p>
         )}
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-gap-1 shrink-0">
         {item.externalUrl && (
           <a
             href={item.externalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+            className="px-pad-2 py-pad-1 text-xs text-muted hover:text-heading border border-line hover:border-harbour-300"
           >
             View
           </a>
@@ -147,7 +147,7 @@ function PendingNewsRow({
           <button
             type="submit"
             disabled={isActing}
-            className="px-2 py-1 text-xs text-green-700 hover:bg-green-50 border border-green-200 hover:border-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-pad-2 py-pad-1 text-xs text-green-700 hover:bg-green-50 border border-green-200 hover:border-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Approve
           </button>
@@ -159,7 +159,7 @@ function PendingNewsRow({
           <button
             type="submit"
             disabled={isActing}
-            className="px-2 py-1 text-xs text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-pad-2 py-pad-1 text-xs text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Hide
           </button>
@@ -187,24 +187,24 @@ export default function ManageImportNews() {
       : null;
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-5xl mx-auto flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-harbour-700">Import News Sources</h1>
-          <div className="flex items-center gap-2">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-5xl mx-auto flex flex-col gap-gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-gap-2">
+          <h1 className="text-2xl font-semibold text-heading">Import News Sources</h1>
+          <div className="flex items-center gap-gap-2">
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="sync-all" />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+                className="px-pad-4 py-pad-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
               >
                 {isSyncAllLoading ? "Syncing All..." : "Sync All"}
               </button>
             </fetcher.Form>
             <Link
               to="/manage/import/news/new"
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
             >
               Add Source
             </Link>
@@ -213,7 +213,7 @@ export default function ManageImportNews() {
 
         {syncResult && (
           <div
-            className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
+            className={`p-pad-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
           >
             {syncResult.success ? (
               <div>
@@ -237,7 +237,7 @@ export default function ManageImportNews() {
 
         {syncAllResult && (
           <div
-            className={`p-4 ${syncAllResult.sourcesFailed === 0 ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}
+            className={`p-pad-4 ${syncAllResult.sourcesFailed === 0 ? "bg-green-50 border border-green-200" : "bg-amber-50 border border-amber-200"}`}
           >
             <p
               className={`font-medium ${syncAllResult.sourcesFailed === 0 ? "text-green-700" : "text-amber-700"}`}
@@ -268,9 +268,9 @@ export default function ManageImportNews() {
 
         {/* Pending news triage */}
         {pendingNews.length > 0 && (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-gap-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-harbour-700">
+              <h2 className="text-lg font-semibold text-heading">
                 Pending Review ({pendingNews.length})
               </h2>
               <fetcher.Form
@@ -285,13 +285,13 @@ export default function ManageImportNews() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-pad-3 py-pad-1-5 text-xs font-medium text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Hide All Remaining
                 </button>
               </fetcher.Form>
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-gap-1">
               {pendingNews.map((item) => (
                 <PendingNewsRow key={item.id} item={item} />
               ))}
@@ -301,36 +301,36 @@ export default function ManageImportNews() {
 
         {/* Sources table */}
         {sources.length === 0 ? (
-          <div className="p-8 border border-harbour-200 bg-harbour-50 text-center">
-            <p className="text-harbour-600 mb-4">No news import sources configured yet.</p>
+          <div className="p-pad-8 border border-line bg-soft text-center">
+            <p className="text-body mb-4">No news import sources configured yet.</p>
             <Link
               to="/manage/import/news/new"
-              className="text-harbour-600 hover:text-harbour-700 underline"
+              className="text-body hover:text-heading underline"
             >
               Add your first source
             </Link>
           </div>
         ) : (
-          <div className="border border-harbour-200 bg-white overflow-x-auto">
+          <div className="border border-line bg-surface overflow-x-auto rounded-panel">
             <table className="w-full">
-              <thead className="bg-harbour-50 border-b border-harbour-200">
+              <thead className="bg-soft border-b border-line">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-left text-sm font-medium text-body">
                     Name
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-left text-sm font-medium text-body">
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-left text-sm font-medium text-body">
                     Keywords
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-left text-sm font-medium text-body">
                     Last Sync
                   </th>
-                  <th className="px-4 py-3 text-center text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-center text-sm font-medium text-body">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-right text-sm font-medium text-body">
                     Actions
                   </th>
                 </tr>
@@ -341,30 +341,30 @@ export default function ManageImportNews() {
                     isLoading && activeIntent === "sync" && activeSourceId === source.id;
 
                   return (
-                    <tr key={source.id} className="hover:bg-harbour-50">
-                      <td className="px-4 py-3">
+                    <tr key={source.id} className="hover:bg-soft">
+                      <td className="px-pad-4 py-pad-3">
                         <Link
                           to={`/manage/import/news/${source.id}`}
-                          className="font-medium text-harbour-700 hover:text-harbour-500"
+                          className="font-medium text-heading hover:text-muted"
                         >
                           {source.name}
                         </Link>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+                      <td className="px-pad-4 py-pad-3">
+                        <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">
                           {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
                             source.sourceType}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-harbour-400">
+                      <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                         {source.keywords || (
                           <span className="text-harbour-300">all</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-harbour-400">
+                      <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                         {formatDate(source.lastSyncAt)}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-pad-4 py-pad-3 text-center">
                         <StatusBadge status={source.lastSyncStatus} />
                         {source.lastSyncError && (
                           <span
@@ -375,14 +375,14 @@ export default function ManageImportNews() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-pad-4 py-pad-3 text-right">
                         <fetcher.Form method="post" className="inline">
                           <input type="hidden" name="intent" value="sync" />
                           <input type="hidden" name="sourceId" value={source.id} />
                           <button
                             type="submit"
                             disabled={isLoading}
-                            className="px-2 py-1 text-xs bg-green-600 hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed text-white transition-colors"
+                            className="px-pad-2 py-pad-1 text-xs bg-green-600 hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed text-white transition-colors"
                           >
                             {isThisRowSyncing ? "..." : "Sync"}
                           </button>
@@ -396,13 +396,13 @@ export default function ManageImportNews() {
           </div>
         )}
 
-        <p className="text-sm text-harbour-400">
+        <p className="text-sm text-subtle">
           News import sources let you automatically pull news links from RSS feeds and other
           sources.
         </p>
 
         <div>
-          <Link to="/manage/news" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/news" className="text-sm text-subtle hover:text-body">
             &larr; Back to News
           </Link>
         </div>

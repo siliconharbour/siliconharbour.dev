@@ -1,9 +1,17 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { DEFAULT_THEME, HARBOUR_PALETTE } from "~/theme/tokens";
 import { buttonClassName } from "~/components/ui";
 
 const colors: Record<string, string> = {
   white: "#ffffff",
+  primary: DEFAULT_THEME.brand,
+  "primary-hover": HARBOUR_PALETTE[700],
+  surface: DEFAULT_THEME.surface,
+  body: DEFAULT_THEME.body,
+  heading: DEFAULT_THEME.heading,
+  soft: HARBOUR_PALETTE[50],
+  tint: HARBOUR_PALETTE[100],
   "harbour-50": "#e8f0ff",
   "harbour-100": "#d1e0ff",
   "harbour-200": "#89adff",
@@ -23,9 +31,7 @@ function luminance(hex: string): number {
     .slice(1)
     .match(/.{2}/g)!
     .map((channel) => Number.parseInt(channel, 16) / 255)
-    .map((channel) =>
-      channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
-    );
+    .map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
 
@@ -42,12 +48,14 @@ function colorClass(classes: string, prefix: "bg-" | "text-", hover: boolean): s
 }
 
 describe("design primitives", () => {
-  it("uses the harbour primary treatment without rounded corners or shadows", () => {
+  it("uses semantic primary colours with configurable square-by-default corners", () => {
     const classes = buttonClassName();
 
-    expect(classes).toContain("bg-harbour-600");
-    expect(classes).toContain("hover:bg-harbour-700");
-    expect(classes).not.toMatch(/rounded|shadow/);
+    expect(classes).toContain("bg-primary");
+    expect(classes).toContain("hover:bg-primary-hover");
+    expect(classes).toContain("rounded-control");
+    expect(DEFAULT_THEME.controlRadius).toBe(0);
+    expect(classes).not.toMatch(/shadow/);
   });
 
   it("keeps semantic danger and success actions distinct", () => {

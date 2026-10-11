@@ -37,7 +37,7 @@ const typeColors: Record<ProductType, string> = {
   mobile: "bg-purple-100 text-purple-700",
   physical: "bg-amber-100 text-amber-700",
   service: "bg-green-100 text-green-700",
-  other: "bg-harbour-100 text-harbour-500",
+  other: "bg-tint text-muted",
 };
 
 export default function ManageProductsIndex() {
@@ -49,7 +49,7 @@ export default function ManageProductsIndex() {
       actions={
         <Link
           to="/manage/products/new"
-          className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+          className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
         >
           New Product
         </Link>
@@ -74,35 +74,35 @@ export default function ManageProductsIndex() {
                   className="w-12 h-12 object-cover"
                 />
               ) : (
-                <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
+                <div className="w-12 h-12 bg-tint flex items-center justify-center">
                   <span className="text-lg font-bold text-harbour-300">
                     {product.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
 
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-medium truncate text-harbour-700">{product.name}</h2>
-                  <span className={`text-xs px-1.5 py-0.5 ${typeColors[product.type]}`}>
+              <div className="flex-1 min-w-0 flex flex-col gap-gap-0-5">
+                <div className="flex items-center gap-gap-2">
+                  <h2 className="font-medium truncate text-heading">{product.name}</h2>
+                  <span className={`text-xs px-pad-1-5 py-pad-0-5 ${typeColors[product.type]}`}>
                     {typeLabels[product.type]}
                   </span>
                 </div>
                 {product.company && (
-                  <p className="text-sm text-harbour-400">by {product.company.name}</p>
+                  <p className="text-sm text-subtle">by {product.company.name}</p>
                 )}
               </div>
 
               <ManageListActions>
                 <Link
                   to={`/manage/products/${product.id}`}
-                  className="px-3 py-1.5 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm font-medium text-body hover:bg-soft transition-colors"
                 >
                   Edit
                 </Link>
                 <Link
                   to={`/manage/products/${product.id}/delete`}
-                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                 >
                   Delete
                 </Link>

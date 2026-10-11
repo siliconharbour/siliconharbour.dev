@@ -45,21 +45,21 @@ export default function Export() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-8">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold text-harbour-700">Export</h1>
-            <p className="text-harbour-400 text-sm">Export and backup your site data</p>
+          <div className="flex flex-col gap-gap-1">
+            <h1 className="text-2xl font-semibold text-heading">Export</h1>
+            <p className="text-subtle text-sm">Export and backup your site data</p>
           </div>
-          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage" className="text-sm text-subtle hover:text-body">
             Back to Dashboard
           </Link>
         </div>
 
-        <div className="bg-white border border-harbour-200 p-6">
-          <h2 className="text-lg font-semibold text-harbour-700 mb-4">Export All Data</h2>
-          <p className="text-sm text-harbour-400 mb-6">
+        <div className="bg-surface border border-line p-pad-6 rounded-panel">
+          <h2 className="text-lg font-semibold text-heading mb-4">Export All Data</h2>
+          <p className="text-sm text-subtle mb-6">
             Download all site content as a ZIP archive containing markdown files with YAML
             frontmatter. This includes events, companies, groups, education, people, news, jobs, and
             projects.
@@ -68,7 +68,7 @@ export default function Export() {
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="px-6 py-2 bg-harbour-600 text-white hover:bg-harbour-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-pad-6 py-pad-2 bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isExporting ? "Exporting..." : "Download ZIP"}
           </button>

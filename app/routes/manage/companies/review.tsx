@@ -379,16 +379,16 @@ export default function ReviewCompanies() {
   // Empty state - all done!
   if (companies.length === 0 || !currentCompany) {
     return (
-      <div className="min-h-screen p-4 md:p-6">
-        <div className="max-w-2xl mx-auto flex flex-col items-center justify-center gap-6 py-20">
+      <div className="min-h-screen p-pad-4 md:p-pad-6">
+        <div className="max-w-2xl mx-auto flex flex-col items-center justify-center gap-gap-6 py-pad-20">
           <div className="text-6xl">🎉</div>
-          <h1 className="text-2xl font-semibold text-harbour-700">All caught up!</h1>
-          <p className="text-harbour-500 text-center">
+          <h1 className="text-2xl font-semibold text-heading">All caught up!</h1>
+          <p className="text-muted text-center">
             There are no more companies to review. Great work!
           </p>
           <Link
             to="/manage/companies"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
           >
             Back to Companies
           </Link>
@@ -398,27 +398,27 @@ export default function ReviewCompanies() {
   }
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-3xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-3xl mx-auto flex flex-col gap-gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <Link
               to="/manage/companies"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
+              className="text-sm text-subtle hover:text-body"
             >
               &larr; Back to Companies
             </Link>
-            <h1 className="text-2xl font-semibold text-harbour-700 mt-1">Review Companies</h1>
+            <h1 className="text-2xl font-semibold text-heading mt-1">Review Companies</h1>
           </div>
-          <div className="text-sm text-harbour-500">{remaining} remaining</div>
+          <div className="text-sm text-muted">{remaining} remaining</div>
         </div>
 
         {/* Company Card */}
-        <div className="bg-white border border-harbour-200 ">
+        <div className="bg-surface border border-line  rounded-panel">
           {/* Card Header */}
-          <div className="p-6 border-b border-harbour-100">
-            <div className="flex gap-4">
+          <div className="p-pad-6 border-b border-harbour-100">
+            <div className="flex gap-gap-4">
               {currentCompany.logo ? (
                 <img
                   src={`/images/${currentCompany.logo}`}
@@ -426,21 +426,21 @@ export default function ReviewCompanies() {
                   className="w-16 h-16 object-contain shrink-0"
                 />
               ) : (
-                <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center shrink-0">
-                  <span className="text-2xl text-harbour-400">{currentCompany.name.charAt(0)}</span>
+                <div className="w-16 h-16 bg-tint flex items-center justify-center shrink-0">
+                  <span className="text-2xl text-subtle">{currentCompany.name.charAt(0)}</span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-semibold text-harbour-700 truncate">
+                <h2 className="text-xl font-semibold text-heading truncate">
                   {currentCompany.name}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-harbour-500">
+                <div className="flex flex-wrap items-center gap-gap-2 mt-1 text-sm text-muted">
                   {currentCompany.website && (
                     <a
                       href={currentCompany.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="hover:text-harbour-700"
+                      className="hover:text-heading"
                     >
                       {new URL(currentCompany.website).hostname.replace(/^www\./, "")}
                     </a>
@@ -452,10 +452,10 @@ export default function ReviewCompanies() {
                     </>
                   )}
                   {currentCompany.technl && (
-                    <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs">TechNL</span>
+                    <span className="px-pad-1-5 py-pad-0-5 bg-blue-100 text-blue-700 text-xs">TechNL</span>
                   )}
                   {currentCompany.genesis && (
-                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs">
+                    <span className="px-pad-1-5 py-pad-0-5 bg-green-100 text-green-700 text-xs">
                       Genesis
                     </span>
                   )}
@@ -464,7 +464,7 @@ export default function ReviewCompanies() {
             </div>
 
             {currentCompany.description && !editMode && (
-              <p className="mt-4 text-sm text-harbour-600 line-clamp-3">
+              <p className="mt-4 text-sm text-body line-clamp-3">
                 {currentCompany.description}
               </p>
             )}
@@ -475,14 +475,14 @@ export default function ReviewCompanies() {
             <fetcher.Form
               key={currentCompany.id}
               method="post"
-              className="p-6 bg-harbour-50 flex flex-col gap-4"
+              className="p-pad-6 bg-soft flex flex-col gap-gap-4"
             >
               <input type="hidden" name="intent" value="update" />
               <input type="hidden" name="id" value={currentCompany.id} />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="name" className="text-sm font-medium text-harbour-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+                <div className="flex flex-col gap-gap-1">
+                  <label htmlFor="name" className="text-sm font-medium text-heading">
                     Name *
                   </label>
                   <input
@@ -491,11 +491,11 @@ export default function ReviewCompanies() {
                     name="name"
                     required
                     defaultValue={currentCompany.name}
-                    className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="website" className="text-sm font-medium text-harbour-700">
+                <div className="flex flex-col gap-gap-1">
+                  <label htmlFor="website" className="text-sm font-medium text-heading">
                     Website
                   </label>
                   <input
@@ -503,13 +503,13 @@ export default function ReviewCompanies() {
                     id="website"
                     name="website"
                     defaultValue={currentCompany.website ?? ""}
-                    className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label htmlFor="description" className="text-sm font-medium text-harbour-700">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="description" className="text-sm font-medium text-heading">
                   Description
                 </label>
                 <textarea
@@ -517,13 +517,13 @@ export default function ReviewCompanies() {
                   name="description"
                   rows={4}
                   defaultValue={currentCompany.description ?? ""}
-                  className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono"
+                  className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="location" className="text-sm font-medium text-harbour-700">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-gap-4">
+                <div className="flex flex-col gap-gap-1">
+                  <label htmlFor="location" className="text-sm font-medium text-heading">
                     Location
                   </label>
                   <input
@@ -531,11 +531,11 @@ export default function ReviewCompanies() {
                     id="location"
                     name="location"
                     defaultValue={currentCompany.location ?? ""}
-                    className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="founded" className="text-sm font-medium text-harbour-700">
+                <div className="flex flex-col gap-gap-1">
+                  <label htmlFor="founded" className="text-sm font-medium text-heading">
                     Founded
                   </label>
                   <input
@@ -544,11 +544,11 @@ export default function ReviewCompanies() {
                     name="founded"
                     placeholder="e.g., 2015"
                     defaultValue={currentCompany.founded ?? ""}
-                    className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="github" className="text-sm font-medium text-harbour-700">
+                <div className="flex flex-col gap-gap-1">
+                  <label htmlFor="github" className="text-sm font-medium text-heading">
                     GitHub Org
                   </label>
                   <input
@@ -556,11 +556,11 @@ export default function ReviewCompanies() {
                     id="github"
                     name="github"
                     defaultValue={currentCompany.github ?? ""}
-                    className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="linkedin" className="text-sm font-medium text-harbour-700">
+                <div className="flex flex-col gap-gap-1">
+                  <label htmlFor="linkedin" className="text-sm font-medium text-heading">
                     LinkedIn
                   </label>
                   <input
@@ -568,12 +568,12 @@ export default function ReviewCompanies() {
                     id="linkedin"
                     name="linkedin"
                     defaultValue={currentCompany.linkedin ?? ""}
-                    className="px-3 py-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
                 <ImageUpload
                   label="Logo"
                   name="logoData"
@@ -594,42 +594,42 @@ export default function ReviewCompanies() {
                 />
               </div>
 
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2">
+              <div className="flex flex-wrap gap-gap-4">
+                <label className="flex items-center gap-gap-2">
                   <input
                     type="checkbox"
                     name="technl"
                     defaultChecked={currentCompany.technl ?? false}
                   />
-                  <span className="text-sm text-harbour-600">TechNL</span>
+                  <span className="text-sm text-body">TechNL</span>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-gap-2">
                   <input
                     type="checkbox"
                     name="genesis"
                     defaultChecked={currentCompany.genesis ?? false}
                   />
-                  <span className="text-sm text-harbour-600">Genesis</span>
+                  <span className="text-sm text-body">Genesis</span>
                 </label>
-                <label className="flex items-center gap-2 ml-auto">
+                <label className="flex items-center gap-gap-2 ml-auto">
                   <input type="checkbox" name="approveAfterSave" defaultChecked />
-                  <span className="text-sm text-harbour-600 font-medium">
+                  <span className="text-sm text-body font-medium">
                     Make visible after save
                   </span>
                 </label>
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-gap-3 pt-pad-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white text-sm font-medium transition-colors"
+                  className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors"
                 >
                   Save & Continue
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditMode(false)}
-                  className="px-4 py-2 text-harbour-600 hover:bg-harbour-100 text-sm font-medium transition-colors"
+                  className="px-pad-4 py-pad-2 text-body hover:bg-tint text-sm font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -637,11 +637,11 @@ export default function ReviewCompanies() {
             </fetcher.Form>
           ) : (
             /* Action Buttons */
-            <div className="p-6 flex flex-wrap gap-3">
+            <div className="p-pad-6 flex flex-wrap gap-gap-3">
               <button
                 onClick={handleApprove}
                 disabled={fetcher.state !== "idle"}
-                className="flex-1 min-w-[100px] px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors flex flex-col items-center"
+                className="flex-1 min-w-[100px] px-pad-4 py-pad-3 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors flex flex-col items-center"
               >
                 <span>Approve</span>
                 <span className="text-xs text-green-200">(Y)</span>
@@ -649,15 +649,15 @@ export default function ReviewCompanies() {
               <button
                 onClick={handleSkip}
                 disabled={fetcher.state !== "idle" || currentIndex >= companies.length - 1}
-                className="flex-1 min-w-[100px] px-4 py-3 bg-harbour-200 hover:bg-harbour-300 disabled:bg-harbour-100 text-harbour-700 font-medium transition-colors flex flex-col items-center"
+                className="flex-1 min-w-[100px] px-pad-4 py-pad-3 bg-harbour-200 hover:bg-harbour-300 disabled:bg-tint text-heading font-medium transition-colors flex flex-col items-center"
               >
                 <span>Skip</span>
-                <span className="text-xs text-harbour-500">(N)</span>
+                <span className="text-xs text-muted">(N)</span>
               </button>
               <button
                 onClick={handleReject}
                 disabled={fetcher.state !== "idle"}
-                className="flex-1 min-w-[100px] px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-medium transition-colors flex flex-col items-center"
+                className="flex-1 min-w-[100px] px-pad-4 py-pad-3 bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white font-medium transition-colors flex flex-col items-center"
               >
                 <span>Reject</span>
                 <span className="text-xs text-red-200">(D)</span>
@@ -665,7 +665,7 @@ export default function ReviewCompanies() {
               <button
                 onClick={() => setEditMode(true)}
                 disabled={fetcher.state !== "idle"}
-                className="flex-1 min-w-[100px] px-4 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white font-medium transition-colors flex flex-col items-center"
+                className="flex-1 min-w-[100px] px-pad-4 py-pad-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white font-medium transition-colors flex flex-col items-center"
               >
                 <span>Edit</span>
                 <span className="text-xs text-amber-200">(E)</span>
@@ -675,12 +675,12 @@ export default function ReviewCompanies() {
         </div>
 
         {/* Keyboard shortcuts help */}
-        <div className="text-center text-xs text-harbour-400">
-          Keyboard: <kbd className="px-1 py-0.5 bg-harbour-100">Y</kbd> Approve ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">N</kbd> Skip ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">D</kbd> Reject ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">E</kbd> Edit ·
-          <kbd className="px-1 py-0.5 bg-harbour-100 ml-1">Esc</kbd> Cancel edit
+        <div className="text-center text-xs text-subtle">
+          Keyboard: <kbd className="px-pad-1 py-pad-0-5 bg-tint">Y</kbd> Approve ·
+          <kbd className="px-pad-1 py-pad-0-5 bg-tint ml-1">N</kbd> Skip ·
+          <kbd className="px-pad-1 py-pad-0-5 bg-tint ml-1">D</kbd> Reject ·
+          <kbd className="px-pad-1 py-pad-0-5 bg-tint ml-1">E</kbd> Edit ·
+          <kbd className="px-pad-1 py-pad-0-5 bg-tint ml-1">Esc</kbd> Cancel edit
         </div>
       </div>
 

@@ -103,26 +103,26 @@ export default function EditTechnology() {
   const usageCount = companiesUsing.length + projectsUsing.length;
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
           <Link
             to="/manage/technologies"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
+            className="text-sm text-subtle hover:text-body"
           >
             &larr; Back to Technologies
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">Edit Technology</h1>
+        <h1 className="text-2xl font-semibold text-heading">Edit Technology</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="name" className="font-medium text-heading">
               Name *
             </label>
             <input
@@ -131,12 +131,12 @@ export default function EditTechnology() {
               name="name"
               required
               defaultValue={technology.name}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="category" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="category" className="font-medium text-heading">
               Category *
             </label>
             <select
@@ -144,7 +144,7 @@ export default function EditTechnology() {
               name="category"
               required
               defaultValue={technology.category}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             >
               {technologyCategories.map((cat) => (
                 <option key={cat} value={cat}>
@@ -154,8 +154,8 @@ export default function EditTechnology() {
             </select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="description" className="font-medium text-heading">
               Description
             </label>
             <textarea
@@ -163,12 +163,12 @@ export default function EditTechnology() {
               name="description"
               rows={3}
               defaultValue={technology.description ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="website" className="font-medium text-heading">
               Website
             </label>
             <input
@@ -176,7 +176,7 @@ export default function EditTechnology() {
               id="website"
               name="website"
               defaultValue={technology.website ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
@@ -190,9 +190,9 @@ export default function EditTechnology() {
             helpText="Upload icon (1:1, optional)"
           />
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">Visibility</span>
-            <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">Visibility</span>
+            <label className="flex items-center gap-gap-2">
               <input
                 type="checkbox"
                 name="visible"
@@ -200,13 +200,13 @@ export default function EditTechnology() {
                 defaultChecked={technology.visible ?? true}
                 className="border border-harbour-300"
               />
-              <span className="text-sm text-harbour-600">Visible on public site</span>
+              <span className="text-sm text-body">Visible on public site</span>
             </label>
           </div>
 
           <button
             type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
           >
             Update Technology
           </button>
@@ -214,22 +214,22 @@ export default function EditTechnology() {
 
         {/* Usage section */}
         {usageCount > 0 && (
-          <div className="border-t border-harbour-200 pt-6">
-            <h2 className="font-medium text-harbour-700 mb-3">
+          <div className="border-t border-line pt-pad-6">
+            <h2 className="font-medium text-heading mb-3">
               Used by {usageCount} {usageCount === 1 ? "entity" : "entities"}
             </h2>
 
             {companiesUsing.length > 0 && (
               <div className="mb-4">
-                <h3 className="text-sm text-harbour-500 mb-2">
+                <h3 className="text-sm text-muted mb-2">
                   Companies ({companiesUsing.length})
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-gap-2">
                   {companiesUsing.map((company) => (
                     <Link
                       key={company.id}
                       to={`/manage/companies/${company.id}`}
-                      className="text-sm px-2 py-1 bg-harbour-100 text-harbour-600 hover:bg-harbour-200 transition-colors"
+                      className="text-sm px-pad-2 py-pad-1 bg-tint text-body hover:bg-harbour-200 transition-colors"
                     >
                       {company.name}
                     </Link>
@@ -240,13 +240,13 @@ export default function EditTechnology() {
 
             {projectsUsing.length > 0 && (
               <div>
-                <h3 className="text-sm text-harbour-500 mb-2">Projects ({projectsUsing.length})</h3>
-                <div className="flex flex-wrap gap-2">
+                <h3 className="text-sm text-muted mb-2">Projects ({projectsUsing.length})</h3>
+                <div className="flex flex-wrap gap-gap-2">
                   {projectsUsing.map((project) => (
                     <Link
                       key={project.id}
                       to={`/manage/projects/${project.id}`}
-                      className="text-sm px-2 py-1 bg-harbour-100 text-harbour-600 hover:bg-harbour-200 transition-colors"
+                      className="text-sm px-pad-2 py-pad-1 bg-tint text-body hover:bg-harbour-200 transition-colors"
                     >
                       {project.name}
                     </Link>
@@ -258,7 +258,7 @@ export default function EditTechnology() {
         )}
 
         {/* Delete link */}
-        <div className="border-t border-harbour-200 pt-6">
+        <div className="border-t border-line pt-pad-6">
           <Link
             to={`/manage/technologies/${technology.id}/delete`}
             className="text-sm text-red-600 hover:text-red-700"

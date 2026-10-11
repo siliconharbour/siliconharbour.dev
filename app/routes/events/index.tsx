@@ -49,61 +49,61 @@ export default function EventsIndex() {
     : null;
 
   return (
-    <div className="max-w-6xl mx-auto p-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="max-w-6xl mx-auto p-pad-4 py-pad-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gap-8">
         {/* Main content */}
         <div className="lg:col-span-2">
-          <div className="flex flex-col gap-8">
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-gap-8">
+            <div className="flex flex-col gap-gap-4">
+              <div className="flex flex-col gap-gap-2">
                 <div className="flex items-center justify-between">
-                  <h1 className="text-3xl font-bold text-harbour-700">Events</h1>
+                  <h1 className="text-3xl font-bold text-heading">Events</h1>
                   {isAdmin && (
                     <Link
                       to="/manage/events/new"
-                      className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+                      className="px-pad-3 py-pad-1-5 text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
                     >
                       + New Event
                     </Link>
                   )}
                 </div>
-                <p className="text-harbour-500">Tech events in the community</p>
+                <p className="text-muted">Tech events in the community</p>
               </div>
 
               {/* Filter tabs */}
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-gap-2">
                 <a
                   href={`/events?filter=upcoming${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
-                  className={`px-3 py-1.5 text-sm transition-colors ${
+                  className={`px-pad-3 py-pad-1-5 text-sm transition-colors ${
                     filter === "upcoming" && !dateFilter
-                      ? "bg-harbour-600 text-white"
-                      : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
+                      ? "bg-primary text-white"
+                      : "text-body border border-line hover:border-harbour-300"
                   }`}
                 >
                   Upcoming
                 </a>
                 <a
                   href={`/events?filter=past${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
-                  className={`px-3 py-1.5 text-sm transition-colors ${
+                  className={`px-pad-3 py-pad-1-5 text-sm transition-colors ${
                     filter === "past" && !dateFilter
-                      ? "bg-harbour-600 text-white"
-                      : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
+                      ? "bg-primary text-white"
+                      : "text-body border border-line hover:border-harbour-300"
                   }`}
                 >
                   Past
                 </a>
                 <a
                   href={`/events?filter=all${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
-                  className={`px-3 py-1.5 text-sm transition-colors ${
+                  className={`px-pad-3 py-pad-1-5 text-sm transition-colors ${
                     filter === "all" && !dateFilter
-                      ? "bg-harbour-600 text-white"
-                      : "text-harbour-600 border border-harbour-200 hover:border-harbour-300"
+                      ? "bg-primary text-white"
+                      : "text-body border border-line hover:border-harbour-300"
                   }`}
                 >
                   All
                 </a>
                 {dateFilter && (
-                  <span className="px-3 py-1.5 text-sm bg-harbour-600 text-white flex items-center gap-2">
+                  <span className="px-pad-3 py-pad-1-5 text-sm bg-primary text-white flex items-center gap-gap-2">
                     {dateFilterDisplay}
                     <a
                       href={`/events?filter=${filter}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ""}`}
@@ -133,7 +133,7 @@ export default function EventsIndex() {
 
               {/* Result count */}
               {(searchQuery || dateFilter) && (
-                <p className="text-sm text-harbour-500">
+                <p className="text-sm text-muted">
                   {total} event{total !== 1 ? "s" : ""}
                   {searchQuery && ` matching "${searchQuery}"`}
                   {dateFilter && ` on ${dateFilterDisplay}`}
@@ -142,7 +142,7 @@ export default function EventsIndex() {
             </div>
 
             {events.length === 0 ? (
-              <p className="text-harbour-400">
+              <p className="text-subtle">
                 {searchQuery
                   ? "No events match your search."
                   : dateFilter
@@ -154,7 +154,7 @@ export default function EventsIndex() {
                         : "No events listed yet."}
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
                 {events.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}

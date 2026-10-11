@@ -33,35 +33,35 @@ export default function TechnologyDetail() {
   const { technology, companies, projects, isAdmin } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8 flex flex-col gap-8">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8 flex flex-col gap-gap-8">
       {/* Header */}
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-gap-4">
         {technology.icon ? (
           <img src={`/images/${technology.icon}`} alt="" className="w-16 h-16 object-contain" />
         ) : (
-          <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center">
-            <span className="text-2xl text-harbour-400">{technology.name.charAt(0)}</span>
+          <div className="w-16 h-16 bg-tint flex items-center justify-center">
+            <span className="text-2xl text-subtle">{technology.name.charAt(0)}</span>
           </div>
         )}
         <div className="flex-1">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-gap-3">
             <h1 className="text-2xl font-bold text-harbour-800">{technology.name}</h1>
             {isAdmin && (
               <Link
                 to={`/manage/technologies/${technology.id}`}
-                className="text-sm text-harbour-400 hover:text-harbour-600"
+                className="text-sm text-subtle hover:text-body"
               >
                 Edit
               </Link>
             )}
           </div>
-          <p className="text-harbour-500">{categoryLabels[technology.category]}</p>
+          <p className="text-muted">{categoryLabels[technology.category]}</p>
           {technology.website && (
             <a
               href={technology.website}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-harbour-600 hover:underline"
+              className="text-sm text-body hover:underline"
             >
               Official Website →
             </a>
@@ -70,21 +70,21 @@ export default function TechnologyDetail() {
       </div>
 
       {/* Description */}
-      {technology.description && <p className="text-harbour-600">{technology.description}</p>}
+      {technology.description && <p className="text-body">{technology.description}</p>}
 
       {/* Companies using this technology */}
       {companies.length > 0 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">
+        <div className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">
             Companies using {technology.name}
-            <span className="ml-2 text-sm font-normal text-harbour-400">({companies.length})</span>
+            <span className="ml-2 text-sm font-normal text-subtle">({companies.length})</span>
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-gap-4">
             {companies.map((company) => (
               <Link
                 key={company.id}
                 to={`/directory/companies/${company.slug}`}
-                className="group flex flex-col items-center gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                className="group flex flex-col items-center gap-gap-2 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
               >
                 {company.logo ? (
                   <img
@@ -93,11 +93,11 @@ export default function TechnologyDetail() {
                     className="w-12 h-12 object-contain"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
-                    <span className="text-lg text-harbour-400">{company.name.charAt(0)}</span>
+                  <div className="w-12 h-12 bg-tint flex items-center justify-center">
+                    <span className="text-lg text-subtle">{company.name.charAt(0)}</span>
                   </div>
                 )}
-                <span className="text-sm text-centre text-harbour-700 group-hover:text-harbour-600 text-center">
+                <span className="text-sm text-centre text-heading group-hover:text-body text-center">
                   {company.name}
                 </span>
               </Link>
@@ -108,17 +108,17 @@ export default function TechnologyDetail() {
 
       {/* Projects using this technology */}
       {projects.length > 0 && (
-        <div className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">
+        <div className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">
             Projects using {technology.name}
-            <span className="ml-2 text-sm font-normal text-harbour-400">({projects.length})</span>
+            <span className="ml-2 text-sm font-normal text-subtle">({projects.length})</span>
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-gap-4">
             {projects.map((project) => (
               <Link
                 key={project.id}
                 to={`/directory/projects/${project.slug}`}
-                className="group flex flex-col items-center gap-2 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                className="group flex flex-col items-center gap-gap-2 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
               >
                 {project.logo ? (
                   <img
@@ -127,11 +127,11 @@ export default function TechnologyDetail() {
                     className="w-12 h-12 object-contain"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center">
-                    <span className="text-lg text-harbour-400">{project.name.charAt(0)}</span>
+                  <div className="w-12 h-12 bg-tint flex items-center justify-center">
+                    <span className="text-lg text-subtle">{project.name.charAt(0)}</span>
                   </div>
                 )}
-                <span className="text-sm text-harbour-700 group-hover:text-harbour-600 text-center">
+                <span className="text-sm text-heading group-hover:text-body text-center">
                   {project.name}
                 </span>
               </Link>
@@ -142,14 +142,14 @@ export default function TechnologyDetail() {
 
       {/* No usage */}
       {companies.length === 0 && projects.length === 0 && (
-        <p className="text-harbour-400">
+        <p className="text-subtle">
           No companies or projects are currently using {technology.name}.
         </p>
       )}
 
       {/* Back link */}
-      <div className="pt-4 border-t border-harbour-200">
-        <Link to="/directory/technologies" className="text-harbour-500 hover:text-harbour-700">
+      <div className="pt-pad-4 border-t border-line">
+        <Link to="/directory/technologies" className="text-muted hover:text-heading">
           ← Back to Technologies
         </Link>
       </div>

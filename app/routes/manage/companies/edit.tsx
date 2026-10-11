@@ -424,23 +424,23 @@ export default function EditCompany() {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/companies" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/companies" className="text-sm text-subtle hover:text-body">
             &larr; Back to Companies
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">Edit Company</h1>
+        <h1 className="text-2xl font-semibold text-heading">Edit Company</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="name" className="font-medium text-heading">
               Name *
             </label>
             <input
@@ -449,12 +449,12 @@ export default function EditCompany() {
               name="name"
               required
               defaultValue={company.name}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="description" className="font-medium text-heading">
               Description (Markdown)
             </label>
             <textarea
@@ -462,12 +462,12 @@ export default function EditCompany() {
               name="description"
               rows={8}
               defaultValue={company.description ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="website" className="font-medium text-heading">
               Website
             </label>
             <input
@@ -475,12 +475,12 @@ export default function EditCompany() {
               id="website"
               name="website"
               defaultValue={company.website ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="wikipedia" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="wikipedia" className="font-medium text-heading">
               Wikipedia
             </label>
             <input
@@ -489,12 +489,12 @@ export default function EditCompany() {
               name="wikipedia"
               placeholder="https://en.wikipedia.org/wiki/..."
               defaultValue={company.wikipedia ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="github" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="github" className="font-medium text-heading">
               GitHub Organization
             </label>
             <input
@@ -503,12 +503,12 @@ export default function EditCompany() {
               name="github"
               placeholder="https://github.com/org-name"
               defaultValue={company.github ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="linkedin" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="linkedin" className="font-medium text-heading">
               LinkedIn
             </label>
             <input
@@ -517,13 +517,13 @@ export default function EditCompany() {
               name="linkedin"
               placeholder="https://www.linkedin.com/company/..."
               defaultValue={company.linkedin ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="location" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="location" className="font-medium text-heading">
                 Location
               </label>
               <input
@@ -531,12 +531,12 @@ export default function EditCompany() {
                 id="location"
                 name="location"
                 defaultValue={company.location ?? ""}
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="founded" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="founded" className="font-medium text-heading">
                 Founded
               </label>
               <input
@@ -545,12 +545,12 @@ export default function EditCompany() {
                 name="founded"
                 placeholder="e.g., 2015"
                 defaultValue={company.founded ?? ""}
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"
@@ -571,44 +571,44 @@ export default function EditCompany() {
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">Directory Listings</span>
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">Directory Listings</span>
+            <div className="flex gap-gap-6">
+              <label className="flex items-center gap-gap-2">
                 <input
                   type="checkbox"
                   name="technl"
                   defaultChecked={company.technl ?? false}
                   className="border border-harbour-300"
                 />
-                <span className="text-sm text-harbour-600">TechNL Member</span>
+                <span className="text-sm text-body">TechNL Member</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-gap-2">
                 <input
                   type="checkbox"
                   name="genesis"
                   defaultChecked={company.genesis ?? false}
                   className="border border-harbour-300"
                 />
-                <span className="text-sm text-harbour-600">Genesis Centre</span>
+                <span className="text-sm text-body">Genesis Centre</span>
               </label>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">News Filtering</span>
-            <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">News Filtering</span>
+            <label className="flex items-center gap-gap-2">
               <input
                 type="checkbox"
                 name="newsFilterInclude"
                 defaultChecked={company.newsFilterInclude ?? false}
                 className="border border-harbour-300"
               />
-              <span className="text-sm text-harbour-600">
+              <span className="text-sm text-body">
                 Include name in news import keyword filter
               </span>
             </label>
-            <p className="text-xs text-harbour-400">
+            <p className="text-xs text-subtle">
               When a news source enables the company name filter, articles mentioning this
               company&rsquo;s name will be imported. Only enable for companies with distinctive names
               to avoid false positives.
@@ -618,34 +618,34 @@ export default function EditCompany() {
           <TechnologySelect technologies={allTechnologies} selectedIds={selectedTechnologyIds} />
 
           {companyTechnologies.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <h2 className="font-medium text-harbour-700">Technology Provenance</h2>
-              <p className="text-xs text-harbour-400">
+            <div className="flex flex-col gap-gap-3">
+              <h2 className="font-medium text-heading">Technology Provenance</h2>
+              <p className="text-xs text-subtle">
                 Assign each technology to one source bucket.
               </p>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-gap-3">
                 {provenanceGroups.map((group) => (
-                  <div key={group.id} className="border border-harbour-200 p-3 flex flex-col gap-3">
+                  <div key={group.id} className="border border-line p-pad-3 flex flex-col gap-gap-3">
                     <input type="hidden" name="provenanceGroupId" value={group.id} />
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-medium text-harbour-700">
+                    <div className="flex items-center gap-gap-2">
+                      <div className="flex items-center gap-gap-2">
+                        <h3 className="text-sm font-medium text-heading">
                           {getTechnologyProvenanceSourceByKey(group.sourceKey).label}
                         </h3>
                         {group.technologyIds.length === 0 && (
-                          <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
+                          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-amber-100 text-amber-700">
                             Orphaned
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-gap-2">
                       <select
                         name={`provenanceSourceKey_${group.id}`}
                         value={group.sourceKey}
                         disabled
-                        className="px-2 py-1 border border-harbour-300 bg-harbour-50 text-harbour-700 focus:outline-none"
+                        className="px-pad-2 py-pad-1 border border-harbour-300 bg-soft text-heading focus:outline-none"
                       >
                         {technologyProvenanceSourceOptions.map((option) => (
                           <option key={option.key} value={option.key}>
@@ -665,7 +665,7 @@ export default function EditCompany() {
                           value={group.sourceUrl}
                           onChange={(e) => updateGroupField(group.id, "sourceUrl", e.target.value)}
                           placeholder="Source URL"
-                          className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                          className="px-pad-2 py-pad-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                         />
                       ) : (
                         <input
@@ -675,7 +675,7 @@ export default function EditCompany() {
                             getTechnologyProvenanceSourceByKey(group.sourceKey).sourceUrl ?? ""
                           }
                           readOnly
-                          className="px-2 py-1 border border-harbour-300 bg-harbour-50 text-harbour-700 focus:outline-none"
+                          className="px-pad-2 py-pad-1 border border-harbour-300 bg-soft text-heading focus:outline-none"
                         />
                       )}
                       <input
@@ -683,11 +683,11 @@ export default function EditCompany() {
                         name={`provenanceLastVerified_${group.id}`}
                         value={group.lastVerified}
                         onChange={(e) => updateGroupField(group.id, "lastVerified", e.target.value)}
-                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                        className="px-pad-2 py-pad-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                       />
                     </div>
                     {group.sourceKey === "job_postings" ? (
-                      <p className="text-xs text-harbour-500">
+                      <p className="text-xs text-muted">
                         Snippets and confidence come from extracted job mentions and are shown
                         below.
                       </p>
@@ -698,12 +698,12 @@ export default function EditCompany() {
                         onChange={(e) => updateGroupField(group.id, "excerptText", e.target.value)}
                         rows={2}
                         placeholder="Evidence excerpt (optional)"
-                        className="px-2 py-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                        className="px-pad-2 py-pad-1 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                       />
                     )}
 
-                    <div className="border border-harbour-200 p-2">
-                      <p className="text-xs text-harbour-500 mb-2">Associate technologies</p>
+                    <div className="border border-line p-pad-2">
+                      <p className="text-xs text-muted mb-2">Associate technologies</p>
                       <BaseMultiSelect
                         name={`provenanceTech_${group.id}`}
                         options={assignedTechnologies.map((item) => ({
@@ -720,8 +720,8 @@ export default function EditCompany() {
                         placeholder="Select technologies..."
                       />
                     </div>
-                    <div className="border border-harbour-200 p-2">
-                      <p className="text-xs text-harbour-500 mb-2">Supporting job postings</p>
+                    <div className="border border-line p-pad-2">
+                      <p className="text-xs text-muted mb-2">Supporting job postings</p>
                       {group.sourceKey === "job_postings" ? (
                         <BaseMultiSelect
                           name={`provenanceJobs_${group.id}`}
@@ -741,29 +741,29 @@ export default function EditCompany() {
                           placeholder="Select job evidence..."
                         />
                       ) : (
-                        <p className="text-xs text-harbour-400">
+                        <p className="text-xs text-subtle">
                           Job links only apply to the Job Postings source.
                         </p>
                       )}
                     </div>
                     {group.sourceKey === "job_postings" && (
-                      <div className="border border-harbour-200">
-                        <div className="px-2 py-1 bg-harbour-50 border-b border-harbour-200">
-                          <p className="text-xs text-harbour-600">Extracted evidence (read-only)</p>
+                      <div className="border border-line">
+                        <div className="px-pad-2 py-pad-1 bg-soft border-b border-line">
+                          <p className="text-xs text-body">Extracted evidence (read-only)</p>
                         </div>
                         <table className="w-full">
-                          <thead className="bg-harbour-50 border-b border-harbour-200">
+                          <thead className="bg-soft border-b border-line">
                             <tr>
-                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                              <th className="px-pad-2 py-pad-1 text-left text-xs font-medium text-body">
                                 Technology
                               </th>
-                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                              <th className="px-pad-2 py-pad-1 text-left text-xs font-medium text-body">
                                 Job
                               </th>
-                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                              <th className="px-pad-2 py-pad-1 text-left text-xs font-medium text-body">
                                 Confidence
                               </th>
-                              <th className="px-2 py-1 text-left text-xs font-medium text-harbour-600">
+                              <th className="px-pad-2 py-pad-1 text-left text-xs font-medium text-body">
                                 Snippet
                               </th>
                             </tr>
@@ -778,16 +778,16 @@ export default function EditCompany() {
                               .filter((row) => row.excerptText && row.excerptText.trim().length > 0)
                               .map((row) => (
                                 <tr key={`${row.technologyId}:${row.jobId}`}>
-                                  <td className="px-2 py-1 text-xs text-harbour-700">
+                                  <td className="px-pad-2 py-pad-1 text-xs text-heading">
                                     {row.technologyName}
                                   </td>
-                                  <td className="px-2 py-1 text-xs text-harbour-700">
+                                  <td className="px-pad-2 py-pad-1 text-xs text-heading">
                                     {row.jobTitle}
                                   </td>
-                                  <td className="px-2 py-1 text-xs text-harbour-600">
+                                  <td className="px-pad-2 py-pad-1 text-xs text-body">
                                     {row.confidence ?? "-"}
                                   </td>
-                                  <td className="px-2 py-1 text-xs text-harbour-600">
+                                  <td className="px-pad-2 py-pad-1 text-xs text-body">
                                     {row.excerptText}
                                   </td>
                                 </tr>
@@ -802,9 +802,9 @@ export default function EditCompany() {
             </div>
           )}
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">Visibility</span>
-            <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">Visibility</span>
+            <label className="flex items-center gap-gap-2">
               <input
                 type="checkbox"
                 name="visible"
@@ -812,40 +812,40 @@ export default function EditCompany() {
                 defaultChecked={company.visible ?? true}
                 className="border border-harbour-300"
               />
-              <span className="text-sm text-harbour-600">Visible on public site</span>
+              <span className="text-sm text-body">Visible on public site</span>
             </label>
-            <p className="text-xs text-harbour-400">
+            <p className="text-xs text-subtle">
               Uncheck to hide this company from public listings while you review/edit their profile.
             </p>
           </div>
 
           <button
             type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
           >
             Update Company
           </button>
         </Form>
 
         {/* Convert to Institution section */}
-        <div className="border-t border-harbour-200 pt-6 mt-6">
-          <h2 className="text-lg font-semibold text-harbour-700 mb-4">
+        <div className="border-t border-line pt-pad-6 mt-6">
+          <h2 className="text-lg font-semibold text-heading mb-4">
             Convert to Education Institution
           </h2>
-          <p className="text-sm text-harbour-500 mb-4">
+          <p className="text-sm text-muted mb-4">
             This will move the company to the Education directory. The company entry will be deleted
             and a new education institution will be created with the same data.
           </p>
-          <Form method="post" className="flex flex-wrap items-end gap-4">
+          <Form method="post" className="flex flex-wrap items-end gap-gap-4">
             <input type="hidden" name="intent" value="convertToEducation" />
-            <div className="flex flex-col gap-2">
-              <label htmlFor="institutionType" className="text-sm font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="institutionType" className="text-sm font-medium text-heading">
                 Institution Type
               </label>
               <select
                 id="institutionType"
                 name="institutionType"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 <option value="university">University</option>
                 <option value="college">College</option>
@@ -856,7 +856,7 @@ export default function EditCompany() {
             </div>
             <button
               type="submit"
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
               onClick={(e) => {
                 if (
                   !confirm(
@@ -874,9 +874,9 @@ export default function EditCompany() {
 
         {/* Import Block section - only show for companies from TechNL or Genesis */}
         {(company.technl || company.genesis) && (
-          <div className="border-t border-harbour-200 pt-6 mt-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-2">Import Block</h2>
-            <p className="text-sm text-harbour-500 mb-4">
+          <div className="border-t border-line pt-pad-6 mt-6">
+            <h2 className="text-lg font-semibold text-heading mb-2">Import Block</h2>
+            <p className="text-sm text-muted mb-4">
               Add this company to the import block list to prevent it from being re-imported from{" "}
               {company.technl && company.genesis
                 ? "TechNL or Genesis"
@@ -885,14 +885,14 @@ export default function EditCompany() {
                   : "Genesis"}{" "}
               in the future. This will also delete the current record.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-gap-3">
               {company.technl && (
                 <Form method="post">
                   <input type="hidden" name="intent" value="import-block" />
                   <input type="hidden" name="source" value="technl" />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                    className="px-pad-4 py-pad-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
                     onClick={(e) => {
                       if (
                         !confirm(
@@ -913,7 +913,7 @@ export default function EditCompany() {
                   <input type="hidden" name="source" value="genesis" />
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                    className="px-pad-4 py-pad-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
                     onClick={(e) => {
                       if (
                         !confirm(

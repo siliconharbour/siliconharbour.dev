@@ -416,7 +416,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <span
-      className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}
+      className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}
     >
       {labels[status] || status}
     </span>
@@ -433,7 +433,7 @@ function WorkplaceBadge({ type }: { type: string | null }) {
   };
 
   return (
-    <span className={`text-xs px-1.5 py-0.5 ${colors[type] || "bg-harbour-100 text-harbour-600"}`}>
+    <span className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[type] || "bg-tint text-body"}`}>
       {type}
     </span>
   );
@@ -451,28 +451,28 @@ function JobTitleWithDescription({
   badge?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-gap-1">
+      <div className="flex items-center gap-gap-2">
         {url ? (
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-harbour-600 hover:underline"
+            className="text-body hover:underline"
           >
             {title}
           </a>
         ) : (
-          <span className="text-harbour-700">{title}</span>
+          <span className="text-heading">{title}</span>
         )}
         {badge}
       </div>
       {descriptionText && descriptionText.trim().length > 0 && (
         <details className="w-full">
-          <summary className="cursor-pointer text-xs text-harbour-500 hover:text-harbour-700">
+          <summary className="cursor-pointer text-xs text-muted hover:text-heading">
             View full posting text
           </summary>
-          <pre className="mt-2 p-2 text-xs text-harbour-600 bg-harbour-50 border border-harbour-200 whitespace-pre-wrap break-words font-mono">
+          <pre className="mt-2 p-pad-2 text-xs text-body bg-soft border border-line whitespace-pre-wrap break-words font-mono">
             {descriptionText}
           </pre>
         </details>
@@ -522,22 +522,22 @@ export default function ViewJobImportSource() {
         };
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-5xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center gap-4">
-          <Link to="/manage/import/jobs" className="text-harbour-400 hover:text-harbour-600">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-5xl mx-auto flex flex-col gap-gap-6">
+        <div className="flex items-center gap-gap-4">
+          <Link to="/manage/import/jobs" className="text-subtle hover:text-body">
             &larr; Back
           </Link>
-          <h1 className="text-2xl font-semibold text-harbour-700">
+          <h1 className="text-2xl font-semibold text-heading">
             {company?.name || "Unknown Company"} - Job Import
           </h1>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-gap-2">
             {careersPageUrl && (
               <a
                 href={careersPageUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 text-sm font-medium transition-colors"
+                className="px-pad-3 py-pad-2 bg-tint hover:bg-harbour-200 text-heading text-sm font-medium transition-colors"
               >
                 Careers Page
               </a>
@@ -545,7 +545,7 @@ export default function ViewJobImportSource() {
             {companyDetailsPath && (
               <Link
                 to={companyDetailsPath}
-                className="px-3 py-2 bg-harbour-600 hover:bg-harbour-700 text-white text-sm font-medium transition-colors"
+                className="px-pad-3 py-pad-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium transition-colors"
               >
                 Company Page
               </Link>
@@ -555,7 +555,7 @@ export default function ViewJobImportSource() {
 
         {syncResult && "added" in syncResult && (
           <div
-            className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
+            className={`p-pad-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
           >
             {syncResult.success ? (
               <div>
@@ -575,21 +575,21 @@ export default function ViewJobImportSource() {
         )}
 
         {/* Source details */}
-        <div className="bg-white border border-harbour-200 p-6">
-          <h2 className="text-lg font-semibold text-harbour-700 mb-4">Source Configuration</h2>
-          <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="bg-surface border border-line p-pad-6 rounded-panel">
+          <h2 className="text-lg font-semibold text-heading mb-4">Source Configuration</h2>
+          <dl className="grid grid-cols-1 md:grid-cols-2 gap-gap-4 text-sm">
             <div>
-              <dt className="text-harbour-500">Source Type</dt>
-              <dd className="font-medium text-harbour-700">
+              <dt className="text-muted">Source Type</dt>
+              <dd className="font-medium text-heading">
                 {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
                   source.sourceType}
               </dd>
             </div>
             <div className="col-span-2">
-              <fetcher.Form method="post" className="flex flex-col gap-3">
+              <fetcher.Form method="post" className="flex flex-col gap-gap-3">
                 <input type="hidden" name="intent" value="edit-source" />
                 <div>
-                  <label className="text-harbour-500 text-sm" htmlFor="sourceIdentifier">
+                  <label className="text-muted text-sm" htmlFor="sourceIdentifier">
                     Identifier
                   </label>
                   <input
@@ -597,11 +597,11 @@ export default function ViewJobImportSource() {
                     name="sourceIdentifier"
                     type="text"
                     defaultValue={source.sourceIdentifier}
-                    className="w-full mt-1 px-2 py-1 text-sm font-mono border border-harbour-200 text-harbour-600 focus:outline-none focus:border-harbour-400"
+                    className="w-full mt-1 px-pad-2 py-pad-1 text-sm font-mono border border-line text-body focus:outline-none focus:border-harbour-400"
                   />
                 </div>
                 <div>
-                  <label className="text-harbour-500 text-sm" htmlFor="editSourceUrl">
+                  <label className="text-muted text-sm" htmlFor="editSourceUrl">
                     Careers URL
                   </label>
                   <input
@@ -610,13 +610,13 @@ export default function ViewJobImportSource() {
                     type="text"
                     defaultValue={source.sourceUrl || ""}
                     placeholder="https://..."
-                    className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 text-harbour-600 focus:outline-none focus:border-harbour-400"
+                    className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line text-body focus:outline-none focus:border-harbour-400"
                   />
                 </div>
                 <div>
                   <button
                     type="submit"
-                    className="px-3 py-1 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+                    className="px-pad-3 py-pad-1 text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
                   >
                     Save
                   </button>
@@ -624,15 +624,15 @@ export default function ViewJobImportSource() {
               </fetcher.Form>
             </div>
             <div>
-              <dt className="text-harbour-500">Last Fetched</dt>
-              <dd className="text-harbour-600">{formatDate(source.lastFetchedAt)}</dd>
+              <dt className="text-muted">Last Fetched</dt>
+              <dd className="text-body">{formatDate(source.lastFetchedAt)}</dd>
             </div>
             <div>
-              <dt className="text-harbour-500">Fetch Status</dt>
+              <dt className="text-muted">Fetch Status</dt>
               <dd>
                 {source.fetchStatus ? (
                   <span
-                    className={`text-xs px-1.5 py-0.5 ${
+                    className={`text-xs px-pad-1-5 py-pad-0-5 ${
                       source.fetchStatus === "success"
                         ? "bg-green-100 text-green-700"
                         : source.fetchStatus === "error"
@@ -656,13 +656,13 @@ export default function ViewJobImportSource() {
             </div>
           </dl>
 
-          <div className="flex items-center gap-3 mt-6 pt-4 border-t border-harbour-100">
+          <div className="flex items-center gap-gap-3 mt-6 pt-pad-4 border-t border-harbour-100">
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="sync" />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+                className="px-pad-4 py-pad-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
               >
                 {isLoading ? "Syncing..." : "Sync Now"}
               </button>
@@ -682,7 +682,7 @@ export default function ViewJobImportSource() {
               <input type="hidden" name="intent" value="delete" />
               <button
                 type="submit"
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+                className="px-pad-4 py-pad-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
               >
                 Delete Source
               </button>
@@ -691,7 +691,7 @@ export default function ViewJobImportSource() {
         </div>
 
         {isVerafinManualMode && (
-          <div className="bg-amber-50 border border-amber-200 p-6">
+          <div className="bg-amber-50 border border-amber-200 p-pad-6">
             <h2 className="text-lg font-semibold text-amber-800 mb-2">
               Manual Workday Ingestion (Verafin)
             </h2>
@@ -705,7 +705,7 @@ export default function ViewJobImportSource() {
               <li>Copy the JSON output (it also tries to copy automatically).</li>
               <li>Paste JSON below and click "Ingest Manual JSON".</li>
             </ol>
-            <pre className="p-3 text-xs text-harbour-700 bg-white border border-amber-200 overflow-x-auto whitespace-pre-wrap break-words font-mono mb-4">
+            <pre className="p-pad-3 text-xs text-heading bg-surface border border-amber-200 overflow-x-auto whitespace-pre-wrap break-words font-mono mb-4">
               {VERAFIN_BROWSER_SCRIPT}
             </pre>
 
@@ -719,12 +719,12 @@ export default function ViewJobImportSource() {
                 name="manualJobsJson"
                 rows={12}
                 placeholder='Paste JSON array (or {"jobs":[...]}) from the console script'
-                className="w-full px-3 py-2 border border-amber-200 bg-white text-sm font-mono text-harbour-700"
+                className="w-full px-pad-3 py-pad-2 border border-amber-200 bg-surface text-sm font-mono text-heading"
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white font-medium transition-colors"
+                className="px-pad-4 py-pad-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white font-medium transition-colors"
               >
                 {isLoading ? "Ingesting..." : "Ingest Manual JSON"}
               </button>
@@ -732,9 +732,9 @@ export default function ViewJobImportSource() {
           </div>
         )}
 
-        <div className="bg-white border border-harbour-200 p-6">
-          <h2 className="text-lg font-semibold text-harbour-700 mb-2">Technology Extraction</h2>
-          <p className="text-sm text-harbour-500 mb-4">
+        <div className="bg-surface border border-line p-pad-6 rounded-panel">
+          <h2 className="text-lg font-semibold text-heading mb-2">Technology Extraction</h2>
+          <p className="text-sm text-muted mb-4">
             Extract technology mentions from this source&apos;s job descriptions, preview them, then
             apply selected items to company technology evidence.
           </p>
@@ -744,22 +744,22 @@ export default function ViewJobImportSource() {
             <button
               type="submit"
               disabled={isTechLoading}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isTechLoading ? "Extracting..." : "Extract Technologies (Preview)"}
             </button>
           </techFetcher.Form>
 
           {techResult && "success" in techResult && !techResult.success && (
-            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700 mb-4">
+            <div className="p-pad-3 bg-red-50 border border-red-200 text-sm text-red-700 mb-4">
               {"error" in techResult ? techResult.error : "Extraction failed."}
             </div>
           )}
 
           {techPreview && (
-            <div className="border border-harbour-200">
-              <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
-                <p className="text-sm text-harbour-700 font-medium">
+            <div className="border border-line">
+              <div className="px-pad-4 py-pad-3 bg-soft border-b border-line">
+                <p className="text-sm text-heading font-medium">
                   Preview: {techPreview.uniqueTechnologies} technologies from{" "}
                   {techPreview.jobsScanned} jobs ({techPreview.mentionsFound} mentions)
                 </p>
@@ -773,14 +773,14 @@ export default function ViewJobImportSource() {
                 )}
               </div>
 
-              <techFetcher.Form method="post" className="p-4 flex flex-col gap-4">
+              <techFetcher.Form method="post" className="p-pad-4 flex flex-col gap-gap-4">
                 <input type="hidden" name="intent" value="apply-tech-preview" />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-3">
+                  <div className="flex flex-col gap-gap-1">
                     <label
                       htmlFor="tech-sourceKey"
-                      className="text-sm font-medium text-harbour-700"
+                      className="text-sm font-medium text-heading"
                     >
                       Source
                     </label>
@@ -788,7 +788,7 @@ export default function ViewJobImportSource() {
                       id="tech-sourceKey"
                       name="sourceKey"
                       defaultValue={techDefaults.sourceKey}
-                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                      className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     >
                       {technologyProvenanceSourceOptions.map((option) => (
                         <option key={option.key} value={option.key}>
@@ -797,10 +797,10 @@ export default function ViewJobImportSource() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-gap-1">
                     <label
                       htmlFor="tech-lastVerified"
-                      className="text-sm font-medium text-harbour-700"
+                      className="text-sm font-medium text-heading"
                     >
                       Last Verified (YYYY-MM)
                     </label>
@@ -809,13 +809,13 @@ export default function ViewJobImportSource() {
                       id="tech-lastVerified"
                       name="lastVerified"
                       defaultValue={techDefaults.lastVerified}
-                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                      className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-gap-1">
                     <label
                       htmlFor="tech-sourceUrl"
-                      className="text-sm font-medium text-harbour-700"
+                      className="text-sm font-medium text-heading"
                     >
                       Source URL
                     </label>
@@ -824,31 +824,31 @@ export default function ViewJobImportSource() {
                       id="tech-sourceUrl"
                       name="sourceUrl"
                       defaultValue={techDefaults.sourceUrl || ""}
-                      className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                      className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="border border-harbour-200 overflow-x-auto">
+                <div className="border border-line overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-harbour-50 border-b border-harbour-200">
+                    <thead className="bg-soft border-b border-line">
                       <tr>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600 w-10">
+                        <th className="px-pad-3 py-pad-2 text-left text-sm font-medium text-body w-10">
                           Use
                         </th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                        <th className="px-pad-3 py-pad-2 text-left text-sm font-medium text-body">
                           Technology
                         </th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                        <th className="px-pad-3 py-pad-2 text-left text-sm font-medium text-body">
                           Category
                         </th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                        <th className="px-pad-3 py-pad-2 text-left text-sm font-medium text-body">
                           Mentions
                         </th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                        <th className="px-pad-3 py-pad-2 text-left text-sm font-medium text-body">
                           Jobs
                         </th>
-                        <th className="px-3 py-2 text-left text-sm font-medium text-harbour-600">
+                        <th className="px-pad-3 py-pad-2 text-left text-sm font-medium text-body">
                           Evidence
                         </th>
                       </tr>
@@ -856,7 +856,7 @@ export default function ViewJobImportSource() {
                     <tbody className="divide-y divide-harbour-100">
                       {techPreview.items.map((item) => (
                         <tr key={item.technologyId}>
-                          <td className="px-3 py-2 align-top">
+                          <td className="px-pad-3 py-pad-2 align-top">
                             <input
                               type="checkbox"
                               name="selectedTechnologyIds"
@@ -865,26 +865,26 @@ export default function ViewJobImportSource() {
                               className="border border-harbour-300"
                             />
                           </td>
-                          <td className="px-3 py-2 text-sm text-harbour-700">
+                          <td className="px-pad-3 py-pad-2 text-sm text-heading">
                             {item.technologyName}
                           </td>
-                          <td className="px-3 py-2 text-sm text-harbour-500">
+                          <td className="px-pad-3 py-pad-2 text-sm text-muted">
                             {categoryLabels[item.category as TechnologyCategory] || item.category}
                           </td>
-                          <td className="px-3 py-2 text-sm text-harbour-500">
+                          <td className="px-pad-3 py-pad-2 text-sm text-muted">
                             {item.mentionCount}
                           </td>
-                          <td className="px-3 py-2 text-sm text-harbour-500">{item.jobCount}</td>
-                          <td className="px-3 py-2 text-xs text-harbour-600">
+                          <td className="px-pad-3 py-pad-2 text-sm text-muted">{item.jobCount}</td>
+                          <td className="px-pad-3 py-pad-2 text-xs text-body">
                             {item.examples.map((example) => (
                               <details
                                 key={`${item.technologyId}-${example.jobId}`}
                                 className="mb-1"
                               >
-                                <summary className="cursor-pointer hover:text-harbour-700">
+                                <summary className="cursor-pointer hover:text-heading">
                                   {example.jobTitle} (conf {example.confidence})
                                 </summary>
-                                <p className="mt-1 text-harbour-500">
+                                <p className="mt-1 text-muted">
                                   {example.context || "No context snippet"}
                                 </p>
                               </details>
@@ -899,7 +899,7 @@ export default function ViewJobImportSource() {
                 <button
                   type="submit"
                   disabled={isTechLoading}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors self-start"
+                  className="px-pad-4 py-pad-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors self-start"
                 >
                   {isTechLoading ? "Applying..." : "Apply Selected to Company"}
                 </button>
@@ -909,33 +909,33 @@ export default function ViewJobImportSource() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="p-4 border border-blue-200 bg-blue-50 text-center">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-gap-4">
+          <div className="p-pad-4 border border-blue-200 bg-blue-50 text-center">
             <div className="text-3xl font-bold text-blue-600">{pendingReviewJobs.length}</div>
             <div className="text-sm text-blue-700">Pending Review</div>
           </div>
-          <div className="p-4 border border-harbour-200 bg-white text-center">
+          <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
             <div className="text-3xl font-bold text-green-600">{activeJobs.length}</div>
-            <div className="text-sm text-harbour-500">Active Jobs</div>
+            <div className="text-sm text-muted">Active Jobs</div>
           </div>
-          <div className="p-4 border border-harbour-200 bg-white text-center">
+          <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
             <div className="text-3xl font-bold text-amber-500">{hiddenJobs.length}</div>
-            <div className="text-sm text-harbour-500">Hidden Jobs</div>
+            <div className="text-sm text-muted">Hidden Jobs</div>
           </div>
-          <div className="p-4 border border-harbour-200 bg-white text-center">
+          <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
             <div className="text-3xl font-bold text-slate-400">{removedJobs.length}</div>
-            <div className="text-sm text-harbour-500">Removed Jobs</div>
+            <div className="text-sm text-muted">Removed Jobs</div>
           </div>
-          <div className="p-4 border border-harbour-200 bg-white text-center">
-            <div className="text-3xl font-bold text-harbour-600">{source.totalJobCount}</div>
-            <div className="text-sm text-harbour-500">Total Tracked</div>
+          <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
+            <div className="text-3xl font-bold text-body">{source.totalJobCount}</div>
+            <div className="text-sm text-muted">Total Tracked</div>
           </div>
         </div>
 
         {/* Pending Review Jobs */}
         {pendingReviewJobs.length > 0 && (
-          <div className="border border-blue-200 bg-white overflow-x-auto">
-            <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+          <div className="border border-blue-200 bg-surface overflow-x-auto rounded-panel">
+            <div className="px-pad-4 py-pad-3 bg-blue-50 border-b border-blue-200">
               <h2 className="font-medium text-blue-800">
                 Pending Review ({pendingReviewJobs.length})
               </h2>
@@ -946,22 +946,22 @@ export default function ViewJobImportSource() {
             <table className="w-full">
               <thead className="bg-blue-50/50 border-b border-blue-100">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Title
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Location
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Department
                   </th>
-                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-center text-sm font-medium text-body">
                     Type
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     First Seen
                   </th>
-                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-right text-sm font-medium text-body">
                     Actions
                   </th>
                 </tr>
@@ -969,28 +969,28 @@ export default function ViewJobImportSource() {
               <tbody className="divide-y divide-blue-100">
                 {pendingReviewJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-blue-50/50">
-                    <td className="px-4 py-3">
+                    <td className="px-pad-4 py-pad-3">
                       <JobTitleWithDescription
                         title={job.title}
                         url={job.url}
                         descriptionText={job.descriptionText}
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.location || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.department || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-center">
                       <WorkplaceBadge type={job.workplaceType} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">
+                    <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                       {formatDate(job.firstSeenAt)}
                     </td>
-                    <td className="px-4 py-3 text-right flex gap-1 justify-end">
+                    <td className="px-pad-4 py-pad-3 text-right flex gap-gap-1 justify-end">
                       <fetcher.Form method="post" className="inline">
                         <input type="hidden" name="intent" value="approve" />
                         <input type="hidden" name="jobId" value={job.id} />
                         <button
                           type="submit"
-                          className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+                          className="px-pad-2 py-pad-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
                         >
                           Approve
                         </button>
@@ -1000,7 +1000,7 @@ export default function ViewJobImportSource() {
                         <input type="hidden" name="jobId" value={job.id} />
                         <button
                           type="submit"
-                          className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                          className="px-pad-2 py-pad-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
                         >
                           Non-technical
                         </button>
@@ -1010,7 +1010,7 @@ export default function ViewJobImportSource() {
                         <input type="hidden" name="jobId" value={job.id} />
                         <button
                           type="submit"
-                          className="px-2 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
+                          className="px-pad-2 py-pad-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
                         >
                           Hide
                         </button>
@@ -1025,69 +1025,69 @@ export default function ViewJobImportSource() {
 
         {/* Active Jobs */}
         {activeJobs.length > 0 && (
-          <div className="border border-harbour-200 bg-white overflow-x-auto">
-            <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
-              <h2 className="font-medium text-harbour-700">Active Jobs ({activeJobs.length})</h2>
-              <p className="text-xs text-harbour-400 mt-1">
+          <div className="border border-line bg-surface overflow-x-auto rounded-panel">
+            <div className="px-pad-4 py-pad-3 bg-soft border-b border-line">
+              <h2 className="font-medium text-heading">Active Jobs ({activeJobs.length})</h2>
+              <p className="text-xs text-subtle mt-1">
                 These jobs are shown on the company page. Hide jobs you don't want displayed.
               </p>
             </div>
             <table className="w-full">
-              <thead className="bg-harbour-50 border-b border-harbour-200">
+              <thead className="bg-soft border-b border-line">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Title
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Location
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Department
                   </th>
-                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-center text-sm font-medium text-body">
                     Type
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     First Seen
                   </th>
-                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-right text-sm font-medium text-body">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
                 {activeJobs.map((job) => (
-                  <tr key={job.id} className="hover:bg-harbour-50">
-                    <td className="px-4 py-3">
+                  <tr key={job.id} className="hover:bg-soft">
+                    <td className="px-pad-4 py-pad-3">
                       <JobTitleWithDescription
                         title={job.title}
                         url={job.url}
                         descriptionText={job.descriptionText}
                         badge={
                           !job.isTechnical ? (
-                            <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">
+                            <span className="text-xs px-pad-1-5 py-pad-0-5 bg-slate-100 text-slate-600">
                               Non-tech
                             </span>
                           ) : undefined
                         }
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.location || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.department || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-center">
                       <WorkplaceBadge type={job.workplaceType} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">
+                    <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                       {formatDate(job.firstSeenAt)}
                     </td>
-                    <td className="px-4 py-3 text-right flex gap-1 justify-end">
+                    <td className="px-pad-4 py-pad-3 text-right flex gap-gap-1 justify-end">
                       {job.isTechnical ? (
                         <fetcher.Form method="post" className="inline">
                           <input type="hidden" name="intent" value="mark-non-technical" />
                           <input type="hidden" name="jobId" value={job.id} />
                           <button
                             type="submit"
-                            className="px-2 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
+                            className="px-pad-2 py-pad-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
                           >
                             Non-technical
                           </button>
@@ -1098,7 +1098,7 @@ export default function ViewJobImportSource() {
                           <input type="hidden" name="jobId" value={job.id} />
                           <button
                             type="submit"
-                            className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+                            className="px-pad-2 py-pad-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
                           >
                             Technical
                           </button>
@@ -1109,7 +1109,7 @@ export default function ViewJobImportSource() {
                         <input type="hidden" name="jobId" value={job.id} />
                         <button
                           type="submit"
-                          className="px-2 py-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
+                          className="px-pad-2 py-pad-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
                         >
                           Hide
                         </button>
@@ -1124,8 +1124,8 @@ export default function ViewJobImportSource() {
 
         {/* Hidden Jobs */}
         {hiddenJobs.length > 0 && (
-          <div className="border border-amber-200 bg-white overflow-x-auto">
-            <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
+          <div className="border border-amber-200 bg-surface overflow-x-auto rounded-panel">
+            <div className="px-pad-4 py-pad-3 bg-amber-50 border-b border-amber-200">
               <h2 className="font-medium text-amber-800">Hidden Jobs ({hiddenJobs.length})</h2>
               <p className="text-xs text-amber-600 mt-1">
                 These jobs won't be shown on the company page and won't be reactivated by syncs.
@@ -1134,19 +1134,19 @@ export default function ViewJobImportSource() {
             <table className="w-full">
               <thead className="bg-amber-50/50 border-b border-amber-100">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Title
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Location
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Department
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     First Seen
                   </th>
-                  <th className="px-4 py-2 text-right text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-right text-sm font-medium text-body">
                     Actions
                   </th>
                 </tr>
@@ -1154,25 +1154,25 @@ export default function ViewJobImportSource() {
               <tbody className="divide-y divide-amber-100">
                 {hiddenJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-amber-50/50">
-                    <td className="px-4 py-3">
+                    <td className="px-pad-4 py-pad-3">
                       <JobTitleWithDescription
                         title={job.title}
                         url={job.url}
                         descriptionText={job.descriptionText}
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">{job.department || "-"}</td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.location || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.department || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                       {formatDate(job.firstSeenAt)}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-pad-4 py-pad-3 text-right">
                       <fetcher.Form method="post" className="inline">
                         <input type="hidden" name="intent" value="unhide" />
                         <input type="hidden" name="jobId" value={job.id} />
                         <button
                           type="submit"
-                          className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
+                          className="px-pad-2 py-pad-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 transition-colors"
                         >
                           Unhide
                         </button>
@@ -1187,50 +1187,50 @@ export default function ViewJobImportSource() {
 
         {/* Removed Jobs */}
         {removedJobs.length > 0 && (
-          <div className="border border-harbour-200 bg-white overflow-x-auto">
-            <div className="px-4 py-3 bg-harbour-50 border-b border-harbour-200">
-              <h2 className="font-medium text-harbour-700">
+          <div className="border border-line bg-surface overflow-x-auto rounded-panel">
+            <div className="px-pad-4 py-pad-3 bg-soft border-b border-line">
+              <h2 className="font-medium text-heading">
                 Removed/Historical Jobs ({removedJobs.length})
               </h2>
             </div>
             <table className="w-full">
-              <thead className="bg-harbour-50 border-b border-harbour-200">
+              <thead className="bg-soft border-b border-line">
                 <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Title
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Location
                   </th>
-                  <th className="px-4 py-2 text-center text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-center text-sm font-medium text-body">
                     Status
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     First Seen
                   </th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-2 text-left text-sm font-medium text-body">
                     Removed
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
                 {removedJobs.map((job) => (
-                  <tr key={job.id} className="hover:bg-harbour-50 opacity-60">
-                    <td className="px-4 py-3">
+                  <tr key={job.id} className="hover:bg-soft opacity-60">
+                    <td className="px-pad-4 py-pad-3">
                       <JobTitleWithDescription
                         title={job.title}
                         url={job.url}
                         descriptionText={job.descriptionText}
                       />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-500">{job.location || "-"}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.location || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-center">
                       <StatusBadge status={job.status} />
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">
+                    <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                       {formatDate(job.firstSeenAt)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-harbour-400">
+                    <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                       {formatDate(job.removedAt)}
                     </td>
                   </tr>
@@ -1241,8 +1241,8 @@ export default function ViewJobImportSource() {
         )}
 
         {source.jobs.length === 0 && (
-          <div className="p-8 border border-harbour-200 bg-harbour-50 text-center">
-            <p className="text-harbour-600">
+          <div className="p-pad-8 border border-line bg-soft text-center">
+            <p className="text-body">
               No jobs imported yet. Click "Sync Now" to fetch jobs.
             </p>
           </div>

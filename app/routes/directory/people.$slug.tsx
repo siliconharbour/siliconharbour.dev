@@ -51,10 +51,10 @@ export default function PersonDetail() {
   const { person, resolvedRefs, backlinks, socialLinks, isAdmin } = useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
       {!person.visible && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="mb-6 p-pad-4 bg-amber-50 border border-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-gap-2">
             <svg
               className="w-5 h-5 text-amber-600"
               fill="none"
@@ -75,15 +75,15 @@ export default function PersonDetail() {
           {isAdmin && (
             <Link
               to={`/manage/people/${person.id}`}
-              className="text-sm px-3 py-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
+              className="text-sm px-pad-3 py-pad-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
             >
               Edit visibility
             </Link>
           )}
         </div>
       )}
-      <article className="flex flex-col gap-6">
-        <div className="flex items-start gap-4">
+      <article className="flex flex-col gap-gap-6">
+        <div className="flex items-start gap-gap-4">
           {person.avatar ? (
             <div className="w-24 h-24 relative overflow-hidden flex-shrink-0">
               <img
@@ -93,17 +93,17 @@ export default function PersonDetail() {
               />
             </div>
           ) : (
-            <div className="w-24 h-24 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-4xl text-harbour-400">{person.name.charAt(0)}</span>
+            <div className="w-24 h-24 bg-tint flex items-center justify-center flex-shrink-0">
+              <span className="text-4xl text-subtle">{person.name.charAt(0)}</span>
             </div>
           )}
-          <div className="flex flex-col gap-2 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold text-harbour-700">{person.name}</h1>
+          <div className="flex flex-col gap-gap-2 flex-1">
+            <div className="flex items-center gap-gap-2">
+              <h1 className="text-3xl font-bold text-heading">{person.name}</h1>
               {isAdmin && (
                 <Link
                   to={`/manage/people/${person.id}`}
-                  className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                  className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,13 +118,13 @@ export default function PersonDetail() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-gap-3">
               {person.website && (
                 <a
                   href={person.website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-harbour-600 hover:text-harbour-700 text-sm"
+                  className="text-body hover:text-heading text-sm"
                 >
                   Website
                 </a>
@@ -134,7 +134,7 @@ export default function PersonDetail() {
                   href={person.github || socialLinks.github}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-harbour-600 hover:text-harbour-700 text-sm"
+                  className="text-body hover:text-heading text-sm"
                 >
                   GitHub
                 </a>
@@ -144,7 +144,7 @@ export default function PersonDetail() {
                   href={socialLinks.twitter}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-harbour-600 hover:text-harbour-700 text-sm"
+                  className="text-body hover:text-heading text-sm"
                 >
                   Twitter
                 </a>
@@ -154,7 +154,7 @@ export default function PersonDetail() {
                   href={socialLinks.linkedin}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-harbour-600 hover:text-harbour-700 text-sm"
+                  className="text-body hover:text-heading text-sm"
                 >
                   LinkedIn
                 </a>

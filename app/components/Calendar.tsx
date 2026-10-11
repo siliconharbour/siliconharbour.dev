@@ -115,17 +115,17 @@ export function Calendar({
   };
 
   return (
-    <div className="bg-white p-4">
+    <div className="bg-surface p-pad-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-harbour-700">
+        <h2 className="text-lg font-semibold text-heading">
           {month} {year}
         </h2>
-        <div className="flex gap-1">
+        <div className="flex gap-gap-1">
           <button
             onClick={goToPreviousMonth}
             type="button"
-            className="p-2 text-harbour-400 hover:text-harbour-600 transition-colors"
+            className="p-pad-2 text-subtle hover:text-body transition-colors"
             aria-label="Previous month"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,7 +140,7 @@ export function Calendar({
           <button
             onClick={goToNextMonth}
             type="button"
-            className="p-2 text-harbour-400 hover:text-harbour-600 transition-colors"
+            className="p-pad-2 text-subtle hover:text-body transition-colors"
             aria-label="Next month"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,16 +151,16 @@ export function Calendar({
       </div>
 
       {/* Week days header */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-gap-1 mb-2">
         {weekDays.map((day) => (
-          <div key={day} className="text-center text-xs font-medium text-harbour-400 py-2">
+          <div key={day} className="text-center text-xs font-medium text-subtle py-pad-2">
             {day}
           </div>
         ))}
       </div>
 
       {/* Days grid */}
-      <div className={`grid grid-cols-7 gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}>
+      <div className={`grid grid-cols-7 gap-gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}>
         {days.map((dpDay) => {
           const dateKey = format(dpDay.$date, "yyyy-MM-dd");
           const dayEvents = eventDateMap.get(dateKey) || [];
@@ -170,17 +170,17 @@ export function Calendar({
           const isClickable = hasEvents && dpDay.inCurrentMonth;
 
           const dayClasses = `
-            calendar-day relative aspect-square flex flex-col items-center justify-start p-1 text-sm transition-colors
-            ${dpDay.inCurrentMonth ? (hasEvents ? "text-harbour-700" : "text-harbour-400") : "text-harbour-200"}
-            ${isToday ? "bg-harbour-50 font-semibold" : ""}
-            ${isClickable ? "hover:bg-harbour-50 cursor-pointer" : ""}
+            calendar-day relative aspect-square flex flex-col items-center justify-start p-pad-1 text-sm transition-colors
+            ${dpDay.inCurrentMonth ? (hasEvents ? "text-heading" : "text-subtle") : "text-harbour-200"}
+            ${isToday ? "bg-soft font-semibold" : ""}
+            ${isClickable ? "hover:bg-soft cursor-pointer" : ""}
           `;
 
           const dayContent = (
             <>
-              <span className={isToday ? "text-harbour-600" : ""}>{dpDay.day}</span>
+              <span className={isToday ? "text-body" : ""}>{dpDay.day}</span>
               {hasEvents && dpDay.inCurrentMonth && (
-                <div className="flex gap-0.5 mt-1 flex-wrap justify-center">
+                <div className="flex gap-gap-0-5 mt-1 flex-wrap justify-center">
                   {dayEvents.slice(0, 3).map((event) => (
                     <div
                       key={event.id}
@@ -189,7 +189,7 @@ export function Calendar({
                     />
                   ))}
                   {dayEvents.length > 3 && (
-                    <span className="text-[10px] text-harbour-400">+{dayEvents.length - 3}</span>
+                    <span className="text-[10px] text-subtle">+{dayEvents.length - 3}</span>
                   )}
                 </div>
               )}

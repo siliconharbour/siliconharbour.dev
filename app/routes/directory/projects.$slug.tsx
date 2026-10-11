@@ -49,7 +49,7 @@ const statusLabels: Record<ProjectStatus, string> = {
 const statusColors: Record<ProjectStatus, string> = {
   active: "bg-green-100 text-green-700",
   completed: "bg-blue-100 text-blue-700",
-  archived: "bg-harbour-100 text-harbour-500",
+  archived: "bg-tint text-muted",
   "on-hold": "bg-amber-100 text-amber-700",
 };
 
@@ -152,8 +152,8 @@ export default function ProjectDetail() {
   const linkEntries = Object.entries(links).filter(([, url]) => url);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
-      <article className="flex flex-col gap-6">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
+      <article className="flex flex-col gap-gap-6">
         {project.coverImage && (
           <div className="aspect-video relative overflow-hidden">
             <img
@@ -164,7 +164,7 @@ export default function ProjectDetail() {
           </div>
         )}
 
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-gap-4">
           {project.logo && (
             <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
@@ -174,13 +174,13 @@ export default function ProjectDetail() {
               />
             </div>
           )}
-          <div className="flex flex-col gap-1 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold text-harbour-700">{project.name}</h1>
+          <div className="flex flex-col gap-gap-1 flex-1">
+            <div className="flex items-center gap-gap-2">
+              <h1 className="text-3xl font-bold text-heading">{project.name}</h1>
               {isAdmin && (
                 <Link
                   to={`/manage/projects/${project.id}`}
-                  className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                  className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -194,9 +194,9 @@ export default function ProjectDetail() {
                 </Link>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-harbour-500">{typeLabels[project.type]}</span>
-              <span className={`text-xs px-1.5 py-0.5 ${statusColors[project.status]}`}>
+            <div className="flex items-center gap-gap-2 flex-wrap">
+              <span className="text-sm text-muted">{typeLabels[project.type]}</span>
+              <span className={`text-xs px-pad-1-5 py-pad-0-5 ${statusColors[project.status]}`}>
                 {statusLabels[project.status]}
               </span>
             </div>
@@ -212,7 +212,7 @@ export default function ProjectDetail() {
 
         {/* Links */}
         {linkEntries.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-gap-2">
             {linkEntries.map(([key, url]) => {
               const config = linkConfig[key] || {
                 label: key.charAt(0).toUpperCase() + key.slice(1),
@@ -233,7 +233,7 @@ export default function ProjectDetail() {
                   href={url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors"
+                  className="inline-flex items-center gap-gap-2 px-pad-3 py-pad-1-5 text-sm bg-tint text-heading hover:bg-harbour-200 transition-colors"
                 >
                   {config.icon}
                   {config.label}

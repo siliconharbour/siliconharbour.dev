@@ -169,26 +169,26 @@ export default function JobsIndex() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 py-8">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
+    <div className="max-w-6xl mx-auto p-pad-4 py-pad-8">
+      <div className="flex flex-col gap-gap-8">
+        <div className="flex flex-col gap-gap-4">
+          <div className="flex flex-col gap-gap-2">
             <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-harbour-700">Jobs</h1>
+              <h1 className="text-3xl font-bold text-heading">Jobs</h1>
               {isAdmin && (
                 <Link
                   to="/manage/jobs/new"
-                  className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
                 >
                   + New Job
                 </Link>
               )}
             </div>
-            <p className="text-harbour-500">Tech job opportunities in the community</p>
+            <p className="text-muted">Tech job opportunities in the community</p>
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-gap-3">
             <div className="flex-1 min-w-[200px]">
               <SearchInput
                 placeholder="Search jobs..."
@@ -196,8 +196,8 @@ export default function JobsIndex() {
               />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-sm text-harbour-600">
+            <div className="grid gap-gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-gap-1 text-sm text-body">
                 Company
                 <BaseMultiSelect
                   name="company"
@@ -210,14 +210,14 @@ export default function JobsIndex() {
                   showSelectedChipsBelow={false}
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm text-harbour-600">
+              <label className="flex flex-col gap-gap-1 text-sm text-body">
                 Sort
                 <select
                   value={sort}
                   onChange={(e) =>
                     handleSelectChange("sort", e.target.value === "company" ? "" : e.target.value)
                   }
-                  className="min-h-11 flex-1 px-3 py-2 bg-white border border-harbour-200 text-harbour-700"
+                  className="min-h-11 flex-1 px-pad-3 py-pad-2 bg-surface border border-line text-heading"
                 >
                   <option value="company">Grouped by company</option>
                   <option value="newest">Newest first</option>
@@ -225,20 +225,20 @@ export default function JobsIndex() {
               </label>
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-gap-3">
               {/* Show non-technical checkbox */}
-              <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
+              <label className="flex items-center gap-gap-2 text-sm text-body cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={showNonTechnical}
                   onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
-                  className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+                  className="w-4 h-4 text-body border-harbour-300 focus:ring-harbour-500"
                 />
                 Show non-technical roles
               </label>
 
-              <div className="flex items-center gap-2 md:justify-end">
-                <span className="text-sm text-harbour-500 whitespace-nowrap">Workplace:</span>
+              <div className="flex items-center gap-gap-2 md:justify-end">
+                <span className="text-sm text-muted whitespace-nowrap">Workplace:</span>
                 <div className="min-w-[240px] max-w-sm w-full">
                   <BaseMultiSelect
                     name="workplaceType"
@@ -256,7 +256,7 @@ export default function JobsIndex() {
 
           {/* Result count */}
           {(searchQuery || companySlugs.length > 0 || sort === "newest") && (
-            <p className="text-sm text-harbour-500">
+            <p className="text-sm text-muted">
               {totalJobs} result{totalJobs !== 1 ? "s" : ""}
               {searchQuery && <> for "{searchQuery}"</>}
             </p>
@@ -264,15 +264,15 @@ export default function JobsIndex() {
         </div>
 
         {companiesWithJobs.length === 0 ? (
-          <p className="text-harbour-400">No jobs match these filters.</p>
+          <p className="text-subtle">No jobs match these filters.</p>
         ) : sort === "newest" ? (
-          <div className="border border-harbour-200 bg-white divide-y divide-harbour-100">
+          <div className="border border-line bg-surface divide-y divide-harbour-100 rounded-panel">
             {newestJobs.map(({ company, job }) => (
               <JobRow key={job.id} job={job} company={company} />
             ))}
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-gap-6">
             {companiesWithJobs.map((cwj) => (
               <CompanyJobCard key={cwj.company.id} data={cwj} isAdmin={isAdmin} />
             ))}
@@ -288,12 +288,12 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
   const importSourceId = jobs.find((job) => job.sourceId)?.sourceId;
 
   return (
-    <div className="ring-1 ring-harbour-200 bg-white overflow-hidden">
+    <div className="ring-1 ring-harbour-200 bg-surface overflow-hidden rounded-panel">
       {/* Company Header */}
-      <div className="flex items-center gap-4 p-4 bg-harbour-50 border-b border-harbour-200">
+      <div className="flex items-center gap-gap-4 p-pad-4 bg-soft border-b border-line">
         {company.logo ? (
           <Link to={`/directory/companies/${company.slug}`} className="flex-shrink-0">
-            <div className="w-12 h-12 relative overflow-hidden bg-white border border-harbour-200">
+            <div className="w-12 h-12 relative overflow-hidden bg-surface border border-line rounded-panel">
               <img
                 src={`/images/${company.logo}`}
                 alt={`${company.name} logo`}
@@ -304,29 +304,29 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
         ) : (
           <Link to={`/directory/companies/${company.slug}`} className="flex-shrink-0">
             <div className="w-12 h-12 bg-harbour-200 flex items-center justify-center">
-              <span className="text-lg font-medium text-harbour-500">{company.name.charAt(0)}</span>
+              <span className="text-lg font-medium text-muted">{company.name.charAt(0)}</span>
             </div>
           </Link>
         )}
         <div className="flex-1 min-w-0">
           <Link
             to={`/directory/companies/${company.slug}`}
-            className="font-semibold text-harbour-700 hover:text-harbour-600 transition-colors"
+            className="font-semibold text-heading hover:text-body transition-colors"
           >
             {company.name}
           </Link>
-          <div className="flex flex-wrap gap-x-3 text-sm text-harbour-500">
+          <div className="flex flex-wrap gap-x-gap-3 text-sm text-muted">
             {company.location && <span>{company.location}</span>}
             <span>
               {jobs.length} open position{jobs.length !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-gap-3">
           {isAdmin && importSourceId && (
             <Link
               to={`/manage/import/jobs/${importSourceId}`}
-              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:flex items-center"
+              className="text-sm text-muted hover:text-heading hidden sm:flex items-center"
               title="Open import sync page"
               aria-label="Open import sync page"
             >
@@ -346,7 +346,7 @@ function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boo
               href={company.careersUrl || company.website!}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:block"
+              className="text-sm text-muted hover:text-heading hidden sm:block"
             >
               {company.careersUrl ? "Careers" : "Website"}
             </a>
@@ -376,11 +376,11 @@ function JobRow({
       href={job.url || `/jobs/${job.slug}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 hover:bg-harbour-50 transition-colors"
+      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-gap-2 p-pad-4 hover:bg-soft transition-colors"
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-gap-1">
         {company && (
-          <span className="flex items-center gap-2 text-sm text-harbour-600">
+          <span className="flex items-center gap-gap-2 text-sm text-body">
             {company.logo && (
               <img
                 src={`/images/${company.logo}`}
@@ -391,8 +391,8 @@ function JobRow({
             {company.name}
           </span>
         )}
-        <h3 className="font-medium text-harbour-700 group-hover:text-harbour-600">{job.title}</h3>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
+        <h3 className="font-medium text-heading group-hover:text-body">{job.title}</h3>
+        <div className="flex flex-wrap gap-x-gap-3 gap-y-gap-1 text-sm text-muted">
           {job.location && <span>{job.location}</span>}
           {job.department && <span>{job.department}</span>}
           {company ? (
@@ -404,21 +404,21 @@ function JobRow({
           ) : null}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-gap-2">
         {!job.isTechnical && (
-          <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">Non-technical</span>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-slate-100 text-slate-600">Non-technical</span>
         )}
         {job.workplaceType === "remote" && (
-          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700">Remote</span>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-purple-100 text-purple-700">Remote</span>
         )}
         {job.workplaceType === "hybrid" && (
-          <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-700">Hybrid</span>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-orange-100 text-orange-700">Hybrid</span>
         )}
         {job.workplaceType === "onsite" && (
-          <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700">Onsite</span>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-blue-100 text-blue-700">Onsite</span>
         )}
         {job.salaryRange && (
-          <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">
             {job.salaryRange}
           </span>
         )}

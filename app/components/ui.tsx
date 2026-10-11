@@ -5,18 +5,17 @@ type Tone = "primary" | "secondary" | "ghost" | "danger" | "warning" | "success"
 type Size = "sm" | "md";
 
 const buttonTones: Record<Tone, string> = {
-  primary: "bg-harbour-600 text-white hover:bg-harbour-700 hover:text-white",
-  secondary:
-    "bg-harbour-100 text-harbour-700 hover:bg-harbour-200 hover:text-harbour-800",
-  ghost: "bg-white text-harbour-600 hover:bg-harbour-50 hover:text-harbour-700",
+  primary: "bg-primary text-white hover:bg-primary-hover hover:text-white",
+  secondary: "bg-tint text-heading hover:bg-harbour-200 hover:text-harbour-800",
+  ghost: "bg-surface text-body hover:bg-soft hover:text-heading",
   danger: "bg-red-600 text-white hover:bg-red-700 hover:text-white",
   warning: "bg-amber-700 text-white hover:bg-amber-800 hover:text-white",
   success: "bg-green-700 text-white hover:bg-green-800 hover:text-white",
 };
 
 const buttonSizes: Record<Size, string> = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2",
+  sm: "px-pad-3 py-pad-1-5 text-sm",
+  md: "px-pad-4 py-pad-2",
 };
 
 export function buttonClassName({
@@ -28,7 +27,7 @@ export function buttonClassName({
   size?: Size;
   className?: string;
 } = {}) {
-  return `${buttonSizes[size]} ${buttonTones[tone]} font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim();
+  return `${buttonSizes[size]} ${buttonTones[tone]} rounded-control font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim();
 }
 
 export function Button({
@@ -52,7 +51,7 @@ export function ButtonLink({
 type BadgeTone = "default" | "success" | "warning" | "danger" | "muted" | "remote";
 
 const badgeTones: Record<BadgeTone, string> = {
-  default: "bg-harbour-100 text-harbour-600",
+  default: "bg-tint text-body",
   success: "bg-green-100 text-green-700",
   warning: "bg-amber-100 text-amber-700",
   danger: "bg-red-100 text-red-700",
@@ -70,7 +69,7 @@ export function Badge({
   className?: string;
 }) {
   return (
-    <span className={`text-xs px-1.5 py-0.5 ${badgeTones[tone]} ${className}`.trim()}>
+    <span className={`text-xs px-pad-1-5 py-pad-0-5 ${badgeTones[tone]} ${className}`.trim()}>
       {children}
     </span>
   );
@@ -79,7 +78,7 @@ export function Badge({
 type AlertTone = "info" | "success" | "warning" | "danger";
 
 const alertTones: Record<AlertTone, string> = {
-  info: "bg-harbour-50 border-harbour-200 text-harbour-700",
+  info: "bg-soft border-line text-heading",
   success: "bg-green-50 border-green-200 text-green-700",
   warning: "bg-amber-50 border-amber-200 text-amber-800",
   danger: "bg-red-50 border-red-200 text-red-700",
@@ -95,7 +94,7 @@ export function Alert({
   children: ReactNode;
 }) {
   return (
-    <div className={`p-4 border ${alertTones[tone]}`}>
+    <div className={`p-pad-4 border ${alertTones[tone]}`}>
       {title ? <p className="font-medium">{title}</p> : null}
       <div className="text-sm">{children}</div>
     </div>

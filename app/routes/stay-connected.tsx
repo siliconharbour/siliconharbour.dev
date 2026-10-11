@@ -76,7 +76,7 @@ export default function SubscribePage() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
       <article className="prose mx-auto">
         <h1>Stay Connected</h1>
 
@@ -151,21 +151,21 @@ export default function SubscribePage() {
 
         <h2>Newsletter</h2>
 
-        {newsletterEnabled ? <div className="not-prose my-4 border border-harbour-200 bg-harbour-50 p-6">
-          <p className="text-sm text-harbour-600">A hand-written digest of local tech news, events, and jobs. Confirm your address by email. You can unsubscribe from any issue.</p>
-          {actionData?.success && <p className="mt-3 border border-green-200 bg-green-50 p-3 text-sm text-green-700">Check your inbox for a confirmation link.</p>}
-          {actionData?.error && <p className="mt-3 border border-red-200 bg-red-50 p-3 text-sm text-red-700">{actionData.error}</p>}
+        {newsletterEnabled ? <div className="not-prose my-4 border border-line bg-soft p-pad-6">
+          <p className="text-sm text-body">A hand-written digest of local tech news, events, and jobs. Confirm your address by email. You can unsubscribe from any issue.</p>
+          {actionData?.success && <p className="mt-3 border border-green-200 bg-green-50 p-pad-3 text-sm text-green-700">Check your inbox for a confirmation link.</p>}
+          {actionData?.error && <p className="mt-3 border border-red-200 bg-red-50 p-pad-3 text-sm text-red-700">{actionData.error}</p>}
           <Form method="post" className="mt-4 space-y-3">
-            <label className="block text-sm font-medium text-harbour-700">Email address<input type="email" name="email" required className="mt-1 block w-full border border-harbour-200 bg-white px-3 py-2" /></label>
+            <label className="block text-sm font-medium text-heading">Email address<input type="email" name="email" required className="mt-1 block w-full border border-line bg-surface px-pad-3 py-pad-2" /></label>
             {turnstileSiteKey && <TurnstileInput siteKey={turnstileSiteKey} />}
-            <button className="bg-harbour-600 px-4 py-2 text-sm font-medium text-white hover:bg-harbour-700">Subscribe</button>
+            <button className="bg-primary px-pad-4 py-pad-2 text-sm font-medium text-white hover:bg-primary-hover">Subscribe</button>
           </Form>
-        </div> : <div className="not-prose my-4 border border-harbour-200 bg-harbour-50 p-6 text-center"><p className="text-sm text-harbour-400">Coming soon</p></div>}
+        </div> : <div className="not-prose my-4 border border-line bg-soft p-pad-6 text-center"><p className="text-sm text-subtle">Coming soon</p></div>}
 
         <h2>Social Media</h2>
 
-        <div className="not-prose p-6 ring-1 ring-harbour-200/50 bg-harbour-50/50 text-center my-4">
-          <p className="text-harbour-400 text-sm">Coming soon</p>
+        <div className="not-prose p-pad-6 ring-1 ring-harbour-200/50 bg-soft/50 text-center my-4">
+          <p className="text-subtle text-sm">Coming soon</p>
         </div>
 
         <h2>AI Assistant (MCP)</h2>
@@ -217,13 +217,13 @@ function CopyUrlCard({ url, label }: { url: string; label?: string }) {
   };
 
   return (
-    <div className="not-prose p-3 ring-1 ring-harbour-200/50">
-      <div className="flex items-center gap-3">
-        {label && <span className="text-sm font-medium text-harbour-700 shrink-0">{label}</span>}
-        <code className="flex-1 text-sm text-harbour-600 truncate">{url}</code>
+    <div className="not-prose p-pad-3 ring-1 ring-harbour-200/50">
+      <div className="flex items-center gap-gap-3">
+        {label && <span className="text-sm font-medium text-heading shrink-0">{label}</span>}
+        <code className="flex-1 text-sm text-body truncate">{url}</code>
         <button
           onClick={copyToClipboard}
-          className="shrink-0 px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+          className="shrink-0 px-pad-3 py-pad-1-5 text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
         >
           {copied ? "Copied!" : "Copy"}
         </button>

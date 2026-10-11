@@ -120,15 +120,15 @@ export default function NewEvent() {
   const { periodOptions, availableTags } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/events" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/events" className="text-sm text-subtle hover:text-body">
             &larr; Back to Events
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Event</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Event</h1>
 
         <EventForm
           error={actionData?.error}

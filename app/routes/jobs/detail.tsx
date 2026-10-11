@@ -86,15 +86,15 @@ export default function JobDetail() {
   const isHtml = !job.description && job.descriptionHtml;
 
   return (
-    <div className="max-w-[60ch] mx-auto p-4 py-8">
-      <article className="flex flex-col gap-6">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold text-harbour-700">{job.title}</h1>
+    <div className="max-w-[60ch] mx-auto p-pad-4 py-pad-8">
+      <article className="flex flex-col gap-gap-6">
+        <div className="flex flex-col gap-gap-4">
+          <div className="flex items-center gap-gap-2">
+            <h1 className="text-3xl font-bold text-heading">{job.title}</h1>
             {isAdmin && job.sourceType === "manual" && (
               <Link
                 to={`/manage/jobs/${job.id}`}
-                className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                 title="Edit"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,11 +109,11 @@ export default function JobDetail() {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-harbour-500">
+          <div className="flex flex-wrap gap-x-gap-4 gap-y-gap-2 text-muted">
             {job.company && (
               <Link
                 to={`/directory/companies/${job.company.slug}`}
-                className="font-medium hover:text-harbour-700"
+                className="font-medium hover:text-heading"
               >
                 {job.company.name}
               </Link>
@@ -122,7 +122,7 @@ export default function JobDetail() {
             {job.department && <span>{job.department}</span>}
             {job.workplaceType && (
               <span
-                className={`px-2 py-0.5 text-sm ${
+                className={`px-pad-2 py-pad-0-5 text-sm ${
                   job.workplaceType === "remote"
                     ? "bg-purple-100 text-purple-700"
                     : job.workplaceType === "hybrid"
@@ -135,7 +135,7 @@ export default function JobDetail() {
             )}
           </div>
 
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-harbour-400">
+          <div className="flex flex-wrap gap-x-gap-4 gap-y-gap-2 text-sm text-subtle">
             {job.postedAt && <span>Posted {format(job.postedAt, "MMMM d, yyyy")}</span>}
             {job.salaryRange && <span>{job.salaryRange}</span>}
           </div>
@@ -154,7 +154,7 @@ export default function JobDetail() {
             href={job.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors self-start"
+            className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary text-white font-medium hover:bg-primary-hover transition-colors self-start"
           >
             Apply Now
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

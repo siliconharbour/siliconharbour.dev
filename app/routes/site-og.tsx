@@ -1,3 +1,4 @@
+import { BRAND_LOGO, DEFAULT_OG_COLORS } from "~/theme/tokens";
 import type { Route } from "./+types/site-og";
 import satori from "satori";
 import sharp from "sharp";
@@ -19,16 +20,10 @@ if (!existsSync(CACHE_DIR)) {
 const interRegular = readFileSync(join(process.cwd(), "app/assets/fonts/Inter-Regular.ttf"));
 const interBold = readFileSync(join(process.cwd(), "app/assets/fonts/Inter-Bold.ttf"));
 
-const logoSvg = readFileSync(join(process.cwd(), "public/siliconharbour.svg"));
+const logoSvg = readFileSync(join(process.cwd(), `public${BRAND_LOGO}`));
 const logoBase64 = `data:image/svg+xml;base64,${logoSvg.toString("base64")}`;
 
-const colors = {
-  harbour50: "#e8f0ff",
-  harbour500: "#4166e2",
-  harbour600: "#2b51d1",
-  harbour700: "#2144bb",
-  white: "#ffffff",
-};
+const colors = DEFAULT_OG_COLORS;
 
 async function generateSiteOG(bypassCache = false): Promise<Buffer> {
   if (!bypassCache && existsSync(CACHE_PATH)) {

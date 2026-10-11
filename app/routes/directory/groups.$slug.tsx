@@ -42,10 +42,10 @@ export default function GroupDetail() {
     useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
       {!group.visible && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="mb-6 p-pad-4 bg-amber-50 border border-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-gap-2">
             <svg
               className="w-5 h-5 text-amber-600"
               fill="none"
@@ -66,14 +66,14 @@ export default function GroupDetail() {
           {isAdmin && (
             <Link
               to={`/manage/groups/${group.id}`}
-              className="text-sm px-3 py-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
+              className="text-sm px-pad-3 py-pad-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
             >
               Edit visibility
             </Link>
           )}
         </div>
       )}
-      <article className="flex flex-col gap-6">
+      <article className="flex flex-col gap-gap-6">
         {group.coverImage && (
           <div className="aspect-video relative overflow-hidden">
             <img
@@ -84,7 +84,7 @@ export default function GroupDetail() {
           </div>
         )}
 
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-gap-4">
           {group.logo && (
             <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
@@ -94,13 +94,13 @@ export default function GroupDetail() {
               />
             </div>
           )}
-          <div className="flex flex-col gap-1 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold text-harbour-700">{group.name}</h1>
+          <div className="flex flex-col gap-gap-1 flex-1">
+            <div className="flex items-center gap-gap-2">
+              <h1 className="text-3xl font-bold text-heading">{group.name}</h1>
               {isAdmin && (
                 <Link
                   to={`/manage/groups/${group.id}`}
-                  className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                  className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +115,7 @@ export default function GroupDetail() {
               )}
             </div>
             {group.meetingFrequency && (
-              <p className="text-harbour-500">Meets {group.meetingFrequency}</p>
+              <p className="text-muted">Meets {group.meetingFrequency}</p>
             )}
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function GroupDetail() {
             href={group.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors self-start"
+            className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary text-white font-medium hover:bg-primary-hover transition-colors self-start"
           >
             Visit Group
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

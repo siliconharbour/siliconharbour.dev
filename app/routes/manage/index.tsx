@@ -31,7 +31,7 @@ function ToolLink({ to, children }: { to: string; children: React.ReactNode }) {
   return (
     <Link
       to={to}
-      className="border border-harbour-200 bg-white px-3 py-1.5 text-sm font-medium text-harbour-700 transition-colors hover:border-harbour-400 hover:bg-harbour-50"
+      className="border border-line bg-surface px-pad-3 py-pad-1-5 text-sm font-medium text-heading transition-colors hover:border-harbour-400 hover:bg-soft"
     >
       {children}
     </Link>
@@ -40,9 +40,9 @@ function ToolLink({ to, children }: { to: string; children: React.ReactNode }) {
 
 function ToolGroup({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-2 border-b border-harbour-100 px-3 py-3 last:border-b-0 sm:flex-row sm:items-center">
-      <h3 className="w-32 shrink-0 text-sm font-medium text-harbour-500">{label}</h3>
-      <div className="flex flex-1 flex-wrap items-center gap-2">{children}</div>
+    <div className="flex flex-col gap-gap-2 border-b border-harbour-100 px-pad-3 py-pad-3 last:border-b-0 sm:flex-row sm:items-center">
+      <h3 className="w-32 shrink-0 text-sm font-medium text-muted">{label}</h3>
+      <div className="flex flex-1 flex-wrap items-center gap-gap-2">{children}</div>
     </div>
   );
 }
@@ -51,23 +51,23 @@ export default function ManageIndex() {
   const { counts, pending, importFailures } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-4xl mx-auto flex flex-col gap-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold text-harbour-700">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-sm text-harbour-400 hover:text-harbour-600">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-4xl mx-auto flex flex-col gap-gap-8">
+        <div className="flex flex-wrap items-center justify-between gap-gap-3">
+          <h1 className="text-2xl font-semibold text-heading">Dashboard</h1>
+          <div className="flex items-center gap-gap-4">
+            <Link to="/" className="text-sm text-subtle hover:text-body">
               View Site
             </Link>
             <Link
               to="/manage/settings"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
+              className="text-sm text-subtle hover:text-body"
             >
               Settings
             </Link>
             <Link
               to="/manage/logout"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
+              className="text-sm text-subtle hover:text-body"
             >
               Logout
             </Link>
@@ -75,8 +75,8 @@ export default function ManageIndex() {
         </div>
 
         {importFailures.length > 0 && (
-          <section className="border border-red-200 bg-red-50 p-4" aria-labelledby="import-failures">
-            <div className="flex flex-wrap items-start justify-between gap-2">
+          <section className="border border-red-200 bg-red-50 p-pad-4" aria-labelledby="import-failures">
+            <div className="flex flex-wrap items-start justify-between gap-gap-2">
               <div>
                 <h2 id="import-failures" className="font-semibold text-red-700">
                   Import failures
@@ -86,23 +86,23 @@ export default function ManageIndex() {
                   failing and may leave published content stale.
                 </p>
               </div>
-              <span className="bg-red-600 px-1.5 py-0.5 text-xs font-medium text-white">
+              <span className="bg-red-600 px-pad-1-5 py-pad-0-5 text-xs font-medium text-white">
                 {importFailures.length} failing
               </span>
             </div>
-            <div className="mt-3 divide-y divide-red-200 border border-red-200 bg-white">
+            <div className="mt-3 divide-y divide-red-200 border border-red-200 bg-surface rounded-panel">
               {importFailures.map((failure) => (
                 <Link
                   key={`${failure.kind}-${failure.id}`}
                   to={failure.href}
-                  className="block px-3 py-2 transition-colors hover:bg-red-50"
+                  className="block px-pad-3 py-pad-2 transition-colors hover:bg-red-50"
                 >
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-gap-2">
                     <span className="font-medium text-red-700">{failure.name}</span>
-                    <span className="bg-red-100 px-1.5 py-0.5 text-xs text-red-700">
+                    <span className="bg-red-100 px-pad-1-5 py-pad-0-5 text-xs text-red-700">
                       {failure.kind}
                     </span>
-                    <span className="text-xs text-harbour-400">
+                    <span className="text-xs text-subtle">
                       {failure.lastAttemptAt
                         ? `last attempted ${new Date(failure.lastAttemptAt).toLocaleString("en-CA", {
                             dateStyle: "medium",
@@ -122,47 +122,47 @@ export default function ManageIndex() {
 
         <Link
           to="/manage/review"
-          className={`flex flex-wrap items-center justify-between gap-4 border p-4 transition-colors ${
+          className={`flex flex-wrap items-center justify-between gap-gap-4 border p-pad-4 transition-colors ${
             pending.total === 0
               ? "border-green-200 bg-green-50 hover:border-green-300"
               : "border-amber-200 bg-amber-50 hover:border-amber-300"
           }`}
         >
           <div>
-            <h2 className="font-semibold text-harbour-700">Review queue</h2>
-            <p className="text-sm text-harbour-500">
+            <h2 className="font-semibold text-heading">Review queue</h2>
+            <p className="text-sm text-muted">
               {pending.total === 0
                 ? "Everything has been reviewed."
                 : "Review pending events, news, and jobs in one place."}
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-gap-2 text-xs">
             <span
-              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-1.5 py-0.5`}
+              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-pad-1-5 py-pad-0-5`}
             >
               {pending.events} events
             </span>
             <span
-              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-1.5 py-0.5`}
+              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-pad-1-5 py-pad-0-5`}
             >
               {pending.news} news
             </span>
             <span
-              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-1.5 py-0.5`}
+              className={`${pending.total === 0 ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"} px-pad-1-5 py-pad-0-5`}
             >
               {pending.jobs} jobs
             </span>
             <span
-              className={`${pending.total === 0 ? "bg-green-600" : "bg-amber-600"} px-1.5 py-0.5 font-medium text-white`}
+              className={`${pending.total === 0 ? "bg-green-600" : "bg-amber-600"} px-pad-1-5 py-pad-0-5 font-medium text-white`}
             >
               {pending.total} total
             </span>
           </div>
         </Link>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold text-harbour-700">Tools</h2>
-          <div className="border border-harbour-200 bg-white">
+        <div className="flex flex-col gap-gap-3">
+          <h2 className="text-lg font-semibold text-heading">Tools</h2>
+          <div className="border border-line bg-surface rounded-panel">
             <ToolGroup label="Jobs">
               <ToolLink to="/manage/import/jobs">Import Sources</ToolLink>
               <ToolLink to="/manage/import/jobs/search">Board Search</ToolLink>
@@ -195,17 +195,17 @@ export default function ManageIndex() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold text-harbour-700">Content</h2>
-          <div className="grid grid-cols-2 border-l border-t border-harbour-200 md:grid-cols-3">
+        <div className="flex flex-col gap-gap-3">
+          <h2 className="text-lg font-semibold text-heading">Content</h2>
+          <div className="grid grid-cols-2 border-l border-t border-line md:grid-cols-3">
             {contentTypes.map((type) => (
               <Link
                 key={type.key}
                 to={type.href}
-                className="flex items-center justify-between gap-2 border-b border-r border-harbour-200 bg-white px-3 py-2 text-sm transition-colors hover:bg-harbour-50"
+                className="flex items-center justify-between gap-gap-2 border-b border-r border-line bg-surface px-pad-3 py-pad-2 text-sm transition-colors hover:bg-soft"
               >
-                <span className="font-medium text-harbour-700">{type.label}</span>
-                <span className="text-xs text-harbour-400">{counts[type.key]}</span>
+                <span className="font-medium text-heading">{type.label}</span>
+                <span className="text-xs text-subtle">{counts[type.key]}</span>
               </Link>
             ))}
           </div>

@@ -249,10 +249,10 @@ export default function CompanyDetail() {
   }, [provenanceEntries, activeJobs]);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
       {!company.visible && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="mb-6 p-pad-4 bg-amber-50 border border-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-gap-2">
             <svg
               className="w-5 h-5 text-amber-600"
               fill="none"
@@ -273,14 +273,14 @@ export default function CompanyDetail() {
           {isAdmin && (
             <Link
               to={`/manage/companies/${company.id}`}
-              className="text-sm px-3 py-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
+              className="text-sm px-pad-3 py-pad-1 bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
             >
               Edit visibility
             </Link>
           )}
         </div>
       )}
-      <article className="flex flex-col gap-6">
+      <article className="flex flex-col gap-gap-6">
         {company.coverImage && (
           <div className="aspect-video relative overflow-hidden">
             <img
@@ -291,7 +291,7 @@ export default function CompanyDetail() {
           </div>
         )}
 
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-gap-4">
           {company.logo ? (
             <div className="w-20 h-20 relative overflow-hidden flex-shrink-0">
               <img
@@ -301,17 +301,17 @@ export default function CompanyDetail() {
               />
             </div>
           ) : (
-            <div className="w-20 h-20 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-              <span className="text-3xl text-harbour-400">{company.name.charAt(0)}</span>
+            <div className="w-20 h-20 bg-tint flex items-center justify-center flex-shrink-0">
+              <span className="text-3xl text-subtle">{company.name.charAt(0)}</span>
             </div>
           )}
-          <div className="flex flex-col gap-1 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold text-harbour-700">{company.name}</h1>
+          <div className="flex flex-col gap-gap-1 flex-1">
+            <div className="flex items-center gap-gap-2">
+              <h1 className="text-3xl font-bold text-heading">{company.name}</h1>
               {isAdmin && (
                 <Link
                   to={`/manage/companies/${company.id}`}
-                  className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                  className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                   title="Edit"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -325,9 +325,9 @@ export default function CompanyDetail() {
                 </Link>
               )}
             </div>
-            {company.location && <p className="text-harbour-500">{company.location}</p>}
+            {company.location && <p className="text-muted">{company.location}</p>}
             {company.founded && (
-              <p className="text-sm text-harbour-400">Founded {company.founded}</p>
+              <p className="text-sm text-subtle">Founded {company.founded}</p>
             )}
           </div>
         </div>
@@ -344,13 +344,13 @@ export default function CompanyDetail() {
            company.technl ||
            company.genesis ||
            company.bounce) && (
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-gap-3">
             {company.website && (
               <a
                 href={company.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 text-white font-medium hover:bg-harbour-700 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary text-white font-medium hover:bg-primary-hover transition-colors"
               >
                 Visit Website
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,7 +368,7 @@ export default function CompanyDetail() {
                 href={company.careersUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
               >
                 Visit Careers Page
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -386,7 +386,7 @@ export default function CompanyDetail() {
                 href={company.wikipedia}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
               >
                 Wikipedia
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -404,7 +404,7 @@ export default function CompanyDetail() {
                 href={company.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
               >
                 LinkedIn
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,7 +422,7 @@ export default function CompanyDetail() {
                 href={company.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
               >
                 GitHub
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,7 +440,7 @@ export default function CompanyDetail() {
                 href={`https://members.technl.ca/memberdirectory/Find?term=${encodeURIComponent(company.name)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
               >
                 TechNL Directory
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -458,7 +458,7 @@ export default function CompanyDetail() {
                 href="https://www.genesiscentre.ca/portfolio"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
               >
                 Genesis Centre
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -476,7 +476,7 @@ export default function CompanyDetail() {
                 href="https://bounceinnovation.ca/companies/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-100 text-harbour-700 font-medium hover:bg-harbour-200 transition-colors"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
               >
                 Bounce Health Innovation
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -493,22 +493,22 @@ export default function CompanyDetail() {
         )}
 
         {techByCategory.length > 0 && (
-          <div className="border-t border-harbour-200 pt-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3">Technologies</h2>
-            <div className="flex flex-wrap gap-1.5 items-center">
+          <div className="border-t border-line pt-pad-6">
+            <h2 className="text-lg font-semibold text-heading mb-3">Technologies</h2>
+            <div className="flex flex-wrap gap-gap-1-5 items-center">
               {techByCategory.map(([category, items]) => (
                 <span
                   key={category}
-                  className="inline-flex items-center gap-1 px-2 py-1 bg-harbour-50 border border-harbour-200 text-xs"
+                  className="inline-flex items-center gap-gap-1 px-pad-2 py-pad-1 bg-soft border border-line text-xs"
                 >
-                  <span className="text-harbour-500 font-medium">
+                  <span className="text-muted font-medium">
                     {categoryLabels[category as TechnologyCategory]}:
                   </span>
                   {items.map((item, idx) => (
                     <span key={item.technology.id} className="inline-flex items-center">
                       <Link
                         to={`/directory/technologies/${item.technology.slug}`}
-                        className="text-harbour-700 hover:text-harbour-900 hover:underline"
+                        className="text-heading hover:text-harbour-900 hover:underline"
                       >
                         {item.technology.name}
                       </Link>
@@ -519,8 +519,8 @@ export default function CompanyDetail() {
               ))}
             </div>
             {provenanceEntries.length > 0 && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-harbour-500">via</span>
+              <div className="mt-3 flex flex-wrap items-center gap-gap-2 text-xs">
+                <span className="text-muted">via</span>
                 {provenanceEntries.map((entry, index) => {
                   const isLast = index === provenanceEntries.length - 1;
                   const isSecondLast = index === provenanceEntries.length - 2;
@@ -537,7 +537,7 @@ export default function CompanyDetail() {
                           href={entry.sourceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-harbour-500 hover:text-harbour-700 hover:underline"
+                          className="text-muted hover:text-heading hover:underline"
                         >
                           {label}
                         </a>
@@ -551,7 +551,7 @@ export default function CompanyDetail() {
                       <button
                         type="button"
                         onClick={() => setShowEvidence(true)}
-                        className="text-harbour-500 hover:text-harbour-700 hover:underline"
+                        className="text-muted hover:text-heading hover:underline"
                       >
                         {label}
                       </button>
@@ -571,30 +571,30 @@ export default function CompanyDetail() {
         />
 
         {activeJobs.length > 0 && (
-          <div className="border-t border-harbour-200 pt-6 flex flex-col gap-5">
-            <h2 className="text-lg font-semibold text-harbour-700">
+          <div className="border-t border-line pt-pad-6 flex flex-col gap-gap-5">
+            <h2 className="text-lg font-semibold text-heading">
               Open Positions ({activeJobs.length})
             </h2>
 
             {technicalJobs.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-harbour-700">
+              <div className="flex flex-col gap-gap-2">
+                <h3 className="text-sm font-semibold text-heading">
                   Technical ({technicalJobs.length})
                 </h3>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-gap-2">
                   {technicalJobs.map((job) => (
                     <a
                       key={job.id}
                       href={job.url || "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 bg-white hover:bg-harbour-50 border border-harbour-200 transition-colors group"
+                      className="flex items-center justify-between p-pad-3 bg-surface hover:bg-soft border border-line transition-colors group"
                     >
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-harbour-700 group-hover:text-harbour-900">
+                      <div className="flex flex-col gap-gap-0-5">
+                        <span className="font-medium text-heading group-hover:text-harbour-900">
                           {job.title}
                         </span>
-                        <div className="flex items-center gap-2 text-sm text-harbour-500">
+                        <div className="flex items-center gap-gap-2 text-sm text-muted">
                           {job.location && <span>{job.location}</span>}
                           {job.department && (
                             <>
@@ -604,10 +604,10 @@ export default function CompanyDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-gap-2">
                         {job.workplaceType && (
                           <span
-                            className={`px-2 py-0.5 text-xs font-medium ${
+                            className={`px-pad-2 py-pad-0-5 text-xs font-medium ${
                               job.workplaceType === "remote"
                                 ? "bg-purple-100 text-purple-700"
                                 : job.workplaceType === "hybrid"
@@ -619,7 +619,7 @@ export default function CompanyDetail() {
                           </span>
                         )}
                         <svg
-                          className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600"
+                          className="w-4 h-4 text-subtle group-hover:text-body"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -639,24 +639,24 @@ export default function CompanyDetail() {
             )}
 
             {nonTechnicalJobs.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-harbour-700">
+              <div className="flex flex-col gap-gap-2">
+                <h3 className="text-sm font-semibold text-heading">
                   Non-technical ({nonTechnicalJobs.length})
                 </h3>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-gap-2">
                   {nonTechnicalJobs.map((job) => (
                     <a
                       key={job.id}
                       href={job.url || "#"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 bg-white hover:bg-harbour-50 border border-harbour-200 transition-colors group"
+                      className="flex items-center justify-between p-pad-3 bg-surface hover:bg-soft border border-line transition-colors group"
                     >
-                      <div className="flex flex-col gap-0.5">
-                        <span className="font-medium text-harbour-700 group-hover:text-harbour-900">
+                      <div className="flex flex-col gap-gap-0-5">
+                        <span className="font-medium text-heading group-hover:text-harbour-900">
                           {job.title}
                         </span>
-                        <div className="flex items-center gap-2 text-sm text-harbour-500">
+                        <div className="flex items-center gap-gap-2 text-sm text-muted">
                           {job.location && <span>{job.location}</span>}
                           {job.department && (
                             <>
@@ -666,10 +666,10 @@ export default function CompanyDetail() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-gap-2">
                         {job.workplaceType && (
                           <span
-                            className={`px-2 py-0.5 text-xs font-medium ${
+                            className={`px-pad-2 py-pad-0-5 text-xs font-medium ${
                               job.workplaceType === "remote"
                                 ? "bg-purple-100 text-purple-700"
                                 : job.workplaceType === "hybrid"
@@ -681,7 +681,7 @@ export default function CompanyDetail() {
                           </span>
                         )}
                         <svg
-                          className="w-4 h-4 text-harbour-400 group-hover:text-harbour-600"
+                          className="w-4 h-4 text-subtle group-hover:text-body"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"

@@ -24,10 +24,10 @@ export function EventTimingFields({
   return (
     <>
       <div>
-        <label className="block text-sm font-medium mb-2 text-harbour-700">Event type *</label>
-        <div className="flex flex-wrap gap-4">
+        <label className="block text-sm font-medium mb-2 text-heading">Event type *</label>
+        <div className="flex flex-wrap gap-gap-4">
           {timingOptions.map((option) => (
-            <label key={option.value} className="flex items-center gap-2 cursor-pointer">
+            <label key={option.value} className="flex items-center gap-gap-2 cursor-pointer">
               <input
                 type="radio"
                 name="eventType"
@@ -36,11 +36,11 @@ export function EventTimingFields({
                 onChange={() => onChange(option.value)}
                 className="accent-harbour-600"
               />
-              <span className="text-harbour-600">{option.label}</span>
+              <span className="text-body">{option.label}</span>
             </label>
           ))}
         </div>
-        <p className="mt-2 text-sm text-harbour-400">
+        <p className="mt-2 text-sm text-subtle">
           Use a time period for a jam, application window, or activity that runs for several days.
         </p>
       </div>
@@ -49,7 +49,7 @@ export function EventTimingFields({
         <div>
           <label
             htmlFor="parentEventId"
-            className="block text-sm font-medium mb-1 text-harbour-700"
+            className="block text-sm font-medium mb-1 text-heading"
           >
             Part of a time period (optional)
           </label>
@@ -57,7 +57,7 @@ export function EventTimingFields({
             id="parentEventId"
             name="parentEventId"
             defaultValue={parentEventId ?? ""}
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500"
           >
             <option value="">Standalone event</option>
             {periodOptions.map((period) => (

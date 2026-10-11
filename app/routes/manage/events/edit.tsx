@@ -192,8 +192,8 @@ export default function EditEvent() {
   const isHiddenFromPublic = event.importStatus !== null && event.importStatus !== "published";
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
           <Link
             to={
@@ -201,18 +201,18 @@ export default function EditEvent() {
                 ? `/manage/import/events/${event.importSourceId}`
                 : "/manage/events"
             }
-            className="text-sm text-harbour-400 hover:text-harbour-600"
+            className="text-sm text-subtle hover:text-body"
           >
             &larr; Back
           </Link>
         </div>
 
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-harbour-700">Edit Event</h1>
+          <h1 className="text-2xl font-semibold text-heading">Edit Event</h1>
           {isRecurring && (
             <Link
               to={`/manage/events/${event.id}/occurrences`}
-              className="px-4 py-2 bg-harbour-100 text-harbour-700 hover:bg-harbour-200 text-sm"
+              className="px-pad-4 py-pad-2 bg-tint text-heading hover:bg-harbour-200 text-sm"
             >
               Manage Occurrences
             </Link>
@@ -220,7 +220,7 @@ export default function EditEvent() {
         </div>
 
         {isHiddenFromPublic && (
-          <div className="border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="border border-amber-200 bg-amber-50 p-pad-4 text-sm text-amber-800">
             This event is <strong>not public</strong> (status: <code>{event.importStatus}</code>).
             Use <strong>Save &amp; Publish</strong> when ready to make it live.
           </div>

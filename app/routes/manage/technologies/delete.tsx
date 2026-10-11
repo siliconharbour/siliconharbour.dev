@@ -56,23 +56,23 @@ export default function DeleteTechnology() {
     >
       <>
         {usageCount > 0 && (
-          <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+          <div className="p-pad-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
             This technology is currently assigned to {usageCount}{" "}
             {usageCount === 1 ? "company/project" : "companies/projects"}. Deleting it will remove
             these assignments.
           </div>
         )}
 
-        <Form method="post" className="flex gap-4">
+        <Form method="post" className="flex gap-gap-4">
           <button
             type="submit"
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
           >
             Delete
           </button>
           <Link
             to="/manage/technologies"
-            className="px-4 py-2 text-harbour-600 hover:bg-harbour-50 font-medium transition-colors"
+            className="px-pad-4 py-pad-2 text-body hover:bg-soft font-medium transition-colors"
           >
             Cancel
           </Link>

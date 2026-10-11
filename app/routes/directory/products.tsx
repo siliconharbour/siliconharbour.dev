@@ -40,7 +40,7 @@ const typeColors: Record<ProductType, string> = {
   mobile: "bg-purple-100 text-purple-700",
   physical: "bg-amber-100 text-amber-700",
   service: "bg-green-100 text-green-700",
-  other: "bg-harbour-100 text-harbour-500",
+  other: "bg-tint text-muted",
 };
 
 export default function DirectoryProducts() {
@@ -61,7 +61,7 @@ export default function DirectoryProducts() {
       hasItems={items.length > 0}
     >
       <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gap-4">
           {items.map((product) => (
             <a
               key={product.id}
@@ -77,7 +77,7 @@ export default function DirectoryProducts() {
                   />
                 </div>
               ) : product.logo ? (
-                <div className="aspect-video relative overflow-hidden bg-harbour-50 flex items-center justify-center">
+                <div className="aspect-video relative overflow-hidden bg-soft flex items-center justify-center">
                   <div className="w-20 h-20 relative overflow-hidden">
                     <img
                       src={`/images/${product.logo}`}
@@ -87,25 +87,25 @@ export default function DirectoryProducts() {
                   </div>
                 </div>
               ) : (
-                <div className="aspect-video bg-harbour-100 flex items-center justify-center">
+                <div className="aspect-video bg-tint flex items-center justify-center">
                   <span className="text-4xl font-bold text-harbour-300">
                     {product.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
 
-              <div className="p-4 flex flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
+              <div className="p-pad-4 flex flex-col gap-gap-2">
+                <div className="flex items-start justify-between gap-gap-2">
+                  <h2 className="link-title font-semibold text-heading group-hover:text-body">
                     {product.name}
                   </h2>
-                  <span className={`text-xs px-1.5 py-0.5 ${typeColors[product.type]}`}>
+                  <span className={`text-xs px-pad-1-5 py-pad-0-5 ${typeColors[product.type]}`}>
                     {typeLabels[product.type]}
                   </span>
                 </div>
 
                 {product.company && (
-                  <p className="text-xs text-harbour-400">by {product.company.name}</p>
+                  <p className="text-xs text-subtle">by {product.company.name}</p>
                 )}
               </div>
             </a>

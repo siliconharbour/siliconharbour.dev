@@ -346,7 +346,7 @@ export function DirectoryImportPage({
       backLabel="Back to Dashboard"
       maxWidthClassName="max-w-6xl"
     >
-      <p className="text-harbour-500">{description}</p>
+      <p className="text-muted">{description}</p>
 
       {fetchedCompanies.length === 0 && (
         <fetcher.Form method="post">
@@ -354,7 +354,7 @@ export function DirectoryImportPage({
           <button
             type="submit"
             disabled={isFetching}
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
           >
             {isFetching
               ? "Fetching..."
@@ -364,20 +364,20 @@ export function DirectoryImportPage({
       )}
 
       {fetcherData?.intent === "fetch" && fetcherData.error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
           {fetcherData.error}
         </div>
       )}
 
       {fetcherData?.intent === "import" && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-gap-2">
           {fetcherData.imported && fetcherData.imported.length > 0 && (
-            <div className="p-4 bg-green-50 border border-green-200 text-green-700">
+            <div className="p-pad-4 bg-green-50 border border-green-200 text-green-700">
               Successfully imported {fetcherData.imported.length} companies
             </div>
           )}
           {fetcherData.errors && fetcherData.errors.length > 0 && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+            <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
               <p className="font-medium">Errors:</p>
               <ul className="list-disc list-inside mt-2">
                 {fetcherData.errors.map((e: string, i: number) => (
@@ -391,17 +391,17 @@ export function DirectoryImportPage({
 
       {fetchedCompanies.length > 0 && (
         <>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-col gap-gap-3">
+            <div className="flex items-center gap-gap-2 flex-wrap">
               {filterButtons.map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setFilter(key)}
-                  className={`text-xs px-2.5 py-1 border transition-colors ${
+                  className={`text-xs px-pad-2-5 py-pad-1 border transition-colors ${
                     filter === key
-                      ? "bg-harbour-600 text-white border-harbour-600"
-                      : "bg-white text-harbour-600 border-harbour-200 hover:border-harbour-400"
+                      ? "bg-primary text-white border-harbour-600"
+                      : "bg-surface text-body border-line hover:border-harbour-400"
                   }`}
                 >
                   {label} ({categoryCounts[key] ?? 0})
@@ -412,7 +412,7 @@ export function DirectoryImportPage({
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="px-2 py-1 border border-harbour-300 text-xs"
+                  className="px-pad-2 py-pad-1 border border-harbour-300 text-xs"
                 >
                   <option value="all">All statuses</option>
                   {statusCategories.options.map((opt) => (
@@ -424,26 +424,26 @@ export function DirectoryImportPage({
               )}
             </div>
 
-            <div className="flex items-center gap-4 flex-wrap">
-              <span className="text-harbour-500">
+            <div className="flex items-center gap-gap-4 flex-wrap">
+              <span className="text-muted">
                 Showing {filteredCompanies.length} of{" "}
                 {fetchedCompanies.length}
               </span>
               <button
                 type="button"
                 onClick={selectAll}
-                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+                className="text-sm text-body hover:text-harbour-800 underline"
               >
                 Select all new
               </button>
               <button
                 type="button"
                 onClick={selectNone}
-                className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+                className="text-sm text-body hover:text-harbour-800 underline"
               >
                 Select none
               </button>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={downloadLogos}
@@ -455,7 +455,7 @@ export function DirectoryImportPage({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-gap-2">
             {filteredCompanies.map((company) => {
               const existing = isExisting(company);
               const hasFlag = alreadyHasFlag(company);
@@ -466,16 +466,16 @@ export function DirectoryImportPage({
               return (
                 <div
                   key={company.sourceId}
-                  className={`flex items-center gap-4 p-3 border ${
+                  className={`flex items-center gap-gap-4 p-pad-3 border ${
                     blocked
                       ? "bg-red-50 border-red-200 opacity-50"
                       : hasFlag
-                        ? "bg-harbour-50 border-harbour-200 opacity-60"
+                        ? "bg-soft border-line opacity-60"
                         : selected.has(company.sourceId)
                           ? "bg-blue-50 border-blue-300"
                           : existing
                             ? "bg-amber-50 border-amber-200"
-                            : "bg-white border-harbour-200"
+                            : "bg-surface border-line"
                   }`}
                 >
                   <input
@@ -490,32 +490,32 @@ export function DirectoryImportPage({
                     <img
                       src={company.logoUrl}
                       alt=""
-                      className={`w-10 h-10 object-contain bg-white border border-harbour-100 ${blocked ? "grayscale" : ""}`}
+                      className={`w-10 h-10 object-contain bg-surface border border-harbour-100 ${blocked ? "grayscale" : ""}`}
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-10 h-10 bg-harbour-100" />
+                    <div className="w-10 h-10 bg-tint" />
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-gap-2 flex-wrap">
                       <span
-                        className={`font-medium truncate ${blocked ? "line-through text-harbour-400" : ""}`}
+                        className={`font-medium truncate ${blocked ? "line-through text-subtle" : ""}`}
                       >
                         {company.name}
                       </span>
                       {blocked && (
-                        <span className="text-xs px-2 py-0.5 bg-red-200 text-red-700">
+                        <span className="text-xs px-pad-2 py-pad-0-5 bg-red-200 text-red-700">
                           Import blocked
                         </span>
                       )}
                       {!blocked && hasFlag && (
-                        <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
+                        <span className="text-xs px-pad-2 py-pad-0-5 bg-harbour-200 text-body">
                           Already imported
                         </span>
                       )}
                       {!blocked && existing && !hasFlag && (
-                        <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-700">
+                        <span className="text-xs px-pad-2 py-pad-0-5 bg-amber-200 text-amber-700">
                           Not {sourceLabel}, mark {sourceLabel}
                         </span>
                       )}
@@ -529,7 +529,7 @@ export function DirectoryImportPage({
                           if (!opt) return null;
                           return (
                             <span
-                              className={`text-xs px-2 py-0.5 ${
+                              className={`text-xs px-pad-2 py-pad-0-5 ${
                                 opt.value === "current"
                                   ? "bg-green-100 text-green-700"
                                   : "bg-amber-100 text-amber-700"
@@ -541,7 +541,7 @@ export function DirectoryImportPage({
                         })()}
                     </div>
                     {showDescriptionInCard && company.description && (
-                      <p className="text-sm text-harbour-500 truncate">
+                      <p className="text-sm text-muted truncate">
                         {company.description}
                       </p>
                     )}
@@ -550,7 +550,7 @@ export function DirectoryImportPage({
                         href={company.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-harbour-400 hover:text-harbour-600 truncate block"
+                        className="text-sm text-subtle hover:text-body truncate block"
                       >
                         {company.website}
                       </a>
@@ -566,13 +566,13 @@ export function DirectoryImportPage({
                             {diffs.map((d) => (
                               <div
                                 key={d.key}
-                                className="flex items-center gap-2 px-2 py-1"
+                                className="flex items-center gap-gap-2 px-pad-2 py-pad-1"
                               >
-                                <span className="text-harbour-400 w-20 shrink-0">
+                                <span className="text-subtle w-20 shrink-0">
                                   {d.field}
                                 </span>
                                 <span
-                                  className="text-harbour-500 truncate"
+                                  className="text-muted truncate"
                                   title={d.ours}
                                 >
                                   {d.ours}
@@ -600,7 +600,7 @@ export function DirectoryImportPage({
                                       { method: "post" },
                                     )
                                   }
-                                  className="shrink-0 px-1.5 py-0.5 text-xs border border-harbour-200 text-harbour-500 hover:text-harbour-700 hover:border-harbour-400 transition-colors"
+                                  className="shrink-0 px-pad-1-5 py-pad-0-5 text-xs border border-line text-muted hover:text-heading hover:border-harbour-400 transition-colors"
                                 >
                                   Use this
                                 </button>
@@ -612,13 +612,13 @@ export function DirectoryImportPage({
                   </div>
 
                   {displayCategories.length > 0 && (
-                    <div className="hidden sm:flex gap-1 flex-wrap max-w-xs">
+                    <div className="hidden sm:flex gap-gap-1 flex-wrap max-w-xs">
                       {displayCategories
                         .slice(0, maxCategoryBadges)
                         .map((cat, i) => (
                           <span
                             key={i}
-                            className="text-xs px-2 py-0.5 bg-harbour-100 text-harbour-600"
+                            className="text-xs px-pad-2 py-pad-0-5 bg-tint text-body"
                           >
                             {cat}
                           </span>
@@ -630,7 +630,7 @@ export function DirectoryImportPage({
                     <button
                       type="button"
                       onClick={() => handleUnblock(company)}
-                      className="text-xs px-2 py-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
+                      className="text-xs px-pad-2 py-pad-1 bg-green-100 text-green-700 hover:bg-green-200 transition-colors"
                     >
                       Remove block
                     </button>
@@ -638,7 +638,7 @@ export function DirectoryImportPage({
                     <button
                       type="button"
                       onClick={() => handleBlock(company)}
-                      className="text-xs px-2 py-1 text-harbour-500 hover:bg-harbour-100 transition-colors"
+                      className="text-xs px-pad-2 py-pad-1 text-muted hover:bg-tint transition-colors"
                     >
                       Import block
                     </button>
@@ -648,12 +648,12 @@ export function DirectoryImportPage({
             })}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-gap-4">
             <button
               type="button"
               onClick={handleImport}
               disabled={selected.size === 0 || isImporting}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isImporting
                 ? "Importing..."
@@ -661,7 +661,7 @@ export function DirectoryImportPage({
             </button>
 
             {selected.size > 0 && (
-              <span className="text-sm text-harbour-500">
+              <span className="text-sm text-muted">
                 {selected.size} companies selected
               </span>
             )}

@@ -45,12 +45,12 @@ export default function DirectoryPeople() {
       hasItems={people.length > 0}
     >
       <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gap-4">
           {people.map((person) => (
             <a
               key={person.id}
               href={`/directory/people/${person.slug}`}
-              className="group flex items-center gap-4 p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+              className="group flex items-center gap-gap-4 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
             >
               {person.avatar ? (
                 <div className="w-16 h-16 relative overflow-hidden flex-shrink-0">
@@ -61,12 +61,12 @@ export default function DirectoryPeople() {
                   />
                 </div>
               ) : (
-                <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-2xl text-harbour-400">{person.name.charAt(0)}</span>
+                <div className="w-16 h-16 bg-tint flex items-center justify-center flex-shrink-0">
+                  <span className="text-2xl text-subtle">{person.name.charAt(0)}</span>
                 </div>
               )}
-              <div className="flex flex-col gap-1">
-                <h2 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <h2 className="link-title font-semibold text-heading group-hover:text-body">
                   {person.name}
                 </h2>
               </div>

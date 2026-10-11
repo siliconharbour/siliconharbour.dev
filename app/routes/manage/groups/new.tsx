@@ -57,26 +57,26 @@ export default function NewGroup() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/groups" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/groups" className="text-sm text-subtle hover:text-body">
             &larr; Back to Groups
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Group</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Group</h1>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
           <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
               id="name"
               name="name"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -86,7 +86,7 @@ export default function NewGroup() {
               name="description"
               required
               rows={8}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </ManageField>
 
@@ -95,7 +95,7 @@ export default function NewGroup() {
               type="url"
               id="website"
               name="website"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -105,11 +105,11 @@ export default function NewGroup() {
               id="meetingFrequency"
               name="meetingFrequency"
               placeholder="e.g., Monthly, First Tuesday"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"

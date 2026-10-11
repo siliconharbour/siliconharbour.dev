@@ -22,7 +22,7 @@ function EventDate({ date }: { date: Date | null }) {
   if (!date) return null;
   const past = isPast(date);
   return (
-    <span className={`text-xs ${past ? "text-red-500" : "text-harbour-500"}`}>
+    <span className={`text-xs ${past ? "text-red-500" : "text-muted"}`}>
       {formatInTimezone(date, "MMM d, yyyy")}
       {past ? " (past)" : ""}
     </span>
@@ -120,76 +120,76 @@ export default function EventImportSourceDetail() {
   const actionData = fetcher.data;
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-5xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-5xl mx-auto flex flex-col gap-gap-8">
         <div>
           <Link
             to="/manage/import/events"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
+            className="text-sm text-subtle hover:text-body"
           >
             &larr; Back to Event Import Sources
           </Link>
         </div>
 
         <div className="flex items-start justify-between">
-          <h1 className="text-2xl font-semibold text-harbour-700">{source.name}</h1>
+          <h1 className="text-2xl font-semibold text-heading">{source.name}</h1>
           <fetcher.Form method="post">
             <input type="hidden" name="intent" value="sync" />
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-harbour-600 text-white hover:bg-harbour-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-pad-4 py-pad-2 bg-primary text-white hover:bg-primary-hover text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Syncing…" : "Sync Now"}
             </button>
           </fetcher.Form>
         </div>
 
-        <fetcher.Form method="post" className="bg-white border border-harbour-200 p-4 flex flex-col gap-3">
+        <fetcher.Form method="post" className="bg-surface border border-line p-pad-4 flex flex-col gap-gap-3">
           <input type="hidden" name="intent" value="edit-source" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-3">
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="name">Name</label>
+              <label className="text-sm text-muted" htmlFor="name">Name</label>
               <input
                 id="name" name="name" type="text"
                 defaultValue={source.name}
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="organizer">Organizer</label>
+              <label className="text-sm text-muted" htmlFor="organizer">Organizer</label>
               <input
                 id="organizer" name="organizer" type="text"
                 defaultValue={source.organizer ?? ""}
                 placeholder="e.g. GDG St. John's"
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="sourceIdentifier">Identifier</label>
+              <label className="text-sm text-muted" htmlFor="sourceIdentifier">Identifier</label>
               <input
                 id="sourceIdentifier" name="sourceIdentifier" type="text"
                 defaultValue={source.sourceIdentifier}
-                className="w-full mt-1 px-2 py-1 text-sm font-mono border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm font-mono border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="sourceUrl">Source URL</label>
+              <label className="text-sm text-muted" htmlFor="sourceUrl">Source URL</label>
               <input
                 id="sourceUrl" name="sourceUrl" type="text"
                 defaultValue={source.sourceUrl}
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-gap-3">
             <button
               type="submit"
-              className="px-3 py-1 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+              className="px-pad-3 py-pad-1 text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
             >
               Save
             </button>
-            <span className="text-xs text-harbour-400">
+            <span className="text-xs text-subtle">
               {sourceTypeLabels[source.sourceType] ?? source.sourceType}
             </span>
             {actionData && "intent" in actionData && actionData.intent === "edit-source" && "success" in actionData && (
@@ -219,13 +219,13 @@ export default function EventImportSourceDetail() {
         )}
 
         {source.fetchStatus === "error" && (
-          <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="border border-red-200 bg-red-50 p-pad-3 text-sm text-red-700">
             Last sync error: {source.fetchError ?? "Unknown error"}
           </div>
         )}
 
         {actionData && "intent" in actionData && actionData.intent === "sync" && (
-          <div className="border border-harbour-200 bg-harbour-50 p-3 text-sm text-harbour-700">
+          <div className="border border-line bg-soft p-pad-3 text-sm text-heading">
             {"success" in actionData && actionData.success
               ? `Sync complete — Added: ${"added" in actionData ? actionData.added : 0}, Skipped: ${"skipped" in actionData ? actionData.skipped : 0}, Removed: ${"removed" in actionData ? actionData.removed : 0}`
               : `Sync failed: ${"error" in actionData ? actionData.error : "Unknown error"}`}
@@ -234,26 +234,26 @@ export default function EventImportSourceDetail() {
 
         {/* Pending Review */}
         <section>
-          <h2 className="text-lg font-semibold text-harbour-700 mb-3 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-heading mb-3 flex items-center gap-gap-2">
             Pending Review
             {source.pending.length > 0 && (
-              <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800">
+              <span className="text-xs px-pad-1-5 py-pad-0-5 bg-amber-100 text-amber-800">
                 {source.pending.length}
               </span>
             )}
           </h2>
           {source.pending.length === 0 ? (
-            <p className="text-sm text-harbour-400">No events pending review.</p>
+            <p className="text-sm text-subtle">No events pending review.</p>
           ) : (
-            <div className="border border-harbour-200 divide-y divide-harbour-100">
+            <div className="border border-line divide-y divide-harbour-100">
               {source.pending.map((event) => (
-                <div key={event.id} className="flex items-start justify-between p-4 gap-4">
+                <div key={event.id} className="flex items-start justify-between p-pad-4 gap-gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
-                    <div className="flex flex-wrap gap-2 mt-0.5">
+                    <div className="font-medium text-heading text-sm">{event.title}</div>
+                    <div className="flex flex-wrap gap-gap-2 mt-0.5">
                       <EventDate date={event.startDate} />
                       {event.location && (
-                        <span className="text-xs text-harbour-400">{event.location}</span>
+                        <span className="text-xs text-subtle">{event.location}</span>
                       )}
                     </div>
                     {event.link && (
@@ -261,13 +261,13 @@ export default function EventImportSourceDetail() {
                         href={event.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-harbour-400 underline mt-0.5 inline-block"
+                        className="text-xs text-subtle underline mt-0.5 inline-block"
                       >
                         View source
                       </a>
                     )}
                   </div>
-                  <div className="flex gap-2 shrink-0">
+                  <div className="flex gap-gap-2 shrink-0">
                     <fetcher.Form method="post">
                       <input type="hidden" name="intent" value="approve" />
                       <input type="hidden" name="eventId" value={event.id} />
@@ -275,7 +275,7 @@ export default function EventImportSourceDetail() {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="text-xs px-3 py-1 bg-harbour-600 text-white hover:bg-harbour-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-xs px-pad-3 py-pad-1 bg-primary text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Approve
                       </button>
@@ -286,7 +286,7 @@ export default function EventImportSourceDetail() {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="text-xs px-3 py-1 border border-harbour-200 text-harbour-500 hover:bg-harbour-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-xs px-pad-3 py-pad-1 border border-line text-muted hover:bg-soft disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Hide
                       </button>
@@ -301,23 +301,23 @@ export default function EventImportSourceDetail() {
         {/* Approved (Editing) */}
         {source.approved.length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-heading mb-3 flex items-center gap-gap-2">
               Approved — Editing
-              <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+              <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">
                 {source.approved.length}
               </span>
             </h2>
-            <div className="border border-harbour-200 divide-y divide-harbour-100">
+            <div className="border border-line divide-y divide-harbour-100">
               {source.approved.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-4">
-                  <div className="flex flex-col gap-0.5">
-                    <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                <div key={event.id} className="flex items-center justify-between p-pad-4">
+                  <div className="flex flex-col gap-gap-0-5">
+                    <div className="font-medium text-heading text-sm">{event.title}</div>
                     <EventDate date={event.startDate} />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-gap-2">
                     <Link
                       to={`/manage/events/${event.id}`}
-                      className="text-xs px-3 py-1 border border-harbour-200 text-harbour-600 hover:bg-harbour-50"
+                      className="text-xs px-pad-3 py-pad-1 border border-line text-body hover:bg-soft"
                     >
                       Edit &amp; Publish
                     </Link>
@@ -327,7 +327,7 @@ export default function EventImportSourceDetail() {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="text-xs px-3 py-1 border border-harbour-200 text-harbour-500 hover:bg-harbour-50"
+                        className="text-xs px-pad-3 py-pad-1 border border-line text-muted hover:bg-soft"
                       >
                         Hide
                       </button>
@@ -342,23 +342,23 @@ export default function EventImportSourceDetail() {
         {/* Published */}
         {source.published.length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-heading mb-3 flex items-center gap-gap-2">
               Published
-              <span className="text-xs px-1.5 py-0.5 bg-green-100 text-green-700">
+              <span className="text-xs px-pad-1-5 py-pad-0-5 bg-green-100 text-green-700">
                 {source.published.length}
               </span>
             </h2>
-            <div className="border border-harbour-200 divide-y divide-harbour-100">
+            <div className="border border-line divide-y divide-harbour-100">
               {source.published.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-4">
-                  <div className="flex flex-col gap-0.5">
-                    <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                <div key={event.id} className="flex items-center justify-between p-pad-4">
+                  <div className="flex flex-col gap-gap-0-5">
+                    <div className="font-medium text-heading text-sm">{event.title}</div>
                     <EventDate date={event.startDate} />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-gap-2">
                     <Link
                       to={`/manage/events/${event.id}`}
-                      className="text-xs px-3 py-1 border border-harbour-200 text-harbour-600 hover:bg-harbour-50"
+                      className="text-xs px-pad-3 py-pad-1 border border-line text-body hover:bg-soft"
                     >
                       Edit
                     </Link>
@@ -368,7 +368,7 @@ export default function EventImportSourceDetail() {
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="text-xs px-3 py-1 border border-harbour-200 text-harbour-500 hover:bg-harbour-50"
+                        className="text-xs px-pad-3 py-pad-1 border border-line text-muted hover:bg-soft"
                       >
                         Hide
                       </button>
@@ -383,12 +383,12 @@ export default function EventImportSourceDetail() {
         {/* Hidden */}
         {source.hidden.length > 0 && (
           <section>
-            <h2 className="text-lg font-semibold text-harbour-700 mb-3">Hidden</h2>
-            <div className="border border-harbour-200 divide-y divide-harbour-100">
+            <h2 className="text-lg font-semibold text-heading mb-3">Hidden</h2>
+            <div className="border border-line divide-y divide-harbour-100">
               {source.hidden.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-4">
-                  <div className="flex flex-col gap-0.5">
-                    <div className="font-medium text-harbour-700 text-sm">{event.title}</div>
+                <div key={event.id} className="flex items-center justify-between p-pad-4">
+                  <div className="flex flex-col gap-gap-0-5">
+                    <div className="font-medium text-heading text-sm">{event.title}</div>
                     <EventDate date={event.startDate} />
                   </div>
                   <fetcher.Form method="post">
@@ -397,7 +397,7 @@ export default function EventImportSourceDetail() {
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="text-xs px-3 py-1 border border-harbour-200 text-harbour-600 hover:bg-harbour-50"
+                      className="text-xs px-pad-3 py-pad-1 border border-line text-body hover:bg-soft"
                     >
                       Unhide
                     </button>
@@ -410,13 +410,13 @@ export default function EventImportSourceDetail() {
 
         {/* Removed */}
         {source.removed.length > 0 && (
-          <details className="border border-harbour-200">
-            <summary className="px-4 py-3 text-sm font-medium text-harbour-500 cursor-pointer hover:bg-harbour-50">
+          <details className="border border-line">
+            <summary className="px-pad-4 py-pad-3 text-sm font-medium text-muted cursor-pointer hover:bg-soft">
               Removed ({source.removed.length}) — no longer in source feed
             </summary>
             <div className="divide-y divide-harbour-100">
               {source.removed.map((event) => (
-                <div key={event.id} className="px-4 py-3 text-sm text-harbour-400">
+                <div key={event.id} className="px-pad-4 py-pad-3 text-sm text-subtle">
                   {event.title}
                 </div>
               ))}
@@ -426,11 +426,11 @@ export default function EventImportSourceDetail() {
 
         {/* Danger zone */}
         <details className="border border-red-200">
-          <summary className="px-4 py-3 text-sm font-medium text-red-600 cursor-pointer hover:bg-red-50">
+          <summary className="px-pad-4 py-pad-3 text-sm font-medium text-red-600 cursor-pointer hover:bg-red-50">
             Danger Zone
           </summary>
-          <div className="p-4">
-            <p className="text-sm text-harbour-500 mb-3">
+          <div className="p-pad-4">
+            <p className="text-sm text-muted mb-3">
               Deleting this source will not delete approved or published events. Only the source
               record and pending/hidden events will be removed.
             </p>
@@ -438,7 +438,7 @@ export default function EventImportSourceDetail() {
               <input type="hidden" name="intent" value="delete-source" />
               <button
                 type="submit"
-                className="text-xs px-3 py-1 bg-red-600 text-white hover:bg-red-700"
+                className="text-xs px-pad-3 py-pad-1 bg-red-600 text-white hover:bg-red-700"
                 onClick={(e) => {
                   if (
                     !confirm(
