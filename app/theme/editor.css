@@ -309,7 +309,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
+  grid-template-columns: 380px minmax(0, 1fr);
 }
 .design-preview {
   min-width: 0;
@@ -327,7 +327,7 @@
   max-height: none;
   z-index: auto;
   animation: none;
-  border-width: 0 0 0 1px;
+  border-width: 0 1px 0 0;
 }
 .theme-editor--docked .theme-panel-header {
   cursor: default;

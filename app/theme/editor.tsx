@@ -101,7 +101,7 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
             {docked ? (
               <div>
                 <strong>Design studio</strong>
-                <span>Live controls · preview on the left</span>
+                <span>Live controls · preview on the right</span>
               </div>
             ) : (
               <>

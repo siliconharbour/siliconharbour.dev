@@ -13,10 +13,10 @@ export default function DesignLayout() {
     <div className="design-shell">
       <Header visibility={visibility} />
       <div className="design-workspace">
+        <ThemeEditor docked />
         <main className="design-preview">
           <Outlet />
         </main>
-        <ThemeEditor docked />
       </div>
     </div>
   );
