@@ -1,39 +1,20 @@
 import { z } from "zod";
 
 export const BRAND_LOGO = "/siliconharbour.svg";
-export const HARBOUR_PALETTE = {
-  50: "#e8f0ff",
-  100: "#d1e0ff",
-  200: "#89adff",
-  300: "#7593fa",
-  400: "#587bf0",
-  500: "#4166e2",
-  600: "#2b51d1",
-  700: "#2144bb",
-  800: "#1a369a",
-  900: "#142a7a",
-};
-export const FONT_OPTIONS = {
-  inter: '"Inter", ui-sans-serif, system-ui, sans-serif',
-  system: "ui-sans-serif, system-ui, sans-serif",
-  serif: 'Georgia, "Times New Roman", serif',
-  mono: "ui-monospace, SFMono-Regular, Menlo, monospace",
-};
-const color = z
-  .string()
-  .regex(/^#[0-9a-fA-F]{6}$/)
-  .transform((value) => value.toLowerCase());
-export const themeSchema = z
-  .object({
-    brand: color,
-    page: color,
-    surface: color,
-    body: color,
-    heading: color,
-    muted: color,
-    border: color,
-    bodyFont: z.enum(["inter", "system", "serif", "mono"]),
-    headingFont: z.enum(["inter", "system", "serif", "mono"]),
+export { HARBOUR_PALETTE } from "./colors";
+import {
+  HARBOUR_PALETTE,
+  DEFAULT_COLORS,
+  colorThemeSchema,
+  colorCss,
+  resolveColors,
+  resolvePalette,
+} from "./colors";
+import { fontSchema, fontStack } from "./fonts";
+export const themeSchema = colorThemeSchema
+  .extend({
+    bodyFont: fontSchema,
+    headingFont: fontSchema,
     typeScale: z.number().min(0.8).max(1.5),
     lineHeight: z.number().min(1).max(1.4),
     padding: z.number().min(0.5).max(2),
@@ -44,13 +25,7 @@ export const themeSchema = z
   .strict();
 export type Theme = z.infer<typeof themeSchema>;
 export const DEFAULT_THEME: Theme = {
-  brand: HARBOUR_PALETTE[600],
-  page: "#ffffff",
-  surface: "#ffffff",
-  body: HARBOUR_PALETTE[600],
-  heading: HARBOUR_PALETTE[700],
-  muted: HARBOUR_PALETTE[500],
-  border: HARBOUR_PALETTE[200],
+  ...DEFAULT_COLORS,
   bodyFont: "inter",
   headingFont: "inter",
   typeScale: 1,
@@ -62,12 +37,12 @@ export const DEFAULT_THEME: Theme = {
 };
 export const DEFAULT_OG_COLORS = Object.fromEntries([
   ...Object.entries(HARBOUR_PALETTE).map(([shade, value]) => [`harbour${shade}`, value]),
-  ["white", DEFAULT_THEME.surface],
+  ["white", "#ffffff"],
 ]) as Record<`harbour${keyof typeof HARBOUR_PALETTE}` | "white", string>;
 
 const sharedSchema = themeSchema
   .partial()
-  .extend({ v: z.literal(1) })
+  .extend({ v: z.literal(2) })
   .strict();
 export function decodeTheme(raw: string | null): { theme?: Theme; error?: string } {
   if (raw === null) return {};
@@ -85,9 +60,11 @@ export function decodeTheme(raw: string | null): { theme?: Theme; error?: string
 }
 export function encodeTheme(theme: Theme): string | null {
   const changes = Object.fromEntries(
-    Object.entries(theme).filter(([key, value]) => value !== DEFAULT_THEME[key as keyof Theme]),
+    Object.entries(theme).filter(
+      ([key, value]) => JSON.stringify(value) !== JSON.stringify(DEFAULT_THEME[key as keyof Theme]),
+    ),
   );
-  return Object.keys(changes).length ? JSON.stringify({ v: 1, ...changes }) : null;
+  return Object.keys(changes).length ? JSON.stringify({ v: 2, ...changes }) : null;
 }
 export function themeUrl(url: URL, theme: Theme): string {
   const next = new URL(url);
@@ -121,57 +98,22 @@ export function spacingName(step: number): string {
   return String(step).replace(".", "-");
 }
 
-function mix(first: string, second: string, amount: number): string {
-  const a = first
-    .slice(1)
-    .match(/../g)!
-    .map((hex) => parseInt(hex, 16));
-  const b = second
-    .slice(1)
-    .match(/../g)!
-    .map((hex) => parseInt(hex, 16));
-  return `#${a
-    .map((value, i) =>
-      Math.round(value * (1 - amount) + b[i] * amount)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-}
 export function themeVariables(theme: Theme): Record<string, string> {
+  const colors = resolveColors(theme);
   const variables: Record<string, string> = {
-    "--theme-page": theme.page,
-    "--theme-surface": theme.surface,
-    "--theme-body": theme.body,
-    "--theme-heading": theme.heading,
-    "--theme-muted": theme.muted,
-    "--theme-border": theme.border,
-    "--theme-font-body": FONT_OPTIONS[theme.bodyFont],
-    "--theme-font-heading": FONT_OPTIONS[theme.headingFont],
+    "--theme-page": colorCss(colors.page),
+    "--theme-surface": colorCss(colors.surface),
+    "--theme-body": colorCss(colors.body),
+    "--theme-heading": colorCss(colors.heading),
+    "--theme-muted": colorCss(colors.muted),
+    "--theme-border": colorCss(colors.border),
+    "--theme-font-body": fontStack(theme.bodyFont),
+    "--theme-font-heading": fontStack(theme.headingFont),
     "--theme-control-radius": `${theme.controlRadius}px`,
     "--theme-panel-radius": `${theme.panelRadius}px`,
   };
-  for (const [shade, original] of Object.entries(HARBOUR_PALETTE)) {
-    const n = Number(shade);
-    const value =
-      theme.brand === DEFAULT_THEME.brand
-        ? original
-        : n === 600
-          ? theme.brand
-          : n < 600
-            ? mix(
-                theme.brand,
-                theme.surface,
-                (
-                  { 50: 0.94, 100: 0.85, 200: 0.55, 300: 0.4, 400: 0.25, 500: 0.1 } as Record<
-                    number,
-                    number
-                  >
-                )[n],
-              )
-            : mix(theme.brand, "#000000", (n - 600) / 650);
-    variables[`--theme-harbour-${shade}`] = value;
-  }
+  for (const [shade, color] of Object.entries(resolvePalette(theme)))
+    variables[`--theme-harbour-${shade}`] = colorCss(color);
   for (const [size, [font, leading]] of Object.entries(textSizes)) {
     variables[`--text-${size}`] = `${font * theme.typeScale}rem`;
     variables[`--text-${size}--line-height`] =

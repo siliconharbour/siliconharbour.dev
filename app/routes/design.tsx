@@ -36,8 +36,8 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-gap-4">
           <h2 className="text-lg font-semibold text-heading">Live theme tokens</h2>
           <p className="text-muted">
-            Open the ✳ button in the bottom-left corner to experiment. Your preview stays active as
-            you browse; copy a share link to show it to someone else.
+            Open the 🎨 button in the bottom-right corner to experiment. Your preview stays active
+            as you browse; copy a share link to show it to someone else.
           </p>
           <div className="grid sm:grid-cols-3 gap-gap-4">
             <div className="p-pad-4 border border-line bg-surface rounded-panel">
@@ -92,7 +92,7 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-gap-4">
           <h2 className="text-lg font-semibold text-heading">Color Palette</h2>
           <p className="text-sm text-muted">
-            The harbour-* palette ranges from light blue to dark navy. Use 600 for primary actions,
+            The harbour-* OKLCH ramp follows the studio’s main colour. Use 600 for primary actions,
             700 for headings.
           </p>
           <div className="grid grid-cols-5 md:grid-cols-10 gap-gap-2">

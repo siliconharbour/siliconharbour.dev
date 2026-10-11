@@ -5,11 +5,11 @@ import { buttonClassName } from "~/components/ui";
 
 const colors: Record<string, string> = {
   white: "#ffffff",
-  primary: DEFAULT_THEME.brand,
+  primary: HARBOUR_PALETTE[600],
   "primary-hover": HARBOUR_PALETTE[700],
-  surface: DEFAULT_THEME.surface,
-  body: DEFAULT_THEME.body,
-  heading: DEFAULT_THEME.heading,
+  surface: "#ffffff",
+  body: HARBOUR_PALETTE[600],
+  heading: HARBOUR_PALETTE[700],
   soft: HARBOUR_PALETTE[50],
   tint: HARBOUR_PALETTE[100],
   "harbour-50": "#e8f0ff",

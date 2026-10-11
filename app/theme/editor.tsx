@@ -1,18 +1,11 @@
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from "react";
 import { Link, useLocation } from "react-router";
 import { useTheme } from "./provider";
-import { DEFAULT_THEME, FONT_OPTIONS, themeUrl, themeVariables, type Theme } from "./tokens";
+import { DEFAULT_THEME, themeUrl, themeVariables, type Theme } from "./tokens";
 import "./editor.css";
+import { ColorControls } from "./color-controls";
+import { FontField } from "./font-field";
 
-const colors: [keyof Theme, string][] = [
-  ["brand", "Brand / actions"],
-  ["page", "Page background"],
-  ["surface", "Cards / surfaces"],
-  ["heading", "Headings"],
-  ["body", "Body text"],
-  ["muted", "Secondary text"],
-  ["border", "Borders"],
-];
 const sliders = [
   { key: "typeScale", label: "Type size", min: 0.8, max: 1.5, step: 0.05, unit: "×" },
   { key: "lineHeight", label: "Line height", min: 1, max: 1.4, step: 0.05, unit: "×" },
@@ -23,7 +16,7 @@ const sliders = [
 ] as const;
 const editorTheme = themeVariables(DEFAULT_THEME) as CSSProperties;
 export function ThemeEditor() {
-  const { theme, setTheme, open, setOpen, error } = useTheme();
+  const { theme, setTheme, open, setOpen, error, fontError } = useTheme();
   const location = useLocation();
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLElement>(null);
@@ -81,7 +74,7 @@ export function ThemeEditor() {
         onClick={() => setOpen(!open)}
         title="Design studio"
       >
-        ✳
+        🎨
       </button>
       {open && (
         <aside
@@ -153,47 +146,25 @@ export function ThemeEditor() {
                 Reset theme
               </button>
             </div>
-            <fieldset>
-              <legend>Colours</legend>
-              {colors.map(([key, label]) => (
-                <label key={key} className="theme-color">
-                  <span>{label}</span>
-                  <input
-                    aria-label={label}
-                    type="color"
-                    value={theme[key] as string}
-                    onChange={(e) => setTheme({ ...theme, [key]: e.target.value })}
-                  />
-                  <code>{theme[key]}</code>
-                </label>
-              ))}
-            </fieldset>
+            <ColorControls />
             <fieldset>
               <legend>Typography</legend>
-              {(["bodyFont", "headingFont"] as const).map((key) => (
-                <label key={key} className="theme-field">
-                  {key === "bodyFont" ? "Body font" : "Heading font"}
-                  <select
-                    aria-label={key === "bodyFont" ? "Body font" : "Heading font"}
-                    value={theme[key]}
-                    onChange={(e) =>
-                      setTheme({ ...theme, [key]: e.target.value as Theme[typeof key] })
-                    }
-                  >
-                    {Object.keys(FONT_OPTIONS).map((font) => (
-                      <option key={font} value={font}>
-                        {font === "inter"
-                          ? "Inter"
-                          : font === "system"
-                            ? "System sans"
-                            : font === "serif"
-                              ? "Serif"
-                              : "Monospace"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
+              <p>Choose a preset or enter any Google Fonts family name, then Apply.</p>
+              <FontField
+                label="Body font"
+                value={theme.bodyFont}
+                onChange={(bodyFont) => setTheme({ ...theme, bodyFont })}
+              />
+              <FontField
+                label="Heading font"
+                value={theme.headingFont}
+                onChange={(headingFont) => setTheme({ ...theme, headingFont })}
+              />
+              {fontError && (
+                <p className="theme-notice" role="status">
+                  {fontError}
+                </p>
+              )}
               {sliders.slice(0, 2).map((slider) => (
                 <Slider key={slider.key} slider={slider} theme={theme} onChange={setTheme} />
               ))}

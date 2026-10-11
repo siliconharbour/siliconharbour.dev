@@ -7,6 +7,8 @@ import {
   type ReactNode,
 } from "react";
 import { useLocation, useNavigationType } from "react-router";
+import { FontStylesheet } from "./font-stylesheet";
+import { googleFontFamilies, googleFontsUrl } from "./fonts";
 import { decodeTheme, themeVariables, type Theme } from "./tokens";
 
 interface ThemeContextValue {
@@ -15,6 +17,7 @@ interface ThemeContextValue {
   open: boolean;
   setOpen: (open: boolean) => void;
   error?: string;
+  fontError?: string;
 }
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({
@@ -28,6 +31,9 @@ export function ThemeProvider({
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(initialTheme);
   const [open, setOpen] = useState(new URLSearchParams(location.search).get("studio") === "1");
+  const [fontFailure, setFontFailure] = useState<{ url: string; message: string }>();
+  const fontUrl = googleFontsUrl(theme.bodyFont, theme.headingFont);
+  const fontError = fontFailure?.url === fontUrl ? fontFailure.message : undefined;
   const raw = new URLSearchParams(location.search).get("theme");
   const [error, setError] = useState(decodeTheme(raw).error);
   const lastRaw = useRef(raw);
@@ -45,7 +51,15 @@ export function ThemeProvider({
       document.documentElement.style.setProperty(name, value);
   }, [theme]);
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, open, setOpen, error }}>
+    <ThemeContext.Provider value={{ theme, setTheme, open, setOpen, error, fontError }}>
+      {fontUrl && (
+        <FontStylesheet
+          key={fontUrl}
+          url={fontUrl}
+          families={googleFontFamilies(theme.bodyFont, theme.headingFont)}
+          onStatus={(message) => setFontFailure(message ? { url: fontUrl, message } : undefined)}
+        />
+      )}
       {children}
     </ThemeContext.Provider>
   );
