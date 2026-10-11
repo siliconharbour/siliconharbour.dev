@@ -17,6 +17,16 @@ describe("shared theme configuration", () => {
       ...DEFAULT_THEME,
       brand: fromHex("#238155"),
       panelRadius: 12,
+      borderContrast: 0.6,
+      borderWidth: 2,
+      cardOutlineOpacity: 0.8,
+      shadowOpacity: 0.15,
+      shadowBlur: 18,
+      shadowOffset: 5,
+      shadowSpread: -2,
+      hoverLift: 3,
+      imageTint: 0,
+      letterSpacing: 0.015,
       headingFont: "serif" as const,
     };
     const url = new URL(
@@ -40,6 +50,10 @@ describe("shared theme configuration", () => {
       JSON.stringify({ v: 2, brand: "url(https://example.com)" }),
       JSON.stringify({ v: 2, bodyFont: "evil; color:red" }),
       JSON.stringify({ v: 2, typeScale: 50 }),
+      JSON.stringify({ v: 2, shadowOpacity: 0.9 }),
+      JSON.stringify({ v: 2, borderWidth: -1 }),
+      JSON.stringify({ v: 2, shadowBlur: "url(https://example.com)" }),
+      JSON.stringify({ v: 2, letterSpacing: 2 }),
       JSON.stringify({ v: 2, __unknown: true }),
       " ".repeat(4097),
     ]) {

@@ -5,7 +5,6 @@
   --theme-body: oklch(0.491771 0.2018 266.128);
   --theme-heading: oklch(0.444163 0.191072 265.855);
   --theme-muted: oklch(0.554761 0.19316 267.205);
-  --theme-border: oklch(0.754361 0.125239 265.453);
   --theme-font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
   --theme-font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
   --theme-control-radius: 0px;
@@ -123,6 +122,14 @@
   --theme-gap-80: 20rem;
   --theme-pad-96: 24rem;
   --theme-gap-96: 24rem;
+  --theme-border: oklch(0.754361 0.125239 265.453);
+  --theme-border-width: 1px;
+  --theme-card-middle-outline: color-mix(in oklab, oklch(0.754361 0.125239 265.453) 70%, transparent);
+  --theme-card-outline: color-mix(in oklab, oklch(0.754361 0.125239 265.453) 50%, transparent);
+  --theme-panel-shadow: none;
+  --theme-hover-lift: 0px;
+  --theme-image-tint: color-mix(in oklab, var(--theme-harbour-200) 15%, transparent);
+  --theme-letter-spacing: 0em;
 }
 
 @theme inline {

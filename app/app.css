@@ -191,6 +191,7 @@ button {
 @layer base {
   body {
     font-family: var(--theme-font-body);
+    letter-spacing: var(--theme-letter-spacing);
     font-size: var(--text-base);
     line-height: var(--text-base--line-height);
   }
@@ -214,10 +215,15 @@ button {
 @layer components {
   .card-surface,
   .card-link {
-    @apply bg-surface rounded-panel ring-1 ring-line/50;
+    @apply bg-surface rounded-panel ring-[length:var(--theme-border-width)] ring-[var(--theme-card-outline)];
   }
   .card-link {
-    @apply transition-colors hover:ring-harbour-300 focus-visible:ring-harbour-400;
+    @apply hover:ring-harbour-300 focus-visible:ring-harbour-400;
+    transition:
+      color 150ms,
+      background-color 150ms,
+      box-shadow 150ms,
+      translate 150ms;
   }
   .card-stack {
     position: relative;
@@ -234,7 +240,7 @@ button {
   }
   .card-stack-middle {
     inset: var(--theme-stack-step);
-    @apply ring-line/70;
+    --tw-ring-color: var(--theme-card-middle-outline);
   }
   .event-card-inset {
     margin-top: calc(var(--theme-pad-8) * -1);
@@ -245,7 +251,50 @@ button {
     border-bottom-right-radius: 0;
   }
   .event-card-linked {
+    @apply ring-[length:var(--theme-border-width)] ring-[var(--theme-card-outline)] shadow-[var(--theme-panel-shadow)];
     border-bottom-left-radius: var(--theme-panel-radius);
     border-bottom-right-radius: var(--theme-panel-radius);
+  }
+}
+
+@layer components {
+  .rounded-panel,
+  .card-surface,
+  .card-link {
+    @apply shadow-[var(--theme-panel-shadow)];
+  }
+  .card-stack-back,
+  .card-stack-middle {
+    @apply shadow-none;
+  }
+  .card-link:hover {
+    translate: 0 calc(var(--theme-hover-lift) * -1);
+  }
+}
+
+@layer utilities {
+  .border-line.border {
+    border-width: var(--theme-border-width);
+  }
+  .border-line.border-b {
+    border-bottom-width: var(--theme-border-width);
+  }
+  .border-line.border-t {
+    border-top-width: var(--theme-border-width);
+  }
+  .border-line.border-l {
+    border-left-width: var(--theme-border-width);
+  }
+  .border-line.border-r {
+    border-right-width: var(--theme-border-width);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-link {
+    transition: none;
+  }
+  .card-link:hover {
+    translate: none;
   }
 }

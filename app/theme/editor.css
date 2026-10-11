@@ -1,6 +1,7 @@
 .theme-editor {
   font-family: Inter, system-ui, sans-serif;
   font-size: 14px;
+  letter-spacing: 0;
   line-height: 1.5;
   color: #2144bb;
 }

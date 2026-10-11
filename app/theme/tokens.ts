@@ -1,3 +1,4 @@
+import { appearanceSchema, DEFAULT_APPEARANCE, appearanceVariables } from "./appearance";
 import { z } from "zod";
 
 export const BRAND_LOGO = "/siliconharbour.svg";
@@ -13,6 +14,7 @@ import {
 import { fontSchema, fontStack } from "./fonts";
 export const themeSchema = colorThemeSchema
   .extend({
+    ...appearanceSchema.shape,
     bodyFont: fontSchema,
     headingFont: fontSchema,
     typeScale: z.number().min(0.8).max(1.5),
@@ -26,6 +28,7 @@ export const themeSchema = colorThemeSchema
 export type Theme = z.infer<typeof themeSchema>;
 export const DEFAULT_THEME: Theme = {
   ...DEFAULT_COLORS,
+  ...DEFAULT_APPEARANCE,
   bodyFont: "inter",
   headingFont: "inter",
   typeScale: 1,
@@ -107,7 +110,6 @@ export function themeVariables(theme: Theme): Record<string, string> {
     "--theme-body": colorCss(colors.body),
     "--theme-heading": colorCss(colors.heading),
     "--theme-muted": colorCss(colors.muted),
-    "--theme-border": colorCss(colors.border),
     "--theme-font-body": fontStack(theme.bodyFont),
     "--theme-font-heading": fontStack(theme.headingFont),
     "--theme-control-radius": `${theme.controlRadius}px`,
@@ -134,5 +136,5 @@ export function themeVariables(theme: Theme): Record<string, string> {
     variables[`--theme-pad-${spacingName(step)}`] = `${step * 0.25 * theme.padding}rem`;
     variables[`--theme-gap-${spacingName(step)}`] = `${step * 0.25 * theme.gaps}rem`;
   }
-  return variables;
+  return { ...variables, ...appearanceVariables(theme, colors) };
 }

@@ -1,3 +1,4 @@
+import { appearanceControls } from "./appearance";
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from "react";
 import { Link, useLocation, useMatch } from "react-router";
 import { useTheme } from "./provider";
@@ -193,6 +194,16 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
               ))}
             </fieldset>
             <fieldset>
+              <legend>Borders, depth & details</legend>
+              <p>
+                Shadows follow the heading colour. Set opacity above zero to enable them. Border
+                contrast blends the border colour toward body text.
+              </p>
+              {appearanceControls.map((slider) => (
+                <Slider key={slider.key} slider={slider} theme={theme} onChange={setTheme} />
+              ))}
+            </fieldset>
+            <fieldset>
               <legend>Brand graphic</legend>
               <p>
                 Logo uploads are coming later. Shared graphics need a permanent hosted asset; theme
@@ -233,7 +244,7 @@ function Slider({
   theme,
   onChange,
 }: {
-  slider: (typeof sliders)[number];
+  slider: (typeof sliders)[number] | (typeof appearanceControls)[number];
   theme: Theme;
   onChange: (theme: Theme) => void;
 }) {
@@ -242,7 +253,7 @@ function Slider({
       <span>
         {slider.label}
         <output>
-          {Number(theme[slider.key].toFixed(2))}
+          {Number(theme[slider.key].toFixed(3))}
           {slider.unit}
         </output>
       </span>

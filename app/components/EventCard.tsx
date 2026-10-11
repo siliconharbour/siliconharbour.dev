@@ -31,7 +31,7 @@ function LinkedEventDates({ events }: { events: NonNullable<EventCardProps["link
   if (events.length === 0) return null;
 
   return (
-    <div className="event-card-linked bg-soft px-pad-4 py-pad-3 ring-1 ring-line/50">
+    <div className="event-card-linked bg-soft px-pad-4 py-pad-3">
       {events.map((linkedEvent) => {
         const date = linkedEvent.dates[0];
         return (
