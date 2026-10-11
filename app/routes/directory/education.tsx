@@ -57,7 +57,7 @@ export default function DirectoryEducation() {
             <a
               key={item.id}
               href={`/directory/education/${item.slug}`}
-              className="group flex flex-col gap-gap-3 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+              className="group flex flex-col gap-gap-3 p-pad-4 card-link"
             >
               {item.logo ? (
                 <div className="w-16 h-16 relative overflow-hidden">

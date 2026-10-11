@@ -19,3 +19,7 @@ Logo upload is deferred until graphics have permanent asset hosting. The panel e
 Tailwind v4 `@theme inline` maps utilities onto runtime variables. Use semantic roles (`bg-page`, `bg-surface`, `text-body`, `text-heading`, `text-muted`, `border-line`, `bg-primary`) and `rounded-control` / `rounded-panel` where appropriate. Default radii are zero. Harbour palette utilities remain available for tonal accents.
 
 Padding and gap utilities use separate token scales (`px-pad-4`, `py-pad-2`, `gap-gap-4`). Do not scale Tailwind's global spacing variable: that would also resize icons, image frames, and layout widths. Type and line-height tokens likewise change text without changing the root rem size.
+
+Use `card-surface` for a framed panel and `card-link` for an interactive card. They share the surface, border role and panel radius; entity-specific content stays in its own component. Recurring event stacks use `--theme-stack-step` (3px at default gap density), including rounded background layers. Cover insets follow padding density and clip to the card frame.
+
+The live component section on `/design` reuses `EventCard`, `CompanyCard`, `CompanyJobCard`, `JobRow`, `BaseMultiSelect`, `Calendar` and `NewsListing`. Event examples are fixed fixtures; company, job and news examples use a small sample of published content. Keep these examples tied to production components when adding new patterns.

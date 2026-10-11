@@ -50,7 +50,7 @@ export default function DirectoryPeople() {
             <a
               key={person.id}
               href={`/directory/people/${person.slug}`}
-              className="group flex items-center gap-gap-4 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+              className="group flex items-center gap-gap-4 p-pad-4 card-link"
             >
               {person.avatar ? (
                 <div className="w-16 h-16 relative overflow-hidden flex-shrink-0">

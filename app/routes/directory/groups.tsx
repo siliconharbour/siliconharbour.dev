@@ -49,7 +49,7 @@ export default function DirectoryGroups() {
             <a
               key={group.id}
               href={`/directory/groups/${group.slug}`}
-              className="group flex flex-col gap-gap-3 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+              className="group flex flex-col gap-gap-3 p-pad-4 card-link"
             >
               {group.logo ? (
                 <div className="w-16 h-16 relative overflow-hidden">

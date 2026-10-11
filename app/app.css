@@ -210,3 +210,42 @@ button {
     border-radius: var(--theme-control-radius);
   }
 }
+
+@layer components {
+  .card-surface,
+  .card-link {
+    @apply bg-surface rounded-panel ring-1 ring-line/50;
+  }
+  .card-link {
+    @apply transition-colors hover:ring-harbour-300 focus-visible:ring-harbour-400;
+  }
+  .card-stack {
+    position: relative;
+    padding-bottom: calc(var(--theme-stack-step) * 2);
+    padding-right: calc(var(--theme-stack-step) * 2);
+  }
+  .card-stack-back,
+  .card-stack-middle {
+    position: absolute;
+    pointer-events: none;
+  }
+  .card-stack-back {
+    inset: calc(var(--theme-stack-step) * 2) 0 0 calc(var(--theme-stack-step) * 2);
+  }
+  .card-stack-middle {
+    inset: var(--theme-stack-step);
+    @apply ring-line/70;
+  }
+  .event-card-inset {
+    margin-top: calc(var(--theme-pad-8) * -1);
+    margin-inline: var(--theme-pad-3);
+  }
+  .event-card-group:has(.event-card-linked) > a {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .event-card-linked {
+    border-bottom-left-radius: var(--theme-panel-radius);
+    border-bottom-right-radius: var(--theme-panel-radius);
+  }
+}

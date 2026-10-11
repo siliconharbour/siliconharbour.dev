@@ -76,6 +76,7 @@ export function themeUrl(url: URL, theme: Theme): string {
 }
 
 const textSizes = {
+  "2xs": [0.625, 0.875],
   xs: [0.75, 1],
   sm: [0.875, 1.25],
   base: [1, 1.5],
@@ -111,6 +112,7 @@ export function themeVariables(theme: Theme): Record<string, string> {
     "--theme-font-heading": fontStack(theme.headingFont),
     "--theme-control-radius": `${theme.controlRadius}px`,
     "--theme-panel-radius": `${theme.panelRadius}px`,
+    "--theme-stack-step": `${3 * theme.gaps}px`,
   };
   for (const [shade, color] of Object.entries(resolvePalette(theme)))
     variables[`--theme-harbour-${shade}`] = colorCss(color);

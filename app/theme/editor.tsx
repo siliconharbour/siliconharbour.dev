@@ -187,6 +187,7 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
             </fieldset>
             <fieldset>
               <legend>Spacing & corners</legend>
+              <p>Space between items also adjusts recurring card stacks.</p>
               {sliders.slice(2).map((slider) => (
                 <Slider key={slider.key} slider={slider} theme={theme} onChange={setTheme} />
               ))}

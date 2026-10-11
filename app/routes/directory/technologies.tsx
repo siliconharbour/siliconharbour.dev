@@ -78,9 +78,7 @@ export default function DirectoryTechnologies() {
               <div key={category} className="flex flex-col gap-gap-4">
                 <h2 className="text-lg font-semibold text-heading border-b border-line pb-pad-2">
                   {categoryLabels[category]}
-                  <span className="ml-2 text-sm font-normal text-subtle">
-                    ({techs.length})
-                  </span>
+                  <span className="ml-2 text-sm font-normal text-subtle">({techs.length})</span>
                 </h2>
                 {(() => {
                   const popularTechs = techs.filter((t) => t.companyCount > 1);
@@ -93,7 +91,7 @@ export default function DirectoryTechnologies() {
                             <Link
                               key={tech.id}
                               to={`/directory/technologies/${tech.slug}`}
-                              className="group flex flex-col gap-gap-2 p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                              className="group flex flex-col gap-gap-2 p-pad-3 card-link"
                             >
                               <div className="flex items-center gap-gap-2">
                                 {tech.icon ? (
@@ -126,9 +124,7 @@ export default function DirectoryTechnologies() {
                                     ))}
                                   </div>
                                 )}
-                                <p className="text-xs text-subtle">
-                                  {tech.companyCount} companies
-                                </p>
+                                <p className="text-xs text-subtle">{tech.companyCount} companies</p>
                               </div>
                             </Link>
                           ))}
@@ -140,7 +136,7 @@ export default function DirectoryTechnologies() {
                             <Link
                               key={tech.id}
                               to={`/directory/technologies/${tech.slug}`}
-                              className="group flex items-center gap-gap-1 px-pad-2 py-pad-1 text-xs ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                              className="group flex items-center gap-gap-1 px-pad-2 py-pad-1 text-xs card-link"
                             >
                               {tech.icon ? (
                                 <img

@@ -69,7 +69,7 @@ export default function DirectoryProjects() {
               <a
                 key={project.id}
                 href={`/directory/projects/${project.slug}`}
-                className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all overflow-hidden"
+                className="group flex flex-col card-link overflow-hidden"
               >
                 {project.coverImage ? (
                   <div className="aspect-video relative overflow-hidden">
@@ -98,7 +98,9 @@ export default function DirectoryProjects() {
                     <h2 className="link-title font-semibold text-heading group-hover:text-body">
                       {project.name}
                     </h2>
-                    <span className={`text-xs px-pad-1-5 py-pad-0-5 ${statusColors[project.status]}`}>
+                    <span
+                      className={`text-xs px-pad-1-5 py-pad-0-5 ${statusColors[project.status]}`}
+                    >
                       {project.status}
                     </span>
                   </div>

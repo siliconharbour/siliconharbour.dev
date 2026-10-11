@@ -84,7 +84,7 @@ export default function TechnologyDetail() {
               <Link
                 key={company.id}
                 to={`/directory/companies/${company.slug}`}
-                className="group flex flex-col items-center gap-gap-2 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                className="group flex flex-col items-center gap-gap-2 p-pad-4 card-link"
               >
                 {company.logo ? (
                   <img
@@ -118,7 +118,7 @@ export default function TechnologyDetail() {
               <Link
                 key={project.id}
                 to={`/directory/projects/${project.slug}`}
-                className="group flex flex-col items-center gap-gap-2 p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all"
+                className="group flex flex-col items-center gap-gap-2 p-pad-4 card-link"
               >
                 {project.logo ? (
                   <img

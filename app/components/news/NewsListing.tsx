@@ -25,9 +25,7 @@ interface NewsListingProps {
 
 /** Only shown for articles -- links don't need a badge since they're the default */
 function ArticleBadge() {
-  return (
-    <span className="text-xs uppercase tracking-wide text-muted font-medium">Article</span>
-  );
+  return <span className="text-xs uppercase tracking-wide text-muted font-medium">Article</span>;
 }
 
 function MetaLine({ article }: { article: News }) {
@@ -62,7 +60,7 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
   return (
     <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-gap-3">
       {article.coverImage && (
-        <TintedImage className="aspect-video overflow-hidden">
+        <TintedImage className="aspect-video overflow-hidden rounded-panel">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -90,7 +88,7 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
   return (
     <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-gap-2">
       {article.coverImage && (
-        <TintedImage className="aspect-video overflow-hidden">
+        <TintedImage className="aspect-video overflow-hidden rounded-panel">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -104,9 +102,7 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
           {article.title}
         </h3>
         <MetaLine article={article} />
-        {article.excerpt && (
-          <p className="text-sm text-muted line-clamp-2">{article.excerpt}</p>
-        )}
+        {article.excerpt && <p className="text-sm text-muted line-clamp-2">{article.excerpt}</p>}
       </div>
     </a>
   );
@@ -125,7 +121,7 @@ function ListItem({ article, showTypeBadge }: { article: News; showTypeBadge: bo
       className="group group/image-tint flex gap-gap-4 py-pad-4 border-b border-harbour-100 last:border-b-0"
     >
       {article.coverImage && (
-        <TintedImage className="w-28 h-20 overflow-hidden flex-shrink-0 hidden sm:block">
+        <TintedImage className="rounded-panel w-28 h-20 overflow-hidden flex-shrink-0 hidden sm:block">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -141,9 +137,7 @@ function ListItem({ article, showTypeBadge }: { article: News; showTypeBadge: bo
         <h3 className="link-title font-semibold text-heading group-hover:text-body leading-tight">
           {article.title}
         </h3>
-        {article.excerpt && (
-          <p className="text-sm text-muted line-clamp-2">{article.excerpt}</p>
-        )}
+        {article.excerpt && <p className="text-sm text-muted line-clamp-2">{article.excerpt}</p>}
       </div>
     </a>
   );

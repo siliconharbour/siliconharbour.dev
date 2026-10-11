@@ -66,7 +66,7 @@ export default function DirectoryProducts() {
             <a
               key={product.id}
               href={`/directory/products/${product.slug}`}
-              className="group flex flex-col ring-1 ring-harbour-200/50 hover:ring-harbour-300 focus:ring-harbour-400 transition-all overflow-hidden"
+              className="group flex flex-col card-link overflow-hidden"
             >
               {product.coverImage ? (
                 <div className="aspect-video relative overflow-hidden">

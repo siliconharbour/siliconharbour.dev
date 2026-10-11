@@ -115,7 +115,7 @@ export function Calendar({
   };
 
   return (
-    <div className="bg-surface p-pad-4">
+    <div className="rounded-panel bg-surface p-pad-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-heading">
@@ -160,7 +160,9 @@ export function Calendar({
       </div>
 
       {/* Days grid */}
-      <div className={`grid grid-cols-7 gap-gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}>
+      <div
+        className={`grid grid-cols-7 gap-gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}
+      >
         {days.map((dpDay) => {
           const dateKey = format(dpDay.$date, "yyyy-MM-dd");
           const dayEvents = eventDateMap.get(dateKey) || [];
@@ -189,7 +191,7 @@ export function Calendar({
                     />
                   ))}
                   {dayEvents.length > 3 && (
-                    <span className="text-[10px] text-subtle">+{dayEvents.length - 3}</span>
+                    <span className="text-2xs text-subtle">+{dayEvents.length - 3}</span>
                   )}
                 </div>
               )}

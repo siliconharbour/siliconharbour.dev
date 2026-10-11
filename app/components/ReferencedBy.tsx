@@ -72,23 +72,23 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
   const sorted = (() => {
     if (type === "event") {
       return [...backlinks].sort((a, b) => {
-        const aDate = a.type === "event"
-          ? new Date(a.data.dates[0]?.startDate ?? a.data.createdAt).getTime()
-          : 0;
-        const bDate = b.type === "event"
-          ? new Date(b.data.dates[0]?.startDate ?? b.data.createdAt).getTime()
-          : 0;
+        const aDate =
+          a.type === "event"
+            ? new Date(a.data.dates[0]?.startDate ?? a.data.createdAt).getTime()
+            : 0;
+        const bDate =
+          b.type === "event"
+            ? new Date(b.data.dates[0]?.startDate ?? b.data.createdAt).getTime()
+            : 0;
         return bDate - aDate; // newest first
       });
     }
     if (type === "news") {
       return [...backlinks].sort((a, b) => {
-        const aDate = a.type === "news" && a.data.publishedAt
-          ? new Date(a.data.publishedAt).getTime()
-          : 0;
-        const bDate = b.type === "news" && b.data.publishedAt
-          ? new Date(b.data.publishedAt).getTime()
-          : 0;
+        const aDate =
+          a.type === "news" && a.data.publishedAt ? new Date(a.data.publishedAt).getTime() : 0;
+        const bDate =
+          b.type === "news" && b.data.publishedAt ? new Date(b.data.publishedAt).getTime() : 0;
         return bDate - aDate; // newest first
       });
     }
@@ -143,7 +143,7 @@ function NewsCard({
   return (
     <Link
       to={`/news/${data.slug}`}
-      className="group group/image-tint flex gap-gap-3 p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex gap-gap-3 p-pad-3 card-link"
     >
       {data.coverImage ? (
         <TintedImage className="w-16 h-16 overflow-hidden flex-shrink-0">
@@ -188,17 +188,16 @@ function JobCard({
   data: DetailedBacklink & { type: "job" } extends { data: infer D } ? D : never;
 }) {
   return (
-    <Link
-      to={`/jobs/${data.slug}`}
-      className="group flex flex-col p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
-    >
+    <Link to={`/jobs/${data.slug}`} className="group flex flex-col p-pad-3 card-link">
       <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-2">
         {data.title}
       </h4>
       <div className="flex flex-wrap gap-x-gap-3 gap-y-gap-1 text-sm text-muted mt-1">
         {data.location && <span>{data.location}</span>}
         {data.workplaceType === "remote" && (
-          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-purple-100 text-purple-700">Remote</span>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-purple-100 text-purple-700">
+            Remote
+          </span>
         )}
       </div>
     </Link>
@@ -213,7 +212,7 @@ function CompanyCard({
   return (
     <Link
       to={`/directory/companies/${data.slug}`}
-      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
@@ -246,7 +245,7 @@ function ProjectCard({
   return (
     <Link
       to={`/directory/projects/${data.slug}`}
-      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
@@ -279,7 +278,7 @@ function GroupCard({
   return (
     <Link
       to={`/directory/groups/${data.slug}`}
-      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
@@ -311,7 +310,7 @@ function PersonCard({
   return (
     <Link
       to={`/directory/people/${data.slug}`}
-      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.avatar ? (
         <TintedImage className="w-10 h-10 overflow-hidden rounded-full flex-shrink-0">
@@ -344,7 +343,7 @@ function EducationCard({
   return (
     <Link
       to={`/directory/education/${data.slug}`}
-      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">

@@ -10,6 +10,7 @@
   --theme-font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
   --theme-control-radius: 0px;
   --theme-panel-radius: 0px;
+  --theme-stack-step: 3px;
   --theme-harbour-50: oklch(0.953534 0.021948 263.192);
   --theme-harbour-100: oklch(0.905198 0.04555 264.925);
   --theme-harbour-200: oklch(0.754361 0.125239 265.453);
@@ -20,6 +21,8 @@
   --theme-harbour-700: oklch(0.444163 0.191072 265.855);
   --theme-harbour-800: oklch(0.384046 0.16601 266.154);
   --theme-harbour-900: oklch(0.326882 0.138556 266.431);
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
   --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
   --text-sm: 0.875rem;

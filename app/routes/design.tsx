@@ -1,3 +1,5 @@
+import { ComponentShowcase } from "~/components/design/ComponentShowcase";
+import { getJobsGroupedByCompany } from "~/lib/jobs.server";
 import { useTheme } from "~/theme/provider";
 import type { Route } from "./+types/design";
 import { useState, type ReactNode } from "react";
@@ -11,17 +13,26 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({}: Route.LoaderArgs) {
-  const [events, news] = await Promise.all([getUpcomingEvents(), getPublishedNews()]);
+  const [events, news, companies] = await Promise.all([
+    getUpcomingEvents(),
+    getPublishedNews(),
+    getJobsGroupedByCompany(),
+  ]);
   return {
     eventPreviews: events.map(({ slug, title }) => ({ slug, title })),
     newsPreviews: news.map(({ slug, title }) => ({ slug, title })),
     previewToken: Date.now(),
+    componentCompanies: companies
+      .slice(0, 8)
+      .map((data) => ({ ...data, jobs: data.jobs.slice(0, 2) })),
+    componentNews: news.slice(0, 3),
   };
 }
 
 export default function DesignSystem() {
   const { theme } = useTheme();
-  const { eventPreviews, newsPreviews, previewToken } = useLoaderData<typeof loader>();
+  const { eventPreviews, newsPreviews, previewToken, componentCompanies, componentNews } =
+    useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-pad-6">
@@ -87,6 +98,8 @@ export default function DesignSystem() {
             </div>
           </dl>
         </section>
+
+        <ComponentShowcase companies={componentCompanies} news={componentNews} />
 
         {/* Color Palette */}
         <section className="flex flex-col gap-gap-4">
@@ -365,7 +378,7 @@ export default function DesignSystem() {
           <p className="text-sm text-muted">
             When tables are needed, use border-collapse with harbour borders.
           </p>
-          <div className="border border-line bg-surface overflow-hidden rounded-panel">
+          <div className="border border-line bg-surface overflow-x-auto rounded-panel">
             <table className="w-full">
               <thead className="bg-soft border-b border-line">
                 <tr>
@@ -600,7 +613,7 @@ function SocialPreview({
           <span className="font-medium text-heading">{label}</span>
           {title ? <span className="block text-sm text-subtle truncate">{title}</span> : null}
         </figcaption>
-        <div className="flex items-center gap-gap-3">
+        <div className="flex flex-wrap items-center gap-gap-3">
           {controls}
           <a
             href={src}

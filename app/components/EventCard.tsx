@@ -7,7 +7,7 @@ import { getEventTimingState } from "~/lib/event-timing";
 import { eventTagColorStyles } from "~/lib/event-tags";
 import { TintedImage } from "./TintedImage";
 
-type EventCardProps = {
+export type EventCardProps = {
   event: Pick<
     Event,
     | "id"
@@ -31,7 +31,7 @@ function LinkedEventDates({ events }: { events: NonNullable<EventCardProps["link
   if (events.length === 0) return null;
 
   return (
-    <div className="-mt-px bg-soft px-pad-4 py-pad-3 ring-1 ring-harbour-200/50">
+    <div className="event-card-linked bg-soft px-pad-4 py-pad-3 ring-1 ring-line/50">
       {events.map((linkedEvent) => {
         const date = linkedEvent.dates[0];
         return (
@@ -105,10 +105,6 @@ function describeRecurrence(rule: string | null): string | null {
   return "Recurring";
 }
 
-/**
- * Wrapper that adds a stacked-papers effect behind recurring event cards.
- * Two offset divs peek out bottom-right behind the card content.
- */
 function StackedWrapper({
   isRecurring,
   children,
@@ -119,12 +115,9 @@ function StackedWrapper({
   if (!isRecurring) return <>{children}</>;
 
   return (
-    <div className="relative pb-[6px] pr-[6px]">
-      {/* Back card (furthest) */}
-      <div className="absolute top-[6px] left-[6px] right-0 bottom-0 ring-1 ring-harbour-200/50 bg-soft" />
-      {/* Middle card */}
-      <div className="absolute top-[3px] left-[3px] right-[3px] bottom-[3px] ring-1 ring-harbour-200/70 bg-soft" />
-      {/* Front card (the actual content) */}
+    <div className="card-stack">
+      <div aria-hidden="true" className="card-stack-back card-surface bg-soft" />
+      <div aria-hidden="true" className="card-stack-middle card-surface bg-soft" />
       <div className="relative">{children}</div>
     </div>
   );
@@ -161,10 +154,10 @@ export function EventCard({
   if (isFeatured) {
     return (
       <StackedWrapper isRecurring={!!event.recurrenceRule}>
-        <div>
+        <div className="event-card-group">
           <Link
             to={`/events/${event.slug}`}
-            className={`group group/image-tint relative block bg-surface rounded-panel ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-pad-3" : ""}`}
+            className={`group group/image-tint relative block card-link overflow-hidden ${event.coverImage ? "pb-pad-3" : ""}`}
           >
             {event.coverImage && (
               <TintedImage className="aspect-[3/1] overflow-hidden">
@@ -178,7 +171,7 @@ export function EventCard({
 
             {/* Overlapping content card */}
             <div
-              className={`relative bg-surface p-pad-3 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
+              className={`relative bg-surface p-pad-3 ${event.coverImage ? "event-card-inset card-surface" : ""}`}
             >
               <div className="flex items-start gap-gap-3">
                 {event.iconImage && (
@@ -271,9 +264,9 @@ export function EventCard({
       <StackedWrapper isRecurring={!!event.recurrenceRule}>
         <Link
           to={`/events/${event.slug}`}
-          className="group relative block bg-surface rounded-panel ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+          className="group relative block card-link overflow-hidden"
         >
-          <div className="relative bg-surface p-pad-3">
+          <div className="relative p-pad-3">
             <div className="flex items-start gap-gap-2-5">
               {event.iconImage && (
                 <div className="relative w-10 h-10 flex-shrink-0">
@@ -325,10 +318,10 @@ export function EventCard({
   // Default (non-featured) card
   return (
     <StackedWrapper isRecurring={!!event.recurrenceRule}>
-      <div>
+      <div className="event-card-group">
         <Link
           to={`/events/${event.slug}`}
-          className={`group group/image-tint relative block bg-surface rounded-panel ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all ${event.coverImage ? "pb-pad-3" : ""}`}
+          className={`group group/image-tint relative block card-link overflow-hidden ${event.coverImage ? "pb-pad-3" : ""}`}
         >
           {event.coverImage && (
             <TintedImage className="aspect-[3/1] overflow-hidden">
@@ -342,7 +335,7 @@ export function EventCard({
 
           {/* Overlapping content card */}
           <div
-            className={`relative bg-surface p-pad-4 ${event.coverImage ? "-mt-8 mx-3 ring-1 ring-harbour-200/50" : ""}`}
+            className={`relative bg-surface p-pad-4 ${event.coverImage ? "event-card-inset card-surface" : ""}`}
           >
             <div className="flex items-start gap-gap-3">
               {event.iconImage && (
