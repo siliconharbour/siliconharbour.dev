@@ -411,3 +411,30 @@
     display: none;
   }
 }
+
+.theme-value-reference {
+  color: #526078;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.theme-slider > span {
+  gap: 8px;
+}
+.theme-slider output {
+  text-align: right;
+}
+
+.theme-spacing-table {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+.theme-spacing-table table {
+  width: 100%;
+  font-size: 11px;
+  border-collapse: collapse;
+}
+.theme-spacing-table :is(th, td) {
+  padding: 6px 4px;
+  text-align: left;
+  border-bottom: 1px solid #d1d9e6;
+}

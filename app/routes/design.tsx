@@ -1,3 +1,5 @@
+import { controlValues } from "~/theme/control-values";
+import { useRootFontSize } from "~/theme/use-root-font-size";
 import { ComponentShowcase } from "~/components/design/ComponentShowcase";
 import { getJobsGroupedByCompany } from "~/lib/jobs.server";
 import { useTheme } from "~/theme/provider";
@@ -31,6 +33,11 @@ export async function loader({}: Route.LoaderArgs) {
 
 export default function DesignSystem() {
   const { theme } = useTheme();
+  const rootPixels = useRootFontSize();
+  const type = controlValues("typeScale", "×", theme, rootPixels);
+  const leading = controlValues("lineHeight", "×", theme, rootPixels);
+  const padding = controlValues("padding", "×", theme, rootPixels);
+  const gaps = controlValues("gaps", "×", theme, rootPixels);
   const { eventPreviews, newsPreviews, previewToken, componentCompanies, componentNews } =
     useLoaderData<typeof loader>();
 
@@ -79,14 +86,18 @@ export default function DesignSystem() {
             <div>
               <dt className="text-muted">Type / line height</dt>
               <dd>
-                {theme.typeScale}× / {theme.lineHeight}×
+                {type.current} / {leading.current}
+              </dd>
+              <dd className="text-xs text-muted">
+                Default: {type.baseline} / {leading.baseline}
               </dd>
             </div>
             <div>
-              <dt className="text-muted">Padding / gaps</dt>
+              <dt className="text-muted">Padding / gaps (spacing 4)</dt>
               <dd>
-                {theme.padding}× / {theme.gaps}×
+                {padding.current} / {gaps.current}
               </dd>
+              <dd className="text-xs text-muted">Default: {padding.baseline} each</dd>
             </div>
             <div>
               <dt className="text-muted">Control / card corners</dt>

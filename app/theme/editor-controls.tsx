@@ -1,3 +1,6 @@
+import { DEFAULT_THEME, themeVariables } from "./tokens";
+import { controlValues, formatRem } from "./control-values";
+import { useRootFontSize } from "./use-root-font-size";
 import { appearanceControls } from "./appearance";
 import { ColorControls } from "./color-controls";
 import { FontField } from "./font-field";
@@ -23,7 +26,7 @@ const advancedGroups = [
   {
     title: "Spacing and corners",
     keys: ["padding", "gaps", "controlRadius", "panelRadius"],
-    note: "Gaps also change the spacing between recurring card layers.",
+    note: "Padding and gaps scale every spacing token. Spacing 4 is the 1rem reference; gaps also change recurring card layers.",
   },
   {
     title: "Borders",
@@ -45,6 +48,7 @@ const controls: readonly Control[] = [...layoutControls, ...appearanceControls];
 
 export function EditorControls() {
   const { theme, setTheme, advanced } = useTheme();
+  const rootPixels = useRootFontSize();
   const fonts = (
     <>
       <p className="theme-help">Choose a font or enter a Google Fonts name, then Apply.</p>
@@ -69,7 +73,7 @@ export function EditorControls() {
             <summary>Fonts and type</summary>
             {fonts}
             {layoutControls.slice(0, 2).map((control) => (
-              <Slider key={control.key} control={control} />
+              <Slider key={control.key} control={control} rootPixels={rootPixels} />
             ))}
           </details>
           {advancedGroups.map((group) => (
@@ -79,8 +83,9 @@ export function EditorControls() {
               {controls
                 .filter((control) => group.keys.includes(control.key))
                 .map((control) => (
-                  <Slider key={control.key} control={control} />
+                  <Slider key={control.key} control={control} rootPixels={rootPixels} />
                 ))}
+              {group.title === "Spacing and corners" && <SpacingScale rootPixels={rootPixels} />}
             </details>
           ))}
           <details className="theme-details">
@@ -102,7 +107,7 @@ export function EditorControls() {
             {controls
               .filter((control) => simpleKeys.has(control.key))
               .map((control) => (
-                <Slider key={control.key} control={control} />
+                <Slider key={control.key} control={control} rootPixels={rootPixels} />
               ))}
           </section>
         </>
@@ -110,19 +115,26 @@ export function EditorControls() {
     </div>
   );
 }
-function Slider({ control }: { control: Control }) {
+function Slider({ control, rootPixels }: { control: Control; rootPixels: number | null }) {
   const { theme, setTheme } = useTheme();
+  const values = controlValues(control.key, control.unit, theme, rootPixels);
   return (
     <label className="theme-slider">
       <span>
         {control.label}
-        <output>
-          {Number(theme[control.key].toFixed(3))}
-          {control.unit}
-        </output>
+        <output>{control.unit === "×" ? `${theme[control.key]}×` : values.current}</output>
       </span>
+      <small className="theme-value-reference">
+        {values.label && (
+          <>
+            {values.label}: {values.current}.{" "}
+          </>
+        )}
+        Default: {values.baseline}
+      </small>
       <input
         aria-label={control.label}
+        aria-valuetext={`${control.unit === "×" ? `${theme[control.key]} times, ` : ""}${values.current}; default ${values.baseline}`}
         type="range"
         min={control.min}
         max={control.max}
@@ -131,5 +143,38 @@ function Slider({ control }: { control: Control }) {
         onChange={(event) => setTheme({ ...theme, [control.key]: Number(event.target.value) })}
       />
     </label>
+  );
+}
+
+function SpacingScale({ rootPixels }: { rootPixels: number | null }) {
+  const { theme } = useTheme();
+  const current = themeVariables(theme);
+  const baseline = themeVariables(DEFAULT_THEME);
+  return (
+    <details className="theme-details">
+      <summary>Spacing values</summary>
+      <div className="theme-spacing-table">
+        <table aria-label="Default and current spacing values">
+          <thead>
+            <tr>
+              <th>Step</th>
+              <th>Default</th>
+              <th>Padding</th>
+              <th>Gaps</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[2, 4, 6, 8].map((step) => (
+              <tr key={step}>
+                <th scope="row">{step}</th>
+                <td>{formatRem(baseline[`--theme-pad-${step}`], rootPixels)}</td>
+                <td>{formatRem(current[`--theme-pad-${step}`], rootPixels)}</td>
+                <td>{formatRem(current[`--theme-gap-${step}`], rootPixels)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
   );
 }
