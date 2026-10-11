@@ -38,27 +38,25 @@ export default function DesignSystem() {
     <div className="min-h-screen p-pad-6">
       <div className="max-w-4xl mx-auto flex flex-col gap-gap-8">
         <div>
-          <h1 className="text-2xl font-semibold text-heading">Design System</h1>
-          <p className="text-subtle mt-1">
-            Visual elements and patterns used throughout siliconharbour.dev
-          </p>
+          <h1 className="text-2xl font-semibold text-heading">Design system</h1>
+          <p className="text-subtle mt-1">Try the site’s components with your theme.</p>
         </div>
 
         <section className="flex flex-col gap-gap-4">
-          <h2 className="text-lg font-semibold text-heading">Live theme tokens</h2>
+          <h2 className="text-lg font-semibold text-heading">Theme preview</h2>
           <p className="text-muted">
-            Use the studio beside the examples to experiment. Your preview stays active as you
-            browse; copy a share link to show it to someone else.
+            Changes in the studio appear here and follow you to other pages. Copy a link to share
+            your theme.
           </p>
           <div className="grid sm:grid-cols-3 gap-gap-4">
             <div className="p-pad-4 border border-line bg-surface rounded-panel">
               <h3 className="font-semibold text-heading">Card surface</h3>
-              <p className="text-body">Body text and responsive padding.</p>
+              <p className="text-body">Padding follows your settings.</p>
               <p className="text-sm text-muted">Secondary text</p>
             </div>
             <div className="p-pad-4 bg-soft border border-line rounded-panel">
               <h3 className="text-heading font-semibold">Muted surface</h3>
-              <p className="text-sm text-body">Derived from the brand palette.</p>
+              <p className="text-sm text-body">A lighter shade of your main colour.</p>
             </div>
             <div className="flex flex-col gap-gap-3">
               <Button>Primary action</Button>
@@ -101,9 +99,9 @@ export default function DesignSystem() {
 
         <ComponentShowcase companies={componentCompanies} news={componentNews} />
 
-        {/* Color Palette */}
+        {/* Colour palette */}
         <section className="flex flex-col gap-gap-4">
-          <h2 className="text-lg font-semibold text-heading">Color Palette</h2>
+          <h2 className="text-lg font-semibold text-heading">Colour palette</h2>
           <p className="text-sm text-muted">
             The harbour-* OKLCH ramp follows the studio’s main colour. Use 600 for primary actions,
             700 for headings.
@@ -166,12 +164,12 @@ export default function DesignSystem() {
           <h2 className="text-lg font-semibold text-heading">Typography</h2>
           <div className="flex flex-col gap-gap-3 p-pad-4 border border-line bg-surface rounded-panel">
             <p className="text-2xl font-semibold text-heading">
-              Page Title (text-2xl font-semibold text-heading)
+              Page title (text-2xl font-semibold text-heading)
             </p>
             <p className="text-lg font-semibold text-heading">
-              Section Heading (text-lg font-semibold text-heading)
+              Section heading (text-lg font-semibold text-heading)
             </p>
-            <p className="font-medium text-heading">Card Title (font-medium text-heading)</p>
+            <p className="font-medium text-heading">Card title (font-medium text-heading)</p>
             <p className="text-body">Body text (text-body)</p>
             <p className="text-muted">Secondary text (text-muted)</p>
             <p className="text-subtle">Muted text (text-subtle)</p>
@@ -195,12 +193,12 @@ export default function DesignSystem() {
             <Button tone="success">Success</Button>
           </div>
           <div className="flex flex-wrap gap-gap-3 p-pad-4 border border-line bg-surface rounded-panel">
-            <Button size="sm">Small Primary</Button>
+            <Button size="sm">Small primary</Button>
             <Button size="sm" tone="secondary">
-              Small Secondary
+              Small secondary
             </Button>
             <Button size="sm" tone="ghost">
-              Ghost Button
+              Ghost button
             </Button>
           </div>
           <div className="p-pad-4 border border-line bg-surface rounded-panel">
@@ -212,11 +210,12 @@ export default function DesignSystem() {
           </div>
         </section>
 
-        {/* Form Inputs */}
+        {/* Form inputs */}
         <section className="flex flex-col gap-gap-4">
-          <h2 className="text-lg font-semibold text-heading">Form Inputs</h2>
+          <h2 className="text-lg font-semibold text-heading">Form inputs</h2>
           <p className="text-sm text-muted">
-            No rounded corners. Use focus:ring-2 focus:ring-harbour-500 for focus states.
+            Inputs start with square corners. The studio can change their radius; focus rings stay
+            visible.
           </p>
           <div className="flex flex-col gap-gap-4 p-pad-4 border border-line bg-surface rounded-panel">
             <div>
@@ -254,22 +253,21 @@ export default function DesignSystem() {
 
         {/* Base UI */}
         <section className="flex flex-col gap-gap-4">
-          <h2 className="text-lg font-semibold text-heading">Base UI Components</h2>
+          <h2 className="text-lg font-semibold text-heading">Base UI components</h2>
           <div className="p-pad-4 border border-line bg-surface flex flex-col gap-gap-2 rounded-panel">
             <p className="text-sm text-body">
-              This project now uses <code>@base-ui/react</code> for advanced interactive controls
-              (for example, multi-select provenance mapping).
+              <code>@base-ui/react</code> handles controls such as the company multi-select.
             </p>
             <p className="text-sm text-muted">
-              Keep Base UI primitives unstyled and apply the harbour design language in our own
-              classes: square edges, no shadows, harbour palette, and semantic badges.
+              Our styles give these controls square corners, a flat surface and harbour colours by
+              default. The studio can change their appearance.
             </p>
           </div>
         </section>
 
-        {/* Cards & Containers */}
+        {/* Cards and containers */}
         <section className="flex flex-col gap-gap-4">
-          <h2 className="text-lg font-semibold text-heading">Cards & Containers</h2>
+          <h2 className="text-lg font-semibold text-heading">Cards and containers</h2>
           <p className="text-sm text-muted">
             Use border border-line for containers. No shadows, no rounded corners.
           </p>
@@ -330,9 +328,9 @@ export default function DesignSystem() {
           </div>
         </section>
 
-        {/* List Items */}
+        {/* List items */}
         <section className="flex flex-col gap-gap-4">
-          <h2 className="text-lg font-semibold text-heading">List Items</h2>
+          <h2 className="text-lg font-semibold text-heading">List items</h2>
           <p className="text-sm text-muted">
             Admin lists use stacked cards instead of traditional tables.
           </p>
@@ -483,8 +481,8 @@ export default function DesignSystem() {
         <section className="flex flex-col gap-gap-4">
           <h2 className="text-lg font-semibold text-heading">Social Preview Images</h2>
           <p className="text-sm text-muted">
-            OG images are always 1200 × 630. These are live renderers using current data, shown at
-            their real aspect ratio so cropping and long-title problems are visible here first.
+            Social images are 1200 × 630. These previews use current content so you can check
+            cropping and long titles.
           </p>
           <div className="flex flex-col gap-gap-6">
             <SocialPreview label="Site default" src={`/og.png?preview=${previewToken}`} />
@@ -497,7 +495,7 @@ export default function DesignSystem() {
                 }))}
               />
             ) : (
-              <Alert>No upcoming public event is available for an event preview.</Alert>
+              <Alert>There are no upcoming public events to preview.</Alert>
             )}
             {newsPreviews.length > 0 ? (
               <SocialPreviewCarousel
@@ -508,38 +506,22 @@ export default function DesignSystem() {
                 }))}
               />
             ) : (
-              <Alert>No published news item is available for a news preview.</Alert>
+              <Alert>There is no published news to preview.</Alert>
             )}
           </div>
         </section>
 
-        {/* Key Principles */}
+        {/* Published defaults */}
         <section className="flex flex-col gap-gap-4 p-pad-4 border border-line bg-soft">
-          <h2 className="text-lg font-semibold text-heading">Key Principles</h2>
+          <h2 className="text-lg font-semibold text-heading">Published defaults</h2>
           <ul className="flex flex-col gap-gap-2 text-sm text-body">
-            <li>
-              <strong>Square by default</strong> - Control and card radius tokens default to zero
-            </li>
-            <li>
-              <strong>Borders over shadows</strong> - Use border or ring-1 instead of shadow-*
-            </li>
-            <li>
-              <strong>Subtle interactions</strong> - Hover states change border/color, not transform
-            </li>
-            <li>
-              <strong>Consistent spacing</strong> - Use Tailwind's scale: gap-gap-2, gap-gap-3,
-              gap-gap-4, gap-gap-6
-            </li>
-            <li>
-              <strong>harbour-* palette</strong> - Blue-focused, 600 for primary, 700 for headings
-            </li>
-            <li>
-              <strong>White backgrounds</strong> - Cards use bg-surface, muted areas use bg-soft
-            </li>
-            <li>
-              <strong>Semantic colors</strong> - Amber for warnings, Red for errors, Green for
-              success
-            </li>
+            <li>Cards, inputs and buttons start with square corners.</li>
+            <li>Cards use borders and no shadows. The studio can add depth.</li>
+            <li>Hover states change colour by default. Card lift is optional.</li>
+            <li>Padding and gaps follow separate spacing scales.</li>
+            <li>The harbour palette starts blue: 600 for actions, 700 for headings.</li>
+            <li>Cards start white; muted areas use a lighter palette shade.</li>
+            <li>Amber means warning, red means error, and green means success.</li>
           </ul>
         </section>
       </div>

@@ -24,7 +24,7 @@ export function FontField({
         event.preventDefault();
         const result = fontSchema.safeParse(draft);
         if (!result.success) {
-          setError("Enter a font family name, without CSS or a URL (up to 100 characters).");
+          setError("Enter a font name of up to 100 characters. Leave out CSS and URLs.");
           return;
         }
         setError("");

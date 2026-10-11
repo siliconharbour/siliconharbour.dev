@@ -17,7 +17,7 @@ export function FontStylesheet({
     };
   }, []);
   const failure =
-    "Google Fonts could not load this family. Check the name or connection; the fallback font is shown.";
+    "This font did not load. Check the name or your connection. A fallback font is shown.";
   async function loaded() {
     try {
       const faces = await Promise.all(
@@ -27,7 +27,7 @@ export function FontStylesheet({
       const missing = families.filter((_, index) => !faces[index].length);
       onStatus(
         missing.length
-          ? `Google Fonts could not load ${missing.join(", ")}. Check the family name; the fallback font is shown.`
+          ? `${missing.join(", ")} did not load. Check the name. A fallback font is shown.`
           : undefined,
       );
     } catch {

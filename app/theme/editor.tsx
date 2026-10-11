@@ -1,24 +1,14 @@
-import { appearanceControls } from "./appearance";
+import { EditorControls } from "./editor-controls";
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from "react";
 import { Link, useLocation, useMatch } from "react-router";
 import { useTheme } from "./provider";
-import { DEFAULT_THEME, themeUrl, themeVariables, type Theme } from "./tokens";
+import { DEFAULT_THEME, themeUrl, themeVariables } from "./tokens";
 import "./editor.css";
-import { ColorControls } from "./color-controls";
-import { FontField } from "./font-field";
 
-const sliders = [
-  { key: "typeScale", label: "Type size", min: 0.8, max: 1.5, step: 0.05, unit: "×" },
-  { key: "lineHeight", label: "Line height", min: 1, max: 1.4, step: 0.05, unit: "×" },
-  { key: "padding", label: "Padding density", min: 0.5, max: 2, step: 0.05, unit: "×" },
-  { key: "gaps", label: "Space between items", min: 0.5, max: 2, step: 0.05, unit: "×" },
-  { key: "controlRadius", label: "Control corners", min: 0, max: 24, step: 1, unit: "px" },
-  { key: "panelRadius", label: "Card corners", min: 0, max: 32, step: 1, unit: "px" },
-] as const;
 const editorTheme = themeVariables(DEFAULT_THEME) as CSSProperties;
 export function ThemeEditor({ docked = false }: { docked?: boolean }) {
   const onDesign = !!useMatch("/design");
-  const { theme, setTheme, open, setOpen, error, fontError } = useTheme();
+  const { theme, setTheme, open, setOpen, error, fontError, advanced, setAdvanced } = useTheme();
   const location = useLocation();
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLElement>(null);
@@ -61,9 +51,9 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
     setShareLink(link);
     try {
       await navigator.clipboard.writeText(link);
-      setStatus("Link copied. It includes this page’s filters and your theme.");
+      setStatus("Link copied with your theme and page filters.");
     } catch {
-      setStatus("Copy the link below to share this theme.");
+      setStatus("Copy the link below.");
     }
   }
   const designParams = new URL(themeUrl(new URL("https://example.invalid/design"), theme)).search;
@@ -102,7 +92,7 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
             {docked ? (
               <div>
                 <strong>Design studio</strong>
-                <span>Live controls · preview on the right</span>
+                <span>Changes appear on the right.</span>
               </div>
             ) : (
               <>
@@ -144,7 +134,7 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
                 >
                   <div>
                     <strong>Design studio</strong>
-                    <span>Drag to move · preview only</span>
+                    <span>Drag this panel to move it.</span>
                   </div>
                 </div>
                 <button type="button" onClick={close} aria-label="Close design studio">
@@ -153,69 +143,47 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
               </>
             )}
           </div>
-          <div className="theme-panel-body">
-            {error && <p className="theme-notice">{error}</p>}
-            <div className="theme-actions">
-              <Link to={`/design${designParams}`} className="theme-link">
-                Open /design ↗
-              </Link>
-              <button type="button" onClick={() => setTheme({ ...DEFAULT_THEME })}>
-                Reset theme
+          <div className="theme-toolbar">
+            <div className="theme-mode" role="group" aria-label="Control detail">
+              <button type="button" aria-pressed={!advanced} onClick={() => setAdvanced(false)}>
+                Simple
+              </button>
+              <button type="button" aria-pressed={advanced} onClick={() => setAdvanced(true)}>
+                Advanced
               </button>
             </div>
-            <ColorControls />
-            <fieldset>
-              <legend>Typography</legend>
-              <p>Choose a preset or enter any Google Fonts family name, then Apply.</p>
-              <FontField
-                label="Body font"
-                value={theme.bodyFont}
-                onChange={(bodyFont) => setTheme({ ...theme, bodyFont })}
-              />
-              <FontField
-                label="Heading font"
-                value={theme.headingFont}
-                onChange={(headingFont) => setTheme({ ...theme, headingFont })}
-              />
-              {fontError && (
-                <p className="theme-notice" role="status">
-                  {fontError}
-                </p>
-              )}
-              {sliders.slice(0, 2).map((slider) => (
-                <Slider key={slider.key} slider={slider} theme={theme} onChange={setTheme} />
-              ))}
-            </fieldset>
-            <fieldset>
-              <legend>Spacing & corners</legend>
-              <p>Space between items also adjusts recurring card stacks.</p>
-              {sliders.slice(2).map((slider) => (
-                <Slider key={slider.key} slider={slider} theme={theme} onChange={setTheme} />
-              ))}
-            </fieldset>
-            <fieldset>
-              <legend>Borders, depth & details</legend>
-              <p>
-                Shadows follow the heading colour. Set opacity above zero to enable them. Border
-                contrast blends the border colour toward body text.
+            <button
+              className="theme-reset"
+              type="button"
+              onClick={() => setTheme({ ...DEFAULT_THEME })}
+            >
+              Reset theme
+            </button>
+          </div>
+          <div className="theme-panel-body">
+            {error && (
+              <p className="theme-notice" role="alert">
+                {error}
               </p>
-              {appearanceControls.map((slider) => (
-                <Slider key={slider.key} slider={slider} theme={theme} onChange={setTheme} />
-              ))}
-            </fieldset>
-            <fieldset>
-              <legend>Brand graphic</legend>
-              <p>
-                Logo uploads are coming later. Shared graphics need a permanent hosted asset; theme
-                links currently include styles only.
+            )}
+            {fontError && (
+              <p className="theme-notice" role="status">
+                {fontError}
               </p>
-            </fieldset>
+            )}
+            <EditorControls />
+          </div>
+          <div className="theme-panel-footer">
+            {!docked && (
+              <Link to={`/design${designParams}`} className="theme-link">
+                View examples ↗
+              </Link>
+            )}
             <button type="button" className="theme-share" onClick={share}>
               Copy share link
             </button>
             <p className="theme-status" role="status">
-              {status ||
-                "Changes stay in this tab as you browse. Share a link to restore them on another device."}
+              {status || "Your edits follow you as you browse. Share a link to save this theme."}
             </p>
             {shareLink && (
               <label className="theme-field">
@@ -229,43 +197,9 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
                 />
               </label>
             )}
-            <p className="theme-note">
-              Status colours stay fixed. Logos, favicons and social images retain the published
-              branding. Closing the studio keeps your preview; Reset restores the site’s defaults.
-            </p>
           </div>
         </aside>
       )}
     </div>
-  );
-}
-function Slider({
-  slider,
-  theme,
-  onChange,
-}: {
-  slider: (typeof sliders)[number] | (typeof appearanceControls)[number];
-  theme: Theme;
-  onChange: (theme: Theme) => void;
-}) {
-  return (
-    <label className="theme-slider">
-      <span>
-        {slider.label}
-        <output>
-          {Number(theme[slider.key].toFixed(3))}
-          {slider.unit}
-        </output>
-      </span>
-      <input
-        aria-label={slider.label}
-        type="range"
-        min={slider.min}
-        max={slider.max}
-        step={slider.step}
-        value={theme[slider.key]}
-        onChange={(e) => onChange({ ...theme, [slider.key]: Number(e.target.value) })}
-      />
-    </label>
   );
 }

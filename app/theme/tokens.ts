@@ -57,7 +57,8 @@ export function decodeTheme(raw: string | null): { theme?: Theme; error?: string
   } catch {
     return {
       theme: { ...DEFAULT_THEME },
-      error: "This theme link is invalid or unsupported. Default settings were loaded.",
+      error:
+        "This theme link is invalid or uses an unsupported format. The site defaults are shown.",
     };
   }
 }

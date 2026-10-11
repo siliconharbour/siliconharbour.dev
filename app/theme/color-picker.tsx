@@ -65,8 +65,8 @@ export function ColorPicker({
       })}
       <p>
         {inSrgb({ mode: "oklch", ...value })
-          ? "Within sRGB"
-          : "Outside sRGB; appearance depends on your display."}
+          ? "Works on standard displays."
+          : "This colour may look different on other displays."}
       </p>
     </fieldset>
   );

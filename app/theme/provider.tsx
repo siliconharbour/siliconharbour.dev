@@ -14,6 +14,8 @@ import { decodeTheme, themeVariables, type Theme } from "./tokens";
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  advanced: boolean;
+  setAdvanced: (advanced: boolean) => void;
   open: boolean;
   setOpen: (open: boolean) => void;
   error?: string;
@@ -30,6 +32,7 @@ export function ThemeProvider({
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(initialTheme);
+  const [advanced, setAdvanced] = useState(false);
   const [open, setOpen] = useState(new URLSearchParams(location.search).get("studio") === "1");
   const [fontFailure, setFontFailure] = useState<{ url: string; message: string }>();
   const fontUrl = googleFontsUrl(theme.bodyFont, theme.headingFont);
@@ -51,7 +54,9 @@ export function ThemeProvider({
       document.documentElement.style.setProperty(name, value);
   }, [theme]);
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, open, setOpen, error, fontError }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, advanced, setAdvanced, open, setOpen, error, fontError }}
+    >
       {fontUrl && (
         <FontStylesheet
           key={fontUrl}

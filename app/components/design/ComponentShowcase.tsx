@@ -56,8 +56,8 @@ export function ComponentShowcase({
           Live site components
         </h2>
         <p className="text-sm text-muted">
-          These use the same components as the public pages. Event examples are illustrative;
-          company, job and news examples use published content.
+          These are the components used on the site. Events are examples; companies, jobs and news
+          use published content.
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-gap-4">
