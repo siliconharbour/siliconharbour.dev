@@ -14,6 +14,7 @@ const aliases: Record<string, string> = {
   "color-heading": "heading",
   "color-muted": "muted",
   "color-line": "border",
+  "color-control-line": "control-border",
   "color-primary": "harbour-600",
   "color-primary-hover": "harbour-700",
   "color-soft": "harbour-50",

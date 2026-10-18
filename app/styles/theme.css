@@ -123,10 +123,12 @@
   --theme-pad-96: 24rem;
   --theme-gap-96: 24rem;
   --theme-border: oklch(0.754361 0.125239 265.453);
+  --theme-control-border: oklch(0.687251 0.155366 269.728);
+  --theme-card-strong-outline: color-mix(in oklab, oklch(0.754361 0.125239 265.453) 100%, transparent);
   --theme-border-width: 1px;
   --theme-card-middle-outline: color-mix(in oklab, oklch(0.754361 0.125239 265.453) 70%, transparent);
   --theme-card-outline: color-mix(in oklab, oklch(0.754361 0.125239 265.453) 50%, transparent);
-  --theme-panel-shadow: none;
+  --theme-panel-shadow: 0 0 0 0 transparent;
   --theme-hover-lift: 0px;
   --theme-image-tint: color-mix(in oklab, var(--theme-harbour-200) 15%, transparent);
   --theme-letter-spacing: 0em;
@@ -139,6 +141,7 @@
   --color-heading: var(--theme-heading);
   --color-muted: var(--theme-muted);
   --color-line: var(--theme-border);
+  --color-control-line: var(--theme-control-border);
   --color-primary: var(--theme-harbour-600);
   --color-primary-hover: var(--theme-harbour-700);
   --color-soft: var(--theme-harbour-50);

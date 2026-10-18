@@ -7,7 +7,7 @@ export function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdm
   const importSourceId = jobs.find((job) => job.sourceId)?.sourceId;
 
   return (
-    <div className="card-surface overflow-hidden">
+    <div className="card-surface card-outline-strong overflow-hidden">
       {/* Company Header */}
       <div className="flex items-center gap-gap-4 p-pad-4 bg-soft border-b border-line">
         {company.logo ? (

@@ -217,6 +217,9 @@ button {
   .card-link {
     @apply bg-surface rounded-panel ring-[length:var(--theme-border-width)] ring-[var(--theme-card-outline)];
   }
+  .card-outline-strong {
+    --tw-ring-color: var(--theme-card-strong-outline);
+  }
   .card-link {
     @apply hover:ring-harbour-300 focus-visible:ring-harbour-400;
     transition:
@@ -251,6 +254,7 @@ button {
     border-bottom-right-radius: 0;
   }
   .event-card-linked {
+    margin-top: calc(var(--theme-border-width) * -1);
     @apply ring-[length:var(--theme-border-width)] ring-[var(--theme-card-outline)] shadow-[var(--theme-panel-shadow)];
     border-bottom-left-radius: var(--theme-panel-radius);
     border-bottom-right-radius: var(--theme-panel-radius);
@@ -273,19 +277,19 @@ button {
 }
 
 @layer utilities {
-  .border-line.border {
+  :is(.border-line, .border-control-line).border {
     border-width: var(--theme-border-width);
   }
-  .border-line.border-b {
+  :is(.border-line, .border-control-line).border-b {
     border-bottom-width: var(--theme-border-width);
   }
-  .border-line.border-t {
+  :is(.border-line, .border-control-line).border-t {
     border-top-width: var(--theme-border-width);
   }
-  .border-line.border-l {
+  :is(.border-line, .border-control-line).border-l {
     border-left-width: var(--theme-border-width);
   }
-  .border-line.border-r {
+  :is(.border-line, .border-control-line).border-r {
     border-right-width: var(--theme-border-width);
   }
 }

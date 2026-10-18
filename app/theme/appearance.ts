@@ -47,18 +47,21 @@ export const appearanceControls = [
 
 export function appearanceVariables(
   theme: z.infer<typeof appearanceSchema>,
-  colors: { border: Oklch; body: Oklch; heading: Oklch },
+  colors: { border: Oklch; body: Oklch; heading: Oklch; controlBorder: Oklch },
 ): Record<string, string> {
-  const border =
+  const contrast = (color: Oklch) =>
     theme.borderContrast === 0
-      ? colorCss(colors.border)
-      : `color-mix(in oklch, ${colorCss(colors.border)}, ${colorCss(colors.body)} ${theme.borderContrast * 100}%)`;
+      ? colorCss(color)
+      : `color-mix(in oklch, ${colorCss(color)}, ${colorCss(colors.body)} ${theme.borderContrast * 100}%)`;
+  const border = contrast(colors.border);
   const shadow =
     theme.shadowOpacity === 0
-      ? "none"
+      ? "0 0 0 0 transparent"
       : `0 ${theme.shadowOffset}px ${theme.shadowBlur}px ${theme.shadowSpread}px color-mix(in oklab, ${colorCss(colors.heading)} ${theme.shadowOpacity * 100}%, transparent)`;
   return {
     "--theme-border": border,
+    "--theme-control-border": contrast(colors.controlBorder),
+    "--theme-card-strong-outline": `color-mix(in oklab, ${border} ${Math.min(1, theme.cardOutlineOpacity * 2) * 100}%, transparent)`,
     "--theme-border-width": `${theme.borderWidth}px`,
     "--theme-card-middle-outline": `color-mix(in oklab, ${border} ${Math.min(1, theme.cardOutlineOpacity * 1.4) * 100}%, transparent)`,
     "--theme-card-outline": `color-mix(in oklab, ${border} ${theme.cardOutlineOpacity * 100}%, transparent)`,

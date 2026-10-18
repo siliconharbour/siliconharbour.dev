@@ -105,6 +105,7 @@ export function spacingName(step: number): string {
 
 export function themeVariables(theme: Theme): Record<string, string> {
   const colors = resolveColors(theme);
+  const palette = resolvePalette(theme);
   const variables: Record<string, string> = {
     "--theme-page": colorCss(colors.page),
     "--theme-surface": colorCss(colors.surface),
@@ -117,7 +118,7 @@ export function themeVariables(theme: Theme): Record<string, string> {
     "--theme-panel-radius": `${theme.panelRadius}px`,
     "--theme-stack-step": `${3 * theme.gaps}px`,
   };
-  for (const [shade, color] of Object.entries(resolvePalette(theme)))
+  for (const [shade, color] of Object.entries(palette))
     variables[`--theme-harbour-${shade}`] = colorCss(color);
   for (const [size, [font, leading]] of Object.entries(textSizes)) {
     variables[`--text-${size}`] = `${font * theme.typeScale}rem`;
@@ -137,5 +138,8 @@ export function themeVariables(theme: Theme): Record<string, string> {
     variables[`--theme-pad-${spacingName(step)}`] = `${step * 0.25 * theme.padding}rem`;
     variables[`--theme-gap-${spacingName(step)}`] = `${step * 0.25 * theme.gaps}rem`;
   }
-  return { ...variables, ...appearanceVariables(theme, colors) };
+  return {
+    ...variables,
+    ...appearanceVariables(theme, { ...colors, controlBorder: theme.border ?? palette[300] }),
+  };
 }

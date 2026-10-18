@@ -32,7 +32,7 @@ export function BaseMultiSelect({
   return (
     <div className={`flex flex-col gap-gap-2 ${className}`}>
       <Select.Root multiple value={selectedValues} onValueChange={onChange}>
-        <Select.Trigger className="min-h-11 w-full flex-1 px-pad-3 py-pad-2 border border-line bg-surface text-left text-heading flex items-center justify-between gap-gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-harbour-500 data-[popup-open]:border-harbour-500">
+        <Select.Trigger className="min-h-11 w-full flex-1 px-pad-3 py-pad-2 border border-control-line bg-surface text-left text-heading flex items-center justify-between gap-gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-harbour-500 data-[popup-open]:border-harbour-500">
           <Select.Value placeholder={placeholder} className="min-w-0 flex-1">
             {(value) =>
               Array.isArray(value) && value.length > 0 ? (
@@ -66,7 +66,7 @@ export function BaseMultiSelect({
             sideOffset={4}
             className="z-50 w-[var(--anchor-width)] max-w-[var(--available-width)]"
           >
-            <Select.Popup className="rounded-panel flex max-h-[min(16rem,var(--available-height))] flex-col overflow-hidden border border-line bg-surface">
+            <Select.Popup className="rounded-panel flex max-h-[min(16rem,var(--available-height))] flex-col overflow-hidden border border-control-line bg-surface">
               <Select.List className="min-h-0 overflow-y-auto overscroll-contain p-pad-1 [scrollbar-gutter:stable]">
                 {options.map((option) => (
                   <Select.Item
