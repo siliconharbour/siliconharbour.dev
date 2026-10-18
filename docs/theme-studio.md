@@ -10,7 +10,7 @@ Other controls preview type and line-height scales, padding, gaps, and control/c
 
 Copy share link includes the current page's query filters and a versioned `theme` configuration. Only changed settings are encoded. The OKLCH format is version 2; earlier version 1 links load defaults with an unsupported-link notice. Shared themes are validated and applied during server rendering; invalid configurations show an explanation and use defaults. Ordinary navigation preserves edits in the current tab. Reloading restores the URL configuration; settings are not saved to the server or browser storage.
 
-Logo upload is deferred until graphics have permanent asset hosting. The panel explains this limitation. Published logos, favicons, social images, and semantic warning/error/success colours retain their defaults.
+Choose a local SVG, PNG, JPEG, WebP, GIF or AVIF logo (up to 5 MB and 16 megapixels) in either studio mode. SVGs must be static and self-contained; scripts, external references and embedded images are rejected. The browser flattens the image to PNG at a maximum 1024px dimension. The preview logo follows navigation, replaces the header graphic, and appears in the design page’s downloadable social images. Reset or Use original logo clears it. Reloading clears the local image. Favicons and published social images keep their original branding.
 
 ## Maintaining tokens
 
@@ -31,3 +31,11 @@ The studio starts in Simple mode with the main colour, fonts, type size, padding
 Scale controls show a CSS reference value beside the multiplier, with published defaults underneath. Padding and gaps use spacing step 4 (1rem by default); Advanced includes a table of common spacing steps. Rem values also show CSS pixels based on the browser’s root font size. Letter spacing shows em and its pixel equivalent relative to the current body size.
 
 Zero elevation is a transparent zero-size shadow, so it can compose with Tailwind ring outlines. Do not use `none` inside a combined shadow list: it invalidates the outline too. Grouped job cards keep their original solid outline; ordinary cards use half opacity and recurring middle layers use 70% by default. The company selector keeps harbour 300 borders unless the border role is overridden.
+
+## Local graphic and social previews
+
+Files are never posted to the backend or included in theme URLs. Permanent asset hosting and sharing a logo through a theme link remain deferred; the studio explains this beside the file picker and share action. Social previews can be downloaded as 1200 × 630 PNG files.
+
+The existing OG routes accept the fixed `preview=template` flag. Their normal Satori layout produces a self-contained SVG with an invisible logo and supplies that logo’s exact layout bounds via `onNodeDetected`. These responses are JSON with `Cache-Control: no-store`; ordinary published PNG requests and their caches retain their behavior. The server reads only its existing local assets and accepts no uploaded file or logo URL. The browser composites the flattened logo into that slot using Canvas, with no WASM dependency or server-side remote-image fetching. Published colours, Inter typography and layout remain in the OG template; other studio style controls apply to the site itself.
+
+File processing and preview rendering guard against stale asynchronous results. Reset invalidates pending file reads; changed or unmounted previews abort template requests and revoke their object URLs. Rendering errors offer a retry instead of silently showing the published logo.

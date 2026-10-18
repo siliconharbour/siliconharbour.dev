@@ -1,3 +1,4 @@
+import { useLogoUpload } from "./use-logo-upload";
 import {
   createContext,
   useContext,
@@ -11,7 +12,7 @@ import { FontStylesheet } from "./font-stylesheet";
 import { googleFontFamilies, googleFontsUrl } from "./fonts";
 import { decodeTheme, themeVariables, type Theme } from "./tokens";
 
-interface ThemeContextValue {
+interface ThemeContextValue extends ReturnType<typeof useLogoUpload> {
   theme: Theme;
   setTheme: (theme: Theme) => void;
   advanced: boolean;
@@ -32,6 +33,7 @@ export function ThemeProvider({
   const location = useLocation();
   const navigationType = useNavigationType();
   const [theme, setTheme] = useState(initialTheme);
+  const logoUpload = useLogoUpload();
   const [advanced, setAdvanced] = useState(false);
   const [open, setOpen] = useState(new URLSearchParams(location.search).get("studio") === "1");
   const [fontFailure, setFontFailure] = useState<{ url: string; message: string }>();
@@ -55,7 +57,17 @@ export function ThemeProvider({
   }, [theme]);
   return (
     <ThemeContext.Provider
-      value={{ theme, setTheme, advanced, setAdvanced, open, setOpen, error, fontError }}
+      value={{
+        ...logoUpload,
+        theme,
+        setTheme,
+        advanced,
+        setAdvanced,
+        open,
+        setOpen,
+        error,
+        fontError,
+      }}
     >
       {fontUrl && (
         <FontStylesheet

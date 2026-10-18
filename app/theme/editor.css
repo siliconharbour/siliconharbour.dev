@@ -438,3 +438,17 @@
   text-align: left;
   border-bottom: 1px solid #d1d9e6;
 }
+
+.theme-logo-preview {
+  max-width: 100%;
+  width: 120px;
+  height: 80px;
+  object-fit: contain;
+  margin: 8px 0;
+  border: 1px solid #bcc8dd;
+}
+.theme-field input[type="file"] {
+  max-width: 100%;
+  min-width: 0;
+  font-size: 12px;
+}

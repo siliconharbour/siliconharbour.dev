@@ -8,7 +8,8 @@ import "./editor.css";
 const editorTheme = themeVariables(DEFAULT_THEME) as CSSProperties;
 export function ThemeEditor({ docked = false }: { docked?: boolean }) {
   const onDesign = !!useMatch("/design");
-  const { theme, setTheme, open, setOpen, error, fontError, advanced, setAdvanced } = useTheme();
+  const { theme, setTheme, open, setOpen, error, fontError, advanced, setAdvanced, logo, setLogo } =
+    useTheme();
   const location = useLocation();
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLElement>(null);
@@ -51,7 +52,11 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
     setShareLink(link);
     try {
       await navigator.clipboard.writeText(link);
-      setStatus("Link copied with your theme and page filters.");
+      setStatus(
+        logo
+          ? "Style link copied. Your local logo is not included."
+          : "Link copied with your theme and page filters.",
+      );
     } catch {
       setStatus("Copy the link below.");
     }
@@ -155,7 +160,10 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
             <button
               className="theme-reset"
               type="button"
-              onClick={() => setTheme({ ...DEFAULT_THEME })}
+              onClick={() => {
+                setTheme({ ...DEFAULT_THEME });
+                setLogo(null);
+              }}
             >
               Reset theme
             </button>

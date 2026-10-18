@@ -1,4 +1,10 @@
 import { formatTimedRangeEnd, isSameSiteDay } from "~/lib/event-display";
+import {
+  OG_LOGO_ID,
+  logoBounds,
+  type LogoBounds,
+  type OGPreviewTemplate,
+} from "./og-preview.server";
 import { BRAND_LOGO, DEFAULT_OG_COLORS } from "~/theme/tokens";
 import satori from "satori";
 import sharp from "sharp";
@@ -113,7 +119,11 @@ async function loadCoverImageForCard(imagePath: string): Promise<string | null> 
  * Generate the OG image SVG using Satori
  * Design: White background, blue border, dark text, site logo
  */
-async function generateSVG(data: OGImageData): Promise<string> {
+export async function generateOGTemplate(
+  data: OGImageData,
+  { hideLogo = false }: { hideLogo?: boolean } = {},
+): Promise<OGPreviewTemplate> {
+  let logo: LogoBounds | undefined;
   const coverImageBase64 = data.coverImagePath
     ? await loadCoverImageForCard(data.coverImagePath)
     : null;
@@ -171,11 +181,13 @@ async function generateSVG(data: OGImageData): Promise<string> {
                         {
                           type: "img",
                           props: {
+                            id: OG_LOGO_ID,
                             src: logoBase64,
                             width: 56,
                             height: 40,
                             style: {
                               objectFit: "contain",
+                              opacity: hideLogo ? 0 : 1,
                             },
                           },
                         },
@@ -317,6 +329,9 @@ async function generateSVG(data: OGImageData): Promise<string> {
   const svg = await satori(element, {
     width: OG_WIDTH,
     height: OG_HEIGHT,
+    onNodeDetected: (node) => {
+      logo = logoBounds(node) ?? logo;
+    },
     fonts: [
       {
         name: "Inter",
@@ -333,7 +348,8 @@ async function generateSVG(data: OGImageData): Promise<string> {
     ],
   });
 
-  return svg;
+  if (!logo) throw new Error("OG logo layout was not found");
+  return { svg, logo };
 }
 
 /**
@@ -351,7 +367,7 @@ export async function generateOGImage(
   }
 
   // Generate SVG
-  const svg = await generateSVG(data);
+  const { svg } = await generateOGTemplate(data);
 
   // Convert SVG to PNG using Sharp
   const pngBuffer = await sharp(Buffer.from(svg)).png({ quality: 90 }).toBuffer();

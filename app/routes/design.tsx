@@ -1,3 +1,4 @@
+import { useOGPreview } from "~/theme/use-og-preview";
 import { controlValues } from "~/theme/control-values";
 import { useRootFontSize } from "~/theme/use-root-font-size";
 import { ComponentShowcase } from "~/components/design/ComponentShowcase";
@@ -493,7 +494,8 @@ export default function DesignSystem() {
           <h2 className="text-lg font-semibold text-heading">Social Preview Images</h2>
           <p className="text-sm text-muted">
             Social images are 1200 × 630. These previews use current content so you can check
-            cropping and long titles.
+            cropping and long titles. A logo chosen in the studio is added locally; download the PNG
+            to share it. Layout, colours and fonts follow the published social images.
           </p>
           <div className="flex flex-col gap-gap-6">
             <SocialPreview label="Site default" src={`/og.png?preview=${previewToken}`} />
@@ -599,6 +601,7 @@ function SocialPreview({
   src: string;
   controls?: ReactNode;
 }) {
+  const preview = useOGPreview(src);
   return (
     <figure className="border border-line bg-surface">
       <div className="px-pad-4 py-pad-3 border-b border-line flex flex-wrap items-center justify-between gap-gap-4">
@@ -609,22 +612,55 @@ function SocialPreview({
         <div className="flex flex-wrap items-center gap-gap-3">
           {controls}
           <a
-            href={src}
+            href={preview.url}
+            aria-disabled={!preview.url}
+            onClick={(event) => {
+              if (!preview.url) event.preventDefault();
+            }}
             target="_blank"
             rel="noreferrer"
             className="text-sm text-body hover:text-heading whitespace-nowrap"
           >
             Open full size
           </a>
+          {preview.url?.startsWith("blob:") && (
+            <a
+              href={preview.url}
+              download="siliconharbour-social-preview.png"
+              className="text-sm text-body hover:text-heading"
+            >
+              Download PNG
+            </a>
+          )}
         </div>
       </div>
       <div className="bg-soft p-pad-3">
-        <img
-          src={src}
-          alt={`${label} Open Graph preview`}
-          loading="lazy"
-          className="block w-full aspect-[1200/630] object-contain bg-surface border border-harbour-100"
-        />
+        {preview.error && (
+          <div role="alert">
+            <Alert tone="danger">
+              {preview.error}{" "}
+              <button type="button" onClick={preview.retry}>
+                Try again
+              </button>
+            </Alert>
+          </div>
+        )}
+        {preview.loading && (
+          <div
+            className="aspect-[1200/630] bg-tint flex items-center justify-center text-body"
+            role="status"
+          >
+            Rendering your logo…
+          </div>
+        )}
+        {preview.url && (
+          <img
+            src={preview.url}
+            alt={`${label} Open Graph preview`}
+            loading="lazy"
+            className="block w-full aspect-[1200/630] object-contain bg-surface border border-harbour-100"
+          />
+        )}
       </div>
     </figure>
   );

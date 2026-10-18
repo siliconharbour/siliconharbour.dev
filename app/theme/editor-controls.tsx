@@ -1,3 +1,4 @@
+import { LogoControl } from "./logo-control";
 import { DEFAULT_THEME, themeVariables } from "./tokens";
 import { controlValues, formatRem } from "./control-values";
 import { useRootFontSize } from "./use-root-font-size";
@@ -67,6 +68,7 @@ export function EditorControls() {
   return (
     <div className="theme-controls">
       <ColorControls advanced={advanced} />
+      <LogoControl />
       {advanced ? (
         <>
           <details className="theme-details">
@@ -88,13 +90,6 @@ export function EditorControls() {
               {group.title === "Spacing and corners" && <SpacingScale rootPixels={rootPixels} />}
             </details>
           ))}
-          <details className="theme-details">
-            <summary>Logo uploads</summary>
-            <p className="theme-help">
-              Logo uploads need permanent hosting. For now, share links include style settings only.
-              Logos, favicons and social images keep the published branding.
-            </p>
-          </details>
         </>
       ) : (
         <>

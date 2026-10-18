@@ -1,3 +1,4 @@
+import { useTheme } from "~/theme/provider";
 import { BRAND_LOGO } from "~/theme/tokens";
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
@@ -18,6 +19,7 @@ const navItems: { href: string; label: string; keys?: SectionKey[] }[] = [
 ];
 
 export function Header({ visibility }: { visibility: SectionVisibility }) {
+  const { logo } = useTheme();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -41,7 +43,11 @@ export function Header({ visibility }: { visibility: SectionVisibility }) {
       <div className="max-w-6xl mx-auto p-pad-4 flex items-center justify-between">
         <div className="flex items-center gap-gap-3">
           <Link to="/" className="flex items-center gap-gap-3">
-            <img src={BRAND_LOGO} alt="Silicon Harbour" className="h-8 w-auto" />
+            <img
+              src={logo?.src ?? BRAND_LOGO}
+              alt="Silicon Harbour"
+              className="h-8 w-auto max-w-32 object-contain"
+            />
             <span className="font-semibold text-heading">siliconharbour.dev</span>
           </Link>
         </div>
