@@ -473,16 +473,6 @@
 .theme-details[open] > summary {
   margin-bottom: 12px;
 }
-.theme-share-info {
-  font-size: 11px;
-  color: #526078;
-}
-.theme-share-info summary {
-  cursor: pointer;
-}
-.theme-share-info p {
-  margin: 8px 0 0;
-}
 .theme-drafts .theme-field:first-of-type {
   margin-top: 12px;
 }

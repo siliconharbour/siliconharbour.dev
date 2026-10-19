@@ -187,12 +187,6 @@ export function ShareControls() {
           />
         </label>
       )}
-      <details className="theme-share-info">
-        <summary>About sharing</summary>
-        <p>
-          A link shares this theme and logo publicly. Changes stay local until you update the link.
-        </p>
-      </details>
     </>
   );
 }

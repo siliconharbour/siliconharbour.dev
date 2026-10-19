@@ -33,7 +33,7 @@ export function LogoControl() {
           </button>
         </>
       )}
-      <p className="theme-help">SVG or image, up to 5 MB. Included in shared links.</p>
+      <p className="theme-help">SVG or image, up to 5 MB.</p>
     </details>
   );
 }
