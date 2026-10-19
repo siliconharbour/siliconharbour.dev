@@ -1528,7 +1528,6 @@ export function buildExecuteFunctions(): HostFunctions {
                 requiresSignup: o.requiresSignup ?? false,
                 timeMode: o.timeMode ?? "scheduled",
                 parentEventId: o.parentEventId ?? null,
-                // Image attachment does not publish the event.
                 importStatus: "pending_review",
               },
               [{ startDate, endDate, isAllDay }],

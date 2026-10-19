@@ -10,7 +10,6 @@ export async function loader({ params }: Route.LoaderArgs) {
     throw new Response("Not found", { status: 404 });
   }
 
-  // Sanitize filename to prevent directory traversal
   const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "");
   const filepath = getImagePath(sanitizedFilename);
 

@@ -8,7 +8,6 @@ const COVER_MAX_WIDTH = 1200;
 const COVER_MAX_HEIGHT = 630;
 const ICON_SIZE = 256;
 
-// Ensure images directory exists
 if (!existsSync(IMAGES_DIR)) {
   mkdirSync(IMAGES_DIR, { recursive: true });
 }

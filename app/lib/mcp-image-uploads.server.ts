@@ -1,3 +1,5 @@
+import { Readable } from "node:stream";
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import {
   existsSync,
@@ -31,23 +33,28 @@ export const prepareImageUploadSchema = z
     size: z.number().int().min(1).max(MAX_IMAGE_BYTES),
   })
   .strict();
-type Upload = z.infer<typeof prepareImageUploadSchema> & { tokenHash: string; expiresAt: number };
+const uploadRecordSchema = prepareImageUploadSchema.extend({
+  tokenHash: z.string().regex(/^[a-f0-9]{64}$/),
+  expiresAt: z.number().int().positive(),
+});
+type UploadState = "pending" | "receiving" | "ready" | "attaching";
 const hash = (value: string) => createHash("sha256").update(value).digest();
 function directory(id: string) {
   if (!idPattern.test(id)) throw new ImageInputError("Upload not found or expired.", 410);
   return join(UPLOAD_DIR, id);
 }
-function metadata(id: string): Upload {
+function metadata(id: string) {
   try {
-    const upload: Upload = JSON.parse(readFileSync(join(directory(id), "metadata.json"), "utf8"));
-    if (!Number.isFinite(upload.expiresAt) || upload.expiresAt <= Date.now())
-      throw new Error("Expired");
+    const upload = uploadRecordSchema.parse(
+      JSON.parse(readFileSync(join(directory(id), "metadata.json"), "utf8")),
+    );
+    if (upload.expiresAt <= Date.now()) throw new Error("Expired");
     return upload;
   } catch {
     throw new ImageInputError("Upload not found or expired.", 410);
   }
 }
-function claim(id: string, from: string, to: string) {
+function claim(id: string, from: UploadState, to: UploadState) {
   try {
     renameSync(join(directory(id), from), join(directory(id), to));
   } catch {
@@ -84,7 +91,7 @@ export function prepareImageUpload(input: unknown, origin: URL) {
   const data = prepareImageUploadSchema.parse(input);
   mkdirSync(UPLOAD_DIR, { recursive: true, mode: 0o700 });
   cleanupImageUploads();
-  // Allocation is synchronous: concurrent calls in this server cannot exceed the slot cap.
+  // Keep reservation synchronous to enforce the per-process slot cap.
   if (readdirSync(UPLOAD_DIR).filter((id) => idPattern.test(id)).length >= MAX_SLOTS)
     throw new ImageInputError("Upload slots are full. Try again after unused uploads expire.", 429);
   const uploadId = randomBytes(16).toString("hex");
@@ -123,25 +130,16 @@ export async function receiveImageUpload(id: string, request: Request) {
   if (length !== null && Number(length) !== upload.size)
     throw new ImageInputError("Size does not match the prepared upload.", 413);
   claim(id, "pending", "receiving");
-  const reader = request.body?.getReader();
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const signal = AbortSignal.timeout(Math.max(0, Math.min(30_000, upload.expiresAt - Date.now())));
   try {
-    if (!reader) throw new ImageInputError("Missing image body.");
-    const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new ImageInputError("Upload timed out.", 408)),
-        Math.min(30_000, upload.expiresAt - Date.now()),
-      );
-      timer.unref();
-    });
+    if (!request.body) throw new ImageInputError("Missing image body.");
+    const body = Readable.fromWeb(request.body as NodeReadableStream, { signal });
     let size = 0;
-    const chunks: Uint8Array[] = [];
-    while (true) {
-      const chunk = await Promise.race([reader.read(), timeout]);
-      if (chunk.done) break;
-      size += chunk.value.byteLength;
+    const chunks: Buffer[] = [];
+    for await (const chunk of body) {
+      size += chunk.length;
       if (size > upload.size) throw new ImageInputError("Image exceeds the prepared size.", 413);
-      chunks.push(chunk.value);
+      chunks.push(chunk);
     }
     if (size !== upload.size)
       throw new ImageInputError("Size does not match the prepared upload.", 413);
@@ -149,16 +147,12 @@ export async function receiveImageUpload(id: string, request: Request) {
     await validateImage(bytes, upload.contentType);
     metadata(id);
     await writeFile(join(directory(id), "image"), bytes, { flag: "wx", mode: 0o600 });
+    signal.throwIfAborted();
     claim(id, "receiving", "ready");
   } catch (error) {
     rmSync(directory(id), { recursive: true, force: true });
+    if (signal.aborted) throw new ImageInputError("Upload timed out.", 408);
     throw error;
-  } finally {
-    if (timer) clearTimeout(timer);
-    if (reader) {
-      await reader.cancel().catch(() => {});
-      reader.releaseLock();
-    }
   }
 }
 

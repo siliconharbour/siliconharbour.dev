@@ -33,7 +33,7 @@ Images must use HTTPS on port 443 without URL credentials. Every connection vali
    return await tools.siliconharbour.prepareImageUpload({
      filename: "cover.png",
      contentType: "image/png",
-     size: 12345, // Exact file size in bytes.
+     size: 12345,
    });
    ```
 

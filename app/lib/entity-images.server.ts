@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { rawDb } from "~/db";
-import { fetchImage } from "./scraper.server";
+import { fetchPublicImage } from "./public-image-fetch.server";
 import { deleteImage, processAndSaveCoverImage, processAndSaveIconImage } from "./images.server";
 import { consumeImageUpload } from "./mcp-image-uploads.server";
 import { ImageInputError } from "./image-input.server";
@@ -47,10 +47,9 @@ function targetRow(input: ImageTarget) {
     .prepare(`SELECT \`${column}\` AS filename FROM \`${target.table}\` WHERE id = ?`)
     .get(input.id) as { filename: string | null } | undefined;
   if (!row) throw new ImageInputError("Entity not found.", 404);
-  return { ...target, column, filename: row.filename };
+  return { table: target.table, column, filename: row.filename };
 }
 async function attachBytes(input: ImageTarget, bytes: Buffer) {
-  targetRow(input);
   const filename = await (
     input.role === "cover" ? processAndSaveCoverImage : processAndSaveIconImage
   )(bytes);
@@ -85,8 +84,7 @@ async function attachBytes(input: ImageTarget, bytes: Buffer) {
 export async function setEntityImage(input: unknown) {
   const data = setEntityImageSchema.parse(input);
   targetRow(data);
-  const bytes = await fetchImage(data.url, { publicOnly: true });
-  if (!bytes) throw new ImageInputError("Could not download the image.");
+  const bytes = await fetchPublicImage(data.url);
   return attachBytes(data, bytes);
 }
 export async function attachImage(input: unknown) {

@@ -1,4 +1,3 @@
-import { fetchPublicImage } from "./public-image-fetch.server";
 /**
  * Scraper utilities for importing company data from external directories.
  *
@@ -300,11 +299,7 @@ async function parseBounceCompanyDetail(
     const images = document.querySelectorAll("img");
     for (const img of images) {
       const src = img.getAttribute("src") || "";
-      if (
-        src.includes("wp-content/uploads") &&
-        !src.includes("Logo.webp") &&
-        !src.includes("bounce-logo")
-      ) {
+      if (src.includes("wp-content/uploads") && !src.includes("Logo.webp") && !src.includes("bounce-logo")) {
         logoUrl = src;
         break;
       }
@@ -332,11 +327,7 @@ async function parseBounceCompanyDetail(
 /**
  * Download an image from a URL and return it as a buffer
  */
-export async function fetchImage(
-  url: string,
-  options?: { publicOnly: boolean },
-): Promise<Buffer | null> {
-  if (options?.publicOnly) return fetchPublicImage(url);
+export async function fetchImage(url: string): Promise<Buffer | null> {
   try {
     const response = await fetch(url, {
       headers: {

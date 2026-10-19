@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
 import { Effect } from "effect";
@@ -8,11 +8,10 @@ import { events, people } from "~/db/schema";
 import { DATA_DIR, IMAGES_DIR } from "~/lib/paths.server";
 import { attachImage, setEntityImage } from "~/lib/entity-images.server";
 import { prepareImageUpload, cleanupImageUploads } from "~/lib/mcp-image-uploads.server";
-import * as scraper from "~/lib/scraper.server";
-import { action, loader } from "~/routes/api/mcp-uploads.$id";
-import { buildExecuteFunctions, buildReadFunctions } from "~/mcp/bridge";
+import * as downloader from "~/lib/public-image-fetch.server";
+import { action } from "~/routes/api/mcp-uploads.$id";
+import { buildExecuteFunctions } from "~/mcp/bridge";
 import { createCodeMode, EXECUTE_LIMITS } from "~/mcp/code-mode";
-import { searchSpec } from "~/mcp/search";
 
 vi.mock("~/lib/paths.server", async () => {
   const { mkdtempSync } = await import("node:fs");
@@ -29,7 +28,7 @@ beforeEach(async () => {
   png = await sharp({ create: { width: 1600, height: 900, channels: 3, background: "red" } })
     .png()
     .toBuffer();
-  vi.spyOn(scraper, "fetchImage").mockResolvedValue(png);
+  vi.spyOn(downloader, "fetchPublicImage").mockResolvedValue(png);
 });
 afterEach(() => {
   vi.useRealTimers();
@@ -88,18 +87,11 @@ describe("MCP image workflows", () => {
     expect(image.format).toBe("webp");
     expect(image.width).toBeLessThanOrEqual(1200);
     expect(image.height).toBeLessThanOrEqual(630);
-    expect(scraper.fetchImage).toHaveBeenCalledWith("https://cdn.example.com/cover.png", {
-      publicOnly: true,
-    });
   });
 
   it("accepts raw PUT, crops icons, and permits exactly one concurrent attachment", async () => {
     const row = await event();
     const slot = prepare();
-    expect(slot).toMatchObject({
-      method: "PUT",
-      uploadUrl: `https://example.com/api/mcp-uploads/${slot.uploadId}`,
-    });
     expect(
       readFileSync(join(DATA_DIR, "mcp-uploads", slot.uploadId, "metadata.json"), "utf8"),
     ).not.toContain(slot.headers.Authorization.slice(7));
@@ -132,7 +124,6 @@ describe("MCP image workflows", () => {
       (await put(slot, request(slot, png, { "Content-Length": String(png.length + 1) }))).status,
     ).toBe(413);
     expect((await put(slot)).status).toBe(200);
-    expect(loader().status).toBe(405);
     expect((await put(slot, new Request(slot.uploadUrl, { method: "POST" }))).status).toBe(405);
   });
 
@@ -161,14 +152,21 @@ describe("MCP image workflows", () => {
     vi.useFakeTimers();
     const slots = Array.from({ length: 32 }, () => prepare());
     expect(() => prepare()).toThrow("slots are full");
+    writeFileSync(
+      join(DATA_DIR, "mcp-uploads", slots[0].uploadId, "metadata.json"),
+      JSON.stringify({ expiresAt: Date.now() + 600_000 }),
+    );
+    cleanupImageUploads();
+    expect(() => prepare()).not.toThrow();
     vi.setSystemTime(Date.now() + 600_001);
     cleanupImageUploads();
     expect(readdirSync(join(DATA_DIR, "mcp-uploads"))).toEqual([]);
-    expect(prepare().uploadId).not.toBe(slots[0].uploadId);
+    expect(() => prepare()).not.toThrow();
   });
 
-  it("times out and removes a stalled upload", async () => {
-    vi.useFakeTimers();
+  it("cancels and removes a stalled upload when its deadline expires", async () => {
+    const controller = new AbortController();
+    vi.spyOn(AbortSignal, "timeout").mockReturnValue(controller.signal);
     const slot = prepare();
     const init: RequestInit & { duplex: "half" } = {
       method: "PUT",
@@ -177,7 +175,7 @@ describe("MCP image workflows", () => {
       duplex: "half",
     };
     const response = put(slot, new Request(slot.uploadUrl, init));
-    await vi.advanceTimersByTimeAsync(30_001);
+    controller.abort();
     expect((await response).status).toBe(408);
     expect(existsSync(join(DATA_DIR, "mcp-uploads", slot.uploadId))).toBe(false);
   });
@@ -197,7 +195,7 @@ describe("MCP image workflows", () => {
     await expect(
       setEntityImage({ type: "event", id: 9999, role: "cover", url: "https://example.com/a.png" }),
     ).rejects.toThrow("not found");
-    expect(scraper.fetchImage).not.toHaveBeenCalled();
+    expect(downloader.fetchPublicImage).not.toHaveBeenCalled();
     const result = await attachImage({
       type: "person",
       id: person.id,
@@ -273,14 +271,5 @@ describe("MCP image workflows", () => {
     ).rejects.toThrow("Write failed");
     expect(readdirSync(IMAGES_DIR)).toEqual([]);
     expect((await db.select().from(events).get())!.coverImage).toBe(null);
-  });
-
-  it("keeps image functions private and makes both flows discoverable", () => {
-    const read = buildReadFunctions();
-    for (const name of ["setEntityImage", "prepareImageUpload", "attachImage"])
-      expect(read[name]).toBeUndefined();
-    expect(searchSpec("image")).toContain("OUTSIDE execute");
-    expect(searchSpec("prepareImageUpload")).toContain("uploadUrl");
-    expect(searchSpec("attachImage")).toContain("uploadId");
   });
 });

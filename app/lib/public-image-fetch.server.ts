@@ -9,11 +9,14 @@ import {
   validateImage,
 } from "./image-input.server";
 
+const GLOBAL_IPV6_RANGE = ipaddr.IPv6.parseCIDR("2000::/3");
+const AZURE_PLATFORM_ADDRESS = "168.63.129.16";
+
 export function isPublicImageAddress(address: string): boolean {
   if (!isIP(address)) return false;
   const ip = ipaddr.parse(address);
-  if (ip.range() !== "unicast" || address === "168.63.129.16") return false;
-  return ip.kind() === "ipv4" || (ip.toByteArray()[0] & 0xe0) === 0x20;
+  if (ip.range() !== "unicast" || address === AZURE_PLATFORM_ADDRESS) return false;
+  return ip.kind() === "ipv4" || ip.match(GLOBAL_IPV6_RANGE);
 }
 function publicUrl(value: string): URL {
   let url: URL;
