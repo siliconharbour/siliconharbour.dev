@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { searchSpec } from "~/mcp/search";
 import { getEntitySchemaDocs, getHostFunctionDocs } from "~/mcp/bridge";
 
 describe("getEntitySchemaDocs", () => {
@@ -114,10 +115,13 @@ describe("getEntitySchemaDocs", () => {
 });
 
 describe("getHostFunctionDocs", () => {
-  it("returns 8 read functions and 30 execute functions", () => {
+  it("keeps image mutation functions off the public read surface", () => {
     const docs = getHostFunctionDocs();
-    expect(docs.read).toHaveLength(8);
-    expect(docs.execute).toHaveLength(30);
+    for (const name of ["setEntityImage", "prepareImageUpload", "attachImage"]) {
+      expect(docs.execute.some((entry) => entry.name === name)).toBe(true);
+      expect(docs.read.some((entry) => entry.name === name)).toBe(false);
+      expect(searchSpec("image")).toContain(name);
+    }
   });
 
   it("read surface is a strict subset of execute (execute mirrors read)", () => {

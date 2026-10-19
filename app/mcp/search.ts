@@ -106,6 +106,14 @@ function matchVariants(unions: UnionSchemaDoc[], q: string): string[] {
 export function searchSpec(query: string): string {
   const q = query.toLowerCase();
   const results: string[] = [];
+  if (/image|upload|cover|icon|attach/.test(q)) {
+    results.push(
+      "### Image workflows (mcp:write)\n" +
+        "Public URL: tools.siliconharbour.setEntityImage({ type, id, role: 'cover' | 'icon', url }).\n" +
+        "Local file: tools.siliconharbour.prepareImageUpload({ filename?, contentType, size }); PUT exact raw bytes to uploadUrl using the returned method and headers OUTSIDE execute; then tools.siliconharbour.attachImage({ type, id, role, uploadId }).\n" +
+        "Uploads expire in 10 minutes, are single-use, and accept static JPEG/PNG/WebP/GIF/AVIF up to 5 MiB and 16 megapixels. Event/company/group/education/project/product support cover and icon; person/technology icon only; news cover only. Image attachment does not publish an entity.",
+    );
+  }
 
   for (const [name, schema] of Object.entries(spec.components?.schemas ?? {})) {
     const text = `${name} ${JSON.stringify(schema)}`.toLowerCase();

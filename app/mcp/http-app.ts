@@ -1,3 +1,4 @@
+import { startImageUploadCleanup } from "~/lib/mcp-image-uploads.server";
 import express from "express";
 import { createRequestHandler } from "@react-router/express";
 import {
@@ -17,6 +18,7 @@ export interface CreateSiliconHarbourHttpAppOptions {
 export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourHttpAppOptions = {}) {
   const { includeFrontend = true } = options;
   const app = express();
+  startImageUploadCleanup();
   // Production is reachable only through Traefik, which supplies the public HTTPS origin.
   if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
   const issuer = getOAuthIssuerUrl();
