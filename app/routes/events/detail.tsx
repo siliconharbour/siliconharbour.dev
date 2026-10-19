@@ -1,3 +1,4 @@
+import { formatTimedRangeEnd } from "~/lib/event-display";
 import type { Route } from "./+types/detail";
 import { Link, useLoaderData } from "react-router";
 import {
@@ -276,7 +277,7 @@ export default function EventDetail() {
                           {occ.endDate && (
                             <span className="font-semibold text-harbour-700">
                               {" - "}
-                              {formatInTimezone(occ.endDate, "h:mm a")}
+                              {formatTimedRangeEnd(occ.date, occ.endDate)}
                             </span>
                           )}
                           {occ.cancelled && <span className="ml-2 text-red-500">(Cancelled)</span>}

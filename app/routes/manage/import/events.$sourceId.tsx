@@ -201,6 +201,23 @@ export default function EventImportSourceDetail() {
           </div>
         </fetcher.Form>
 
+        <div className="flex flex-wrap gap-4 text-xs text-harbour-500">
+          <span>
+            Last success:{" "}
+            {source.lastFetchedAt
+              ? new Date(source.lastFetchedAt).toLocaleString("en-CA")
+              : "Never"}
+          </span>
+          <span title="Also changes when the source is edited">
+            Last attempt: {new Date(source.updatedAt).toLocaleString("en-CA")}
+          </span>
+        </div>
+        {source.fetchStatus === "rate_limited" && (
+          <div className="border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            {source.fetchError ?? "Rate limited. Will retry next sync."}
+          </div>
+        )}
+
         {source.fetchStatus === "error" && (
           <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             Last sync error: {source.fetchError ?? "Unknown error"}

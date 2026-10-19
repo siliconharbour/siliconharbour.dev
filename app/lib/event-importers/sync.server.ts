@@ -6,8 +6,9 @@
 
 import { db } from "~/db";
 import { eventImportSources, events, eventDates } from "~/db/schema";
-import type { EventSourceType } from "~/db/schema";
-import { eq, and, inArray, asc } from "drizzle-orm";
+import { RateLimitedError } from "./luma-http.server";
+import type { EventSourceType, FetchStatus } from "~/db/schema";
+import { eq, and, inArray, asc, gte } from "drizzle-orm";
 import { generateEventSlug } from "~/lib/events.server";
 import { fetchImage } from "~/lib/scraper.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
@@ -276,7 +277,7 @@ export async function downloadAndSaveCoverImage(imageUrl: string): Promise<strin
 async function updateSourceMeta(
   sourceId: number,
   data: {
-    fetchStatus: "pending" | "success" | "error";
+    fetchStatus: FetchStatus;
     lastFetchedAt?: Date;
     fetchError?: string | null;
   },
@@ -398,17 +399,27 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
 
   try {
     const importer = getEventImporter(source.sourceType);
+    const existingEvents = await getEventsBySourceId(sourceId);
     const config: ImportSourceConfig = {
       id: source.id,
       organizer: source.organizer ?? null,
       sourceType: source.sourceType,
       sourceIdentifier: source.sourceIdentifier,
       sourceUrl: source.sourceUrl,
+      knownExternalIds: new Set(
+        existingEvents
+          .filter((event) => ["approved", "published", "hidden"].includes(event.importStatus ?? ""))
+          .flatMap((event) => (event.externalId ? [event.externalId] : [])),
+      ),
     };
 
-    const fetchedEvents = await importer.fetchEvents(config);
+    const fetched = await importer.fetchEvents(config);
+    const {
+      events: fetchedEvents,
+      complete,
+      futureOnly,
+    } = Array.isArray(fetched) ? { events: fetched, complete: true, futureOnly: false } : fetched;
     const fetchedIds = new Set(fetchedEvents.map((e) => e.externalId));
-    const existingEvents = await getEventsBySourceId(sourceId);
     const existingByExternalId = new Map(existingEvents.map((e) => [e.externalId, e]));
 
     const now = new Date();
@@ -444,9 +455,21 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
       }
     }
 
-    // Mark pending events no longer in feed as removed
+    const removableIds = futureOnly
+      ? new Set(
+          (
+            await db
+              .select({ id: events.id })
+              .from(events)
+              .innerJoin(eventDates, eq(events.id, eventDates.eventId))
+              .where(and(eq(events.importSourceId, sourceId), gte(eventDates.startDate, now)))
+          ).map((event) => event.id),
+        )
+      : null;
     for (const existing of existingEvents) {
       if (
+        complete &&
+        (!removableIds || removableIds.has(existing.id)) &&
         existing.importStatus === "pending_review" &&
         existing.externalId &&
         !fetchedIds.has(existing.externalId)
@@ -468,7 +491,11 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
     return { success: true, ...results };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await updateSourceMeta(sourceId, { fetchStatus: "error", fetchError: message });
-    return { success: false, error: message, added: 0, skipped: 0, removed: 0 };
+    const rateLimited = err instanceof RateLimitedError;
+    await updateSourceMeta(sourceId, {
+      fetchStatus: rateLimited ? "rate_limited" : "error",
+      fetchError: message,
+    });
+    return { success: false, rateLimited, error: message, added: 0, skipped: 0, removed: 0 };
   }
 }

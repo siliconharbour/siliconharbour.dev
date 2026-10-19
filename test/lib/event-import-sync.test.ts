@@ -1,4 +1,7 @@
-import { describe, it, expect } from "vitest";
+import * as importers from "~/lib/event-importers/index";
+import { RateLimitedError } from "~/lib/event-importers/luma-http.server";
+import { orderEventSourcesForSync } from "~/lib/event-importers/source-order";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { db } from "~/db";
 import { events, eventDates, eventImportSources } from "~/db/schema";
 import { eq } from "drizzle-orm";
@@ -11,6 +14,7 @@ import {
   deleteEventImportSource,
   createEventImportSource,
   resolveImportedOrganizer,
+  syncEvents,
 } from "~/lib/event-importers/sync.server";
 
 // =============================================================================
@@ -152,7 +156,9 @@ describe("getAllPendingEvents", () => {
       { eventId: pending.id, startDate: new Date("2026-08-01T18:00:00Z") },
     ]);
 
-    expect((await getAllPendingEvents()).filter((event) => event.id === pending.id)).toHaveLength(1);
+    expect((await getAllPendingEvents()).filter((event) => event.id === pending.id)).toHaveLength(
+      1,
+    );
   });
 });
 
@@ -269,5 +275,103 @@ describe("deleteEventImportSource", () => {
       .from(eventImportSources)
       .where(eq(eventImportSources.id, source.id));
     expect(sourceRows).toHaveLength(0);
+  });
+});
+
+afterEach(() => vi.restoreAllMocks());
+
+describe("source sync failures", () => {
+  it.each([
+    [new RateLimitedError(429, "/calendar/get-items", "limited"), "rate_limited", true],
+    [new Error("Invalid feed"), "error", false],
+  ] as const)("preserves existing data after %s", async (error, status, rateLimited) => {
+    const source = await seedSource();
+    const pending = await seedEvent(source.id, "pending_review");
+    const lastSuccess = new Date("2026-10-13T12:31:00Z");
+    await db
+      .update(eventImportSources)
+      .set({ lastFetchedAt: lastSuccess })
+      .where(eq(eventImportSources.id, source.id));
+    vi.spyOn(importers, "getEventImporter").mockReturnValue({
+      sourceType: "luma-user",
+      fetchEvents: async () => {
+        throw error;
+      },
+      validateConfig: async () => ({ valid: true }),
+    });
+    expect(await syncEvents(source.id)).toMatchObject({
+      success: false,
+      rateLimited,
+      added: 0,
+      removed: 0,
+    });
+    const [updated] = await db
+      .select()
+      .from(eventImportSources)
+      .where(eq(eventImportSources.id, source.id));
+    expect(updated).toMatchObject({
+      fetchStatus: status,
+      lastFetchedAt: lastSuccess,
+      fetchError: error.message,
+    });
+    expect(await db.select().from(events).where(eq(events.id, pending.id))).toEqual([pending]);
+  });
+
+  it("passes locked ids to the importer and retains absent pending events in a partial feed", async () => {
+    const source = await seedSource();
+    const approved = await seedEvent(source.id, "approved", "known");
+    const pending = await seedEvent(source.id, "pending_review", "pending");
+    const fetchEvents = vi.fn(async () => ({ events: [], complete: false, futureOnly: true }));
+    vi.spyOn(importers, "getEventImporter").mockReturnValue({
+      sourceType: "luma-user",
+      fetchEvents,
+      validateConfig: async () => ({ valid: true }),
+    });
+    expect(await syncEvents(source.id)).toMatchObject({ success: true, removed: 0 });
+    expect(fetchEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ knownExternalIds: new Set([approved.externalId]) }),
+    );
+    expect(await db.select().from(events).where(eq(events.id, pending.id))).toEqual([pending]);
+  });
+
+  it("only removes future pending events absent from a complete upcoming-only feed", async () => {
+    const source = await seedSource();
+    const past = await seedEvent(source.id, "pending_review", "past");
+    const future = await seedEvent(source.id, "pending_review", "future");
+    await db
+      .update(eventDates)
+      .set({ startDate: new Date(Date.now() - 86400_000) })
+      .where(eq(eventDates.eventId, past.id));
+    await db
+      .update(eventDates)
+      .set({ startDate: new Date(Date.now() + 86400_000) })
+      .where(eq(eventDates.eventId, future.id));
+    vi.spyOn(importers, "getEventImporter").mockReturnValue({
+      sourceType: "luma-user",
+      fetchEvents: async () => ({ events: [], complete: true, futureOnly: true }),
+      validateConfig: async () => ({ valid: true }),
+    });
+    expect(await syncEvents(source.id)).toMatchObject({ success: true, removed: 1 });
+    const rows = await db.select().from(events);
+    expect(rows.find((event) => event.id === past.id)?.importStatus).toBe("pending_review");
+    expect(rows.find((event) => event.id === future.id)?.importStatus).toBe("removed");
+  });
+});
+
+describe("batch source order", () => {
+  it("interleaves Luma sources with other sources without losing any", () => {
+    const sources = [
+      "luma-user",
+      "luma-user",
+      "luma-calendar",
+      "meetup",
+      "bevy",
+      "technl",
+      "eventbrite",
+    ].map((sourceType, id) => ({ id, sourceType }));
+    expect(orderEventSourcesForSync(sources).map((source) => source.id)).toEqual([
+      0, 3, 1, 4, 2, 5, 6,
+    ]);
+    expect(sources.map((source) => source.id)).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 });

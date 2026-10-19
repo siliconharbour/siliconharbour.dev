@@ -1,3 +1,4 @@
+import { formatTimedRangeEnd } from "~/lib/event-display";
 import type { Route } from "./+types/occurrences";
 import { Link, Form, useLoaderData, useActionData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
@@ -154,7 +155,7 @@ export default function ManageOccurrences() {
                     </div>
                     <div className="text-sm text-harbour-500">
                       {formatInTimezone(occurrence.date, "h:mm a")}
-                      {occurrence.endDate && ` - ${formatInTimezone(occurrence.endDate, "h:mm a")}`}
+                      {occurrence.endDate && ` - ${formatTimedRangeEnd(occurrence.date, occurrence.endDate)}`}
                     </div>
                     {occurrence.location && (
                       <div className="text-sm text-harbour-400">

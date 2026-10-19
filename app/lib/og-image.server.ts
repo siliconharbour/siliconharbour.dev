@@ -1,3 +1,4 @@
+import { formatTimedRangeEnd, isSameSiteDay } from "~/lib/event-display";
 import satori from "satori";
 import sharp from "sharp";
 import { createHash } from "crypto";
@@ -442,8 +443,9 @@ export function prepareEventOGData(event: {
     } else {
       const dayStr = formatInTimezone(firstDate.startDate, "EEEE, MMMM d, yyyy");
       const startTime = formatInTimezone(firstDate.startDate, "h:mm a");
-      const endTime = formatInTimezone(firstDate.endDate, "h:mm a");
-      dateStr = `${dayStr} · ${startTime} – ${endTime}`;
+      const endTime = formatTimedRangeEnd(firstDate.startDate, firstDate.endDate, "EEEE, MMMM d");
+      const separator = isSameSiteDay(firstDate.startDate, firstDate.endDate) ? " · " : " at ";
+      dateStr = `${dayStr}${separator}${startTime} – ${endTime}`;
     }
   } else if (firstDate) {
     // Single date, no end. All-day drops the time suffix.
@@ -455,10 +457,7 @@ export function prepareEventOGData(event: {
   return {
     title: event.title,
     date: dateStr,
-    subtitle:
-      event.timeMode === "period"
-        ? event.location || undefined
-        : event.location || undefined,
+    subtitle: event.location || undefined,
     coverImagePath: event.coverImage || undefined,
     type: "event",
   };

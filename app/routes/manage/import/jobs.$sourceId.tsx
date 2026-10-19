@@ -640,13 +640,17 @@ export default function ViewJobImportSource() {
                           : "bg-amber-100 text-amber-700"
                     }`}
                   >
-                    {source.fetchStatus}
+                    {source.fetchStatus.replaceAll("_", " ")}
                   </span>
                 ) : (
                   "-"
                 )}
                 {source.fetchError && (
-                  <span className="ml-2 text-red-600 text-xs">{source.fetchError}</span>
+                  <span
+                    className={`ml-2 text-xs ${source.fetchStatus === "rate_limited" ? "text-amber-800" : "text-red-600"}`}
+                  >
+                    {source.fetchError}
+                  </span>
                 )}
               </dd>
             </div>

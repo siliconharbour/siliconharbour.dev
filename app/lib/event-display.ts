@@ -19,3 +19,11 @@ export function getEventStatusLabel(event: TimedEvent): string | null {
 export function isActivePeriod(event: TimedEvent): boolean {
   return event.timeMode === "period" && getEventTimingState(event.dates) === "active";
 }
+
+export function isSameSiteDay(a: Date, b: Date): boolean {
+  return formatInTimezone(a, "yyyy-MM-dd") === formatInTimezone(b, "yyyy-MM-dd");
+}
+
+export function formatTimedRangeEnd(start: Date, end: Date, dayPattern = "EEE, MMM d"): string {
+  return formatInTimezone(end, isSameSiteDay(start, end) ? "h:mm a" : `${dayPattern} 'at' h:mm a`);
+}

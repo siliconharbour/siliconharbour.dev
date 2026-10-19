@@ -130,6 +130,7 @@ function StatusBadge({ status }: { status: string | null }) {
   const colors: Record<string, string> = {
     success: "bg-green-100 text-green-700",
     error: "bg-red-100 text-red-700",
+    rate_limited: "bg-amber-100 text-amber-800",
     pending: "bg-amber-100 text-amber-700",
   };
 
@@ -137,7 +138,7 @@ function StatusBadge({ status }: { status: string | null }) {
     <span
       className={`text-xs px-1.5 py-0.5 ${colors[status] || "bg-harbour-100 text-harbour-600"}`}
     >
-      {status}
+      {status.replaceAll("_", " ")}
     </span>
   );
 }
@@ -435,7 +436,10 @@ export default function ManageImportJobs() {
                         {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
                           source.sourceType}
                       </td>
-                      <td className="px-4 py-3 text-sm font-mono text-harbour-400" title={source.sourceIdentifier}>
+                      <td
+                        className="px-4 py-3 text-sm font-mono text-harbour-400"
+                        title={source.sourceIdentifier}
+                      >
                         {source.sourceIdentifier.length > 13
                           ? source.sourceIdentifier.slice(0, 10) + "..."
                           : source.sourceIdentifier}
