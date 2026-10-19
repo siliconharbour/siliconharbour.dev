@@ -64,6 +64,8 @@ export default [
   route("api/comments", "routes/api.comments.tsx"),
   route("api/comments/delete", "routes/api.comments.delete.tsx"),
 
+  route("api/mcp-uploads/:id", "routes/api/mcp-uploads.$id.tsx"),
+
   // Public JSON API
   route("api/companies", "routes/api/companies.tsx"),
   route("api/companies/:slug", "routes/api/companies.$slug.tsx"),

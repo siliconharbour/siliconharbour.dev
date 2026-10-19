@@ -146,8 +146,8 @@ function findReferenceProbe(
   const exactPath = normalizedRelative;
   const publicPathByFile = `/images/${fileBasename}`;
   const publicPathByRelative = `/images/${normalizedRelative}`;
-  const likeByFile = `%/${fileBasename}`;
-  const likeByRelative = `%${normalizedRelative}`;
+  const likeByFile = `%/${fileBasename}%`;
+  const likeByRelative = `%${normalizedRelative}%`;
 
   for (const probe of probes) {
     const row = probe.statement.get(
@@ -164,6 +164,10 @@ function findReferenceProbe(
   }
 
   return null;
+}
+
+export function isImageReferenced(db: Database.Database, filename: string): boolean {
+  return findReferenceProbe(buildProbes(db), filename, filename) !== null;
 }
 
 function readJsonFile<T>(path: string, fallback: T): T {

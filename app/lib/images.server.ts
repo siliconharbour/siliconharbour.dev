@@ -1,6 +1,6 @@
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 import { existsSync, mkdirSync } from "fs";
-import { unlink } from "fs/promises";
+import { unlink, rm } from "fs/promises";
 import { join } from "path";
 import { v4 as uuid } from "uuid";
 import { IMAGES_DIR } from "./paths.server";
@@ -20,6 +20,15 @@ export interface CropArea {
   height: number;
 }
 
+async function writeImage(image: Sharp, filepath: string) {
+  try {
+    await image.toFile(filepath);
+  } catch (error) {
+    await rm(filepath, { force: true });
+    throw error;
+  }
+}
+
 export async function processAndSaveCoverImage(buffer: Buffer, crop?: CropArea): Promise<string> {
   const filename = `cover-${uuid()}.webp`;
   const filepath = join(IMAGES_DIR, filename);
@@ -35,13 +44,15 @@ export async function processAndSaveCoverImage(buffer: Buffer, crop?: CropArea):
     });
   }
 
-  await image
-    .resize(COVER_MAX_WIDTH, COVER_MAX_HEIGHT, {
-      fit: "inside",
-      withoutEnlargement: true,
-    })
-    .webp({ quality: 85 })
-    .toFile(filepath);
+  await writeImage(
+    image
+      .resize(COVER_MAX_WIDTH, COVER_MAX_HEIGHT, {
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 85 }),
+    filepath,
+  );
 
   return filename;
 }
@@ -61,12 +72,10 @@ export async function processAndSaveIconImage(buffer: Buffer, crop?: CropArea): 
     });
   }
 
-  await image
-    .resize(ICON_SIZE, ICON_SIZE, {
-      fit: "cover",
-    })
-    .webp({ quality: 85 })
-    .toFile(filepath);
+  await writeImage(
+    image.resize(ICON_SIZE, ICON_SIZE, { fit: "cover" }).webp({ quality: 85 }),
+    filepath,
+  );
 
   return filename;
 }

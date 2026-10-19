@@ -44,7 +44,8 @@ async function runCode(code: string, runtime: CodeMode.Runtime) {
 
 function buildExecuteDescription(runtime: CodeMode.Runtime): string {
   return [
-    "Requires the mcp:write OAuth scope. Exposes read, sync, creation, and review functions.",
+    "Requires the mcp:write OAuth scope. Exposes read, sync, creation, review and image functions.",
+    "Images: setEntityImage({ type, id, role: 'cover' | 'icon', url }) fetches a public HTTPS image on the server. To upload a local file, call prepareImageUpload({ filename?, contentType, size }), then PUT raw bytes to uploadUrl with the returned headers using an HTTP client OUTSIDE execute (no sandbox fetch). Finally call attachImage({ type, id, role, uploadId }). Uploads expire after 10 minutes and can be attached once. Images are limited to 5 MiB/16 megapixels; supports static JPEG, PNG, WebP, GIF and AVIF. Image attachment leaves visibility/review status unchanged.",
     describeRuntime(runtime, EXECUTE_LIMITS),
     "",
     "JOB REVIEW CRITERIA:",

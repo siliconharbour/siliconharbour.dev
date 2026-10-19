@@ -114,10 +114,14 @@ describe("getEntitySchemaDocs", () => {
 });
 
 describe("getHostFunctionDocs", () => {
-  it("returns 8 read functions and 30 execute functions", () => {
+  it("keeps image mutation functions off the public read surface", () => {
     const docs = getHostFunctionDocs();
     expect(docs.read).toHaveLength(8);
-    expect(docs.execute).toHaveLength(30);
+    expect(docs.execute).toHaveLength(33);
+    for (const name of ["setEntityImage", "prepareImageUpload", "attachImage"]) {
+      expect(docs.execute.some((entry) => entry.name === name)).toBe(true);
+      expect(docs.read.some((entry) => entry.name === name)).toBe(false);
+    }
   });
 
   it("read surface is a strict subset of execute (execute mirrors read)", () => {

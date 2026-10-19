@@ -1,3 +1,11 @@
+import {
+  setEntityImage,
+  setEntityImageSchema,
+  attachImage,
+  attachImageSchema,
+} from "~/lib/entity-images.server";
+import { prepareImageUpload, prepareImageUploadSchema } from "~/lib/mcp-image-uploads.server";
+import { getOAuthIssuerUrl } from "./oauth.server";
 import { z } from "zod";
 import { getAsyncSync, listAsyncSyncs, startAsyncSync } from "./async-syncs.js";
 import {
@@ -1071,6 +1079,28 @@ export function buildExecuteFunctions(): HostFunctions {
   return {
     ...buildReadFunctions(),
 
+    setEntityImage: host(
+      "setEntityImage({ type, id, role, url })",
+      "Set an entity cover or icon from a public HTTPS image URL. Downloads and validates up to 5 MiB and 16 megapixels, then saves WebP. Supports event, company, group, education, project, product (cover/icon), person/technology (icon only), news (cover only). Leaves visibility/review status unchanged. Can follow createEntity in the same execute call.",
+      "creation",
+      setEntityImage,
+      setEntityImageSchema,
+    ),
+    prepareImageUpload: host(
+      "prepareImageUpload({ filename?, contentType, size })",
+      "Prepare a single-use local image upload (JPEG, PNG, WebP, GIF, AVIF; static, up to 5 MiB/16 MP). Returns uploadId, uploadUrl, method PUT, required headers and expiresAt (10 minutes). PUT the exact raw bytes using an HTTP client OUTSIDE execute; the sandbox has no fetch. The returned Authorization header is an upload-only token, not your OAuth bearer. Then call attachImage with uploadId. Do not log tokens.",
+      "creation",
+      async (input) => prepareImageUpload(input, getOAuthIssuerUrl()),
+      prepareImageUploadSchema,
+    ),
+    attachImage: host(
+      "attachImage({ type, id, role, uploadId })",
+      "Attach a previously PUT image upload to an entity cover or icon; same types/roles as setEntityImage. Consumes the upload once and deletes its temporary bytes. If processing fails, prepare and upload again. Does not publish the entity or change review status.",
+      "creation",
+      attachImage,
+      attachImageSchema,
+    ),
+
     // ── Import-source listings ───────────────────────────────────────
 
     eventImportSources: host(
@@ -1498,8 +1528,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 requiresSignup: o.requiresSignup ?? false,
                 timeMode: o.timeMode ?? "scheduled",
                 parentEventId: o.parentEventId ?? null,
-                // Hidden from public listings until an admin uploads a cover/icon
-                // image and clicks Save & Publish at /manage/events/{id}.
+                // Image attachment does not publish the event.
                 importStatus: "pending_review",
               },
               [{ startDate, endDate, isAllDay }],
@@ -1514,7 +1543,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 title: event.title,
                 importStatus: "pending_review",
               },
-              message: `Event "${o.title}" created (pending review, hidden from public). Add cover/icon images and click Save & Publish at /manage/events/${event.id}`,
+              message: `Event "${o.title}" created (pending review, hidden from public). Use setEntityImage or prepareImageUpload/attachImage for cover/icon images, then Save & Publish at /manage/events/${event.id}`,
             });
           }
           case "job": {
