@@ -75,7 +75,6 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
             {docked ? (
               <div>
                 <strong>Design studio</strong>
-                <span>Changes appear on the right.</span>
               </div>
             ) : (
               <>
@@ -117,7 +116,6 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
                 >
                   <div>
                     <strong>Design studio</strong>
-                    <span>Drag this panel to move it.</span>
                   </div>
                 </div>
                 <button type="button" onClick={close} aria-label="Close design studio">
@@ -143,7 +141,7 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
                 setLogo(null);
               }}
             >
-              Reset theme
+              Reset
             </button>
           </div>
           <div className="theme-panel-body">
@@ -157,13 +155,13 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
                 {fontError}
               </p>
             )}
-            <DraftControls />
             <EditorControls />
+            <DraftControls />
           </div>
           <div className="theme-panel-footer">
             {!docked && (
               <Link to="/design" className="theme-link">
-                View examples ↗
+                Examples ↗
               </Link>
             )}
             <ShareControls />

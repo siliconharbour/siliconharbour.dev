@@ -32,15 +32,10 @@ export default function DesignSystem() {
       <div className="max-w-4xl mx-auto flex flex-col gap-gap-8">
         <div>
           <h1 className="text-2xl font-semibold text-heading">Design system</h1>
-          <p className="text-subtle mt-1">Try the site’s components with your theme.</p>
         </div>
 
         <section className="flex flex-col gap-gap-4">
           <h2 className="text-lg font-semibold text-heading">Theme preview</h2>
-          <p className="text-muted">
-            Changes in the studio appear here and follow you to other pages. Copy a link to share
-            your theme.
-          </p>
           <div className="grid sm:grid-cols-3 gap-gap-4">
             <div className="p-pad-4 border border-line bg-surface rounded-panel">
               <h3 className="font-semibold text-heading">Card surface</h3>

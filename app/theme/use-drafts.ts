@@ -39,18 +39,10 @@ export function useDrafts(shared?: SharedTheme) {
           };
       if (!loaded.items.some((item) => item.id === loaded.active))
         loaded.active = loaded.items[0].id;
-      if (shared) {
-        try {
-          loaded = importShared(loaded, shared);
-        } catch (error) {
-          setStorageError(error instanceof Error ? error.message : "Could not import this share.");
-        }
-      }
+      if (shared) loaded = importShared(loaded, shared);
       setCollection(loaded);
     } catch {
-      setRestoreError(
-        "Saved themes could not be read. Choose New to start a fresh local collection. Your preview is still available.",
-      );
+      setRestoreError("Could not read saved themes. Open Themes and choose New to start again.");
     }
     setReady(true);
   }, []);
@@ -61,7 +53,7 @@ export function useDrafts(shared?: SharedTheme) {
       setStorageError("");
     } catch {
       setStorageError(
-        "Browser storage is full or unavailable. Changes and editing access may be lost on reload. Remove a local theme to make room.",
+        "Browser storage is unavailable or full. Changes may be lost on reload. Remove an unused theme or free storage.",
       );
     }
   }, [collection, ready, restoreError]);
@@ -86,17 +78,13 @@ export function useDrafts(shared?: SharedTheme) {
     setCollection({ version: 1, active: items[0].id, items });
   }
   function applyShared(share: SharedTheme) {
-    try {
-      setCollection(importShared(collection, share));
-    } catch (error) {
-      setStorageError(error instanceof Error ? error.message : "Could not import this share.");
-    }
+    setCollection((current) => importShared(current, share));
   }
   function saved(share: SharedTheme, key: string | undefined, id: string, submitted: string) {
     change(
       {
         shareId: share.id,
-        editKey: key ?? collection.items.find((item) => item.id === id)?.editKey,
+        ...(key ? { editKey: key } : {}),
         revision: share.revision,
         published: submitted,
       },

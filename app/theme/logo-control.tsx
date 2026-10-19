@@ -3,12 +3,8 @@ import { useTheme } from "./provider";
 export function LogoControl() {
   const { logo, setLogo, uploadLogo, logoError, logoLoading } = useTheme();
   return (
-    <section className="theme-control-section" aria-label="Brand graphic">
-      <h3>Brand graphic</h3>
-      <p className="theme-help">
-        Choose an SVG or image, up to 5 MB. It appears in the header and social previews. Creating
-        or updating a share uploads the normalized PNG.
-      </p>
+    <details className="theme-details">
+      <summary>Logo</summary>
       <label className="theme-field">
         Choose logo
         <input
@@ -37,10 +33,7 @@ export function LogoControl() {
           </button>
         </>
       )}
-      <p className="theme-help">
-        The logo is saved with this local theme and included when you share it. Normalized PNGs must
-        fit within 512 KB.
-      </p>
-    </section>
+      <p className="theme-help">SVG or image, up to 5 MB. Included in shared links.</p>
+    </details>
   );
 }

@@ -63,11 +63,9 @@ export function ColorPicker({
           </div>
         );
       })}
-      <p>
-        {inSrgb({ mode: "oklch", ...value })
-          ? "Works on standard displays."
-          : "This colour may look different on other displays."}
-      </p>
+      {!inSrgb({ mode: "oklch", ...value }) && (
+        <p className="theme-help">Outside sRGB. Displays may render this differently.</p>
+      )}
     </fieldset>
   );
 }

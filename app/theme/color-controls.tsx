@@ -30,19 +30,24 @@ export function ColorControls({ advanced }: { advanced: boolean }) {
   }
   return (
     <section aria-label="Theme colours">
-      <p>One colour sets the palette for text, borders and buttons. Status colours stay fixed.</p>
       <ColorPicker
         label="Main colour"
         value={theme.brand}
         onChange={(brand) => setTheme({ ...theme, brand })}
       />
+      <div className="theme-palette" aria-label="Palette preview">
+        {SHADES.map((stop) => (
+          <div key={stop}>
+            <span style={{ background: colorCss(palette[stop]) }} />
+            <small>{stop}</small>
+          </div>
+        ))}
+      </div>
       {advanced && (
         <>
           <details className="theme-details">
             <summary>Palette shades</summary>
-            <p>
-              Choose a shade. Your changes stay relative to the main colour, which is shade 600.
-            </p>
+            <p className="theme-help">Shades follow the main colour (600).</p>
             <div className="theme-ramp" aria-label="Ramp stops">
               {SHADES.map((stop) => (
                 <button
@@ -68,10 +73,7 @@ export function ColorControls({ advanced }: { advanced: boolean }) {
           </details>
           <details className="theme-details">
             <summary>Individual colours</summary>
-            <p>
-              Set a colour here to use it in place of the palette. Uncheck it to follow the palette
-              again.
-            </p>
+            <p className="theme-help">Override a role, or leave it linked to the palette.</p>
             {COLOR_ROLES.map((role) => (
               <div key={role.key} className="theme-role">
                 <label>

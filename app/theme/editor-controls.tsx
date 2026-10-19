@@ -16,100 +16,63 @@ const layoutControls = [
   { key: "panelRadius", label: "Card corners", min: 0, max: 32, step: 1, unit: "px" },
 ] as const;
 type Control = (typeof layoutControls)[number] | (typeof appearanceControls)[number];
-const simpleKeys = new Set([
-  "typeScale",
-  "padding",
-  "panelRadius",
-  "borderContrast",
-  "shadowOpacity",
-]);
 const advancedGroups = [
-  {
-    title: "Spacing and corners",
-    keys: ["padding", "gaps", "controlRadius", "panelRadius"],
-    note: "Padding and gaps scale every spacing token. Spacing 4 is the 1rem reference; gaps also change recurring card layers.",
-  },
-  {
-    title: "Borders",
-    keys: ["borderContrast", "borderWidth", "cardOutlineOpacity"],
-    note: "Contrast moves borders toward the body text colour.",
-  },
-  {
-    title: "Shadows",
-    keys: ["shadowOpacity", "shadowBlur", "shadowOffset", "shadowSpread"],
-    note: "Raise opacity to add a shadow. Its colour follows the headings.",
-  },
-  {
-    title: "Finishing touches",
-    keys: ["hoverLift", "imageTint", "letterSpacing"],
-    note: "Hover lift is off when someone prefers reduced motion.",
-  },
+  { title: "Spacing and corners", keys: ["padding", "gaps", "controlRadius", "panelRadius"] },
+  { title: "Borders", keys: ["borderContrast", "borderWidth", "cardOutlineOpacity"] },
+  { title: "Shadows", keys: ["shadowOpacity", "shadowBlur", "shadowOffset", "shadowSpread"] },
+  { title: "Effects", keys: ["hoverLift", "imageTint", "letterSpacing"] },
 ];
 const controls: readonly Control[] = [...layoutControls, ...appearanceControls];
 
 export function EditorControls() {
   const { theme, setTheme, advanced } = useTheme();
   const rootPixels = useRootFontSize();
-  const fonts = (
-    <>
-      <p className="theme-help">Choose a font or enter a Google Fonts name, then Apply.</p>
-      <FontField
-        label="Body font"
-        value={theme.bodyFont}
-        onChange={(bodyFont) => setTheme({ ...theme, bodyFont })}
-      />
-      <FontField
-        label="Heading font"
-        value={theme.headingFont}
-        onChange={(headingFont) => setTheme({ ...theme, headingFont })}
-      />
-    </>
-  );
+  const groups = advanced
+    ? advancedGroups
+    : [
+        {
+          title: "Shape and spacing",
+          keys: ["padding", "panelRadius", "borderContrast", "shadowOpacity"],
+        },
+      ];
   return (
     <div className="theme-controls">
       <ColorControls advanced={advanced} />
-      <LogoControl />
-      {advanced ? (
-        <>
-          <details className="theme-details">
-            <summary>Fonts and type</summary>
-            {fonts}
-            {layoutControls.slice(0, 2).map((control) => (
+      <details className="theme-details">
+        <summary>Typography</summary>
+        <FontField
+          label="Body font"
+          value={theme.bodyFont}
+          onChange={(bodyFont) => setTheme({ ...theme, bodyFont })}
+        />
+        <FontField
+          label="Heading font"
+          value={theme.headingFont}
+          onChange={(headingFont) => setTheme({ ...theme, headingFont })}
+        />
+        <p className="theme-help">Presets or any Google Fonts family.</p>
+        {layoutControls.slice(0, advanced ? 2 : 1).map((control) => (
+          <Slider key={control.key} control={control} rootPixels={rootPixels} />
+        ))}
+      </details>
+      {groups.map((group) => (
+        <details key={group.title} className="theme-details">
+          <summary>{group.title}</summary>
+          {controls
+            .filter((control) => group.keys.includes(control.key))
+            .map((control) => (
               <Slider key={control.key} control={control} rootPixels={rootPixels} />
             ))}
-          </details>
-          {advancedGroups.map((group) => (
-            <details key={group.title} className="theme-details">
-              <summary>{group.title}</summary>
-              <p className="theme-help">{group.note}</p>
-              {controls
-                .filter((control) => group.keys.includes(control.key))
-                .map((control) => (
-                  <Slider key={control.key} control={control} rootPixels={rootPixels} />
-                ))}
-              {group.title === "Spacing and corners" && <SpacingScale rootPixels={rootPixels} />}
-            </details>
-          ))}
-        </>
-      ) : (
-        <>
-          <section className="theme-control-section" aria-label="Fonts">
-            <h3>Fonts</h3>
-            {fonts}
-          </section>
-          <section className="theme-control-section" aria-label="Appearance">
-            <h3>Appearance</h3>
-            {controls
-              .filter((control) => simpleKeys.has(control.key))
-              .map((control) => (
-                <Slider key={control.key} control={control} rootPixels={rootPixels} />
-              ))}
-          </section>
-        </>
-      )}
+          {advanced && group.title === "Spacing and corners" && (
+            <SpacingScale rootPixels={rootPixels} />
+          )}
+        </details>
+      ))}
+      <LogoControl />
     </div>
   );
 }
+
 function Slider({ control, rootPixels }: { control: Control; rootPixels: number | null }) {
   const { theme, setTheme } = useTheme();
   const values = controlValues(control.key, control.unit, theme, rootPixels);

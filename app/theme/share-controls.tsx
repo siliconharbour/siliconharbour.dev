@@ -1,18 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTheme } from "./provider";
 import { draftContent } from "./drafts";
 import type { SharedTheme } from "./share-config";
 
 export function DraftControls() {
   const { drafts, cancelLogoUpload } = useTheme();
-  const [name, setName] = useState(drafts.draft.name);
-  useEffect(() => setName(drafts.draft.name), [drafts.draft.id, drafts.draft.name]);
   function switchDraft(action: () => void) {
     cancelLogoUpload();
     action();
   }
   return (
-    <section className="theme-control-section" aria-label="Local theme collection">
+    <details className="theme-details theme-drafts">
+      <summary>Themes</summary>
       <label className="theme-field">
         My themes
         <select
@@ -24,7 +23,6 @@ export function DraftControls() {
           {drafts.items.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
-              {item.editKey ? " (owned share)" : item.shareId ? " (shared)" : ""}
             </option>
           ))}
         </select>
@@ -33,10 +31,12 @@ export function DraftControls() {
         Theme name
         <input
           aria-label="Theme name"
-          value={name}
+          key={`${drafts.draft.id}:${drafts.draft.name}`}
+          defaultValue={drafts.draft.name}
           maxLength={80}
-          onChange={(event) => setName(event.target.value)}
-          onBlur={() => drafts.change({ name: name.trim() || "Untitled theme" })}
+          onBlur={(event) =>
+            drafts.change({ name: event.currentTarget.value.trim() || "Untitled theme" })
+          }
         />
       </label>
       <div className="theme-draft-actions">
@@ -52,7 +52,7 @@ export function DraftControls() {
           className="theme-small-button"
           onClick={() => switchDraft(() => drafts.add(true))}
         >
-          Make a copy
+          Duplicate
         </button>
         <button
           type="button"
@@ -63,10 +63,9 @@ export function DraftControls() {
         </button>
       </div>
       <p className="theme-help">
-        Drafts and edit keys live in this browser. Removing a theme removes its editing access; the
-        shared link stays online.
+        Saved in this browser. Removing a shared theme also removes your editing access.
       </p>
-    </section>
+    </details>
   );
 }
 export function ShareControls() {
@@ -83,9 +82,9 @@ export function ShareControls() {
   async function copy(link: string, id: string) {
     try {
       await navigator.clipboard.writeText(link);
-      setResult({ id, link, message: "Link copied, including the logo." });
+      setResult({ id, message: "Link copied." });
     } catch {
-      setResult({ id, link, message: "Share saved. Copy the link below." });
+      setResult({ id, link, message: "Copy this link." });
     }
   }
   async function save() {
@@ -126,7 +125,7 @@ export function ShareControls() {
     } catch {
       setResult({
         id: draft.id,
-        message: "The share could not be saved. Your local draft is unchanged. Try again.",
+        message: "Could not share. Try again.",
       });
     } finally {
       setBusy(false);
@@ -139,28 +138,26 @@ export function ShareControls() {
       if (!response.ok) throw new Error();
       const share: SharedTheme = await response.json();
       cancelLogoUpload();
-      drafts.change({
-        name: share.name,
-        theme: share.theme,
-        logo: share.logo,
-        revision: share.revision,
-        published: draftContent(share),
-      });
+      drafts.change(
+        {
+          name: share.name,
+          theme: share.theme,
+          logo: share.logo,
+          revision: share.revision,
+          published: draftContent(share),
+        },
+        draft.id,
+      );
       setResult(undefined);
     } catch {
       setResult({
         id: draft.id,
-        message: "The saved share could not be loaded. Make a copy to save a new link.",
+        message: "The saved share could not be loaded. Duplicate to save a new link.",
       });
     }
   }
-  const label = draft.editKey
-    ? drafts.dirty
-      ? "Update shared theme"
-      : "Copy share link"
-    : draft.shareId
-      ? "Create own share"
-      : "Create share link";
+  const ownsShare = !!draft.editKey && !!draft.shareId;
+  const label = ownsShare ? (drafts.dirty ? "Update link" : "Copy link") : "Share";
   return (
     <>
       <button
@@ -169,17 +166,16 @@ export function ShareControls() {
         disabled={busy || !drafts.ready || logoLoading || !!drafts.storageError}
         onClick={save}
       >
-        {busy ? "Saving share…" : label}
+        {busy ? "Saving…" : label}
       </button>
-      <p className="theme-status" role="status">
-        {current?.message ??
-          (draft.editKey
-            ? "This browser can update this link. Edits stay local until you publish them."
-            : "Sharing uploads this theme and its logo. Anyone with the link can view it.")}
-      </p>
+      {current && (
+        <p className="theme-status" role="status">
+          {current.message}
+        </p>
+      )}
       {current?.conflict && (
         <button className="theme-small-button" type="button" onClick={reloadShare}>
-          Replace local edits with saved share
+          Load saved version
         </button>
       )}
       {current?.link && (
@@ -194,14 +190,13 @@ export function ShareControls() {
           />
         </label>
       )}
-      {drafts.storageError && (
-        <p className="theme-notice">
-          Free browser storage before sharing so editing access can be saved.
+      <details className="theme-share-info">
+        <summary>About sharing</summary>
+        <p>
+          A link shares this theme and logo publicly. Changes stay local until you update the link.
         </p>
-      )}
-      <p className="theme-help">
-        Clearing browser storage removes editing access. You can always make a new copy.
-      </p>
+        <p>This browser holds editing access. Clearing its storage loses that access.</p>
+      </details>
     </>
   );
 }
