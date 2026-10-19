@@ -1,3 +1,4 @@
+import { DraftControls } from "./share-controls";
 import { EditorSection } from "./editor-section";
 import type { Theme } from "./tokens";
 import { LogoControl } from "./logo-control";
@@ -5,7 +6,7 @@ import { DEFAULT_THEME, themeVariables } from "./tokens";
 import { controlValues, formatRem } from "./control-values";
 import { useRootFontSize } from "./use-root-font-size";
 import { appearanceControls } from "./appearance";
-import { ColorControls } from "./color-controls";
+import { ColorControls, AdvancedColorControls } from "./color-controls";
 import { FontField } from "./font-field";
 import { useTheme } from "./provider";
 
@@ -65,10 +66,6 @@ export function EditorControls() {
         />
         <p className="theme-help">Presets or any Google Fonts family.</p>
         {sliders(["typeScale"])}
-        <details className="theme-advanced">
-          <summary>Advanced</summary>
-          {sliders(["lineHeight", "letterSpacing"])}
-        </details>
       </EditorSection>
       {groups.map((group) => (
         <EditorSection
@@ -77,21 +74,39 @@ export function EditorControls() {
           onReset={() => reset([...group.basic, ...group.extra])}
         >
           {sliders(group.basic)}
-          <details className="theme-advanced">
-            <summary>Advanced</summary>
-            {sliders(group.extra)}
-            {group.title === "Spacing and corners" && <SpacingScale rootPixels={rootPixels} />}
-          </details>
         </EditorSection>
       ))}
-      <EditorSection
-        title="Effects"
-        defaultOpen={false}
-        onReset={() => reset(["hoverLift", "imageTint"])}
-      >
-        {sliders(["hoverLift", "imageTint"])}
-      </EditorSection>
       <LogoControl />
+      <DraftControls />
+      <details className="theme-details theme-advanced">
+        <summary>Advanced</summary>
+        <AdvancedColorControls />
+        <EditorSection
+          title="Typography"
+          defaultOpen={false}
+          onReset={() => reset(["lineHeight", "letterSpacing"])}
+        >
+          {sliders(["lineHeight", "letterSpacing"])}
+        </EditorSection>
+        {groups.map((group) => (
+          <EditorSection
+            key={group.title}
+            title={group.title}
+            defaultOpen={false}
+            onReset={() => reset(group.extra)}
+          >
+            {sliders(group.extra)}
+            {group.title === "Spacing and corners" && <SpacingScale rootPixels={rootPixels} />}
+          </EditorSection>
+        ))}
+        <EditorSection
+          title="Effects"
+          defaultOpen={false}
+          onReset={() => reset(["hoverLift", "imageTint"])}
+        >
+          {sliders(["hoverLift", "imageTint"])}
+        </EditorSection>
+      </details>
     </div>
   );
 }

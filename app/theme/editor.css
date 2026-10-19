@@ -471,13 +471,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  margin-top: -4px;
-  border: 0;
-  background: transparent;
-  color: #2144bb;
-  font-size: 20px !important;
+  width: 24px;
+  height: 24px;
+  margin-top: -2px;
+  border: 1px solid #d4d4d8;
+  background: #ffffff;
+  color: #52525b;
+  font-size: 15px !important;
   line-height: 1;
 }
 .theme-advanced {
@@ -497,4 +497,10 @@
   border-top: 0;
   margin-top: 0;
   padding-top: 0;
+}
+
+.theme-editor .theme-section-reset:hover {
+  background: #f4f4f5;
+  color: #27272a;
+  border-color: #a1a1aa;
 }

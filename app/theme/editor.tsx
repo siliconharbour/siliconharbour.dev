@@ -1,4 +1,4 @@
-import { DraftControls, ShareControls } from "./share-controls";
+import { ShareControls } from "./share-controls";
 import { EditorControls } from "./editor-controls";
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from "react";
 import { Link, useMatch } from "react-router";
@@ -148,7 +148,6 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
               </p>
             )}
             <EditorControls />
-            <DraftControls />
           </div>
           <div className="theme-panel-footer">
             {!docked && (
