@@ -21,6 +21,7 @@ import {
   getPublicEventBySlug,
   getAllEvents,
   getUpcomingEvents,
+  getEventsThisWeek,
   getEventsForMonth,
   generateEventSlug,
   type EventWithDates,
@@ -445,5 +446,24 @@ describe("type plumbing", () => {
       { startDate: dateAt(1), endDate: null },
     ]);
     expect(created.dates).toBeDefined();
+  });
+});
+
+describe("home page this week", () => {
+  it("retains ongoing events from yesterday, excludes ended events, and sorts current dates first", async () => {
+    const { start: today } = siteDayBounds(new Date());
+    const ongoing = await createEvent(baseEvent({ title: "Overnight hackathon" }), [
+      {
+        startDate: new Date(today.getTime() - 3600_000),
+        endDate: new Date(today.getTime() + 23 * 3600_000),
+      },
+    ]);
+    await createEvent(baseEvent({ title: "Finished yesterday" }), [
+      { startDate: new Date(today.getTime() - 7200_000), endDate: new Date(today.getTime() - 1) },
+    ]);
+    const tomorrow = await createEvent(baseEvent({ title: "Tomorrow" }), [
+      { startDate: new Date(today.getTime() + 36 * 3600_000), endDate: null },
+    ]);
+    expect((await getEventsThisWeek()).map((event) => event.id)).toEqual([ongoing.id, tomorrow.id]);
   });
 });

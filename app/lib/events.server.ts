@@ -536,7 +536,8 @@ export async function getEventsForMonth(
 
 export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   // Use start-of-today in Newfoundland time so events earlier today still appear
-  const zonedNow = toZonedTime(new Date(), SITE_TIMEZONE);
+  const now = new Date();
+  const zonedNow = toZonedTime(now, SITE_TIMEZONE);
   const zonedStartOfDay = startOfDay(zonedNow);
   const todayStart = fromZonedTime(zonedStartOfDay, SITE_TIMEZONE);
 
@@ -547,7 +548,7 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   const eventIdsThisWeek = await db
     .selectDistinct({ eventId: eventDates.eventId })
     .from(eventDates)
-    .where(and(gte(eventDates.startDate, todayStart), lte(eventDates.startDate, weekFromNow)));
+    .where(and(isCurrentOnOrAfter(todayStart), lte(eventDates.startDate, weekFromNow)));
 
   if (eventIdsThisWeek.length === 0) return [];
 
@@ -558,12 +559,7 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
   return eventsWithDates
     .filter(isEventPublic)
     .filter((e) => !e.recurrenceRule) // exclude recurring even if they have explicit dates
-    .sort((a, b) => {
-      const aNext = a.dates.find((d) => d.startDate >= todayStart)?.startDate;
-      const bNext = b.dates.find((d) => d.startDate >= todayStart)?.startDate;
-      if (!aNext || !bNext) return 0;
-      return aNext.getTime() - bNext.getTime();
-    });
+    .sort((a, b) => compareEventDateOrder(a.dates, b.dates, "upcoming", now));
 }
 
 export async function getEventsByMonth(year: number, month: number): Promise<EventWithDates[]> {

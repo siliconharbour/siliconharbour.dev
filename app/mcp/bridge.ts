@@ -1,3 +1,4 @@
+import { orderEventSourcesForSync } from "~/lib/event-importers/source-order";
 import {
   setEntityImage,
   setEntityImageSchema,
@@ -1105,7 +1106,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
     eventImportSources: host(
       "eventImportSources({})",
-      "List all event import sources with id, sourceType, fetchStatus, lastFetchedAt, and pendingCount.",
+      "List event import sources with identity, sourceIdentifier, fetchStatus (including rate_limited), fetchError, lastFetchedAt (last success), lastAttemptedAt (source update time), and pendingCount.",
       "sources",
       async () => {
         const sources = await getAllEventImportSources();
@@ -1114,6 +1115,8 @@ export function buildExecuteFunctions(): HostFunctions {
             id: s.id,
             name: s.name,
             sourceType: s.sourceType,
+            sourceIdentifier: s.sourceIdentifier,
+            lastAttemptedAt: s.updatedAt,
             lastFetchedAt: s.lastFetchedAt,
             fetchStatus: s.fetchStatus,
             fetchError: s.fetchError,
@@ -1244,7 +1247,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
         if (!o.type || o.type === "event") {
           const sources = await getAllEventImportSources();
-          for (const source of sources) {
+          for (const source of orderEventSourcesForSync(sources)) {
             const result = await syncEvents(source.id);
             results.push({ kind: "event", sourceId: source.id, name: source.name, ...result });
           }
@@ -1284,7 +1287,7 @@ export function buildExecuteFunctions(): HostFunctions {
 
         if (!o.type || o.type === "event") {
           const sources = await getAllEventImportSources();
-          for (const source of sources) {
+          for (const source of orderEventSourcesForSync(sources)) {
             steps.push({
               type: "event",
               sourceId: source.id,

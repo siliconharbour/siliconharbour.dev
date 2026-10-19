@@ -1,8 +1,3 @@
-// =============================================================================
-// Event Importer Types - Shared types for event import modules
-// This file is client-safe (no server imports)
-// =============================================================================
-
 export interface FetchedEvent {
   externalId: string;
   title: string;
@@ -24,6 +19,7 @@ export interface ImportSourceConfig {
   sourceType: string;
   sourceIdentifier: string;
   sourceUrl: string;
+  knownExternalIds?: Set<string>;
 }
 
 export interface EventSyncResult {
@@ -32,6 +28,7 @@ export interface EventSyncResult {
   skipped: number;
   removed: number;
   error?: string;
+  rateLimited?: boolean;
 }
 
 export interface ValidationResult {
@@ -40,28 +37,20 @@ export interface ValidationResult {
   eventCount?: number;
 }
 
+export interface EventFetchResult {
+  events: FetchedEvent[];
+  complete: boolean;
+  futureOnly: boolean;
+}
+
 export interface EventImporter {
-  /** The source type this importer handles */
   readonly sourceType: string;
 
-  /**
-   * Fetch all events from the source
-   * @param config - The import source configuration
-   * @returns Array of fetched events
-   */
-  fetchEvents(config: ImportSourceConfig): Promise<FetchedEvent[]>;
+  fetchEvents(config: ImportSourceConfig): Promise<FetchedEvent[] | EventFetchResult>;
 
-  /**
-   * Validate that the configuration is correct and the source is accessible
-   * @param config - The import source configuration (partial, without id)
-   * @returns Validation result
-   */
   validateConfig(config: Omit<ImportSourceConfig, "id">): Promise<ValidationResult>;
 }
 
-/**
- * Display labels for event source types
- */
 export const sourceTypeLabels: Record<string, string> = {
   "luma-user": "Luma (User)",
   "luma-calendar": "Luma (Calendar)",

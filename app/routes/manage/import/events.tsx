@@ -1,3 +1,4 @@
+import { orderEventSourcesForSync } from "~/lib/event-importers/source-order";
 import type { Route } from "./+types/events";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
@@ -34,7 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
       totalRemoved = 0;
     const errors: string[] = [];
 
-    for (const source of sources) {
+    for (const source of orderEventSourcesForSync(sources)) {
       const result = await syncEvents(source.id);
       if (result.success) {
         totalAdded += result.added;
@@ -121,7 +122,8 @@ export default function ImportEvents() {
                   <th className="text-left px-4 py-3 text-harbour-600 font-medium">Type</th>
                   <th className="text-left px-4 py-3 text-harbour-600 font-medium">Pending</th>
                   <th className="text-left px-4 py-3 text-harbour-600 font-medium">Published</th>
-                  <th className="text-left px-4 py-3 text-harbour-600 font-medium">Last Fetched</th>
+                  <th className="text-left px-4 py-3 text-harbour-600 font-medium">Last Success</th>
+                  <th className="text-left px-4 py-3 text-harbour-600 font-medium">Last Attempt</th>
                   <th className="text-left px-4 py-3 text-harbour-600 font-medium">Status</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -152,8 +154,18 @@ export default function ImportEvents() {
                         ? formatDistanceToNow(source.lastFetchedAt, { addSuffix: true })
                         : "Never"}
                     </td>
+                    <td
+                      className="px-4 py-3 text-harbour-400 text-xs"
+                      title="Also changes when the source is edited"
+                    >
+                      {formatDistanceToNow(source.updatedAt, { addSuffix: true })}
+                    </td>
                     <td className="px-4 py-3">
-                      {source.fetchStatus === "error" ? (
+                      {source.fetchStatus === "rate_limited" ? (
+                        <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-800">
+                          rate limited
+                        </span>
+                      ) : source.fetchStatus === "error" ? (
                         <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700">error</span>
                       ) : source.fetchStatus === "pending" ? (
                         <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">

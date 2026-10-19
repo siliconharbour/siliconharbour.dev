@@ -1,10 +1,6 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import {
-  generateOGImage,
-  prepareEventOGData,
-  prepareNewsOGData,
-} from "~/lib/og-image.server";
+import { generateOGImage, prepareEventOGData, prepareNewsOGData } from "~/lib/og-image.server";
 
 describe("OG image data", () => {
   it("prepares all-day events without adding a clock time", () => {
@@ -22,6 +18,21 @@ describe("OG image data", () => {
       coverImagePath: "community-day.webp",
     });
     expect(data.date).not.toMatch(/AM|PM/);
+  });
+
+  it.each([
+    ["2026-11-21T00:30:00Z", "Friday, November 20, 2026 · 6:00 PM – 9:00 PM"],
+    [
+      "2026-11-21T21:30:00Z",
+      "Friday, November 20, 2026 at 6:00 PM – Saturday, November 21 at 6:00 PM",
+    ],
+  ])("formats timed OG ranges ending %s", (end, expected) => {
+    expect(
+      prepareEventOGData({
+        title: "Hack the Port! 2026",
+        dates: [{ startDate: new Date("2026-11-20T21:30:00Z"), endDate: new Date(end) }],
+      }).date,
+    ).toBe(expected);
   });
 
   it("uses the source name as the subtitle for link news", () => {

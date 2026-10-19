@@ -4,7 +4,11 @@ import {
   getEventTimingState,
   validatePeriodDates,
 } from "~/lib/event-timing";
-import { formatEventPeriodRange, getEventStatusLabel } from "~/lib/event-display";
+import {
+  formatEventPeriodRange,
+  formatTimedRangeEnd,
+  getEventStatusLabel,
+} from "~/lib/event-display";
 import type { EventDate } from "~/db/schema";
 
 function date(startDate: string, endDate: string | null = null): EventDate {
@@ -91,5 +95,16 @@ describe("event display", () => {
         dates,
       }),
     ).toBeNull();
+  });
+});
+
+describe("timed range ends", () => {
+  it.each([
+    ["2026-11-20T21:30:00Z", "2026-11-21T00:30:00Z", "9:00 PM"],
+    ["2026-11-20T21:30:00Z", "2026-11-21T21:30:00Z", "Sat, Nov 21 at 6:00 PM"],
+    ["2026-11-21T02:30:00Z", "2026-11-21T04:30:00Z", "Sat, Nov 21 at 1:00 AM"],
+    ["2026-11-20T23:30:00Z", "2026-11-21T03:00:00Z", "11:30 PM"],
+  ])("formats %s to %s using Newfoundland days", (start, end, expected) => {
+    expect(formatTimedRangeEnd(new Date(start), new Date(end))).toBe(expected);
   });
 });

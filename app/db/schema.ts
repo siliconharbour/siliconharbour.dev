@@ -211,7 +211,7 @@ export const groups = sqliteTable("groups", {
 // Event Import Sources - Track external sources for importing events
 // =============================================================================
 
-export const fetchStatuses = ["pending", "success", "error"] as const;
+export const fetchStatuses = ["pending", "success", "error", "rate_limited"] as const;
 export type FetchStatus = (typeof fetchStatuses)[number];
 
 export const eventSourceTypes = [
