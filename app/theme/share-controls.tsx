@@ -62,9 +62,6 @@ export function DraftControls() {
           Remove local
         </button>
       </div>
-      <p className="theme-help">
-        Saved in this browser. Removing a shared theme also removes your editing access.
-      </p>
     </details>
   );
 }
@@ -195,7 +192,6 @@ export function ShareControls() {
         <p>
           A link shares this theme and logo publicly. Changes stay local until you update the link.
         </p>
-        <p>This browser holds editing access. Clearing its storage loses that access.</p>
       </details>
     </>
   );
