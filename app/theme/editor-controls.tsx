@@ -1,3 +1,5 @@
+import { EditorSection } from "./editor-section";
+import type { Theme } from "./tokens";
 import { LogoControl } from "./logo-control";
 import { DEFAULT_THEME, themeVariables } from "./tokens";
 import { controlValues, formatRem } from "./control-values";
@@ -16,30 +18,41 @@ const layoutControls = [
   { key: "panelRadius", label: "Card corners", min: 0, max: 32, step: 1, unit: "px" },
 ] as const;
 type Control = (typeof layoutControls)[number] | (typeof appearanceControls)[number];
-const advancedGroups = [
-  { title: "Spacing and corners", keys: ["padding", "gaps", "controlRadius", "panelRadius"] },
-  { title: "Borders", keys: ["borderContrast", "borderWidth", "cardOutlineOpacity"] },
-  { title: "Shadows", keys: ["shadowOpacity", "shadowBlur", "shadowOffset", "shadowSpread"] },
-  { title: "Effects", keys: ["hoverLift", "imageTint", "letterSpacing"] },
-];
+const groups = [
+  {
+    title: "Spacing and corners",
+    basic: ["padding", "panelRadius"],
+    extra: ["gaps", "controlRadius"],
+  },
+  { title: "Borders", basic: ["borderContrast"], extra: ["borderWidth", "cardOutlineOpacity"] },
+  {
+    title: "Shadows",
+    basic: ["shadowOpacity"],
+    extra: ["shadowBlur", "shadowOffset", "shadowSpread"],
+  },
+] as const;
 const controls: readonly Control[] = [...layoutControls, ...appearanceControls];
 
 export function EditorControls() {
-  const { theme, setTheme, advanced } = useTheme();
+  const { theme, setTheme } = useTheme();
   const rootPixels = useRootFontSize();
-  const groups = advanced
-    ? advancedGroups
-    : [
-        {
-          title: "Shape and spacing",
-          keys: ["padding", "panelRadius", "borderContrast", "shadowOpacity"],
-        },
-      ];
+  function reset(keys: readonly (keyof Theme)[]) {
+    setTheme({ ...theme, ...Object.fromEntries(keys.map((key) => [key, DEFAULT_THEME[key]])) });
+  }
+  function sliders(keys: readonly string[]) {
+    return controls
+      .filter((control) => keys.includes(control.key))
+      .map((control) => <Slider key={control.key} control={control} rootPixels={rootPixels} />);
+  }
   return (
     <div className="theme-controls">
-      <ColorControls advanced={advanced} />
-      <details className="theme-details">
-        <summary>Typography</summary>
+      <ColorControls />
+      <EditorSection
+        title="Typography"
+        onReset={() =>
+          reset(["bodyFont", "headingFont", "typeScale", "lineHeight", "letterSpacing"])
+        }
+      >
         <FontField
           label="Body font"
           value={theme.bodyFont}
@@ -51,23 +64,33 @@ export function EditorControls() {
           onChange={(headingFont) => setTheme({ ...theme, headingFont })}
         />
         <p className="theme-help">Presets or any Google Fonts family.</p>
-        {layoutControls.slice(0, advanced ? 2 : 1).map((control) => (
-          <Slider key={control.key} control={control} rootPixels={rootPixels} />
-        ))}
-      </details>
-      {groups.map((group) => (
-        <details key={group.title} className="theme-details">
-          <summary>{group.title}</summary>
-          {controls
-            .filter((control) => group.keys.includes(control.key))
-            .map((control) => (
-              <Slider key={control.key} control={control} rootPixels={rootPixels} />
-            ))}
-          {advanced && group.title === "Spacing and corners" && (
-            <SpacingScale rootPixels={rootPixels} />
-          )}
+        {sliders(["typeScale"])}
+        <details className="theme-advanced">
+          <summary>Advanced</summary>
+          {sliders(["lineHeight", "letterSpacing"])}
         </details>
+      </EditorSection>
+      {groups.map((group) => (
+        <EditorSection
+          key={group.title}
+          title={group.title}
+          onReset={() => reset([...group.basic, ...group.extra])}
+        >
+          {sliders(group.basic)}
+          <details className="theme-advanced">
+            <summary>Advanced</summary>
+            {sliders(group.extra)}
+            {group.title === "Spacing and corners" && <SpacingScale rootPixels={rootPixels} />}
+          </details>
+        </EditorSection>
       ))}
+      <EditorSection
+        title="Effects"
+        defaultOpen={false}
+        onReset={() => reset(["hoverLift", "imageTint"])}
+      >
+        {sliders(["hoverLift", "imageTint"])}
+      </EditorSection>
       <LogoControl />
     </div>
   );

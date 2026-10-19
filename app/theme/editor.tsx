@@ -9,7 +9,7 @@ import "./editor.css";
 const editorTheme = themeVariables(DEFAULT_THEME) as CSSProperties;
 export function ThemeEditor({ docked = false }: { docked?: boolean }) {
   const onDesign = !!useMatch("/design/*");
-  const { setTheme, open, setOpen, error, fontError, advanced, setAdvanced, setLogo } = useTheme();
+  const { setTheme, open, setOpen, error, fontError, setLogo } = useTheme();
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLElement>(null);
   const [position, setPosition] = useState({ x: 12, y: 72 });
@@ -125,14 +125,6 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
             )}
           </div>
           <div className="theme-toolbar">
-            <div className="theme-mode" role="group" aria-label="Control detail">
-              <button type="button" aria-pressed={!advanced} onClick={() => setAdvanced(false)}>
-                Simple
-              </button>
-              <button type="button" aria-pressed={advanced} onClick={() => setAdvanced(true)}>
-                Advanced
-              </button>
-            </div>
             <button
               className="theme-reset"
               type="button"
@@ -141,7 +133,7 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
                 setLogo(null);
               }}
             >
-              Reset
+              Reset theme
             </button>
           </div>
           <div className="theme-panel-body">

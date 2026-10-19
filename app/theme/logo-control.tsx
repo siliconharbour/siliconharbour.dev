@@ -1,10 +1,10 @@
+import { EditorSection } from "./editor-section";
 import { useTheme } from "./provider";
 
 export function LogoControl() {
   const { logo, setLogo, uploadLogo, logoError, logoLoading } = useTheme();
   return (
-    <details className="theme-details">
-      <summary>Logo</summary>
+    <EditorSection title="Logo" onReset={() => setLogo(null)}>
       <label className="theme-field">
         Choose logo
         <input
@@ -28,12 +28,9 @@ export function LogoControl() {
         <>
           <img className="theme-logo-preview" src={logo.src} alt="Your preview logo" />
           <p className="theme-help">{logo.name}</p>
-          <button className="theme-small-button" type="button" onClick={() => setLogo(null)}>
-            Use original logo
-          </button>
         </>
       )}
       <p className="theme-help">SVG or image, up to 5 MB.</p>
-    </details>
+    </EditorSection>
   );
 }

@@ -18,8 +18,6 @@ interface ThemeContextValue extends ReturnType<typeof useLogoUpload> {
   drafts: ReturnType<typeof useDrafts>;
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  advanced: boolean;
-  setAdvanced: (advanced: boolean) => void;
   open: boolean;
   setOpen: (open: boolean) => void;
   error?: string;
@@ -31,7 +29,6 @@ export function ThemeProvider({ shared, children }: { shared?: SharedTheme; chil
   const { theme, logo } = drafts.draft;
   const logoUpload = useLogoUpload(logo, (value) => drafts.change({ logo: value }));
   const location = useLocation();
-  const [advanced, setAdvanced] = useState(false);
   const [open, setOpen] = useState(!!shared);
   const lastShare = useRef(shared ? `${shared.id}:${shared.revision}` : undefined);
   const [fontFailure, setFontFailure] = useState<{ url: string; message: string }>();
@@ -57,8 +54,6 @@ export function ThemeProvider({ shared, children }: { shared?: SharedTheme; chil
         drafts,
         theme,
         setTheme: (value) => drafts.change({ theme: value }),
-        advanced,
-        setAdvanced,
         open,
         setOpen,
         error: drafts.storageError || undefined,
