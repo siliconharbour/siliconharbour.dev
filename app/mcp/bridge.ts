@@ -7,6 +7,7 @@ import {
 } from "~/lib/entity-images.server";
 import { prepareImageUpload, prepareImageUploadSchema } from "~/lib/mcp-image-uploads.server";
 import { getOAuthIssuerUrl } from "./oauth.server";
+import { listThemeShares, deleteThemeShare } from "~/lib/theme-shares.server";
 import { z } from "zod";
 import { getAsyncSync, listAsyncSyncs, startAsyncSync } from "./async-syncs.js";
 import {
@@ -1079,6 +1080,32 @@ async function createNewsArticleInternal(opts: z.infer<typeof NewsArticleCreateS
 export function buildExecuteFunctions(): HostFunctions {
   return {
     ...buildReadFunctions(),
+    themeShares: host(
+      "themeShares({ limit?, offset? })",
+      "Admin-only theme share listing with creator/update IPs and timestamps. Never returns edit keys.",
+      "sources",
+      async (input: unknown) => {
+        const parsed = z
+          .object({
+            limit: z.number().int().min(1).max(100).optional(),
+            offset: z.number().int().min(0).optional(),
+          })
+          .parse(input ?? {});
+        return listThemeShares(parsed.limit, parsed.offset);
+      },
+      z.object({
+        limit: z.number().int().min(1).max(100).optional(),
+        offset: z.number().int().min(0).optional(),
+      }),
+    ),
+    deleteThemeShare: host(
+      "deleteThemeShare({ id })",
+      "Delete a saved theme share and its logo. Requires authenticated execute access.",
+      "lifecycle",
+      async (input: unknown) =>
+        deleteThemeShare(z.object({ id: z.string().regex(/^[a-f0-9]{32}$/) }).parse(input).id),
+      z.object({ id: z.string().regex(/^[a-f0-9]{32}$/) }),
+    ),
 
     setEntityImage: host(
       "setEntityImage({ type, id, role, url })",

@@ -43,42 +43,6 @@ export const DEFAULT_OG_COLORS = Object.fromEntries([
   ["white", "#ffffff"],
 ]) as Record<`harbour${keyof typeof HARBOUR_PALETTE}` | "white", string>;
 
-const sharedSchema = themeSchema
-  .partial()
-  .extend({ v: z.literal(2) })
-  .strict();
-export function decodeTheme(raw: string | null): { theme?: Theme; error?: string } {
-  if (raw === null) return {};
-  try {
-    if (raw.length > 4096) throw new Error("Too large");
-    const parsed = sharedSchema.parse(JSON.parse(raw));
-    const { v: _version, ...overrides } = parsed;
-    return { theme: { ...DEFAULT_THEME, ...overrides } };
-  } catch {
-    return {
-      theme: { ...DEFAULT_THEME },
-      error:
-        "This theme link is invalid or uses an unsupported format. The site defaults are shown.",
-    };
-  }
-}
-export function encodeTheme(theme: Theme): string | null {
-  const changes = Object.fromEntries(
-    Object.entries(theme).filter(
-      ([key, value]) => JSON.stringify(value) !== JSON.stringify(DEFAULT_THEME[key as keyof Theme]),
-    ),
-  );
-  return Object.keys(changes).length ? JSON.stringify({ v: 2, ...changes }) : null;
-}
-export function themeUrl(url: URL, theme: Theme): string {
-  const next = new URL(url);
-  const encoded = encodeTheme(theme);
-  if (encoded) next.searchParams.set("theme", encoded);
-  else next.searchParams.delete("theme");
-  next.searchParams.set("studio", "1");
-  return next.toString();
-}
-
 const textSizes = {
   "2xs": [0.625, 0.875],
   xs: [0.75, 1],

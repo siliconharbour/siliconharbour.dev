@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   sqliteTable,
+  blob,
   text,
   integer,
   index,
@@ -990,3 +991,21 @@ export type NewJobImportSource = typeof jobImportSources.$inferInsert;
 
 export type JobTechnologyMention = typeof jobTechnologyMentions.$inferSelect;
 export type NewJobTechnologyMention = typeof jobTechnologyMentions.$inferInsert;
+
+export const themeShares = sqliteTable(
+  "theme_shares",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    theme: text("theme").notNull(),
+    logo: blob("logo", { mode: "buffer" }),
+    logoBytes: integer("logo_bytes").notNull().default(0),
+    editKeyHash: text("edit_key_hash").notNull(),
+    revision: integer("revision").notNull().default(1),
+    createdAt: integer("created_at").notNull(),
+    updatedAt: integer("updated_at").notNull(),
+    createdIp: text("created_ip").notNull(),
+    updatedIp: text("updated_ip").notNull(),
+  },
+  (table) => [index("theme_shares_created_idx").on(table.createdAt)],
+);

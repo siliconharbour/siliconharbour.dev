@@ -1,35 +1,20 @@
+import { loadDesignExamples } from "~/lib/design-examples.server";
 import { useOGPreview } from "~/theme/use-og-preview";
 import { controlValues } from "~/theme/control-values";
 import { useRootFontSize } from "~/theme/use-root-font-size";
 import { ComponentShowcase } from "~/components/design/ComponentShowcase";
-import { getJobsGroupedByCompany } from "~/lib/jobs.server";
 import { useTheme } from "~/theme/provider";
 import type { Route } from "./+types/design";
 import { useState, type ReactNode } from "react";
 import { useLoaderData } from "react-router";
 import { Alert, Badge, Button } from "~/components/ui";
-import { getUpcomingEvents } from "~/lib/events.server";
-import { getPublishedNews } from "~/lib/news.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Design System - siliconharbour.dev" }];
 }
 
-export async function loader({}: Route.LoaderArgs) {
-  const [events, news, companies] = await Promise.all([
-    getUpcomingEvents(),
-    getPublishedNews(),
-    getJobsGroupedByCompany(),
-  ]);
-  return {
-    eventPreviews: events.map(({ slug, title }) => ({ slug, title })),
-    newsPreviews: news.map(({ slug, title }) => ({ slug, title })),
-    previewToken: Date.now(),
-    componentCompanies: companies
-      .slice(0, 8)
-      .map((data) => ({ ...data, jobs: data.jobs.slice(0, 2) })),
-    componentNews: news.slice(0, 3),
-  };
+export function loader() {
+  return loadDesignExamples();
 }
 
 export default function DesignSystem() {

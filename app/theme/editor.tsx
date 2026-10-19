@@ -1,21 +1,18 @@
+import { DraftControls, ShareControls } from "./share-controls";
 import { EditorControls } from "./editor-controls";
 import { useEffect, useRef, useState, type PointerEvent, type CSSProperties } from "react";
-import { Link, useLocation, useMatch } from "react-router";
+import { Link, useMatch } from "react-router";
 import { useTheme } from "./provider";
-import { DEFAULT_THEME, themeUrl, themeVariables } from "./tokens";
+import { DEFAULT_THEME, themeVariables } from "./tokens";
 import "./editor.css";
 
 const editorTheme = themeVariables(DEFAULT_THEME) as CSSProperties;
 export function ThemeEditor({ docked = false }: { docked?: boolean }) {
-  const onDesign = !!useMatch("/design");
-  const { theme, setTheme, open, setOpen, error, fontError, advanced, setAdvanced, logo, setLogo } =
-    useTheme();
-  const location = useLocation();
+  const onDesign = !!useMatch("/design/*");
+  const { setTheme, open, setOpen, error, fontError, advanced, setAdvanced, setLogo } = useTheme();
   const launcher = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLElement>(null);
   const [position, setPosition] = useState({ x: 12, y: 72 });
-  const [shareLink, setShareLink] = useState("");
-  const [status, setStatus] = useState("");
   const drag = useRef<{ x: number; y: number; startX: number; startY: number } | null>(null);
   function move(x: number, y: number) {
     const rect = panel.current?.getBoundingClientRect();
@@ -34,10 +31,6 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
   useEffect(() => {
     if (docked) setOpen(true);
   }, [docked, setOpen]);
-  useEffect(() => {
-    setShareLink("");
-    setStatus("");
-  }, [theme, location.pathname, location.search]);
   function close() {
     setOpen(false);
     launcher.current?.focus();
@@ -47,21 +40,6 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { x: position.x, y: position.y, startX: event.clientX, startY: event.clientY };
   }
-  async function share() {
-    const link = themeUrl(new URL(window.location.href), theme);
-    setShareLink(link);
-    try {
-      await navigator.clipboard.writeText(link);
-      setStatus(
-        logo
-          ? "Style link copied. Your local logo is not included."
-          : "Link copied with your theme and page filters.",
-      );
-    } catch {
-      setStatus("Copy the link below.");
-    }
-  }
-  const designParams = new URL(themeUrl(new URL("https://example.invalid/design"), theme)).search;
   if (onDesign && !docked) return null;
   return (
     <div className={`theme-editor${docked ? " theme-editor--docked" : ""}`} style={editorTheme}>
@@ -179,32 +157,16 @@ export function ThemeEditor({ docked = false }: { docked?: boolean }) {
                 {fontError}
               </p>
             )}
+            <DraftControls />
             <EditorControls />
           </div>
           <div className="theme-panel-footer">
             {!docked && (
-              <Link to={`/design${designParams}`} className="theme-link">
+              <Link to="/design" className="theme-link">
                 View examples ↗
               </Link>
             )}
-            <button type="button" className="theme-share" onClick={share}>
-              Copy share link
-            </button>
-            <p className="theme-status" role="status">
-              {status || "Your edits follow you as you browse. Share a link to save this theme."}
-            </p>
-            {shareLink && (
-              <label className="theme-field">
-                Share link
-                <textarea
-                  aria-label="Share link"
-                  readOnly
-                  value={shareLink}
-                  onFocus={(e) => e.currentTarget.select()}
-                  rows={3}
-                />
-              </label>
-            )}
+            <ShareControls />
           </div>
         </aside>
       )}

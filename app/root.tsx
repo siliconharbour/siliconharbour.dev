@@ -1,3 +1,4 @@
+import type { loader as sharedLoader } from "./routes/design-share";
 import {
   isRouteErrorResponse,
   Links,
@@ -5,24 +6,14 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useLoaderData,
   useRouteLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
-import { BRAND_LOGO, DEFAULT_THEME, decodeTheme, themeVariables } from "./theme/tokens";
+import { BRAND_LOGO, DEFAULT_THEME, themeVariables } from "./theme/tokens";
 import { ThemeProvider } from "./theme/provider";
 import { ThemeEditor } from "./theme/editor";
-
-export function loader({ request }: Route.LoaderArgs) {
-  return {
-    theme: decodeTheme(new URL(request.url).searchParams.get("theme")).theme ?? DEFAULT_THEME,
-  };
-}
-export function shouldRevalidate() {
-  return false;
-}
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
@@ -40,9 +31,9 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const data = useRouteLoaderData<typeof loader>("root");
+  const shared = useRouteLoaderData<typeof sharedLoader>("routes/design-share")?.share;
   return (
-    <html lang="en" style={themeVariables(data?.theme ?? DEFAULT_THEME)}>
+    <html lang="en" style={themeVariables(shared?.theme ?? DEFAULT_THEME)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -74,9 +65,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { theme } = useLoaderData<typeof loader>();
+  const shared = useRouteLoaderData<typeof sharedLoader>("routes/design-share")?.share;
   return (
-    <ThemeProvider initialTheme={theme}>
+    <ThemeProvider shared={shared}>
       <Outlet />
       <ThemeEditor />
     </ThemeProvider>

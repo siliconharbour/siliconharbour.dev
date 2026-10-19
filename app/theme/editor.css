@@ -452,3 +452,18 @@
   min-width: 0;
   font-size: 12px;
 }
+.theme-field > input:not([type="file"]) {
+  padding: 6px;
+  border: 1px solid #89adff;
+  background: white;
+  width: 100%;
+}
+.theme-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.theme-share:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

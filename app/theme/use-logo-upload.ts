@@ -1,8 +1,10 @@
 import { useRef, useState } from "react";
 import { readLogo, type PreviewLogo } from "./logo-file";
 
-export function useLogoUpload() {
-  const [logo, setImage] = useState<PreviewLogo | null>(null);
+export function useLogoUpload(
+  logo: PreviewLogo | null,
+  setImage: (logo: PreviewLogo | null) => void,
+) {
   const [logoError, setError] = useState("");
   const [logoLoading, setLoading] = useState(false);
   const revision = useRef(0);
@@ -26,5 +28,10 @@ export function useLogoUpload() {
       if (current === revision.current) setLoading(false);
     }
   }
-  return { logo, setLogo, uploadLogo, logoError, logoLoading };
+  function cancelLogoUpload() {
+    revision.current++;
+    setLoading(false);
+    setError("");
+  }
+  return { logo, setLogo, uploadLogo, logoError, logoLoading, cancelLogoUpload };
 }

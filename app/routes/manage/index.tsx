@@ -59,23 +59,20 @@ export default function ManageIndex() {
             <Link to="/" className="text-sm text-subtle hover:text-body">
               View Site
             </Link>
-            <Link
-              to="/manage/settings"
-              className="text-sm text-subtle hover:text-body"
-            >
+            <Link to="/manage/settings" className="text-sm text-subtle hover:text-body">
               Settings
             </Link>
-            <Link
-              to="/manage/logout"
-              className="text-sm text-subtle hover:text-body"
-            >
+            <Link to="/manage/logout" className="text-sm text-subtle hover:text-body">
               Logout
             </Link>
           </div>
         </div>
 
         {importFailures.length > 0 && (
-          <section className="border border-red-200 bg-red-50 p-pad-4" aria-labelledby="import-failures">
+          <section
+            className="border border-red-200 bg-red-50 p-pad-4"
+            aria-labelledby="import-failures"
+          >
             <div className="flex flex-wrap items-start justify-between gap-gap-2">
               <div>
                 <h2 id="import-failures" className="font-semibold text-red-700">
@@ -104,10 +101,13 @@ export default function ManageIndex() {
                     </span>
                     <span className="text-xs text-subtle">
                       {failure.lastAttemptAt
-                        ? `last attempted ${new Date(failure.lastAttemptAt).toLocaleString("en-CA", {
-                            dateStyle: "medium",
-                            timeStyle: "short",
-                          })}`
+                        ? `last attempted ${new Date(failure.lastAttemptAt).toLocaleString(
+                            "en-CA",
+                            {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            },
+                          )}`
                         : "never completed a sync"}
                     </span>
                   </div>
@@ -163,6 +163,9 @@ export default function ManageIndex() {
         <div className="flex flex-col gap-gap-3">
           <h2 className="text-lg font-semibold text-heading">Tools</h2>
           <div className="border border-line bg-surface rounded-panel">
+            <ToolGroup label="Design">
+              <ToolLink to="/manage/theme-shares">Theme shares</ToolLink>
+            </ToolGroup>
             <ToolGroup label="Jobs">
               <ToolLink to="/manage/import/jobs">Import Sources</ToolLink>
               <ToolLink to="/manage/import/jobs/search">Board Search</ToolLink>
@@ -210,7 +213,6 @@ export default function ManageIndex() {
             ))}
           </div>
         </div>
-
       </div>
     </div>
   );

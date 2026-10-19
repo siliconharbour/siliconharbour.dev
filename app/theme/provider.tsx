@@ -1,4 +1,3 @@
-import { useLogoUpload } from "./use-logo-upload";
 import {
   createContext,
   useContext,
@@ -7,12 +6,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useLocation, useNavigationType } from "react-router";
+import { useLocation } from "react-router";
+import { useLogoUpload } from "./use-logo-upload";
+import { useDrafts } from "./use-drafts";
 import { FontStylesheet } from "./font-stylesheet";
 import { googleFontFamilies, googleFontsUrl } from "./fonts";
-import { decodeTheme, themeVariables, type Theme } from "./tokens";
+import { themeVariables, type Theme } from "./tokens";
+import type { SharedTheme } from "./share-config";
 
 interface ThemeContextValue extends ReturnType<typeof useLogoUpload> {
+  drafts: ReturnType<typeof useDrafts>;
   theme: Theme;
   setTheme: (theme: Theme) => void;
   advanced: boolean;
@@ -23,49 +26,42 @@ interface ThemeContextValue extends ReturnType<typeof useLogoUpload> {
   fontError?: string;
 }
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-export function ThemeProvider({
-  initialTheme,
-  children,
-}: {
-  initialTheme: Theme;
-  children: ReactNode;
-}) {
+export function ThemeProvider({ shared, children }: { shared?: SharedTheme; children: ReactNode }) {
+  const drafts = useDrafts(shared);
+  const { theme, logo } = drafts.draft;
+  const logoUpload = useLogoUpload(logo, (value) => drafts.change({ logo: value }));
   const location = useLocation();
-  const navigationType = useNavigationType();
-  const [theme, setTheme] = useState(initialTheme);
-  const logoUpload = useLogoUpload();
   const [advanced, setAdvanced] = useState(false);
-  const [open, setOpen] = useState(new URLSearchParams(location.search).get("studio") === "1");
+  const [open, setOpen] = useState(!!shared);
+  const lastShare = useRef(shared ? `${shared.id}:${shared.revision}` : undefined);
   const [fontFailure, setFontFailure] = useState<{ url: string; message: string }>();
   const fontUrl = googleFontsUrl(theme.bodyFont, theme.headingFont);
   const fontError = fontFailure?.url === fontUrl ? fontFailure.message : undefined;
-  const raw = new URLSearchParams(location.search).get("theme");
-  const [error, setError] = useState(decodeTheme(raw).error);
-  const lastRaw = useRef(raw);
   useLayoutEffect(() => {
-    if (raw !== lastRaw.current || navigationType === "POP") {
-      const parsed = decodeTheme(raw);
-      if (parsed.theme) setTheme(parsed.theme);
-      setError(parsed.error);
-      lastRaw.current = raw;
+    const key = shared ? `${shared.id}:${shared.revision}` : undefined;
+    if (drafts.ready && shared && key !== lastShare.current) {
+      logoUpload.cancelLogoUpload();
+      drafts.applyShared(shared);
+      setOpen(true);
     }
-  }, [raw, location.key, navigationType]);
+    lastShare.current = key;
+  }, [shared?.id, shared?.revision, drafts.ready]);
   useLayoutEffect(() => {
-    const variables = themeVariables(theme);
-    for (const [name, value] of Object.entries(variables))
+    for (const [name, value] of Object.entries(themeVariables(theme)))
       document.documentElement.style.setProperty(name, value);
-  }, [theme]);
+  }, [theme, location.pathname]);
   return (
     <ThemeContext.Provider
       value={{
         ...logoUpload,
+        drafts,
         theme,
-        setTheme,
+        setTheme: (value) => drafts.change({ theme: value }),
         advanced,
         setAdvanced,
         open,
         setOpen,
-        error,
+        error: drafts.storageError || undefined,
         fontError,
       }}
     >

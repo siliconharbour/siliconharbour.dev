@@ -1,5 +1,7 @@
+import { MAX_LOGO_BYTES } from "./share-config";
 export interface PreviewLogo {
   src: string;
+  hash: string;
   name: string;
   width: number;
   height: number;
@@ -88,9 +90,16 @@ export async function readLogo(file: File): Promise<PreviewLogo> {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Your browser could not open an image canvas.");
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const src = canvas.toDataURL("image/png");
+    if (((src.length - "data:image/png;base64,".length) * 3) / 4 > MAX_LOGO_BYTES)
+      throw new Error("The preview PNG exceeds 512 KB. Choose a smaller or simpler image.");
     return {
-      src: canvas.toDataURL("image/png"),
-      name: file.name,
+      src,
+      hash: Array.from(
+        new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(src))),
+        (byte) => byte.toString(16).padStart(2, "0"),
+      ).join(""),
+      name: file.name.slice(0, 200),
       width: canvas.width,
       height: canvas.height,
     };

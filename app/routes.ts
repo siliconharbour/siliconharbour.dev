@@ -9,6 +9,9 @@ export default [
   route("oauth/token", "routes/oauth.token.tsx"),
 
   // OG images for social sharing
+  route("api/theme-shares", "routes/api/theme-shares.tsx"),
+  route("api/theme-shares/:id", "routes/api/theme-shares.$id.tsx"),
+  route("api/theme-shares/:id/logo", "routes/api/theme-shares.$id.logo.tsx"),
   route("og.png", "routes/site-og.tsx"),
   route("events/:slug.png", "routes/events-og.tsx"),
   route("news/:slug.png", "routes/news-og.tsx"),
@@ -91,7 +94,10 @@ export default [
   route("api/entities/search", "routes/api/entities.search.tsx"),
 
   // Design system reference
-  layout("routes/design-layout.tsx", [route("design", "routes/design.tsx")]),
+  layout("routes/design-layout.tsx", [
+    route("design", "routes/design.tsx"),
+    route("design/share/:id", "routes/design-share.tsx"),
+  ]),
 
   // Home page has its own hero header design
   index("routes/home.tsx"),
@@ -146,6 +152,7 @@ export default [
 
   // Admin routes
   ...prefix("manage", [
+    route("theme-shares", "routes/manage/theme-shares.tsx"),
     route("login", "routes/manage/login.tsx"),
     route("logout", "routes/manage/logout.tsx"),
     index("routes/manage/index.tsx"),

@@ -6,8 +6,8 @@ export function LogoControl() {
     <section className="theme-control-section" aria-label="Brand graphic">
       <h3>Brand graphic</h3>
       <p className="theme-help">
-        Choose an SVG or image, up to 5 MB. It stays in this browser and appears in the header and
-        social previews.
+        Choose an SVG or image, up to 5 MB. It appears in the header and social previews. Creating
+        or updating a share uploads the normalized PNG.
       </p>
       <label className="theme-field">
         Choose logo
@@ -38,8 +38,8 @@ export function LogoControl() {
         </>
       )}
       <p className="theme-help">
-        Theme links share styles only. Download social previews to share your logo; reloading the
-        page clears it.
+        The logo is saved with this local theme and included when you share it. Normalized PNGs must
+        fit within 512 KB.
       </p>
     </section>
   );

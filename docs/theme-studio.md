@@ -8,13 +8,23 @@ Font fields offer presets and accept arbitrary Google Fonts family names. Apply 
 
 Other controls preview type and line-height scales, padding, gaps, and control/card corners. Reset restores the published defaults. The editor keeps its own baseline styles so experimental themes cannot obscure its controls.
 
-Copy share link includes the current page's query filters and a versioned `theme` configuration. Only changed settings are encoded. The OKLCH format is version 2; earlier version 1 links load defaults with an unsupported-link notice. Shared themes are validated and applied during server rendering; invalid configurations show an explanation and use defaults. Ordinary navigation preserves edits in the current tab. Reloading restores the URL configuration; settings are not saved to the server or browser storage.
+Themes and logos are saved as named drafts in localStorage. Reloading restores the selected draft; New, Make a copy and the theme picker let you try several directions. Removing a local draft does not delete its published share. Storage errors are shown in the studio.
 
-Choose a local SVG, PNG, JPEG, WebP, GIF or AVIF logo (up to 5 MB and 16 megapixels) in either studio mode. SVGs must be static and self-contained; scripts, external references and embedded images are rejected. The browser flattens the image to PNG at a maximum 1024px dimension. The preview logo follows navigation, replaces the header graphic, and appears in the design page’s downloadable social images. Reset or Use original logo clears it. Reloading clears the local image. Favicons and published social images keep their original branding.
+Create share link explicitly uploads a snapshot and returns `/design/share/:id`. Theme configuration is no longer carried in query parameters. Visitors receive the saved theme and logo together, including during server rendering, and can make their own copy. The creating browser stores a private edit key alongside its draft; Update shared theme publishes changes to the same link. Unpublished edits stay local. Revision checks prevent an older draft from overwriting a newer published revision. Clearing browser storage or removing the owning draft loses editing access; there is no account or recovery flow.
+
+Choose an SVG, PNG, JPEG, WebP, GIF or AVIF logo up to 5 MB and 16 megapixels. SVGs must be static and self-contained; scripts, external references and embedded images are rejected. The browser flattens the image to PNG at a maximum 1024px dimension and 512 KiB. The logo replaces the header graphic and appears in downloadable design-page social images. Reset or Use original logo clears it. Favicons and published social images keep their original branding.
+
+## Share storage and moderation
+
+Shares store the validated theme, normalized PNG, revision, creation/update timestamps and IP addresses in SQLite. Only a hash of the edit key is stored. Public responses exclude edit keys and IP metadata. The server accepts PNG bytes, never a remote image URL, and verifies format and dimensions before saving. Shared links are public and excluded from indexing.
+
+Writes require a same-origin request and are limited to 5 attempts per 10 minutes and 20 per day per IP, including invalid submissions. IP addresses come from the HTTP adapter's configured proxy trust, not client-supplied route headers. Total storage is capped at 10,000 shares and 200 MiB of logos. `/manage/theme-shares` lists shares, timestamps and creation/update IPs and can delete a share together with its logo. Authenticated admin MCP operations provide the same listing and deletion. Local browser copies survive server deletion.
+
+Migration `0058_theme_shares` must be applied in production by the operator after deployment; use the repository's production migration workflow. Development migration has been verified locally.
 
 ## Maintaining tokens
 
-`app/theme/colors.ts` owns the OKLCH model, ramp relationships and role resolution; `fonts.ts` owns safe font names, stacks and stylesheet URLs. `tokens.ts` composes the theme schema, defaults, sharing format and CSS variable generation. Culori handles conversion of the original published hex palette and gamut checks. `scripts/generate-theme.ts` generates the checked-in `app/styles/theme.css`; both `pnpm dev` and `pnpm build` regenerate it.
+`app/theme/colors.ts` owns the OKLCH model, ramp relationships and role resolution; `fonts.ts` owns safe font names, stacks and stylesheet URLs. `tokens.ts` composes the theme schema, defaults and CSS variable generation. Culori handles conversion of the original published hex palette and gamut checks. `scripts/generate-theme.ts` generates the checked-in `app/styles/theme.css`; both `pnpm dev` and `pnpm build` regenerate it.
 
 Tailwind v4 `@theme inline` maps utilities onto runtime variables. Use semantic roles (`bg-page`, `bg-surface`, `text-body`, `text-heading`, `text-muted`, `border-line`, `bg-primary`) and `rounded-control` / `rounded-panel` where appropriate. Default radii are zero. Harbour palette utilities remain available for tonal accents.
 
@@ -24,7 +34,7 @@ Use `card-surface` for a framed panel and `card-link` for an interactive card. T
 
 The live component section on `/design` reuses `EventCard`, `CompanyCard`, `CompanyJobCard`, `JobRow`, `BaseMultiSelect`, `Calendar` and `NewsListing`. Event examples are fixed fixtures; company, job and news examples use a small sample of published content. Keep these examples tied to production components when adding new patterns.
 
-Appearance controls add border contrast (blending the border role toward body text), border width, card outline opacity, panel shadows, card hover lift, image tint and letter spacing. Shadows use the heading colour with independently adjustable opacity, blur, offset and spread; default opacity is zero. Width applies to card outlines and semantic `border-line` borders, preserving focus indicators and status-colour borders. `rounded-panel` surfaces share elevation; recurring background layers stay flat. Hover lift is disabled for reduced-motion users. Image tint affects `TintedImage` photos, with the existing hover reveal retained. All values are bounded and included in version 2 share links; older version 2 links receive the new defaults.
+Appearance controls add border contrast (blending the border role toward body text), border width, card outline opacity, panel shadows, card hover lift, image tint and letter spacing. Shadows use the heading colour with independently adjustable opacity, blur, offset and spread; default opacity is zero. Width applies to card outlines and semantic `border-line` borders, preserving focus indicators and status-colour borders. `rounded-panel` surfaces share elevation; recurring background layers stay flat. Hover lift is disabled for reduced-motion users. Image tint affects `TintedImage` photos, with the existing hover reveal retained. All values are bounded and included in saved theme snapshots.
 
 The studio starts in Simple mode with the main colour, fonts, type size, padding, card corners, border contrast and shadow opacity. Advanced mode groups the remaining controls into disclosures. Switching modes keeps every setting, including advanced settings hidden in Simple mode. The selected mode follows navigation in the current tab but is not part of a shared theme. Reset and sharing remain available below the scrolling controls.
 
@@ -34,7 +44,7 @@ Zero elevation is a transparent zero-size shadow, so it can compose with Tailwin
 
 ## Local graphic and social previews
 
-Files are never posted to the backend or included in theme URLs. Permanent asset hosting and sharing a logo through a theme link remain deferred; the studio explains this beside the file picker and share action. Social previews can be downloaded as 1200 × 630 PNG files.
+Files remain in the browser until Create share link or Update shared theme uploads the normalized PNG. Shared snapshots include the logo, so visitors can generate the same social previews. Social previews can be downloaded as 1200 × 630 PNG files.
 
 The existing OG routes accept the fixed `preview=template` flag. Their normal Satori layout produces a self-contained SVG with an invisible logo and supplies that logo’s exact layout bounds via `onNodeDetected`. These responses are JSON with `Cache-Control: no-store`; ordinary published PNG requests and their caches retain their behavior. The server reads only its existing local assets and accepts no uploaded file or logo URL. The browser composites the flattened logo into that slot using Canvas, with no WASM dependency or server-side remote-image fetching. Published colours, Inter typography and layout remain in the OG template; other studio style controls apply to the site itself.
 
