@@ -8,10 +8,10 @@ interface DeleteConfirmationCardProps {
 
 export function DeleteConfirmationCard({ title, message, children }: DeleteConfirmationCardProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white border border-harbour-200 p-6 flex flex-col gap-6">
-        <h1 className="text-xl font-semibold text-harbour-700">{title}</h1>
-        <p className="text-harbour-500">{message}</p>
+    <div className="min-h-screen flex items-center justify-center p-pad-6">
+      <div className="max-w-md w-full bg-surface border border-line p-pad-6 flex flex-col gap-gap-6 rounded-panel">
+        <h1 className="text-xl font-semibold text-heading">{title}</h1>
+        <p className="text-muted">{message}</p>
         {children}
       </div>
     </div>

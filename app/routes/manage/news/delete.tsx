@@ -46,16 +46,16 @@ export default function DeleteNews() {
         </>
       }
     >
-      <Form method="post" className="flex gap-4">
+      <Form method="post" className="flex gap-gap-4">
         <button
           type="submit"
-          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
+          className="px-pad-4 py-pad-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"
         >
           Delete
         </button>
         <Link
           to="/manage/news"
-          className="px-4 py-2 text-harbour-600 hover:bg-harbour-50 font-medium transition-colors"
+          className="px-pad-4 py-pad-2 text-body hover:bg-soft font-medium transition-colors"
         >
           Cancel
         </Link>

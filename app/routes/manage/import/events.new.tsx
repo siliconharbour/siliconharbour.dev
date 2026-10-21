@@ -72,28 +72,28 @@ export default function NewEventImportSource() {
   const [selectedType, setSelectedType] = useState<string>("");
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-xl mx-auto flex flex-col gap-gap-6">
         <div>
           <Link
             to="/manage/import/events"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
+            className="text-sm text-subtle hover:text-body"
           >
             &larr; Back to Event Import Sources
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">Add Event Import Source</h1>
+        <h1 className="text-2xl font-semibold text-heading">Add Event Import Source</h1>
 
         {actionData?.error && (
-          <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="border border-red-200 bg-red-50 p-pad-3 text-sm text-red-700">
             {actionData.error}
           </div>
         )}
 
-        <form method="post" className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-harbour-600" htmlFor="name">
+        <form method="post" className="flex flex-col gap-gap-4">
+          <div className="flex flex-col gap-gap-1">
+            <label className="text-sm font-medium text-body" htmlFor="name">
               Name
             </label>
             <input
@@ -101,13 +101,13 @@ export default function NewEventImportSource() {
               name="name"
               type="text"
               placeholder="e.g. TechNest Community (Luma)"
-              className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
+              className="border border-line px-pad-3 py-pad-2 text-sm text-heading focus:outline-none focus:border-harbour-400"
               required
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-harbour-600" htmlFor="sourceType">
+          <div className="flex flex-col gap-gap-1">
+            <label className="text-sm font-medium text-body" htmlFor="sourceType">
               Source Type
             </label>
             <select
@@ -115,7 +115,7 @@ export default function NewEventImportSource() {
               name="sourceType"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
+              className="border border-line px-pad-3 py-pad-2 text-sm text-heading focus:outline-none focus:border-harbour-400"
               required
             >
               <option value="">Select a source type…</option>
@@ -128,8 +128,8 @@ export default function NewEventImportSource() {
           </div>
 
           {!FIXED_SOURCES[selectedType] && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-harbour-600" htmlFor="sourceIdentifier">
+            <div className="flex flex-col gap-gap-1">
+              <label className="text-sm font-medium text-body" htmlFor="sourceIdentifier">
                 Source Identifier
               </label>
               <input
@@ -143,10 +143,10 @@ export default function NewEventImportSource() {
                       ? "e.g. usr-bSGJmqMm6oO62Ze or EthanDenny"
                       : ""
                 }
-                className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
+                className="border border-line px-pad-3 py-pad-2 text-sm text-heading focus:outline-none focus:border-harbour-400"
                 required
               />
-              <p className="text-xs text-harbour-400">
+              <p className="text-xs text-subtle">
                 {selectedType === "luma-calendar"
                   ? "The calendar slug (e.g. fintechcadence) or API ID (cal-xxxx) from the Luma calendar URL."
                   : selectedType === "luma-user"
@@ -168,8 +168,8 @@ export default function NewEventImportSource() {
           )}
 
           {!FIXED_SOURCES[selectedType] && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-harbour-600" htmlFor="sourceUrl">
+            <div className="flex flex-col gap-gap-1">
+              <label className="text-sm font-medium text-body" htmlFor="sourceUrl">
                 Source URL
               </label>
               <input
@@ -181,33 +181,33 @@ export default function NewEventImportSource() {
                     ? "https://luma.com/fintechcadence"
                     : "https://luma.com/user/usr-xxxx"
                 }
-                className="border border-harbour-200 px-3 py-2 text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
+                className="border border-line px-pad-3 py-pad-2 text-sm text-heading focus:outline-none focus:border-harbour-400"
                 required
               />
             </div>
           )}
 
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-gap-1">
             <EntityPicker
               name="organizer"
               label="Organizer (optional)"
               placeholder="Search companies, groups, people..."
             />
-            <p className="text-xs text-harbour-400">
+            <p className="text-xs text-subtle">
               Pre-populates the organizer field on imported events.
             </p>
           </div>
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-gap-2 pt-pad-2">
             <button
               type="submit"
-              className="px-4 py-2 bg-harbour-600 text-white hover:bg-harbour-700 text-sm"
+              className="px-pad-4 py-pad-2 bg-primary text-white hover:bg-primary-hover text-sm"
             >
               Validate &amp; Save
             </button>
             <Link
               to="/manage/import/events"
-              className="px-4 py-2 border border-harbour-200 text-harbour-600 hover:bg-harbour-50 text-sm"
+              className="px-pad-4 py-pad-2 border border-line text-body hover:bg-soft text-sm"
             >
               Cancel
             </Link>

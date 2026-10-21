@@ -324,22 +324,22 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-gap-2">
       {destinations.length === 0 ? (
-        <p className="text-sm text-harbour-400 italic">No destinations configured.</p>
+        <p className="text-sm text-subtle italic">No destinations configured.</p>
       ) : (
         <ul className="flex flex-col">
           {destinations.map((d) => (
             <li
               key={d.id}
-              className="flex items-center justify-between py-2 px-3 border border-harbour-100 -mt-px first:mt-0"
+              className="flex items-center justify-between py-pad-2 px-pad-3 border border-harbour-100 -mt-px first:mt-0"
             >
               <div className="flex flex-col">
-                <span className="text-sm text-harbour-700">
+                <span className="text-sm text-heading">
                   {d.guildName}{" "}
                   <span className="font-medium">#{d.channelName}</span>
                 </span>
-                <span className="text-xs text-harbour-400">
+                <span className="text-xs text-subtle">
                   Channel ID: {d.channelId}
                 </span>
               </div>
@@ -348,7 +348,7 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
                 onClick={() => {
                   if (confirm(`Remove ${d.guildName} #${d.channelName}?`)) removeOne(d.id);
                 }}
-                className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
+                className="text-xs px-pad-2 py-pad-1 border border-line text-subtle hover:text-red-600 hover:border-red-300 transition-colors"
               >
                 Remove
               </button>
@@ -361,16 +361,16 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
         <button
           type="button"
           onClick={openPicker}
-          className="self-start text-xs px-3 py-1.5 border border-harbour-200 text-harbour-600 hover:bg-harbour-50 transition-colors"
+          className="self-start text-xs px-pad-3 py-pad-1-5 border border-line text-body hover:bg-soft transition-colors"
         >
           + Add destination
         </button>
       )}
 
       {adding && (
-        <div className="border border-harbour-200 p-3 flex flex-col gap-2 bg-harbour-50">
+        <div className="border border-line p-pad-3 flex flex-col gap-gap-2 bg-soft">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-harbour-700 uppercase tracking-wide">
+            <span className="text-xs font-medium text-heading uppercase tracking-wide">
               {selectedGuild ? `Channel in ${selectedGuild.name}` : "Pick a server"}
             </span>
             <button
@@ -379,7 +379,7 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
                 setAdding(false);
                 setSelectedGuild(null);
               }}
-              className="text-xs text-harbour-400 hover:text-harbour-600"
+              className="text-xs text-subtle hover:text-body"
             >
               Cancel
             </button>
@@ -388,13 +388,13 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
           {!selectedGuild && (
             <>
               {isLoadingGuilds && (
-                <p className="text-xs text-harbour-400">Loading servers…</p>
+                <p className="text-xs text-subtle">Loading servers…</p>
               )}
               {guildError && (
                 <p className="text-xs text-red-700">Error: {guildError}</p>
               )}
               {guildList && guildList.length === 0 && (
-                <p className="text-xs text-harbour-400">
+                <p className="text-xs text-subtle">
                   Bot is not in any servers. Invite it first.
                 </p>
               )}
@@ -405,7 +405,7 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
                       <button
                         type="button"
                         onClick={() => pickGuild(g)}
-                        className="w-full text-left px-3 py-2 text-sm border border-harbour-200 -mt-px first:mt-0 bg-white hover:bg-harbour-100 transition-colors text-harbour-700"
+                        className="w-full text-left px-pad-3 py-pad-2 text-sm border border-line -mt-px first:mt-0 bg-surface hover:bg-tint transition-colors text-heading"
                       >
                         {g.name}
                       </button>
@@ -421,18 +421,18 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
               <button
                 type="button"
                 onClick={() => setSelectedGuild(null)}
-                className="self-start text-xs text-harbour-400 hover:text-harbour-600"
+                className="self-start text-xs text-subtle hover:text-body"
               >
                 ← Back to servers
               </button>
               {isLoadingChannels && (
-                <p className="text-xs text-harbour-400">Loading channels…</p>
+                <p className="text-xs text-subtle">Loading channels…</p>
               )}
               {channelError && (
                 <p className="text-xs text-red-700">Error: {channelError}</p>
               )}
               {channelList && channelList.length === 0 && (
-                <p className="text-xs text-harbour-400">
+                <p className="text-xs text-subtle">
                   No text channels visible to the bot in this server.
                 </p>
               )}
@@ -445,10 +445,10 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
                         disabled={!c.canSend}
                         onClick={() => addChannel(selectedGuild, c)}
                         title={c.reason}
-                        className={`w-full text-left px-3 py-2 text-sm border border-harbour-200 -mt-px first:mt-0 transition-colors ${
+                        className={`w-full text-left px-pad-3 py-pad-2 text-sm border border-line -mt-px first:mt-0 transition-colors ${
                           c.canSend
-                            ? "bg-white hover:bg-harbour-100 text-harbour-700"
-                            : "bg-harbour-100 text-harbour-400 cursor-not-allowed"
+                            ? "bg-surface hover:bg-tint text-heading"
+                            : "bg-tint text-subtle cursor-not-allowed"
                         }`}
                       >
                         #{c.name}
@@ -475,14 +475,14 @@ export default function Settings() {
   const discordTestResult = testFetcher.data?.discordTest;
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-8">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold text-harbour-700">Settings</h1>
-            <p className="text-harbour-400 text-sm">Configure site visibility and features</p>
+          <div className="flex flex-col gap-gap-1">
+            <h1 className="text-2xl font-semibold text-heading">Settings</h1>
+            <p className="text-subtle text-sm">Configure site visibility and features</p>
           </div>
-          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage" className="text-sm text-subtle hover:text-body">
             Back to Dashboard
           </Link>
         </div>
@@ -492,59 +492,59 @@ export default function Settings() {
           error={actionData && "error" in actionData ? actionData.error : undefined}
         />
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Section Visibility</h2>
-            <p className="text-sm text-harbour-400 mb-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="bg-surface border border-line p-pad-6 rounded-panel">
+            <h2 className="text-lg font-semibold text-heading mb-4">Section Visibility</h2>
+            <p className="text-sm text-subtle mb-6">
               Toggle which sections appear in navigation and on the home page. Hidden sections will
               still be accessible via direct URL.
             </p>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-gap-4">
               {sectionKeys.map((section) => (
                 <label
                   key={section}
-                  className="flex items-start gap-4 p-4 border border-harbour-100 hover:border-harbour-200 cursor-pointer transition-colors"
+                  className="flex items-start gap-gap-4 p-pad-4 border border-harbour-100 hover:border-line cursor-pointer transition-colors"
                 >
                   <input
                     type="checkbox"
                     name={section}
                     defaultChecked={visibility[section]}
-                    className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
+                    className="mt-1 h-4 w-4 text-body border border-harbour-300 focus:ring-harbour-500"
                   />
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium text-harbour-700">{sectionLabels[section]}</span>
-                    <span className="text-sm text-harbour-400">{sectionDescriptions[section]}</span>
+                  <div className="flex flex-col gap-gap-1">
+                    <span className="font-medium text-heading">{sectionLabels[section]}</span>
+                    <span className="text-sm text-subtle">{sectionDescriptions[section]}</span>
                   </div>
                 </label>
               ))}
             </div>
           </div>
 
-          <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Comments</h2>
-            <p className="text-sm text-harbour-400 mb-6">
+          <div className="bg-surface border border-line p-pad-6 rounded-panel">
+            <h2 className="text-lg font-semibold text-heading mb-4">Comments</h2>
+            <p className="text-sm text-subtle mb-6">
               Toggle which pages allow user comments. Disabling comments hides the comment section
               from public view but preserves existing comments.
             </p>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-gap-4">
               {commentableKeys.map((contentType) => (
                 <label
                   key={contentType}
-                  className="flex items-start gap-4 p-4 border border-harbour-100 hover:border-harbour-200 cursor-pointer transition-colors"
+                  className="flex items-start gap-gap-4 p-pad-4 border border-harbour-100 hover:border-line cursor-pointer transition-colors"
                 >
                   <input
                     type="checkbox"
                     name={`comments_${contentType}`}
                     defaultChecked={commentVisibility[contentType]}
-                    className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
+                    className="mt-1 h-4 w-4 text-body border border-harbour-300 focus:ring-harbour-500"
                   />
-                  <div className="flex flex-col gap-1">
-                    <span className="font-medium text-harbour-700">
+                  <div className="flex flex-col gap-gap-1">
+                    <span className="font-medium text-heading">
                       {commentableLabels[contentType]}
                     </span>
-                    <span className="text-sm text-harbour-400">
+                    <span className="text-sm text-subtle">
                       {commentableDescriptions[contentType]}
                     </span>
                   </div>
@@ -553,14 +553,14 @@ export default function Settings() {
             </div>
           </div>
 
-          <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">News Import</h2>
-            <p className="text-sm text-harbour-400 mb-4">
+          <div className="bg-surface border border-line p-pad-6 rounded-panel">
+            <h2 className="text-lg font-semibold text-heading mb-4">News Import</h2>
+            <p className="text-sm text-subtle mb-4">
               Global keywords for filtering news import sources. Sources with &quot;Use global
               keywords&quot; enabled will use this list instead of per-source keywords.
             </p>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="news_global_keywords" className="font-medium text-harbour-700 text-sm">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="news_global_keywords" className="font-medium text-heading text-sm">
                 Global Keywords
               </label>
               <input
@@ -569,34 +569,34 @@ export default function Settings() {
                 name="news_global_keywords"
                 defaultValue={newsGlobalKeywords}
                 placeholder="tech, startup, innovation, AI, software, digital, venture, funding, TechNL, Genesis, Bounce"
-                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500 text-sm"
+                className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500 text-sm"
               />
-              <p className="text-xs text-harbour-400">
+              <p className="text-xs text-subtle">
                 Comma-separated. Applied to title and excerpt (case-insensitive).
               </p>
             </div>
           </div>
 
-          <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Discord</h2>
-            <p className="text-sm text-harbour-400 mb-6">
+          <div className="bg-surface border border-line p-pad-6 rounded-panel">
+            <h2 className="text-lg font-semibold text-heading mb-4">Discord</h2>
+            <p className="text-sm text-subtle mb-6">
               Configure the Discord bot and pick which channels event and job roundups should be
               posted to. Roundups fan out to every configured destination for their content type.
             </p>
 
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <label htmlFor="discord_bot_token" className="font-medium text-harbour-700 text-sm">
+            <div className="flex flex-col gap-gap-6">
+              <div className="flex flex-col gap-gap-2">
+                <label htmlFor="discord_bot_token" className="font-medium text-heading text-sm">
                   Bot Token
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-gap-2">
                   <input
                     type="password"
                     id="discord_bot_token"
                     name="discord_bot_token"
                     defaultValue={discordConfig.botToken}
                     placeholder="Enter Discord bot token"
-                    className="flex-1 px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
+                    className="flex-1 px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
                   />
                   <button
                     type="button"
@@ -609,7 +609,7 @@ export default function Settings() {
                       formData.set("discord_bot_token", tokenInput?.value ?? "");
                       testFetcher.submit(formData, { method: "post" });
                     }}
-                    className="px-3 py-2 text-sm border border-harbour-200 text-harbour-600 hover:bg-harbour-50 transition-colors whitespace-nowrap"
+                    className="px-pad-3 py-pad-2 text-sm border border-line text-body hover:bg-soft transition-colors whitespace-nowrap"
                   >
                     {testFetcher.state === "submitting" ? "Testing..." : "Test Connection"}
                   </button>
@@ -623,22 +623,22 @@ export default function Settings() {
                       : `Connection failed: ${discordTestResult.error || "Invalid token"}`}
                   </p>
                 )}
-                <p className="text-xs text-harbour-400">
+                <p className="text-xs text-subtle">
                   After saving a new token, click Test Connection to refresh the bot&apos;s server list.
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <span className="font-medium text-harbour-700 text-sm">Event Destinations</span>
-                <p className="text-xs text-harbour-400">
+              <div className="flex flex-col gap-gap-2">
+                <span className="font-medium text-heading text-sm">Event Destinations</span>
+                <p className="text-xs text-subtle">
                   Channels that receive event roundups. Posting will go to every channel listed here.
                 </p>
                 <DestinationPicker type="events" destinations={discordDestinations.events} />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <span className="font-medium text-harbour-700 text-sm">Job Destinations</span>
-                <p className="text-xs text-harbour-400">
+              <div className="flex flex-col gap-gap-2">
+                <span className="font-medium text-heading text-sm">Job Destinations</span>
+                <p className="text-xs text-subtle">
                   Channels that receive job roundups. Posting will go to every channel listed here.
                 </p>
                 <DestinationPicker type="jobs" destinations={discordDestinations.jobs} />
@@ -649,7 +649,7 @@ export default function Settings() {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="px-6 py-2 bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+              className="px-pad-6 py-pad-2 bg-primary text-white hover:bg-primary-hover transition-colors"
             >
               Save Changes
             </button>

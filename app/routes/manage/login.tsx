@@ -55,18 +55,18 @@ export default function Login() {
   const { returnTo } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold text-center text-harbour-700">Login</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-pad-4">
+      <div className="w-full max-w-sm flex flex-col gap-gap-6">
+        <h1 className="text-2xl font-semibold text-center text-heading">Login</h1>
 
-        <Form method="post" className="flex flex-col gap-4">
+        <Form method="post" className="flex flex-col gap-gap-4">
           <input type="hidden" name="returnTo" value={returnTo} />
           {actionData?.error && (
-            <div className="p-3 bg-red-100 text-red-700 text-sm">{actionData.error}</div>
+            <div className="p-pad-3 bg-red-100 text-red-700 text-sm">{actionData.error}</div>
           )}
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="email" className="text-sm font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-1">
+            <label htmlFor="email" className="text-sm font-medium text-heading">
               Email
             </label>
             <input
@@ -74,12 +74,12 @@ export default function Login() {
               id="email"
               name="email"
               required
-              className="px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+              className="px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="password" className="text-sm font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-1">
+            <label htmlFor="password" className="text-sm font-medium text-heading">
               Password
             </label>
             <input
@@ -87,13 +87,13 @@ export default function Login() {
               id="password"
               name="password"
               required
-              className="px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+              className="px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
             />
           </div>
 
           <button
             type="submit"
-            className="py-2 px-4 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            className="py-pad-2 px-pad-4 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
           >
             Login
           </button>

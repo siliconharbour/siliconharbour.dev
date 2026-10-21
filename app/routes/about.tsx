@@ -14,7 +14,7 @@ export function meta({}: Route.MetaArgs) {
 
 export default function AboutPage() {
   return (
-    <div className="max-w-4xl mx-auto p-4 py-8">
+    <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
       <article className="prose mx-auto">
         <AboutContent />
       </article>

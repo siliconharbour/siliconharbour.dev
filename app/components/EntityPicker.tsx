@@ -109,8 +109,8 @@ export function EntityPicker({
   const hiddenValue = selected.join(", ");
 
   return (
-    <div className="flex flex-col gap-2" ref={containerRef}>
-      {label && <label className="block text-sm font-medium text-harbour-700">{label}</label>}
+    <div className="flex flex-col gap-gap-2" ref={containerRef}>
+      {label && <label className="block text-sm font-medium text-heading">{label}</label>}
 
       {/* Single hidden input — comma-separated string matching existing organizer wire */}
       <input type="hidden" name={name} value={hiddenValue} />
@@ -123,17 +123,17 @@ export function EntityPicker({
           onKeyDown={handleKeyDown}
           onFocus={() => query && setIsOpen(true)}
           placeholder={selected.length > 0 ? "Add another..." : placeholder}
-          className="w-full px-3 py-2 border border-harbour-200 bg-white text-sm text-harbour-700 focus:outline-none focus:border-harbour-400"
+          className="w-full px-pad-3 py-pad-2 border border-line bg-surface text-sm text-heading focus:outline-none focus:border-harbour-400"
           autoComplete="off"
         />
         {loading && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-harbour-400">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-subtle">
             …
           </span>
         )}
 
         {isOpen && results.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 border border-harbour-200 bg-white mt-px max-h-56 overflow-y-auto">
+          <div className="absolute z-50 top-full left-0 right-0 border border-line bg-surface mt-px max-h-56 overflow-y-auto rounded-panel">
             {results.map((r) => (
               <button
                 key={`${r.type}-${r.id}`}
@@ -142,11 +142,11 @@ export function EntityPicker({
                   e.preventDefault();
                   selectItem(r.name);
                 }}
-                className="w-full px-3 py-2 text-left text-sm text-harbour-700 hover:bg-harbour-50 flex items-center justify-between gap-2"
+                className="w-full px-pad-3 py-pad-2 text-left text-sm text-heading hover:bg-soft flex items-center justify-between gap-gap-2"
               >
                 <span>{r.name}</span>
                 <span
-                  className={`text-xs px-1.5 py-0.5 shrink-0 ${TYPE_COLORS[r.type] ?? "bg-harbour-100 text-harbour-600"}`}
+                  className={`text-xs px-pad-1-5 py-pad-0-5 shrink-0 ${TYPE_COLORS[r.type] ?? "bg-tint text-body"}`}
                 >
                   {TYPE_LABELS[r.type] ?? r.type}
                 </span>
@@ -156,24 +156,24 @@ export function EntityPicker({
         )}
 
         {isOpen && !loading && query.trim() && results.length === 0 && (
-          <div className="absolute z-50 top-full left-0 right-0 border border-harbour-200 bg-white mt-px px-3 py-2 text-sm text-harbour-400">
+          <div className="absolute z-50 top-full left-0 right-0 border border-line bg-surface mt-px px-pad-3 py-pad-2 text-sm text-subtle rounded-panel">
             No matches — press Enter to add &ldquo;{query.trim()}&rdquo; as free text
           </div>
         )}
       </div>
 
       {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-gap-1-5">
           {selected.map((s) => (
             <span
               key={s}
-              className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-700"
+              className="inline-flex items-center gap-gap-1 text-xs px-pad-1-5 py-pad-0-5 bg-tint text-heading"
             >
               {s}
               <button
                 type="button"
                 onClick={() => remove(s)}
-                className="text-harbour-400 hover:text-harbour-700 leading-none"
+                className="text-subtle hover:text-heading leading-none"
                 aria-label={`Remove ${s}`}
               >
                 ×

@@ -66,26 +66,26 @@ export default function NewJob() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/jobs" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/jobs" className="text-sm text-subtle hover:text-body">
             &larr; Back to Jobs
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Manual Job</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Manual Job</h1>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
           <ManageField label="Job Title *" htmlFor="title">
             <input
               type="text"
               id="title"
               name="title"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -97,7 +97,7 @@ export default function NewJob() {
             <select
               id="companyId"
               name="companyId"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             >
               <option value="">-- Select a company (optional) --</option>
               {companies.map((c) => (
@@ -114,13 +114,13 @@ export default function NewJob() {
               name="description"
               required
               rows={10}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </ManageField>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="location" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="location" className="font-medium text-heading">
                 Location
               </label>
               <input
@@ -128,12 +128,12 @@ export default function NewJob() {
                 id="location"
                 name="location"
                 placeholder="e.g., St. John's, NL"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="department" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="department" className="font-medium text-heading">
                 Department
               </label>
               <input
@@ -141,20 +141,20 @@ export default function NewJob() {
                 id="department"
                 name="department"
                 placeholder="e.g., Engineering"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="workplaceType" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="workplaceType" className="font-medium text-heading">
                 Workplace Type
               </label>
               <select
                 id="workplaceType"
                 name="workplaceType"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 <option value="">-- Select --</option>
                 <option value="onsite">On-site</option>
@@ -163,8 +163,8 @@ export default function NewJob() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="salaryRange" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="salaryRange" className="font-medium text-heading">
                 Salary Range
               </label>
               <input
@@ -172,7 +172,7 @@ export default function NewJob() {
                 id="salaryRange"
                 name="salaryRange"
                 placeholder="e.g., $80k-$100k"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function NewJob() {
               name="url"
               required
               placeholder="https://..."
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 

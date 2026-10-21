@@ -1,3 +1,4 @@
+import type { loader as sharedLoader } from "./routes/design-share";
 import {
   isRouteErrorResponse,
   Links,
@@ -5,14 +6,18 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useRouteLoaderData,
 } from "react-router";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import { BRAND_LOGO, DEFAULT_THEME, themeVariables } from "./theme/tokens";
+import { ThemeProvider } from "./theme/provider";
+import { ThemeEditor } from "./theme/editor";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico", sizes: "32x32" },
-  { rel: "icon", href: "/siliconharbour.svg", type: "image/svg+xml" },
+  { rel: "icon", href: BRAND_LOGO, type: "image/svg+xml" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -26,8 +31,9 @@ export const links: Route.LinksFunction = () => [
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const shared = useRouteLoaderData<typeof sharedLoader>("routes/design-share")?.share;
   return (
-    <html lang="en">
+    <html lang="en" style={themeVariables(shared?.theme ?? DEFAULT_THEME)}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -59,7 +65,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const shared = useRouteLoaderData<typeof sharedLoader>("routes/design-share")?.share;
+  return (
+    <ThemeProvider shared={shared}>
+      <Outlet />
+      <ThemeEditor />
+    </ThemeProvider>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -77,11 +89,11 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
+    <main className="pt-pad-16 p-pad-4 container mx-auto">
       <h1>{message}</h1>
       <p>{details}</p>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
+        <pre className="w-full p-pad-4 overflow-x-auto">
           <code>{stack}</code>
         </pre>
       )}

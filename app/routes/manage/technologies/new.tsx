@@ -53,26 +53,26 @@ export default function NewTechnology() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
           <Link
             to="/manage/technologies"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
+            className="text-sm text-subtle hover:text-body"
           >
             &larr; Back to Technologies
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Technology</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Technology</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="name" className="font-medium text-heading">
               Name *
             </label>
             <input
@@ -81,19 +81,19 @@ export default function NewTechnology() {
               name="name"
               required
               placeholder="e.g., React, AWS, Python"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="category" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="category" className="font-medium text-heading">
               Category *
             </label>
             <select
               id="category"
               name="category"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             >
               <option value="">Select a category...</option>
               {technologyCategories.map((cat) => (
@@ -104,8 +104,8 @@ export default function NewTechnology() {
             </select>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="description" className="font-medium text-heading">
               Description
             </label>
             <textarea
@@ -113,12 +113,12 @@ export default function NewTechnology() {
               name="description"
               rows={3}
               placeholder="Optional description for tooltips/details"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="website" className="font-medium text-heading">
               Website
             </label>
             <input
@@ -126,7 +126,7 @@ export default function NewTechnology() {
               id="website"
               name="website"
               placeholder="Official docs or homepage URL"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
@@ -140,7 +140,7 @@ export default function NewTechnology() {
 
           <button
             type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
           >
             Create Technology
           </button>

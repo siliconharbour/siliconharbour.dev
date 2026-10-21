@@ -126,13 +126,13 @@ export default function OAuthAuthorize() {
     useLoaderData<typeof loader>();
 
   return (
-    <main className="min-h-screen bg-harbour-50 px-4 py-16 text-harbour-700">
-      <section className="mx-auto max-w-lg border border-harbour-200 bg-white p-6">
+    <main className="min-h-screen bg-soft px-pad-4 py-pad-16 text-heading">
+      <section className="mx-auto max-w-lg border border-line bg-surface p-pad-6 rounded-panel">
         <h1 className="text-2xl font-semibold">Authorize MCP access</h1>
-        <p className="mt-3 text-harbour-600">
+        <p className="mt-3 text-body">
           <strong>{clientName}</strong> wants to connect to siliconharbour.dev.
         </p>
-        <div className="mt-4 border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="mt-4 border border-amber-300 bg-amber-50 p-pad-3 text-sm text-amber-900">
           Client names are self-reported. Only continue if you trust the application at{" "}
           <strong>{redirectHost}</strong>.
           <dl className="mt-2 break-all text-xs">
@@ -145,19 +145,19 @@ export default function OAuthAuthorize() {
 
         <div className="mt-6 divide-y divide-harbour-100 border-y border-harbour-100">
           {scopes.map((scope) => (
-            <div key={scope} className="py-3 text-sm">
+            <div key={scope} className="py-pad-3 text-sm">
               {scope === "mcp:write" ? "Review and change site data" : "Search and read site data"}
             </div>
           ))}
         </div>
 
-        <Form method="post" className="mt-6 flex gap-3">
+        <Form method="post" className="mt-6 flex gap-gap-3">
           <input type="hidden" name="consent_nonce" value={consentNonce} />
           <button
             type="submit"
             name="decision"
             value="allow"
-            className="border border-harbour-600 bg-harbour-600 px-4 py-2 font-medium text-white hover:bg-harbour-700"
+            className="border border-harbour-600 bg-primary px-pad-4 py-pad-2 font-medium text-white hover:bg-primary-hover"
           >
             Allow access
           </button>
@@ -165,7 +165,7 @@ export default function OAuthAuthorize() {
             type="submit"
             name="decision"
             value="deny"
-            className="border border-harbour-300 bg-white px-4 py-2 font-medium text-harbour-700 hover:bg-harbour-50"
+            className="border border-harbour-300 bg-surface px-pad-4 py-pad-2 font-medium text-heading hover:bg-soft"
           >
             Deny
           </button>

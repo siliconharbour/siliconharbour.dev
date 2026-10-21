@@ -53,18 +53,18 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
   const hasNext = currentPage < totalPages;
 
   return (
-    <nav className="flex items-center justify-center gap-1 mt-8" aria-label="Pagination">
+    <nav className="flex items-center justify-center gap-gap-1 mt-8" aria-label="Pagination">
       {/* Previous button */}
       {hasPrev ? (
         <Link
           to={buildPageUrl(currentPage - 1)}
-          className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
+          className="px-pad-3 py-pad-2 text-sm text-body hover:text-heading hover:bg-soft"
           aria-label="Previous page"
         >
           <span aria-hidden="true">&larr;</span> Prev
         </Link>
       ) : (
-        <span className="px-3 py-2 text-sm text-harbour-300 cursor-not-allowed">
+        <span className="px-pad-3 py-pad-2 text-sm text-harbour-300 cursor-not-allowed">
           <span aria-hidden="true">&larr;</span> Prev
         </span>
       )}
@@ -74,11 +74,11 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
         <>
           <Link
             to={buildPageUrl(1)}
-            className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
+            className="px-pad-3 py-pad-2 text-sm text-body hover:text-heading hover:bg-soft"
           >
             1
           </Link>
-          {pageRange[0] > 2 && <span className="px-2 py-2 text-sm text-harbour-400">...</span>}
+          {pageRange[0] > 2 && <span className="px-pad-2 py-pad-2 text-sm text-subtle">...</span>}
         </>
       )}
 
@@ -87,10 +87,10 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
         <Link
           key={page}
           to={buildPageUrl(page)}
-          className={`px-3 py-2 text-sm ${
+          className={`px-pad-3 py-pad-2 text-sm ${
             page === currentPage
-              ? "bg-harbour-600 text-white"
-              : "text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
+              ? "bg-primary text-white"
+              : "text-body hover:text-heading hover:bg-soft"
           }`}
           aria-current={page === currentPage ? "page" : undefined}
         >
@@ -102,11 +102,11 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
       {pageRange[pageRange.length - 1] < totalPages && (
         <>
           {pageRange[pageRange.length - 1] < totalPages - 1 && (
-            <span className="px-2 py-2 text-sm text-harbour-400">...</span>
+            <span className="px-pad-2 py-pad-2 text-sm text-subtle">...</span>
           )}
           <Link
             to={buildPageUrl(totalPages)}
-            className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
+            className="px-pad-3 py-pad-2 text-sm text-body hover:text-heading hover:bg-soft"
           >
             {totalPages}
           </Link>
@@ -117,13 +117,13 @@ export function Pagination({ total, limit, offset }: PaginationProps) {
       {hasNext ? (
         <Link
           to={buildPageUrl(currentPage + 1)}
-          className="px-3 py-2 text-sm text-harbour-600 hover:text-harbour-700 hover:bg-harbour-50"
+          className="px-pad-3 py-pad-2 text-sm text-body hover:text-heading hover:bg-soft"
           aria-label="Next page"
         >
           Next <span aria-hidden="true">&rarr;</span>
         </Link>
       ) : (
-        <span className="px-3 py-2 text-sm text-harbour-300 cursor-not-allowed">
+        <span className="px-pad-3 py-pad-2 text-sm text-harbour-300 cursor-not-allowed">
           Next <span aria-hidden="true">&rarr;</span>
         </span>
       )}

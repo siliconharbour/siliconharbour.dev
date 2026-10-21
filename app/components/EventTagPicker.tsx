@@ -11,20 +11,20 @@ export function EventTagPicker({ availableTags, selectedTags = [] }: EventTagPic
   const selectedIds = new Set(selectedTags.map((tag) => tag.id));
 
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="text-sm font-medium text-harbour-700">Tags (optional)</legend>
-      <div className="flex flex-wrap gap-2">
+    <fieldset className="flex flex-col gap-gap-2">
+      <legend className="text-sm font-medium text-heading">Tags (optional)</legend>
+      <div className="flex flex-wrap gap-gap-2">
         {availableTags.map((tag) => (
           <label
             key={tag.id}
-            className="flex cursor-pointer items-center gap-2 border border-harbour-200 bg-white px-3 py-2 text-sm text-harbour-700 hover:border-harbour-300"
+            className="flex cursor-pointer items-center gap-gap-2 border border-line bg-surface px-pad-3 py-pad-2 text-sm text-heading hover:border-harbour-300"
           >
             <input
               type="checkbox"
               name="tagIds"
               value={tag.id}
               defaultChecked={selectedIds.has(tag.id)}
-              className="h-4 w-4 border-harbour-300 text-harbour-600 focus:ring-harbour-500"
+              className="h-4 w-4 border-harbour-300 text-body focus:ring-harbour-500"
             />
             {tag.name}
           </label>

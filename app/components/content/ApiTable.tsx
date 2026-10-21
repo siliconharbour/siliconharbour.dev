@@ -34,18 +34,18 @@ export function ApiTable() {
     <div className="not-prose overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-harbour-200">
-            <th className="text-left py-2 pr-4 font-medium text-harbour-700">Endpoint</th>
-            <th className="text-left py-2 font-medium text-harbour-700">Description</th>
+          <tr className="border-b border-line">
+            <th className="text-left py-pad-2 pr-pad-4 font-medium text-heading">Endpoint</th>
+            <th className="text-left py-pad-2 font-medium text-heading">Description</th>
           </tr>
         </thead>
         <tbody>
           {endpoints.map((endpoint) => (
             <tr key={endpoint.path} className="border-b border-harbour-100">
-              <td className="py-2 pr-4">
-                <code className="text-harbour-600">{endpoint.path}</code>
+              <td className="py-pad-2 pr-pad-4">
+                <code className="text-body">{endpoint.path}</code>
               </td>
-              <td className="py-2 text-harbour-500">{endpoint.description}</td>
+              <td className="py-pad-2 text-muted">{endpoint.description}</td>
             </tr>
           ))}
         </tbody>

@@ -192,23 +192,23 @@ export default function EditProject() {
   const links = parseProjectLinks(project.links);
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/projects" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/projects" className="text-sm text-subtle hover:text-body">
             &larr; Back to Projects
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">Edit Project</h1>
+        <h1 className="text-2xl font-semibold text-heading">Edit Project</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="name" className="font-medium text-heading">
               Name *
             </label>
             <input
@@ -217,12 +217,12 @@ export default function EditProject() {
               name="name"
               required
               defaultValue={project.name}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="description" className="font-medium text-heading">
               Description * (Markdown)
             </label>
             <textarea
@@ -231,20 +231,20 @@ export default function EditProject() {
               required
               rows={8}
               defaultValue={project.description}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="type" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="type" className="font-medium text-heading">
                 Type
               </label>
               <select
                 id="type"
                 name="type"
                 defaultValue={project.type}
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectTypes.map((t) => (
                   <option key={t} value={t}>
@@ -254,15 +254,15 @@ export default function EditProject() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="status" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="status" className="font-medium text-heading">
                 Status
               </label>
               <select
                 id="status"
                 name="status"
                 defaultValue={project.status}
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectStatuses.map((s) => (
                   <option key={s} value={s}>
@@ -273,11 +273,11 @@ export default function EditProject() {
             </div>
           </div>
 
-          <fieldset className="border border-harbour-200 p-4">
-            <legend className="font-medium text-harbour-700 px-2">Links</legend>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="github" className="text-sm text-harbour-600">
+          <fieldset className="border border-line p-pad-4">
+            <legend className="font-medium text-heading px-pad-2">Links</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="github" className="text-sm text-body">
                   GitHub
                 </label>
                 <input
@@ -286,11 +286,11 @@ export default function EditProject() {
                   name="github"
                   defaultValue={links.github || ""}
                   placeholder="https://github.com/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="website" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="website" className="text-sm text-body">
                   Website
                 </label>
                 <input
@@ -299,11 +299,11 @@ export default function EditProject() {
                   name="website"
                   defaultValue={links.website || ""}
                   placeholder="https://..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="demo" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="demo" className="text-sm text-body">
                   Live Demo
                 </label>
                 <input
@@ -312,11 +312,11 @@ export default function EditProject() {
                   name="demo"
                   defaultValue={links.demo || ""}
                   placeholder="https://..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="itchio" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="itchio" className="text-sm text-body">
                   itch.io
                 </label>
                 <input
@@ -325,11 +325,11 @@ export default function EditProject() {
                   name="itchio"
                   defaultValue={links.itchio || ""}
                   placeholder="https://....itch.io/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="npm" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="npm" className="text-sm text-body">
                   npm
                 </label>
                 <input
@@ -338,11 +338,11 @@ export default function EditProject() {
                   name="npm"
                   defaultValue={links.npm || ""}
                   placeholder="https://npmjs.com/package/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="steam" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="steam" className="text-sm text-body">
                   Steam
                 </label>
                 <input
@@ -351,13 +351,13 @@ export default function EditProject() {
                   name="steam"
                   defaultValue={links.steam || ""}
                   placeholder="https://store.steampowered.com/app/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
             </div>
           </fieldset>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"
@@ -382,7 +382,7 @@ export default function EditProject() {
 
           <button
             type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
           >
             Update Project
           </button>
@@ -399,12 +399,12 @@ function GalleryManager({ images }: { images: ProjectImage[] }) {
   const fetcher = useFetcher();
 
   return (
-    <div className="border-t border-harbour-200 pt-6">
-      <h2 className="text-xl font-semibold text-harbour-700 mb-4">Gallery Images</h2>
+    <div className="border-t border-line pt-pad-6">
+      <h2 className="text-xl font-semibold text-heading mb-4">Gallery Images</h2>
 
       {/* Existing Images */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-gap-4 mb-6">
           {images.map((image) => (
             <div key={image.id} className="relative group">
               <img
@@ -413,14 +413,14 @@ function GalleryManager({ images }: { images: ProjectImage[] }) {
                 className="w-full aspect-video object-cover"
               />
               {image.caption && (
-                <p className="text-xs text-harbour-500 mt-1 truncate">{image.caption}</p>
+                <p className="text-xs text-muted mt-1 truncate">{image.caption}</p>
               )}
               <fetcher.Form method="post" className="absolute top-2 right-2">
                 <input type="hidden" name="intent" value="removeGalleryImage" />
                 <input type="hidden" name="imageId" value={image.id} />
                 <button
                   type="submit"
-                  className="p-1.5 bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="p-pad-1-5 bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
                   title="Remove image"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,7 +450,7 @@ function GalleryImageUploader() {
   return (
     <fetcher.Form
       method="post"
-      className="flex flex-col gap-4 p-4 border border-dashed border-harbour-300"
+      className="flex flex-col gap-gap-4 p-pad-4 border border-dashed border-harbour-300"
     >
       <input type="hidden" name="intent" value="addGalleryImage" />
 
@@ -462,8 +462,8 @@ function GalleryImageUploader() {
         helpText="Upload image (16:9)"
       />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="caption" className="text-sm text-harbour-600">
+      <div className="flex flex-col gap-gap-1">
+        <label htmlFor="caption" className="text-sm text-body">
           Caption (optional)
         </label>
         <input
@@ -471,14 +471,14 @@ function GalleryImageUploader() {
           id="caption"
           name="caption"
           placeholder="Describe this image..."
-          className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+          className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
         />
       </div>
 
       <button
         type="submit"
         disabled={fetcher.state !== "idle"}
-        className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors self-start disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-pad-4 py-pad-2 bg-tint hover:bg-harbour-200 text-heading font-medium transition-colors self-start disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {fetcher.state !== "idle" ? "Adding..." : "Add to Gallery"}
       </button>

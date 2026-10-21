@@ -1,4 +1,4 @@
-import { db } from "~/db";
+import { db, rawDb } from "~/db";
 import { rateLimits } from "~/db/schema";
 import { eq, lt } from "drizzle-orm";
 
@@ -29,57 +29,21 @@ export async function checkRateLimit(
   const expiresAt = windowStart + windowSeconds;
   const resetAt = new Date(expiresAt * 1000);
 
-  // Try to get existing record
-  const existing = await db.select().from(rateLimits).where(eq(rateLimits.key, key)).get();
-
-  if (existing && existing.windowStart === windowStart) {
-    // Same window - check if under limit
-    if (existing.count >= limit) {
-      return {
-        allowed: false,
-        remaining: 0,
-        resetAt,
-        current: existing.count,
-      };
-    }
-
-    // Increment count
-    await db
-      .update(rateLimits)
-      .set({ count: existing.count + 1 })
-      .where(eq(rateLimits.key, key));
-
-    return {
-      allowed: true,
-      remaining: limit - existing.count - 1,
-      resetAt,
-      current: existing.count + 1,
-    };
-  }
-
-  // New window or no record - insert/replace with count = 1
-  await db
-    .insert(rateLimits)
-    .values({
-      key,
-      count: 1,
-      windowStart,
-      expiresAt,
-    })
-    .onConflictDoUpdate({
-      target: rateLimits.key,
-      set: {
-        count: 1,
-        windowStart,
-        expiresAt,
-      },
-    });
-
+  const row = rawDb
+    .prepare(`
+    INSERT INTO rate_limits (key, count, window_start, expires_at) VALUES (?, 1, ?, ?)
+    ON CONFLICT(key) DO UPDATE SET
+      count = CASE WHEN window_start = excluded.window_start THEN count + 1 ELSE 1 END,
+      window_start = excluded.window_start, expires_at = excluded.expires_at
+    WHERE window_start != excluded.window_start OR count < ?
+    RETURNING count
+  `)
+    .get(key, windowStart, expiresAt, limit) as { count: number } | undefined;
   return {
-    allowed: true,
-    remaining: limit - 1,
+    allowed: !!row,
+    remaining: row ? Math.max(0, limit - row.count) : 0,
     resetAt,
-    current: 1,
+    current: row?.count ?? limit,
   };
 }
 

@@ -47,21 +47,21 @@ export default function NewCompany() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/companies" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/companies" className="text-sm text-subtle hover:text-body">
             &larr; Back to Companies
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Company</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Company</h1>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="name" className="font-medium text-heading">
               Name *
             </label>
             <input
@@ -69,12 +69,12 @@ export default function NewCompany() {
               id="name"
               name="name"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="description" className="font-medium text-heading">
               Description * (Markdown)
             </label>
             <textarea
@@ -82,24 +82,24 @@ export default function NewCompany() {
               name="description"
               required
               rows={8}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="website" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="website" className="font-medium text-heading">
               Website
             </label>
             <input
               type="url"
               id="website"
               name="website"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="wikipedia" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="wikipedia" className="font-medium text-heading">
               Wikipedia
             </label>
             <input
@@ -107,12 +107,12 @@ export default function NewCompany() {
               id="wikipedia"
               name="wikipedia"
               placeholder="https://en.wikipedia.org/wiki/..."
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="github" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="github" className="font-medium text-heading">
               GitHub Organization
             </label>
             <input
@@ -120,12 +120,12 @@ export default function NewCompany() {
               id="github"
               name="github"
               placeholder="https://github.com/org-name"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="linkedin" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="linkedin" className="font-medium text-heading">
               LinkedIn
             </label>
             <input
@@ -133,25 +133,25 @@ export default function NewCompany() {
               id="linkedin"
               name="linkedin"
               placeholder="https://www.linkedin.com/company/..."
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="location" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="location" className="font-medium text-heading">
                 Location
               </label>
               <input
                 type="text"
                 id="location"
                 name="location"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="founded" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="founded" className="font-medium text-heading">
                 Founded
               </label>
               <input
@@ -159,12 +159,12 @@ export default function NewCompany() {
                 id="founded"
                 name="founded"
                 placeholder="e.g., 2015"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"
@@ -181,33 +181,33 @@ export default function NewCompany() {
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">Directory Listings</span>
-            <div className="flex gap-6">
-              <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">Directory Listings</span>
+            <div className="flex gap-gap-6">
+              <label className="flex items-center gap-gap-2">
                 <input type="checkbox" name="technl" className="border border-harbour-300" />
-                <span className="text-sm text-harbour-600">TechNL Member</span>
+                <span className="text-sm text-body">TechNL Member</span>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-gap-2">
                 <input type="checkbox" name="genesis" className="border border-harbour-300" />
-                <span className="text-sm text-harbour-600">Genesis Centre</span>
+                <span className="text-sm text-body">Genesis Centre</span>
               </label>
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">News Filtering</span>
-            <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">News Filtering</span>
+            <label className="flex items-center gap-gap-2">
               <input
                 type="checkbox"
                 name="newsFilterInclude"
                 className="border border-harbour-300"
               />
-              <span className="text-sm text-harbour-600">
+              <span className="text-sm text-body">
                 Include name in news import keyword filter
               </span>
             </label>
-            <p className="text-xs text-harbour-400">
+            <p className="text-xs text-subtle">
               When a news source enables the company name filter, articles mentioning this
               company&rsquo;s name will be imported. Only enable for companies with distinctive names.
             </p>
@@ -215,7 +215,7 @@ export default function NewCompany() {
 
           <button
             type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
           >
             Create Company
           </button>

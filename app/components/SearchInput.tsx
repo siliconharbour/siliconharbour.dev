@@ -80,20 +80,20 @@ export function SearchInput({
   }, []);
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-gap-2">
       <div className="relative flex-1">
         <input
           type="text"
           value={value}
           onChange={handleChange}
           placeholder={placeholder}
-          className="w-full px-3 py-2 text-sm border border-harbour-200 focus:border-harbour-400 focus:outline-none text-harbour-700 pr-8"
+          className="w-full px-pad-3 py-pad-2 text-sm border border-line focus:border-harbour-400 focus:outline-none text-heading pr-pad-8"
         />
         {value && (
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-harbour-400 hover:text-harbour-600"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-subtle hover:text-body"
             aria-label="Clear search"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

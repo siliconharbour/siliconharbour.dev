@@ -90,32 +90,32 @@ export default function NewJobImportSource() {
   const isSubmitting = navigation.state === "submitting";
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center gap-4">
-          <Link to="/manage/import/jobs" className="text-harbour-400 hover:text-harbour-600">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
+        <div className="flex items-center gap-gap-4">
+          <Link to="/manage/import/jobs" className="text-subtle hover:text-body">
             &larr; Back
           </Link>
-          <h1 className="text-2xl font-semibold text-harbour-700">Add Job Import Source</h1>
+          <h1 className="text-2xl font-semibold text-heading">Add Job Import Source</h1>
         </div>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-700">{actionData.error}</div>
         )}
 
-        <Form method="post" className="bg-white border border-harbour-200 p-6 flex flex-col gap-4">
+        <Form method="post" className="bg-surface border border-line p-pad-6 flex flex-col gap-gap-4">
           <div>
-            <label htmlFor="companyId" className="block text-sm font-medium text-harbour-700 mb-1">
+            <label htmlFor="companyId" className="block text-sm font-medium text-heading mb-1">
               Company *
             </label>
             {companies.length === 0 ? (
-              <div className="text-sm text-harbour-500">
+              <div className="text-sm text-muted">
                 <p>All companies already have import sources configured.</p>
                 <p className="mt-1">
                   <select
                     id="companyId"
                     name="companyId"
-                    className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+                    className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
                     required
                   >
                     <option value="">Select a company...</option>
@@ -131,7 +131,7 @@ export default function NewJobImportSource() {
               <select
                 id="companyId"
                 name="companyId"
-                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+                className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
                 required
               >
                 <option value="">Select a company...</option>
@@ -145,13 +145,13 @@ export default function NewJobImportSource() {
           </div>
 
           <div>
-            <label htmlFor="sourceType" className="block text-sm font-medium text-harbour-700 mb-1">
+            <label htmlFor="sourceType" className="block text-sm font-medium text-heading mb-1">
               Source Type *
             </label>
             <select
               id="sourceType"
               name="sourceType"
-              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+              className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               required
             >
               <option value="">Select a type...</option>
@@ -166,7 +166,7 @@ export default function NewJobImportSource() {
           <div>
             <label
               htmlFor="sourceIdentifier"
-              className="block text-sm font-medium text-harbour-700 mb-1"
+              className="block text-sm font-medium text-heading mb-1"
             >
               Source Identifier *
             </label>
@@ -174,11 +174,11 @@ export default function NewJobImportSource() {
               type="text"
               id="sourceIdentifier"
               name="sourceIdentifier"
-              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+              className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               placeholder="Board token or org slug"
               required
             />
-            <p className="mt-1 text-xs text-harbour-400">
+            <p className="mt-1 text-xs text-subtle">
               For Greenhouse: the board token (e.g., "colabsoftware" from
               job-boards.greenhouse.io/colabsoftware)
               <br />
@@ -188,38 +188,38 @@ export default function NewJobImportSource() {
           </div>
 
           <div>
-            <label htmlFor="sourceUrl" className="block text-sm font-medium text-harbour-700 mb-1">
+            <label htmlFor="sourceUrl" className="block text-sm font-medium text-heading mb-1">
               Careers Page URL (optional)
             </label>
             <input
               type="url"
               id="sourceUrl"
               name="sourceUrl"
-              className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+              className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               placeholder="https://example.com/careers"
             />
-            <p className="mt-1 text-xs text-harbour-400">
+            <p className="mt-1 text-xs text-subtle">
               The company's main careers page URL, for reference.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 pt-4 border-t border-harbour-100">
+          <div className="flex items-center gap-gap-3 pt-pad-4 border-t border-harbour-100">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isSubmitting ? "Validating..." : "Add Source"}
             </button>
             <Link
               to="/manage/import/jobs"
-              className="px-4 py-2 text-harbour-500 hover:text-harbour-700"
+              className="px-pad-4 py-pad-2 text-muted hover:text-heading"
             >
               Cancel
             </Link>
           </div>
 
-          <p className="text-xs text-harbour-400">
+          <p className="text-xs text-subtle">
             The source will be validated before saving. If valid, jobs will be fetched
             automatically.
           </p>

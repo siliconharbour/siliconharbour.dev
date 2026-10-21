@@ -84,26 +84,26 @@ export default function NewNews() {
   const [selectedType, setSelectedType] = useState<NewsType>("article");
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/news" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/news" className="text-sm text-subtle hover:text-body">
             &larr; Back to News
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Article</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Article</h1>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
           <ManageField label="Type" htmlFor="type">
             <select
               id="type"
               name="type"
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as NewsType)}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             >
               {newsTypes.map((t) => (
                 <option key={t} value={t}>
@@ -129,7 +129,7 @@ export default function NewNews() {
               id="title"
               name="title"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -142,7 +142,7 @@ export default function NewNews() {
                   name="externalUrl"
                   required
                   placeholder="https://example.com/article"
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                 />
               </ManageField>
 
@@ -156,7 +156,7 @@ export default function NewNews() {
                   id="sourceName"
                   name="sourceName"
                   placeholder="example.com"
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                 />
               </ManageField>
             </>
@@ -167,7 +167,7 @@ export default function NewNews() {
               id="excerpt"
               name="excerpt"
               rows={2}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -184,7 +184,7 @@ export default function NewNews() {
               name="content"
               required={selectedType === "article"}
               rows={selectedType === "article" ? 12 : 4}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </ManageField>
 
@@ -193,7 +193,7 @@ export default function NewNews() {
               id="status"
               name="status"
               defaultValue="draft"
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             >
               <option value="draft">Draft</option>
               <option value="published">Published</option>

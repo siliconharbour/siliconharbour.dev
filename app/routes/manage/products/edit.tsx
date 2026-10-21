@@ -99,19 +99,19 @@ export default function EditProduct() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/products" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/products" className="text-sm text-subtle hover:text-body">
             &larr; Back to Products
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">Edit Product</h1>
+        <h1 className="text-2xl font-semibold text-heading">Edit Product</h1>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
           <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
@@ -119,7 +119,7 @@ export default function EditProduct() {
               name="name"
               required
               defaultValue={product.name}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -130,7 +130,7 @@ export default function EditProduct() {
               required
               rows={8}
               defaultValue={product.description}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </ManageField>
 
@@ -141,20 +141,20 @@ export default function EditProduct() {
               name="website"
               defaultValue={product.website || ""}
               placeholder="https://..."
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="type" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="type" className="font-medium text-heading">
                 Type
               </label>
               <select
                 id="type"
                 name="type"
                 defaultValue={product.type}
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {productTypes.map((t) => (
                   <option key={t} value={t}>
@@ -164,15 +164,15 @@ export default function EditProduct() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="companyId" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="companyId" className="font-medium text-heading">
                 Company
               </label>
               <select
                 id="companyId"
                 name="companyId"
                 defaultValue={product.companyId ?? ""}
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 <option value="">None</option>
                 {companies.map((company) => (
@@ -184,7 +184,7 @@ export default function EditProduct() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"

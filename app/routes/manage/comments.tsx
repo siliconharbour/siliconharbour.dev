@@ -56,22 +56,22 @@ export default function ManageComments() {
   const { comments, total, totalPages, currentPage } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-6xl mx-auto flex flex-col gap-gap-6">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold text-harbour-700">Comments</h1>
-            <p className="text-harbour-400 text-sm">{total} total comments</p>
+          <div className="flex flex-col gap-gap-1">
+            <h1 className="text-2xl font-semibold text-heading">Comments</h1>
+            <p className="text-subtle text-sm">{total} total comments</p>
           </div>
-          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage" className="text-sm text-subtle hover:text-body">
             Back to Dashboard
           </Link>
         </div>
 
         {comments.length === 0 ? (
-          <p className="text-harbour-400">No comments yet.</p>
+          <p className="text-subtle">No comments yet.</p>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-gap-4">
             {comments.map((comment) => (
               <CommentRow key={comment.id} comment={comment} />
             ))}
@@ -80,24 +80,24 @@ export default function ManageComments() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-4">
+          <div className="flex items-center justify-center gap-gap-2 mt-4">
             {currentPage > 1 && (
               <Link
                 to={`?page=${currentPage - 1}`}
-                className="px-3 py-1.5 text-sm text-harbour-600 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+                className="px-pad-3 py-pad-1-5 text-sm text-body hover:text-heading border border-line hover:border-harbour-300"
               >
                 Previous
               </Link>
             )}
 
-            <span className="text-sm text-harbour-500 px-3">
+            <span className="text-sm text-muted px-pad-3">
               Page {currentPage} of {totalPages}
             </span>
 
             {currentPage < totalPages && (
               <Link
                 to={`?page=${currentPage + 1}`}
-                className="px-3 py-1.5 text-sm text-harbour-600 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+                className="px-pad-3 py-pad-1-5 text-sm text-body hover:text-heading border border-line hover:border-harbour-300"
               >
                 Next
               </Link>
@@ -115,36 +115,36 @@ function CommentRow({ comment }: { comment: Comment }) {
 
   return (
     <div
-      className={`p-4 border ${
-        comment.isPrivate ? "bg-amber-50 border-amber-200" : "bg-white border-harbour-200"
+      className={`p-pad-4 border ${
+        comment.isPrivate ? "bg-amber-50 border-amber-200" : "bg-surface border-line"
       } ${isDeleting ? "opacity-50" : ""}`}
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2 flex-wrap">
-            <span className="font-medium text-harbour-700">
+          <div className="flex items-center gap-gap-3 mb-2 flex-wrap">
+            <span className="font-medium text-heading">
               {comment.authorName || "Anonymous"}
             </span>
-            <span className="text-xs text-harbour-400">
+            <span className="text-xs text-subtle">
               {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
             </span>
             {comment.isPrivate && (
-              <span className="text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
+              <span className="text-xs px-pad-1-5 py-pad-0-5 bg-amber-100 text-amber-700">
                 Private Feedback
               </span>
             )}
             <Link
               to={getContentUrl(comment.contentType, comment.contentId)}
-              className="text-xs text-harbour-500 hover:text-harbour-600 underline"
+              className="text-xs text-muted hover:text-body underline"
             >
               {getContentLabel(comment.contentType)} #{comment.contentId}
             </Link>
           </div>
 
-          <p className="text-harbour-600 text-sm whitespace-pre-wrap mb-2">{comment.content}</p>
+          <p className="text-body text-sm whitespace-pre-wrap mb-2">{comment.content}</p>
 
           {/* Metadata for spam management */}
-          <div className="flex items-center gap-4 text-xs text-harbour-400">
+          <div className="flex items-center gap-gap-4 text-xs text-subtle">
             {comment.ipAddress && <span title="IP Address">IP: {comment.ipAddress}</span>}
             {comment.userAgent && (
               <span title={comment.userAgent} className="truncate max-w-xs">
@@ -159,7 +159,7 @@ function CommentRow({ comment }: { comment: Comment }) {
           <button
             type="submit"
             disabled={isDeleting}
-            className="px-3 py-1.5 text-xs text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-pad-3 py-pad-1-5 text-xs text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Delete
           </button>

@@ -92,19 +92,19 @@ export default function EditGroup() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/groups" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/groups" className="text-sm text-subtle hover:text-body">
             &larr; Back to Groups
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">Edit Group</h1>
+        <h1 className="text-2xl font-semibold text-heading">Edit Group</h1>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
           <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
@@ -112,7 +112,7 @@ export default function EditGroup() {
               name="name"
               required
               defaultValue={group.name}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -122,7 +122,7 @@ export default function EditGroup() {
               name="description"
               rows={8}
               defaultValue={group.description ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </ManageField>
 
@@ -132,7 +132,7 @@ export default function EditGroup() {
               id="website"
               name="website"
               defaultValue={group.website ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -143,11 +143,11 @@ export default function EditGroup() {
               name="meetingFrequency"
               placeholder="e.g., Monthly, First Tuesday"
               defaultValue={group.meetingFrequency ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"
@@ -168,9 +168,9 @@ export default function EditGroup() {
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="font-medium text-harbour-700">Visibility</span>
-            <label className="flex items-center gap-2">
+          <div className="flex flex-col gap-gap-2">
+            <span className="font-medium text-heading">Visibility</span>
+            <label className="flex items-center gap-gap-2">
               <input
                 type="checkbox"
                 name="visible"
@@ -178,9 +178,9 @@ export default function EditGroup() {
                 defaultChecked={group.visible ?? true}
                 className="border border-harbour-300"
               />
-              <span className="text-sm text-harbour-600">Visible on public site</span>
+              <span className="text-sm text-body">Visible on public site</span>
             </label>
-            <p className="text-xs text-harbour-400">
+            <p className="text-xs text-subtle">
               Uncheck to hide this group from public listings while you review/edit their profile.
             </p>
           </div>

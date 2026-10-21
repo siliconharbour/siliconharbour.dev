@@ -46,8 +46,8 @@ export function ReferencedBy({ backlinks }: ReferencedByProps) {
   const sortedTypes = typeOrder.filter((t) => grouped[t]?.length > 0);
 
   return (
-    <div className="border-t border-harbour-200/50 pt-6">
-      <div className="flex flex-col gap-6">
+    <div className="border-t border-line/50 pt-pad-6">
+      <div className="flex flex-col gap-gap-6">
         {sortedTypes.map((type) => (
           <BacklinkSection key={type} type={type} backlinks={grouped[type]} />
         ))}
@@ -72,23 +72,23 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
   const sorted = (() => {
     if (type === "event") {
       return [...backlinks].sort((a, b) => {
-        const aDate = a.type === "event"
-          ? new Date(a.data.dates[0]?.startDate ?? a.data.createdAt).getTime()
-          : 0;
-        const bDate = b.type === "event"
-          ? new Date(b.data.dates[0]?.startDate ?? b.data.createdAt).getTime()
-          : 0;
+        const aDate =
+          a.type === "event"
+            ? new Date(a.data.dates[0]?.startDate ?? a.data.createdAt).getTime()
+            : 0;
+        const bDate =
+          b.type === "event"
+            ? new Date(b.data.dates[0]?.startDate ?? b.data.createdAt).getTime()
+            : 0;
         return bDate - aDate; // newest first
       });
     }
     if (type === "news") {
       return [...backlinks].sort((a, b) => {
-        const aDate = a.type === "news" && a.data.publishedAt
-          ? new Date(a.data.publishedAt).getTime()
-          : 0;
-        const bDate = b.type === "news" && b.data.publishedAt
-          ? new Date(b.data.publishedAt).getTime()
-          : 0;
+        const aDate =
+          a.type === "news" && a.data.publishedAt ? new Date(a.data.publishedAt).getTime() : 0;
+        const bDate =
+          b.type === "news" && b.data.publishedAt ? new Date(b.data.publishedAt).getTime() : 0;
         return bDate - aDate; // newest first
       });
     }
@@ -97,12 +97,12 @@ function BacklinkSection({ type, backlinks }: { type: string; backlinks: Detaile
 
   const gridClass =
     type === "event"
-      ? "grid grid-cols-1 sm:grid-cols-2 gap-4 items-start"
-      : "grid grid-cols-1 sm:grid-cols-2 gap-3";
+      ? "grid grid-cols-1 sm:grid-cols-2 gap-gap-4 items-start"
+      : "grid grid-cols-1 sm:grid-cols-2 gap-gap-3";
 
   return (
     <div>
-      <h3 className="text-sm font-medium text-harbour-500 mb-3">{labels[type] || type}</h3>
+      <h3 className="text-sm font-medium text-muted mb-3">{labels[type] || type}</h3>
       <div className={gridClass}>
         {sorted.map((link) => (
           <BacklinkCard key={`${link.type}-${link.data.id}`} backlink={link} />
@@ -143,7 +143,7 @@ function NewsCard({
   return (
     <Link
       to={`/news/${data.slug}`}
-      className="group group/image-tint flex gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex gap-gap-3 p-pad-3 card-link"
     >
       {data.coverImage ? (
         <TintedImage className="w-16 h-16 overflow-hidden flex-shrink-0">
@@ -154,9 +154,9 @@ function NewsCard({
           />
         </TintedImage>
       ) : (
-        <div className="w-16 h-16 bg-harbour-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-16 h-16 bg-tint flex items-center justify-center flex-shrink-0">
           <svg
-            className="w-6 h-6 text-harbour-400"
+            className="w-6 h-6 text-subtle"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -171,11 +171,11 @@ function NewsCard({
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
+        <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-2">
           {data.title}
         </h4>
         {data.publishedAt && (
-          <p className="text-sm text-harbour-500 mt-1">{format(data.publishedAt, "MMM d, yyyy")}</p>
+          <p className="text-sm text-muted mt-1">{format(data.publishedAt, "MMM d, yyyy")}</p>
         )}
       </div>
     </Link>
@@ -188,17 +188,16 @@ function JobCard({
   data: DetailedBacklink & { type: "job" } extends { data: infer D } ? D : never;
 }) {
   return (
-    <Link
-      to={`/jobs/${data.slug}`}
-      className="group flex flex-col p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
-    >
-      <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-2">
+    <Link to={`/jobs/${data.slug}`} className="group flex flex-col p-pad-3 card-link">
+      <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-2">
         {data.title}
       </h4>
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500 mt-1">
+      <div className="flex flex-wrap gap-x-gap-3 gap-y-gap-1 text-sm text-muted mt-1">
         {data.location && <span>{data.location}</span>}
         {data.workplaceType === "remote" && (
-          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700">Remote</span>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-purple-100 text-purple-700">
+            Remote
+          </span>
         )}
       </div>
     </Link>
@@ -213,7 +212,7 @@ function CompanyCard({
   return (
     <Link
       to={`/directory/companies/${data.slug}`}
-      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
@@ -224,15 +223,15 @@ function CompanyCard({
           />
         </TintedImage>
       ) : (
-        <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
+        <div className="w-10 h-10 bg-tint flex items-center justify-center flex-shrink-0">
+          <span className="text-lg text-subtle">{data.name.charAt(0)}</span>
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-1">
           {data.name}
         </h4>
-        {data.location && <p className="text-sm text-harbour-500">{data.location}</p>}
+        {data.location && <p className="text-sm text-muted">{data.location}</p>}
       </div>
     </Link>
   );
@@ -246,7 +245,7 @@ function ProjectCard({
   return (
     <Link
       to={`/directory/projects/${data.slug}`}
-      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
@@ -257,15 +256,15 @@ function ProjectCard({
           />
         </TintedImage>
       ) : (
-        <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
+        <div className="w-10 h-10 bg-tint flex items-center justify-center flex-shrink-0">
+          <span className="text-lg text-subtle">{data.name.charAt(0)}</span>
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-1">
           {data.name}
         </h4>
-        <p className="text-sm text-harbour-500 capitalize">{data.type}</p>
+        <p className="text-sm text-muted capitalize">{data.type}</p>
       </div>
     </Link>
   );
@@ -279,7 +278,7 @@ function GroupCard({
   return (
     <Link
       to={`/directory/groups/${data.slug}`}
-      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
@@ -290,11 +289,11 @@ function GroupCard({
           />
         </TintedImage>
       ) : (
-        <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
+        <div className="w-10 h-10 bg-tint flex items-center justify-center flex-shrink-0">
+          <span className="text-lg text-subtle">{data.name.charAt(0)}</span>
         </div>
       )}
-      <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1 flex-1 min-w-0">
+      <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-1 flex-1 min-w-0">
         {data.name}
       </h4>
     </Link>
@@ -311,7 +310,7 @@ function PersonCard({
   return (
     <Link
       to={`/directory/people/${data.slug}`}
-      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.avatar ? (
         <TintedImage className="w-10 h-10 overflow-hidden rounded-full flex-shrink-0">
@@ -322,15 +321,15 @@ function PersonCard({
           />
         </TintedImage>
       ) : (
-        <div className="w-10 h-10 bg-harbour-100 rounded-full flex items-center justify-center flex-shrink-0">
-          <span className="text-lg text-harbour-400">{data.name.charAt(0)}</span>
+        <div className="w-10 h-10 bg-tint rounded-full flex items-center justify-center flex-shrink-0">
+          <span className="text-lg text-subtle">{data.name.charAt(0)}</span>
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-1">
           {data.name}
         </h4>
-        {relation && <p className="text-sm text-harbour-500">{relation}</p>}
+        {relation && <p className="text-sm text-muted">{relation}</p>}
       </div>
     </Link>
   );
@@ -344,7 +343,7 @@ function EducationCard({
   return (
     <Link
       to={`/directory/education/${data.slug}`}
-      className="group group/image-tint flex items-center gap-3 p-3 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all"
+      className="group group/image-tint flex items-center gap-gap-3 p-pad-3 card-link"
     >
       {data.logo ? (
         <TintedImage className="w-10 h-10 overflow-hidden flex-shrink-0">
@@ -355,9 +354,9 @@ function EducationCard({
           />
         </TintedImage>
       ) : (
-        <div className="w-10 h-10 bg-harbour-100 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 bg-tint flex items-center justify-center flex-shrink-0">
           <svg
-            className="w-5 h-5 text-harbour-400"
+            className="w-5 h-5 text-subtle"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -372,10 +371,10 @@ function EducationCard({
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <h4 className="link-title font-medium text-harbour-700 group-hover:text-harbour-600 line-clamp-1">
+        <h4 className="link-title font-medium text-heading group-hover:text-body line-clamp-1">
           {data.name}
         </h4>
-        {data.type && <p className="text-sm text-harbour-500 capitalize">{data.type}</p>}
+        {data.type && <p className="text-sm text-muted capitalize">{data.type}</p>}
       </div>
     </Link>
   );

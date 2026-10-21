@@ -1,9 +1,9 @@
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router";
-import { getJobsGroupedByCompany, type CompanyWithJobs } from "~/lib/jobs.server";
+import { getJobsGroupedByCompany } from "~/lib/jobs.server";
 import { getOptionalUser } from "~/lib/session.server";
 import { SearchInput } from "~/components/SearchInput";
-import { format } from "date-fns";
+import { CompanyJobCard, JobRow } from "~/components/JobCards";
 import { BaseMultiSelect } from "~/components/BaseMultiSelect";
 import { parseJobsQuery } from "~/lib/public-query.server";
 import { jobsWorkplaceFilterOptions, type JobsWorkplaceFilterType } from "~/lib/public-query";
@@ -169,26 +169,26 @@ export default function JobsIndex() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 py-8">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
+    <div className="max-w-6xl mx-auto p-pad-4 py-pad-8">
+      <div className="flex flex-col gap-gap-8">
+        <div className="flex flex-col gap-gap-4">
+          <div className="flex flex-col gap-gap-2">
             <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-harbour-700">Jobs</h1>
+              <h1 className="text-3xl font-bold text-heading">Jobs</h1>
               {isAdmin && (
                 <Link
                   to="/manage/jobs/new"
-                  className="px-3 py-1.5 text-sm bg-harbour-600 text-white hover:bg-harbour-700 transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
                 >
                   + New Job
                 </Link>
               )}
             </div>
-            <p className="text-harbour-500">Tech job opportunities in the community</p>
+            <p className="text-muted">Tech job opportunities in the community</p>
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-gap-3">
             <div className="flex-1 min-w-[200px]">
               <SearchInput
                 placeholder="Search jobs..."
@@ -196,8 +196,8 @@ export default function JobsIndex() {
               />
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-sm text-harbour-600">
+            <div className="grid gap-gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-gap-1 text-sm text-body">
                 Company
                 <BaseMultiSelect
                   name="company"
@@ -210,14 +210,14 @@ export default function JobsIndex() {
                   showSelectedChipsBelow={false}
                 />
               </label>
-              <label className="flex flex-col gap-1 text-sm text-harbour-600">
+              <label className="flex flex-col gap-gap-1 text-sm text-body">
                 Sort
                 <select
                   value={sort}
                   onChange={(e) =>
                     handleSelectChange("sort", e.target.value === "company" ? "" : e.target.value)
                   }
-                  className="min-h-11 flex-1 px-3 py-2 bg-white border border-harbour-200 text-harbour-700"
+                  className="min-h-11 flex-1 px-pad-3 py-pad-2 bg-surface border border-line text-heading"
                 >
                   <option value="company">Grouped by company</option>
                   <option value="newest">Newest first</option>
@@ -225,20 +225,20 @@ export default function JobsIndex() {
               </label>
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-gap-3">
               {/* Show non-technical checkbox */}
-              <label className="flex items-center gap-2 text-sm text-harbour-600 cursor-pointer select-none">
+              <label className="flex items-center gap-gap-2 text-sm text-body cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={showNonTechnical}
                   onChange={(e) => handleShowNonTechnicalChange(e.target.checked)}
-                  className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+                  className="w-4 h-4 text-body border-harbour-300 focus:ring-harbour-500"
                 />
                 Show non-technical roles
               </label>
 
-              <div className="flex items-center gap-2 md:justify-end">
-                <span className="text-sm text-harbour-500 whitespace-nowrap">Workplace:</span>
+              <div className="flex items-center gap-gap-2 md:justify-end">
+                <span className="text-sm text-muted whitespace-nowrap">Workplace:</span>
                 <div className="min-w-[240px] max-w-sm w-full">
                   <BaseMultiSelect
                     name="workplaceType"
@@ -256,7 +256,7 @@ export default function JobsIndex() {
 
           {/* Result count */}
           {(searchQuery || companySlugs.length > 0 || sort === "newest") && (
-            <p className="text-sm text-harbour-500">
+            <p className="text-sm text-muted">
               {totalJobs} result{totalJobs !== 1 ? "s" : ""}
               {searchQuery && <> for "{searchQuery}"</>}
             </p>
@@ -264,15 +264,15 @@ export default function JobsIndex() {
         </div>
 
         {companiesWithJobs.length === 0 ? (
-          <p className="text-harbour-400">No jobs match these filters.</p>
+          <p className="text-subtle">No jobs match these filters.</p>
         ) : sort === "newest" ? (
-          <div className="border border-harbour-200 bg-white divide-y divide-harbour-100">
+          <div className="border border-line bg-surface divide-y divide-harbour-100 rounded-panel">
             {newestJobs.map(({ company, job }) => (
               <JobRow key={job.id} job={job} company={company} />
             ))}
           </div>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-gap-6">
             {companiesWithJobs.map((cwj) => (
               <CompanyJobCard key={cwj.company.id} data={cwj} isAdmin={isAdmin} />
             ))}
@@ -280,149 +280,5 @@ export default function JobsIndex() {
         )}
       </div>
     </div>
-  );
-}
-
-function CompanyJobCard({ data, isAdmin }: { data: CompanyWithJobs; isAdmin: boolean }) {
-  const { company, jobs } = data;
-  const importSourceId = jobs.find((job) => job.sourceId)?.sourceId;
-
-  return (
-    <div className="ring-1 ring-harbour-200 bg-white overflow-hidden">
-      {/* Company Header */}
-      <div className="flex items-center gap-4 p-4 bg-harbour-50 border-b border-harbour-200">
-        {company.logo ? (
-          <Link to={`/directory/companies/${company.slug}`} className="flex-shrink-0">
-            <div className="w-12 h-12 relative overflow-hidden bg-white border border-harbour-200">
-              <img
-                src={`/images/${company.logo}`}
-                alt={`${company.name} logo`}
-                className="absolute inset-0 w-full h-full object-contain"
-              />
-            </div>
-          </Link>
-        ) : (
-          <Link to={`/directory/companies/${company.slug}`} className="flex-shrink-0">
-            <div className="w-12 h-12 bg-harbour-200 flex items-center justify-center">
-              <span className="text-lg font-medium text-harbour-500">{company.name.charAt(0)}</span>
-            </div>
-          </Link>
-        )}
-        <div className="flex-1 min-w-0">
-          <Link
-            to={`/directory/companies/${company.slug}`}
-            className="font-semibold text-harbour-700 hover:text-harbour-600 transition-colors"
-          >
-            {company.name}
-          </Link>
-          <div className="flex flex-wrap gap-x-3 text-sm text-harbour-500">
-            {company.location && <span>{company.location}</span>}
-            <span>
-              {jobs.length} open position{jobs.length !== 1 ? "s" : ""}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {isAdmin && importSourceId && (
-            <Link
-              to={`/manage/import/jobs/${importSourceId}`}
-              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:flex items-center"
-              title="Open import sync page"
-              aria-label="Open import sync page"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M11.983 4.5a1.8 1.8 0 011.77 1.48l.09.49a6.96 6.96 0 011.39.8l.47-.16a1.8 1.8 0 012 .73l.8 1.38a1.8 1.8 0 01-.23 2.12l-.34.38c.07.47.07.95 0 1.42l.34.38a1.8 1.8 0 01.23 2.12l-.8 1.38a1.8 1.8 0 01-2 .73l-.47-.16a6.96 6.96 0 01-1.39.8l-.09.49a1.8 1.8 0 01-1.77 1.48h-1.6a1.8 1.8 0 01-1.77-1.48l-.09-.49a6.96 6.96 0 01-1.39-.8l-.47.16a1.8 1.8 0 01-2-.73l-.8-1.38a1.8 1.8 0 01.23-2.12l.34-.38a6.08 6.08 0 010-1.42l-.34-.38a1.8 1.8 0 01-.23-2.12l.8-1.38a1.8 1.8 0 012-.73l.47.16a6.96 6.96 0 011.39-.8l.09-.49A1.8 1.8 0 0110.383 4.5h1.6z"
-                />
-                <circle cx="11.183" cy="12" r="2.8" strokeWidth="2" />
-              </svg>
-            </Link>
-          )}
-          {(company.careersUrl || company.website) && (
-            <a
-              href={company.careersUrl || company.website!}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-harbour-500 hover:text-harbour-700 hidden sm:block"
-            >
-              {company.careersUrl ? "Careers" : "Website"}
-            </a>
-          )}
-        </div>
-      </div>
-
-      {/* Jobs List */}
-      <div className="divide-y divide-harbour-100">
-        {jobs.map((job) => (
-          <JobRow key={job.id} job={job} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function JobRow({
-  job,
-  company,
-}: {
-  job: CompanyWithJobs["jobs"][number];
-  company?: CompanyWithJobs["company"];
-}) {
-  return (
-    <a
-      href={job.url || `/jobs/${job.slug}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 hover:bg-harbour-50 transition-colors"
-    >
-      <div className="flex flex-col gap-1">
-        {company && (
-          <span className="flex items-center gap-2 text-sm text-harbour-600">
-            {company.logo && (
-              <img
-                src={`/images/${company.logo}`}
-                alt=""
-                className="w-6 h-6 shrink-0 object-contain"
-              />
-            )}
-            {company.name}
-          </span>
-        )}
-        <h3 className="font-medium text-harbour-700 group-hover:text-harbour-600">{job.title}</h3>
-        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-harbour-500">
-          {job.location && <span>{job.location}</span>}
-          {job.department && <span>{job.department}</span>}
-          {company ? (
-            <span>First seen {format(job.firstSeenAt ?? job.createdAt, "MMM d, yyyy")}</span>
-          ) : job.postedAt ? (
-            <span>Posted {format(job.postedAt, "MMM d, yyyy")}</span>
-          ) : job.firstSeenAt ? (
-            <span>First seen {format(job.firstSeenAt, "MMM d, yyyy")}</span>
-          ) : null}
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {!job.isTechnical && (
-          <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600">Non-technical</span>
-        )}
-        {job.workplaceType === "remote" && (
-          <span className="text-xs px-1.5 py-0.5 bg-purple-100 text-purple-700">Remote</span>
-        )}
-        {job.workplaceType === "hybrid" && (
-          <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-700">Hybrid</span>
-        )}
-        {job.workplaceType === "onsite" && (
-          <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700">Onsite</span>
-        )}
-        {job.salaryRange && (
-          <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
-            {job.salaryRange}
-          </span>
-        )}
-      </div>
-    </a>
   );
 }

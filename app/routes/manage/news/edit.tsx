@@ -117,24 +117,24 @@ export default function EditNews() {
   const isLink = article.type === "link";
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/news" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/news" className="text-sm text-subtle hover:text-body">
             &larr; Back to News
           </Link>
         </div>
 
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-harbour-700">Edit Article</h1>
-          <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+        <div className="flex items-center gap-gap-3">
+          <h1 className="text-2xl font-semibold text-heading">Edit Article</h1>
+          <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">
             {typeLabels[article.type as NewsType] || article.type}
           </span>
         </div>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
           {!isLink && (
             <ImageUpload
               label="Cover Image"
@@ -154,7 +154,7 @@ export default function EditNews() {
               name="title"
               required
               defaultValue={article.title}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -167,7 +167,7 @@ export default function EditNews() {
                   name="externalUrl"
                   required
                   defaultValue={article.externalUrl ?? ""}
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                 />
               </ManageField>
 
@@ -177,7 +177,7 @@ export default function EditNews() {
                   id="sourceName"
                   name="sourceName"
                   defaultValue={article.sourceName ?? ""}
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                 />
               </ManageField>
             </>
@@ -189,7 +189,7 @@ export default function EditNews() {
               name="excerpt"
               rows={2}
               defaultValue={article.excerpt ?? ""}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -203,7 +203,7 @@ export default function EditNews() {
               required={!isLink}
               rows={isLink ? 4 : 12}
               defaultValue={article.content}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />
           </ManageField>
 
@@ -212,7 +212,7 @@ export default function EditNews() {
               id="status"
               name="status"
               defaultValue={article.status}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             >
               {statusOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>

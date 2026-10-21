@@ -226,28 +226,28 @@ export default function DiscordEvents() {
     actionData && "failures" in actionData && Array.isArray(actionData.failures) && actionData.failures.length > 0;
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-3xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-3xl mx-auto flex flex-col gap-gap-8">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold text-harbour-700">Discord Events</h1>
-            <p className="text-harbour-400 text-sm">Compose and post event roundups to Discord</p>
+          <div className="flex flex-col gap-gap-1">
+            <h1 className="text-2xl font-semibold text-heading">Discord Events</h1>
+            <p className="text-subtle text-sm">Compose and post event roundups to Discord</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-gap-4">
             <Link
               to="/manage/discord/jobs"
-              className="text-sm text-harbour-400 hover:text-harbour-600"
+              className="text-sm text-subtle hover:text-body"
             >
               Jobs
             </Link>
-            <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
+            <Link to="/manage" className="text-sm text-subtle hover:text-body">
               Dashboard
             </Link>
           </div>
         </div>
 
         {!configured && (
-          <div className="p-4 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
+          <div className="p-pad-4 bg-amber-50 border border-amber-200 text-amber-700 text-sm">
             Discord is not configured.{" "}
             <Link to="/manage/settings" className="underline hover:text-amber-900">
               Go to Settings
@@ -257,19 +257,19 @@ export default function DiscordEvents() {
         )}
 
         {configured && destinations.length > 0 && (
-          <div className="bg-white border border-harbour-200 p-4 text-sm">
+          <div className="bg-surface border border-line p-pad-4 text-sm rounded-panel">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-harbour-700">
+              <span className="font-medium text-heading">
                 Posting to {destinations.length} channel{destinations.length !== 1 ? "s" : ""}:
               </span>
-              <Link to="/manage/settings" className="text-xs text-harbour-400 hover:text-harbour-600">
+              <Link to="/manage/settings" className="text-xs text-subtle hover:text-body">
                 Edit
               </Link>
             </div>
-            <ul className="mt-2 flex flex-col gap-1 text-harbour-400">
+            <ul className="mt-2 flex flex-col gap-gap-1 text-subtle">
               {destinations.map((d) => (
                 <li key={d.id}>
-                  {d.guildName} <span className="text-harbour-700">#{d.channelName}</span>
+                  {d.guildName} <span className="text-heading">#{d.channelName}</span>
                 </li>
               ))}
             </ul>
@@ -277,13 +277,13 @@ export default function DiscordEvents() {
         )}
 
         {actionData && "error" in actionData && actionData.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-700 text-sm">
             {actionData.error}
           </div>
         )}
 
         {actionData && "posted" in actionData && actionData.posted && (
-          <div className="p-4 bg-green-50 border border-green-200 text-green-700 text-sm">
+          <div className="p-pad-4 bg-green-50 border border-green-200 text-green-700 text-sm">
             Posted {actionData.posted} event{actionData.posted !== 1 ? "s" : ""} to{" "}
             {actionData.destinations} channel{actionData.destinations !== 1 ? "s" : ""}.
             {hasFailures && (
@@ -295,19 +295,19 @@ export default function DiscordEvents() {
         )}
 
         {actionData && "skipped" in actionData && actionData.skipped && (
-          <div className="p-4 bg-harbour-50 border border-harbour-200 text-harbour-600 text-sm">
+          <div className="p-pad-4 bg-soft border border-line text-body text-sm">
             Event skipped.
           </div>
         )}
 
         {actionData && "undone" in actionData && actionData.undone && (
-          <div className="p-4 bg-harbour-50 border border-harbour-200 text-harbour-600 text-sm">
+          <div className="p-pad-4 bg-soft border border-line text-body text-sm">
             Post undone. Events have been requeued.
           </div>
         )}
 
         {configured && events.length === 0 && (
-          <div className="p-6 bg-white border border-harbour-200 text-harbour-400 text-sm text-center">
+          <div className="p-pad-6 bg-surface border border-line text-subtle text-sm text-center rounded-panel">
             No unposted upcoming events. All caught up!
           </div>
         )}
@@ -316,13 +316,13 @@ export default function DiscordEvents() {
           <Form method="post">
             <input type="hidden" name="intent" value="post" />
 
-            <div className="flex flex-col gap-4">
-              <div className="bg-white border border-harbour-200 p-6">
-                <h2 className="text-lg font-semibold text-harbour-700 mb-4">
+            <div className="flex flex-col gap-gap-4">
+              <div className="bg-surface border border-line p-pad-6 rounded-panel">
+                <h2 className="text-lg font-semibold text-heading mb-4">
                   Unposted Events ({events.length})
                 </h2>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-gap-2">
                   {events.map((event) => {
                     const nextDate = event.dates[0];
                     const dateLine = nextDate
@@ -336,18 +336,18 @@ export default function DiscordEvents() {
                     return (
                       <div
                         key={event.id}
-                        className="flex items-start gap-4 p-4 border border-harbour-100"
+                        className="flex items-start gap-gap-4 p-pad-4 border border-harbour-100"
                       >
                         <input
                           type="checkbox"
                           name="selectedEvents"
                           value={event.id}
                           defaultChecked
-                          className="mt-1 h-4 w-4 text-harbour-600 border border-harbour-300 focus:ring-harbour-500"
+                          className="mt-1 h-4 w-4 text-body border border-harbour-300 focus:ring-harbour-500"
                         />
-                        <div className="flex-1 flex flex-col gap-1">
-                          <span className="font-medium text-harbour-700">{event.title}</span>
-                          <span className="text-sm text-harbour-400">
+                        <div className="flex-1 flex flex-col gap-gap-1">
+                          <span className="font-medium text-heading">{event.title}</span>
+                          <span className="text-sm text-subtle">
                             {dateLine}
                             {event.recurrenceLabel ? ` (${event.recurrenceLabel})` : ""}
                             {event.location ? ` \u2022 ${event.location}` : ""}
@@ -358,7 +358,7 @@ export default function DiscordEvents() {
                           <input type="hidden" name="eventId" value={event.id} />
                           <button
                             type="submit"
-                            className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-harbour-600 hover:border-harbour-400 transition-colors"
+                            className="text-xs px-pad-2 py-pad-1 border border-line text-subtle hover:text-body hover:border-harbour-400 transition-colors"
                           >
                             Skip
                           </button>
@@ -369,15 +369,15 @@ export default function DiscordEvents() {
                 </div>
               </div>
 
-              <div className="bg-white border border-harbour-200 p-6">
-                <h2 className="text-lg font-semibold text-harbour-700 mb-4">
+              <div className="bg-surface border border-line p-pad-6 rounded-panel">
+                <h2 className="text-lg font-semibold text-heading mb-4">
                   Intro Text (optional)
                 </h2>
                 <textarea
                   name="introText"
                   rows={3}
                   placeholder="e.g., Here's what's coming up this week!"
-                  className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
+                  className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
                 />
               </div>
 
@@ -385,7 +385,7 @@ export default function DiscordEvents() {
                 <button
                   type="submit"
                   disabled={isPosting}
-                  className="px-6 py-2 bg-harbour-600 text-white hover:bg-harbour-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-pad-6 py-pad-2 bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isPosting ? "Posting..." : "Post to Discord"}
                 </button>
@@ -395,29 +395,29 @@ export default function DiscordEvents() {
         )}
 
         {history.length > 0 && (
-          <div className="bg-white border border-harbour-200 p-6">
-            <h2 className="text-lg font-semibold text-harbour-700 mb-4">Recent Posts</h2>
+          <div className="bg-surface border border-line p-pad-6 rounded-panel">
+            <h2 className="text-lg font-semibold text-heading mb-4">Recent Posts</h2>
             <div className="flex flex-col divide-y divide-harbour-100">
               {history.map((batch) => {
                 const key = batch.batchId ?? `single-${batch.destinations[0]?.id}`;
                 const isSkip = batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
                 const channelCount = batch.destinations.length;
                 return (
-                  <div key={key} className="py-3 flex items-start justify-between text-sm gap-3">
-                    <div className="flex flex-col gap-1 min-w-0 flex-1">
-                      <span className="text-harbour-700">
+                  <div key={key} className="py-pad-3 flex items-start justify-between text-sm gap-gap-3">
+                    <div className="flex flex-col gap-gap-1 min-w-0 flex-1">
+                      <span className="text-heading">
                         {isSkip
                           ? `Skipped ${batch.skippedCount} event${batch.skippedCount !== 1 ? "s" : ""}`
                           : `Posted ${batch.itemCount} event${batch.itemCount !== 1 ? "s" : ""} to ${channelCount} channel${channelCount !== 1 ? "s" : ""}`}
                       </span>
                       {batch.introText && (
-                        <span className="text-harbour-400 text-xs truncate">
+                        <span className="text-subtle text-xs truncate">
                           {batch.introText}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="text-harbour-400 text-xs">
+                    <div className="flex items-center gap-gap-3 flex-shrink-0">
+                      <span className="text-subtle text-xs">
                         {format(new Date(batch.postedAt), "MMM d, yyyy 'at' h:mm a")}
                       </span>
                       <Form method="post">
@@ -434,7 +434,7 @@ export default function DiscordEvents() {
                         )}
                         <button
                           type="submit"
-                          className="text-xs px-2 py-1 border border-harbour-200 text-harbour-400 hover:text-red-600 hover:border-red-300 transition-colors"
+                          className="text-xs px-pad-2 py-pad-1 border border-line text-subtle hover:text-red-600 hover:border-red-300 transition-colors"
                           onClick={(e) => {
                             if (!confirm("Undo this post? Events will be requeued for posting.")) {
                               e.preventDefault();

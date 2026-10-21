@@ -299,14 +299,14 @@ export function ImageCropper({ imageSrc, aspect, onCropComplete, onCancel }: Ima
     <Dialog.Root open onOpenChange={(open) => !open && onCancel()}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/70" />
-        <Dialog.Popup className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-4 flex flex-col max-w-[90vw] max-h-[90vh]">
-            <Dialog.Title className="text-lg font-semibold mb-4 text-harbour-700">
+        <Dialog.Popup className="fixed inset-0 z-50 flex items-center justify-center p-pad-4">
+          <div className="bg-surface p-pad-4 flex flex-col max-w-[90vw] max-h-[90vh]">
+            <Dialog.Title className="text-lg font-semibold mb-4 text-heading">
               Crop Image
             </Dialog.Title>
 
             {paddingInfo && (
-              <p className="text-sm text-harbour-500 mb-2">
+              <p className="text-sm text-muted mb-2">
                 The checkered area will be transparent in the final image.
               </p>
             )}
@@ -328,14 +328,14 @@ export function ImageCropper({ imageSrc, aspect, onCropComplete, onCancel }: Ima
               </ReactCrop>
             </div>
 
-            <div className="flex justify-end gap-3 mt-4">
-              <Dialog.Close className="px-4 py-2 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors">
+            <div className="flex justify-end gap-gap-3 mt-4">
+              <Dialog.Close className="px-pad-4 py-pad-2 text-sm font-medium text-body hover:bg-soft transition-colors">
                 Cancel
               </Dialog.Close>
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-4 py-2 text-sm font-medium text-white bg-harbour-600 hover:bg-harbour-700 transition-colors"
+                className="px-pad-4 py-pad-2 text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors"
               >
                 Apply Crop
               </button>

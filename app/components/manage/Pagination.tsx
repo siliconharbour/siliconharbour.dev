@@ -27,24 +27,24 @@ export function Pagination({ currentPage, totalPages, total }: PaginationProps) 
   }
 
   return (
-    <div className="flex items-center justify-center gap-2 mt-4">
+    <div className="flex items-center justify-center gap-gap-2 mt-4">
       {currentPage > 1 && (
         <Link
           to={buildPageUrl(currentPage - 1)}
-          className="px-3 py-1.5 text-sm text-harbour-600 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+          className="px-pad-3 py-pad-1-5 text-sm text-body hover:text-heading border border-line hover:border-harbour-300"
         >
           Previous
         </Link>
       )}
 
-      <span className="text-sm text-harbour-500 px-3">
+      <span className="text-sm text-muted px-pad-3">
         Page {currentPage} of {totalPages} ({total} total)
       </span>
 
       {currentPage < totalPages && (
         <Link
           to={buildPageUrl(currentPage + 1)}
-          className="px-3 py-1.5 text-sm text-harbour-600 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+          className="px-pad-3 py-pad-1-5 text-sm text-body hover:text-heading border border-line hover:border-harbour-300"
         >
           Next
         </Link>

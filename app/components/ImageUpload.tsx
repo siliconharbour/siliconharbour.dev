@@ -70,7 +70,7 @@ export function ImageUpload({
   return (
     <>
       <div>
-        <label className="block text-sm font-medium mb-2 text-harbour-700">{label}</label>
+        <label className="block text-sm font-medium mb-2 text-heading">{label}</label>
         {preview ? (
           <div className={`relative ${isSquare ? "w-32" : "w-full"}`}>
             <img
@@ -81,7 +81,7 @@ export function ImageUpload({
             <button
               type="button"
               onClick={handleRemove}
-              className="absolute top-2 right-2 p-1 bg-red-600 text-white"
+              className="absolute top-2 right-2 p-pad-1 bg-red-600 text-white"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -97,7 +97,7 @@ export function ImageUpload({
           <label
             className={`flex flex-col items-center justify-center ${
               isSquare ? "w-32 h-32" : "w-full aspect-video"
-            } border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-harbour-50 transition-colors`}
+            } border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-soft transition-colors`}
           >
             <svg
               className="w-8 h-8 text-harbour-300"
@@ -112,7 +112,7 @@ export function ImageUpload({
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <span className="mt-2 text-sm text-harbour-400">
+            <span className="mt-2 text-sm text-subtle">
               {helpText || (isSquare ? "Upload (1:1)" : "Upload (16:9)")}
             </span>
             <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />

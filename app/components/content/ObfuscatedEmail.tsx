@@ -15,7 +15,7 @@ export function ObfuscatedEmail() {
     <button
       type="button"
       onClick={handleClick}
-      className="text-harbour-600 hover:text-harbour-700 underline decoration-harbour-300 hover:decoration-harbour-500 transition-colors"
+      className="text-body hover:text-heading underline decoration-harbour-300 hover:decoration-harbour-500 transition-colors"
     >
       {user} [at] {domain} [dot] {tld}
     </button>

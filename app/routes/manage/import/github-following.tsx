@@ -295,14 +295,14 @@ export default function ImportGitHubFollowing() {
       backLabel="Back to Dashboard"
       maxWidthClassName="max-w-6xl"
     >
-      <p className="text-harbour-500">
+      <p className="text-muted">
         Enter a GitHub username to fetch their following/followers and import them as people. Click
         "Fetch Next Batch" repeatedly to fetch profiles (10 at a time).
       </p>
 
       {/* Rate limit indicator */}
       {progress.rateLimitRemaining !== null && (
-        <div className="text-sm text-harbour-400">
+        <div className="text-sm text-subtle">
           API Rate Limit: {progress.rateLimitRemaining} remaining
           {progress.rateLimitRemaining < 50 && progress.rateLimitReset && (
             <span className="text-amber-600 ml-2">
@@ -314,13 +314,13 @@ export default function ImportGitHubFollowing() {
 
       {/* Start new job */}
       {progress.status === "idle" && (
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-gap-4 flex-wrap">
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="GitHub username"
-            className="px-4 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none w-64"
+            className="px-pad-4 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none w-64"
             onKeyDown={(e) => {
               if (e.key === "Enter" && username.trim() && !isWorking) {
                 handleStart();
@@ -331,7 +331,7 @@ export default function ImportGitHubFollowing() {
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as "following" | "followers" | "both")}
-            className="px-4 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            className="px-pad-4 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
           >
             <option value="following">Following (who they follow)</option>
             <option value="followers">Followers (who follows them)</option>
@@ -342,7 +342,7 @@ export default function ImportGitHubFollowing() {
             type="button"
             onClick={handleStart}
             disabled={!username.trim() || isWorking}
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
           >
             {isWorking ? "Starting..." : "Fetch Users"}
           </button>
@@ -351,21 +351,21 @@ export default function ImportGitHubFollowing() {
 
       {/* Job in progress */}
       {progress.status !== "idle" && (
-        <div className="border border-harbour-200 p-4 bg-harbour-50 flex flex-col gap-4">
+        <div className="border border-line p-pad-4 bg-soft flex flex-col gap-gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-harbour-700">
+            <h2 className="font-semibold text-heading">
               {progress.sourceUsername
                 ? `@${progress.sourceUsername}'s ${progress.mode}`
                 : "Stale job (server restarted?)"}
             </h2>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-gap-2">
               {canContinue && (
                 <button
                   type="button"
                   onClick={handleContinue}
                   disabled={isWorking}
-                  className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
                 >
                   {isWorking ? "Fetching..." : "Fetch Next Batch"}
                 </button>
@@ -375,7 +375,7 @@ export default function ImportGitHubFollowing() {
                 <button
                   type="button"
                   onClick={handlePause}
-                  className="px-3 py-1.5 text-sm bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm bg-amber-600 hover:bg-amber-700 text-white font-medium transition-colors"
                 >
                   Pause
                 </button>
@@ -386,14 +386,14 @@ export default function ImportGitHubFollowing() {
                   type="button"
                   onClick={handleResume}
                   disabled={isWorking}
-                  className="px-3 py-1.5 text-sm bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
                 >
                   Resume
                 </button>
               )}
 
               {progress.status === "completed" && (
-                <span className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 font-medium">
+                <span className="px-pad-3 py-pad-1-5 text-sm bg-blue-100 text-blue-700 font-medium">
                   Complete!
                 </span>
               )}
@@ -402,7 +402,7 @@ export default function ImportGitHubFollowing() {
                 type="button"
                 onClick={handleReset}
                 disabled={isWorking}
-                className="px-3 py-1.5 text-sm border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
+                className="px-pad-3 py-pad-1-5 text-sm border border-red-300 text-red-600 hover:bg-red-50 font-medium transition-colors"
               >
                 Reset
               </button>
@@ -410,9 +410,9 @@ export default function ImportGitHubFollowing() {
           </div>
 
           {/* Status badge */}
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex items-center gap-gap-4 text-sm">
             <span
-              className={`px-2 py-0.5 font-medium ${
+              className={`px-pad-2 py-pad-0-5 font-medium ${
                 progress.status === "running"
                   ? "bg-green-100 text-green-700"
                   : progress.status === "paused"
@@ -425,7 +425,7 @@ export default function ImportGitHubFollowing() {
               {progress.status.toUpperCase()}
             </span>
 
-            <span className="text-harbour-600">
+            <span className="text-body">
               {progress.fetchedProfiles} / {progress.totalUsers} profiles fetched ({progressPercent}
               %)
             </span>
@@ -434,7 +434,7 @@ export default function ImportGitHubFollowing() {
               <span className="text-red-600">{progress.errorCount} errors</span>
             )}
 
-            {isWorking && <span className="text-harbour-400 animate-pulse">Working...</span>}
+            {isWorking && <span className="text-subtle animate-pulse">Working...</span>}
           </div>
 
           {/* Progress bar */}
@@ -453,26 +453,26 @@ export default function ImportGitHubFollowing() {
 
           {/* Rate limit warning */}
           {progress.waitingForRateLimit && progress.rateLimitReset && (
-            <div className="text-sm text-amber-600 bg-amber-50 p-2">
+            <div className="text-sm text-amber-600 bg-amber-50 p-pad-2">
               Rate limited. Can resume at {new Date(progress.rateLimitReset).toLocaleTimeString()}
             </div>
           )}
 
           {/* Stale job warning */}
           {!progress.sourceUsername && (
-            <div className="text-sm text-amber-700 bg-amber-50 p-2">
+            <div className="text-sm text-amber-700 bg-amber-50 p-pad-2">
               This job lost its data (server restarted). Click "Reset" to start fresh.
             </div>
           )}
 
           {/* Error display */}
           {progress.lastError && (
-            <div className="text-sm text-red-600 bg-red-50 p-2">{progress.lastError}</div>
+            <div className="text-sm text-red-600 bg-red-50 p-pad-2">{progress.lastError}</div>
           )}
 
           {/* Instruction for manual fetching */}
           {canContinue && (
-            <div className="text-sm text-harbour-500 bg-harbour-100 p-2">
+            <div className="text-sm text-muted bg-tint p-pad-2">
               Click "Fetch Next Batch" to fetch the next 10 profiles. Each click makes ~10 API
               calls.
             </div>
@@ -486,7 +486,7 @@ export default function ImportGitHubFollowing() {
           <summary className="cursor-pointer text-red-600 hover:text-red-700">
             {progress.errors.length} errors
           </summary>
-          <ul className="mt-2 list-disc list-inside text-red-600 bg-red-50 p-2">
+          <ul className="mt-2 list-disc list-inside text-red-600 bg-red-50 p-pad-2">
             {progress.errors.map((e, i) => (
               <li key={i}>{e}</li>
             ))}
@@ -496,9 +496,9 @@ export default function ImportGitHubFollowing() {
 
       {/* Import results */}
       {fetcher.data?.intent === "import" && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-gap-2">
           {fetcher.data.imported && fetcher.data.imported.length > 0 && (
-            <div className="p-4 bg-green-50 border border-green-200 text-green-700">
+            <div className="p-pad-4 bg-green-50 border border-green-200 text-green-700">
               Successfully processed {fetcher.data.imported.length} users
               <ul className="list-disc list-inside mt-2 text-sm">
                 {fetcher.data.imported.slice(0, 10).map((name, i) => (
@@ -511,7 +511,7 @@ export default function ImportGitHubFollowing() {
             </div>
           )}
           {fetcher.data.errors && fetcher.data.errors.length > 0 && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-600">
+            <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
               <p className="font-medium">Errors:</p>
               <ul className="list-disc list-inside mt-2">
                 {fetcher.data.errors.map((e, i) => (
@@ -527,18 +527,18 @@ export default function ImportGitHubFollowing() {
       {progress.profiles.length > 0 && (
         <>
           {/* Location groups summary */}
-          <div className="border border-harbour-200 p-4 bg-harbour-50">
-            <h2 className="font-semibold text-harbour-700 mb-3">
+          <div className="border border-line p-pad-4 bg-soft">
+            <h2 className="font-semibold text-heading mb-3">
               Locations ({locationGroups.length} unique)
             </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-gap-2">
               {locationGroups.map(([location, users]) => (
                 <span
                   key={location}
-                  className={`px-2 py-1 text-sm border ${
+                  className={`px-pad-2 py-pad-1 text-sm border ${
                     location === "(no location)"
                       ? "bg-grey-100 border-grey-300 text-grey-600"
-                      : "bg-white border-harbour-200 text-harbour-700"
+                      : "bg-surface border-line text-heading"
                   }`}
                 >
                   {location} ({users.length})
@@ -548,23 +548,23 @@ export default function ImportGitHubFollowing() {
           </div>
 
           {/* Controls */}
-          <div className="flex items-center gap-4 flex-wrap">
-            <span className="text-harbour-500">{progress.profiles.length} profiles fetched</span>
+          <div className="flex items-center gap-gap-4 flex-wrap">
+            <span className="text-muted">{progress.profiles.length} profiles fetched</span>
             <button
               type="button"
               onClick={selectAll}
-              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              className="text-sm text-body hover:text-harbour-800 underline"
             >
               Select all new
             </button>
             <button
               type="button"
               onClick={selectNone}
-              className="text-sm text-harbour-600 hover:text-harbour-800 underline"
+              className="text-sm text-body hover:text-harbour-800 underline"
             >
               Select none
             </button>
-            <label className="flex items-center gap-2 text-sm ml-auto">
+            <label className="flex items-center gap-gap-2 text-sm ml-auto">
               <input
                 type="checkbox"
                 checked={downloadAvatars}
@@ -576,7 +576,7 @@ export default function ImportGitHubFollowing() {
           </div>
 
           {/* Profiles list */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-gap-2">
             {progress.profiles.map((user) => {
               const existing = isExisting(user);
               const displayName = user.name || user.login;
@@ -584,12 +584,12 @@ export default function ImportGitHubFollowing() {
               return (
                 <div
                   key={user.login}
-                  className={`flex items-center gap-4 p-3 border ${
+                  className={`flex items-center gap-gap-4 p-pad-3 border ${
                     existing
-                      ? "bg-harbour-50 border-harbour-200 opacity-60"
+                      ? "bg-soft border-line opacity-60"
                       : selected.has(user.login)
                         ? "bg-blue-50 border-blue-300"
-                        : "bg-white border-harbour-200"
+                        : "bg-surface border-line"
                   }`}
                 >
                   <input
@@ -608,22 +608,22 @@ export default function ImportGitHubFollowing() {
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-10 h-10 bg-harbour-100 " />
+                    <div className="w-10 h-10 bg-tint " />
                   )}
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-gap-2 flex-wrap">
                       <span className="font-medium">{displayName}</span>
-                      <span className="text-sm text-harbour-400">@{user.login}</span>
+                      <span className="text-sm text-subtle">@{user.login}</span>
                       {existing && (
-                        <span className="text-xs px-2 py-0.5 bg-harbour-200 text-harbour-600">
+                        <span className="text-xs px-pad-2 py-pad-0-5 bg-harbour-200 text-body">
                           Already imported
                         </span>
                       )}
                     </div>
-                    {user.bio && <p className="text-sm text-harbour-500 truncate">{user.bio}</p>}
-                    <div className="flex items-center gap-3 text-sm text-harbour-400 flex-wrap">
-                      {user.company && <span className="text-harbour-600">{user.company}</span>}
+                    {user.bio && <p className="text-sm text-muted truncate">{user.bio}</p>}
+                    <div className="flex items-center gap-gap-3 text-sm text-subtle flex-wrap">
+                      {user.company && <span className="text-body">{user.company}</span>}
                       {user.location && <span>{user.location}</span>}
                       {user.public_repos > 0 && <span>{user.public_repos} repos</span>}
                     </div>
@@ -633,7 +633,7 @@ export default function ImportGitHubFollowing() {
                     href={user.html_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-harbour-400 hover:text-harbour-600"
+                    className="text-sm text-subtle hover:text-body"
                   >
                     View
                   </a>
@@ -643,14 +643,14 @@ export default function ImportGitHubFollowing() {
           </div>
 
           {/* Bottom actions */}
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-gap-4 flex-wrap">
             {/* Fetch more button */}
             {canContinue && (
               <button
                 type="button"
                 onClick={handleContinue}
                 disabled={isWorking}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+                className="px-pad-4 py-pad-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
               >
                 {isWorking
                   ? "Fetching..."
@@ -663,13 +663,13 @@ export default function ImportGitHubFollowing() {
               type="button"
               onClick={handleImport}
               disabled={selected.size === 0 || isImporting}
-              className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+              className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
               {isImporting ? "Importing..." : `Import ${selected.size} Selected Users`}
             </button>
 
             {selected.size > 0 && (
-              <span className="text-sm text-harbour-500">{selected.size} users selected</span>
+              <span className="text-sm text-muted">{selected.size} users selected</span>
             )}
           </div>
         </>

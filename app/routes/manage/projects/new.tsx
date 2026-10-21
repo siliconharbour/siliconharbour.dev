@@ -92,23 +92,23 @@ export default function NewProject() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/projects" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/projects" className="text-sm text-subtle hover:text-body">
             &larr; Back to Projects
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Project</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Project</h1>
 
         {actionData?.error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
         )}
 
-        <Form method="post" className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="font-medium text-harbour-700">
+        <Form method="post" className="flex flex-col gap-gap-6">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="name" className="font-medium text-heading">
               Name *
             </label>
             <input
@@ -116,12 +116,12 @@ export default function NewProject() {
               id="name"
               name="name"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="description" className="font-medium text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="description" className="font-medium text-heading">
               Description * (Markdown)
             </label>
             <textarea
@@ -129,21 +129,21 @@ export default function NewProject() {
               name="description"
               required
               rows={8}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
               placeholder="Describe your project. You can use [[References]] to link to people, companies, etc."
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="type" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="type" className="font-medium text-heading">
                 Type
               </label>
               <select
                 id="type"
                 name="type"
                 defaultValue="other"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectTypes.map((t) => (
                   <option key={t} value={t}>
@@ -153,15 +153,15 @@ export default function NewProject() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="status" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="status" className="font-medium text-heading">
                 Status
               </label>
               <select
                 id="status"
                 name="status"
                 defaultValue="active"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {projectStatuses.map((s) => (
                   <option key={s} value={s}>
@@ -172,11 +172,11 @@ export default function NewProject() {
             </div>
           </div>
 
-          <fieldset className="border border-harbour-200 p-4">
-            <legend className="font-medium text-harbour-700 px-2">Links</legend>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="github" className="text-sm text-harbour-600">
+          <fieldset className="border border-line p-pad-4">
+            <legend className="font-medium text-heading px-pad-2">Links</legend>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="github" className="text-sm text-body">
                   GitHub
                 </label>
                 <input
@@ -184,11 +184,11 @@ export default function NewProject() {
                   id="github"
                   name="github"
                   placeholder="https://github.com/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="website" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="website" className="text-sm text-body">
                   Website
                 </label>
                 <input
@@ -196,11 +196,11 @@ export default function NewProject() {
                   id="website"
                   name="website"
                   placeholder="https://..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="demo" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="demo" className="text-sm text-body">
                   Live Demo
                 </label>
                 <input
@@ -208,11 +208,11 @@ export default function NewProject() {
                   id="demo"
                   name="demo"
                   placeholder="https://..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="itchio" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="itchio" className="text-sm text-body">
                   itch.io
                 </label>
                 <input
@@ -220,11 +220,11 @@ export default function NewProject() {
                   id="itchio"
                   name="itchio"
                   placeholder="https://....itch.io/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="npm" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="npm" className="text-sm text-body">
                   npm
                 </label>
                 <input
@@ -232,11 +232,11 @@ export default function NewProject() {
                   id="npm"
                   name="npm"
                   placeholder="https://npmjs.com/package/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="steam" className="text-sm text-harbour-600">
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="steam" className="text-sm text-body">
                   Steam
                 </label>
                 <input
@@ -244,13 +244,13 @@ export default function NewProject() {
                   id="steam"
                   name="steam"
                   placeholder="https://store.steampowered.com/app/..."
-                  className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>
             </div>
           </fieldset>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"
@@ -269,7 +269,7 @@ export default function NewProject() {
 
           <button
             type="submit"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
           >
             Create Project
           </button>

@@ -34,13 +34,13 @@ export default function ManageEventsIndex() {
   const { events, currentPage, totalPages, total } = useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-4xl mx-auto flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold text-harbour-700">Events</h1>
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-4xl mx-auto flex flex-col gap-gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-gap-2">
+          <h1 className="text-2xl font-semibold text-heading">Events</h1>
           <Link
             to="/manage/events/new"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
           >
             New Event
           </Link>
@@ -49,15 +49,15 @@ export default function ManageEventsIndex() {
         <SearchInput placeholder="Search events..." />
 
         {events.length === 0 ? (
-          <div className="text-center p-12 text-harbour-400">
+          <div className="text-center p-pad-12 text-subtle">
             No events yet. Create your first event to get started.
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-gap-4">
             {events.map((event) => (
               <div
                 key={event.id}
-                className="flex items-center gap-4 p-4 bg-white border border-harbour-200"
+                className="flex items-center gap-gap-4 p-pad-4 bg-surface border border-line rounded-panel"
               >
                 {event.iconImage ? (
                   <img
@@ -66,30 +66,30 @@ export default function ManageEventsIndex() {
                     className="w-12 h-12 object-cover"
                   />
                 ) : (
-                  <div className="w-12 h-12 bg-harbour-100" />
+                  <div className="w-12 h-12 bg-tint" />
                 )}
 
-                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                  <div className="flex items-center gap-2">
-                    <h2 className="font-medium truncate text-harbour-700">{event.title}</h2>
+                <div className="flex-1 min-w-0 flex flex-col gap-gap-0-5">
+                  <div className="flex items-center gap-gap-2">
+                    <h2 className="font-medium truncate text-heading">{event.title}</h2>
                     {event.recurrenceRule && (
-                      <span className="px-1.5 py-0.5 bg-harbour-100 text-harbour-600 text-xs shrink-0">
+                      <span className="px-pad-1-5 py-pad-0-5 bg-tint text-body text-xs shrink-0">
                         Recurring
                       </span>
                     )}
                     {event.timeMode === "period" && (
-                      <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs shrink-0">
+                      <span className="px-pad-1-5 py-pad-0-5 bg-green-100 text-green-700 text-xs shrink-0">
                         Time period
                       </span>
                     )}
                   </div>
                   {event.recurrenceRule ? (
-                    <p className="text-sm text-harbour-400">
+                    <p className="text-sm text-subtle">
                       {event.defaultStartTime && `${event.defaultStartTime}`}
                       {event.defaultEndTime && ` - ${event.defaultEndTime}`}
                     </p>
                   ) : event.dates.length > 0 ? (
-                    <p className="text-sm text-harbour-400">
+                    <p className="text-sm text-subtle">
                       {formatInTimezone(event.dates[0].startDate, "MMM d, yyyy")}
                       {event.timeMode === "period" &&
                         event.dates[0].endDate &&
@@ -99,16 +99,16 @@ export default function ManageEventsIndex() {
                   ) : null}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-gap-2">
                   <Link
                     to={`/manage/events/${event.id}`}
-                    className="px-3 py-1.5 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
+                    className="px-pad-3 py-pad-1-5 text-sm font-medium text-body hover:bg-soft transition-colors"
                   >
                     Edit
                   </Link>
                   <Link
                     to={`/manage/events/${event.id}/delete`}
-                    className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    className="px-pad-3 py-pad-1-5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                   >
                     Delete
                   </Link>
@@ -121,7 +121,7 @@ export default function ManageEventsIndex() {
         <Pagination currentPage={currentPage} totalPages={totalPages} total={total} />
 
         <div>
-          <Link to="/manage" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage" className="text-sm text-subtle hover:text-body">
             &larr; Back to Dashboard
           </Link>
         </div>

@@ -25,14 +25,12 @@ interface NewsListingProps {
 
 /** Only shown for articles -- links don't need a badge since they're the default */
 function ArticleBadge() {
-  return (
-    <span className="text-xs uppercase tracking-wide text-harbour-500 font-medium">Article</span>
-  );
+  return <span className="text-xs uppercase tracking-wide text-muted font-medium">Article</span>;
 }
 
 function MetaLine({ article }: { article: News }) {
   return (
-    <p className="text-sm text-harbour-400 flex items-center gap-1.5">
+    <p className="text-sm text-subtle flex items-center gap-gap-1-5">
       {article.publishedAt && <span>{format(article.publishedAt, "MMM d, yyyy")}</span>}
       {article.sourceName && (
         <>
@@ -40,7 +38,7 @@ function MetaLine({ article }: { article: News }) {
           {article.sourceEntityUrl ? (
             <Link
               to={article.sourceEntityUrl}
-              className="hover:text-harbour-600"
+              className="hover:text-body"
               onClick={(e) => e.stopPropagation()}
             >
               {article.sourceName}
@@ -60,9 +58,9 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-3">
+    <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-gap-3">
       {article.coverImage && (
-        <TintedImage className="aspect-video overflow-hidden">
+        <TintedImage className="aspect-video overflow-hidden rounded-panel">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -70,13 +68,13 @@ function HeadlineArticle({ article, showTypeBadge }: { article: News; showTypeBa
           />
         </TintedImage>
       )}
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-gap-1-5">
         {showTypeBadge && article.type === "article" && <ArticleBadge />}
-        <h2 className="link-title text-2xl lg:text-3xl font-bold text-harbour-700 group-hover:text-harbour-600 leading-tight">
+        <h2 className="link-title text-2xl lg:text-3xl font-bold text-heading group-hover:text-body leading-tight">
           {article.title}
         </h2>
         <MetaLine article={article} />
-        {article.excerpt && <p className="text-harbour-600 line-clamp-3">{article.excerpt}</p>}
+        {article.excerpt && <p className="text-body line-clamp-3">{article.excerpt}</p>}
       </div>
     </a>
   );
@@ -88,9 +86,9 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
   const linkProps = isLink ? { target: "_blank" as const, rel: "noopener noreferrer" } : {};
 
   return (
-    <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-2">
+    <a href={href} {...linkProps} className="group group/image-tint flex flex-col gap-gap-2">
       {article.coverImage && (
-        <TintedImage className="aspect-video overflow-hidden">
+        <TintedImage className="aspect-video overflow-hidden rounded-panel">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -98,15 +96,13 @@ function SecondaryArticle({ article, showTypeBadge }: { article: News; showTypeB
           />
         </TintedImage>
       )}
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-gap-1">
         {showTypeBadge && article.type === "article" && <ArticleBadge />}
-        <h3 className="link-title text-lg font-semibold text-harbour-700 group-hover:text-harbour-600 leading-tight">
+        <h3 className="link-title text-lg font-semibold text-heading group-hover:text-body leading-tight">
           {article.title}
         </h3>
         <MetaLine article={article} />
-        {article.excerpt && (
-          <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>
-        )}
+        {article.excerpt && <p className="text-sm text-muted line-clamp-2">{article.excerpt}</p>}
       </div>
     </a>
   );
@@ -122,10 +118,10 @@ function ListItem({ article, showTypeBadge }: { article: News; showTypeBadge: bo
     <a
       href={href}
       {...linkProps}
-      className="group group/image-tint flex gap-4 py-4 border-b border-harbour-100 last:border-b-0"
+      className="group group/image-tint flex gap-gap-4 py-pad-4 border-b border-harbour-100 last:border-b-0"
     >
       {article.coverImage && (
-        <TintedImage className="w-28 h-20 overflow-hidden flex-shrink-0 hidden sm:block">
+        <TintedImage className="rounded-panel w-28 h-20 overflow-hidden flex-shrink-0 hidden sm:block">
           <img
             src={`/images/${article.coverImage}`}
             alt=""
@@ -133,17 +129,15 @@ function ListItem({ article, showTypeBadge }: { article: News; showTypeBadge: bo
           />
         </TintedImage>
       )}
-      <div className="flex flex-col gap-1 flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-gap-1 flex-1 min-w-0">
+        <div className="flex items-center gap-gap-2">
           {showTypeBadge && article.type === "article" && <ArticleBadge />}
           <MetaLine article={article} />
         </div>
-        <h3 className="link-title font-semibold text-harbour-700 group-hover:text-harbour-600 leading-tight">
+        <h3 className="link-title font-semibold text-heading group-hover:text-body leading-tight">
           {article.title}
         </h3>
-        {article.excerpt && (
-          <p className="text-sm text-harbour-500 line-clamp-2">{article.excerpt}</p>
-        )}
+        {article.excerpt && <p className="text-sm text-muted line-clamp-2">{article.excerpt}</p>}
       </div>
     </a>
   );
@@ -165,12 +159,12 @@ export function NewsListing({
   const remainingArticles = showHeadline ? articles.slice(3) : articles;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-gap-6">
       {(total > limit || searchQuery) && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-gap-2">
           <SearchInput placeholder={searchPlaceholder} />
           {searchQuery && (
-            <p className="text-sm text-harbour-500">
+            <p className="text-sm text-muted">
               {total} result{total !== 1 ? "s" : ""} for &quot;{searchQuery}&quot;
             </p>
           )}
@@ -178,15 +172,15 @@ export function NewsListing({
       )}
 
       {articles.length === 0 ? (
-        <p className="text-harbour-400">{searchQuery ? emptyWithSearch : emptyNoSearch}</p>
+        <p className="text-subtle">{searchQuery ? emptyWithSearch : emptyNoSearch}</p>
       ) : (
         <>
           {/* Featured section: headline on top, 2 secondaries below in 50/50 */}
           {showHeadline && headline && (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-gap-6">
               <HeadlineArticle article={headline} showTypeBadge={showTypeBadge} />
               {secondaryArticles.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
                   {secondaryArticles.map((article) => (
                     <SecondaryArticle
                       key={article.id}
@@ -201,7 +195,7 @@ export function NewsListing({
 
           {/* Linear list for remaining items */}
           {remainingArticles.length > 0 && (
-            <div className={showHeadline ? "mt-2 border-t border-harbour-200 pt-4" : ""}>
+            <div className={showHeadline ? "mt-2 border-t border-line pt-pad-4" : ""}>
               {remainingArticles.map((article) => (
                 <ListItem key={article.id} article={article} showTypeBadge={showTypeBadge} />
               ))}

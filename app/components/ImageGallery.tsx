@@ -34,11 +34,11 @@ export function ImageGallery({ images }: ImageGalleryProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold text-harbour-700">Gallery</h2>
+    <div className="flex flex-col gap-gap-3">
+      <h2 className="text-lg font-semibold text-heading">Gallery</h2>
 
       {/* Thumbnail Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-gap-2">
         {images.map((image, index) => (
           <button
             key={image.id}
@@ -70,7 +70,7 @@ export function ImageGallery({ images }: ImageGalleryProps) {
           >
             {/* Close button */}
             <Dialog.Close
-              className="absolute top-4 right-4 text-white/70 hover:text-white p-2 z-10"
+              className="absolute top-4 right-4 text-white/70 hover:text-white p-pad-2 z-10"
               aria-label="Close lightbox"
             >
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@ export function ImageGallery({ images }: ImageGalleryProps) {
                   e.stopPropagation();
                   goToPrevious();
                 }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-pad-2"
                 aria-label="Previous image"
               >
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -130,7 +130,7 @@ export function ImageGallery({ images }: ImageGalleryProps) {
                   e.stopPropagation();
                   goToNext();
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-pad-2"
                 aria-label="Next image"
               >
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">

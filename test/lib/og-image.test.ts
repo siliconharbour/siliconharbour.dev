@@ -1,6 +1,11 @@
 import sharp from "sharp";
 import { describe, expect, it } from "vitest";
-import { generateOGImage, prepareEventOGData, prepareNewsOGData } from "~/lib/og-image.server";
+import {
+  generateOGImage,
+  generateOGTemplate,
+  prepareEventOGData,
+  prepareNewsOGData,
+} from "~/lib/og-image.server";
 
 describe("OG image data", () => {
   it("prepares all-day events without adding a clock time", () => {
@@ -54,4 +59,28 @@ describe("OG rendering", () => {
     const metadata = await sharp(image).metadata();
     expect(metadata).toMatchObject({ width: 1200, height: 630, format: "png" });
   });
+});
+
+it("provides an empty logo slot without changing the rest of the published layout", async () => {
+  const data = { title: "Brand preview", type: "event" as const };
+  const template = await generateOGTemplate(data, { hideLogo: true });
+  const published = await generateOGTemplate(data);
+  const original = await sharp(Buffer.from(published.svg)).ensureAlpha().raw().toBuffer();
+  const empty = await sharp(Buffer.from(template.svg)).ensureAlpha().raw().toBuffer();
+  const { left, top, width, height } = template.logo;
+  expect({ width, height }).toEqual({ width: 56, height: 40 });
+  let changesInside = 0;
+  let changesOutside = 0;
+  for (let y = 0; y < 630; y++)
+    for (let x = 0; x < 1200; x++) {
+      const offset = (y * 1200 + x) * 4;
+      const changed = [0, 1, 2, 3].some(
+        (channel) => original[offset + channel] !== empty[offset + channel],
+      );
+      if (!changed) continue;
+      if (x >= left && x < left + width && y >= top && y < top + height) changesInside++;
+      else changesOutside++;
+    }
+  expect(changesInside).toBeGreaterThan(0);
+  expect(changesOutside).toBe(0);
 });

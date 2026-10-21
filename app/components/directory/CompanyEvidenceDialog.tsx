@@ -19,26 +19,26 @@ export function CompanyEvidenceDialog({ open, onOpenChange, jobs }: CompanyEvide
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/30" />
-        <Dialog.Popup className="fixed inset-0 z-50 p-4 flex items-start justify-center">
-          <div className="w-full max-w-3xl bg-white border border-harbour-200 max-h-[80vh] overflow-y-auto mt-8">
-            <div className="p-4 border-b border-harbour-200 flex items-center justify-between">
-              <Dialog.Title className="text-lg font-semibold text-harbour-700">
+        <Dialog.Popup className="fixed inset-0 z-50 p-pad-4 flex items-start justify-center">
+          <div className="w-full max-w-3xl bg-surface border border-line max-h-[80vh] overflow-y-auto mt-8 rounded-panel">
+            <div className="p-pad-4 border-b border-line flex items-center justify-between">
+              <Dialog.Title className="text-lg font-semibold text-heading">
                 Technology Sources
               </Dialog.Title>
-              <Dialog.Close className="px-2 py-1 bg-harbour-100 text-harbour-700 hover:bg-harbour-200">
+              <Dialog.Close className="px-pad-2 py-pad-1 bg-tint text-heading hover:bg-harbour-200">
                 Close
               </Dialog.Close>
             </div>
-            <div className="p-4 flex flex-col gap-4">
+            <div className="p-pad-4 flex flex-col gap-gap-4">
               {jobs.length === 0 ? (
-                <p className="text-sm text-harbour-500">No supporting job postings recorded.</p>
+                <p className="text-sm text-muted">No supporting job postings recorded.</p>
               ) : (
                 jobs.map((job, index) => (
-                  <div key={index} className="border border-harbour-200 p-3 flex flex-col gap-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm font-medium text-harbour-700">{job.title}</span>
+                  <div key={index} className="border border-line p-pad-3 flex flex-col gap-gap-3">
+                    <div className="flex items-center justify-between gap-gap-4">
+                      <span className="text-sm font-medium text-heading">{job.title}</span>
                       {job.status === "removed" && (
-                        <span className="mt-1 w-fit text-xs px-1.5 py-0.5 bg-amber-100 text-amber-700">
+                        <span className="mt-1 w-fit text-xs px-pad-1-5 py-pad-0-5 bg-amber-100 text-amber-700">
                           Job removed
                         </span>
                       )}
@@ -47,16 +47,16 @@ export function CompanyEvidenceDialog({ open, onOpenChange, jobs }: CompanyEvide
                       href={job.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-harbour-600 underline whitespace-nowrap"
+                      className="text-xs text-body underline whitespace-nowrap"
                     >
                       Open job posting
                     </a>
                     {(job.fullText || job.excerpts.length > 0) && (
-                      <details className="bg-harbour-50 border border-harbour-200 p-2">
-                        <summary className="cursor-pointer text-xs font-medium text-harbour-700">
+                      <details className="bg-soft border border-line p-pad-2">
+                        <summary className="cursor-pointer text-xs font-medium text-heading">
                           View full posting text
                         </summary>
-                        <pre className="mt-2 text-xs text-harbour-600 whitespace-pre-wrap break-words font-mono">
+                        <pre className="mt-2 text-xs text-body whitespace-pre-wrap break-words font-mono">
                           {job.fullText || job.excerpts.join("\n\n")}
                         </pre>
                       </details>

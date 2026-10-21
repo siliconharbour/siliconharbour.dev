@@ -8,7 +8,7 @@ interface CodeBlockProps {
 export function CodeBlock({ children }: CodeBlockProps) {
   return (
     <div className="not-prose">
-      <pre className="p-3 bg-harbour-50 text-harbour-700 text-sm overflow-x-auto">{children}</pre>
+      <pre className="p-pad-3 bg-soft text-heading text-sm overflow-x-auto">{children}</pre>
     </div>
   );
 }
@@ -19,7 +19,7 @@ export function CodeBlock({ children }: CodeBlockProps) {
 export function Code({ children }: CodeBlockProps) {
   return (
     <div className="not-prose">
-      <code className="block p-3 bg-harbour-50 text-harbour-700 text-sm">{children}</code>
+      <code className="block p-pad-3 bg-soft text-heading text-sm">{children}</code>
     </div>
   );
 }

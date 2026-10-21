@@ -179,12 +179,12 @@ export default function NewNewsImportSource() {
       backLabel="Back to Import News"
     >
       {actionData && "error" in actionData && !("intent" in actionData) && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700">{actionData.error}</div>
+        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-700">{actionData.error}</div>
       )}
 
-      <Form method="post" className="bg-white border border-harbour-200 p-6 flex flex-col gap-4">
+      <Form method="post" className="bg-surface border border-line p-pad-6 flex flex-col gap-gap-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-harbour-700 mb-1">
+          <label htmlFor="name" className="block text-sm font-medium text-heading mb-1">
             Name *
           </label>
           <input
@@ -193,19 +193,19 @@ export default function NewNewsImportSource() {
             name="name"
             required
             placeholder="e.g. TechNL Blog"
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           />
         </div>
 
         <div>
-          <label htmlFor="sourceType" className="block text-sm font-medium text-harbour-700 mb-1">
+          <label htmlFor="sourceType" className="block text-sm font-medium text-heading mb-1">
             Source Type *
           </label>
           <select
             id="sourceType"
             name="sourceType"
             required
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           >
             {newsSourceTypes.map((type) => (
               <option key={type} value={type}>
@@ -216,7 +216,7 @@ export default function NewNewsImportSource() {
         </div>
 
         <div>
-          <label htmlFor="sourceUrl" className="block text-sm font-medium text-harbour-700 mb-1">
+          <label htmlFor="sourceUrl" className="block text-sm font-medium text-heading mb-1">
             Source URL *
           </label>
           <input
@@ -225,9 +225,9 @@ export default function NewNewsImportSource() {
             name="sourceUrl"
             required
             placeholder="https://example.com/feed/"
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           />
-          <p className="mt-1 text-xs text-harbour-400">
+          <p className="mt-1 text-xs text-subtle">
             RSS feed URL or page URL for custom scrapers.
           </p>
         </div>
@@ -235,7 +235,7 @@ export default function NewNewsImportSource() {
         <div>
           <label
             htmlFor="sourceIdentifier"
-            className="block text-sm font-medium text-harbour-700 mb-1"
+            className="block text-sm font-medium text-heading mb-1"
           >
             Source Identifier (optional)
           </label>
@@ -244,20 +244,20 @@ export default function NewNewsImportSource() {
             id="sourceIdentifier"
             name="sourceIdentifier"
             placeholder="scraperName or scraperName:config"
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           />
-          <p className="mt-1 text-xs text-harbour-400">
+          <p className="mt-1 text-xs text-subtle">
             For custom scrapers: the scraper name or scraper name with config.
           </p>
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label htmlFor="keywords" className="block text-sm font-medium text-harbour-700">
+            <label htmlFor="keywords" className="block text-sm font-medium text-heading">
               Keywords (optional)
             </label>
-            <div className="flex items-center gap-4 text-xs text-harbour-500">
-              <label className="flex items-center gap-1.5">
+            <div className="flex items-center gap-gap-4 text-xs text-muted">
+              <label className="flex items-center gap-gap-1-5">
                 <input
                   type="checkbox"
                   name="useGlobalKeywords"
@@ -265,7 +265,7 @@ export default function NewNewsImportSource() {
                 />
                 Use global keywords
               </label>
-              <label className="flex items-center gap-1.5">
+              <label className="flex items-center gap-gap-1-5">
                 <input
                   type="checkbox"
                   name="useCompanyNameFilter"
@@ -280,9 +280,9 @@ export default function NewNewsImportSource() {
             id="keywords"
             name="keywords"
             placeholder="tech, startup, innovation, AI"
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           />
-          <p className="mt-1 text-xs text-harbour-400">
+          <p className="mt-1 text-xs text-subtle">
             Comma-separated keywords for filtering. Leave empty to import all items.
             Global keywords are configured in Settings. Company name filter uses names of
             companies flagged &quot;include in news filter&quot;.
@@ -290,13 +290,13 @@ export default function NewNewsImportSource() {
         </div>
 
         <div>
-          <label htmlFor="excerptMode" className="block text-sm font-medium text-harbour-700 mb-1">
+          <label htmlFor="excerptMode" className="block text-sm font-medium text-heading mb-1">
             Excerpt Mode
           </label>
           <select
             id="excerptMode"
             name="excerptMode"
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           >
             {excerptModes.map((mode) => (
               <option key={mode} value={mode}>
@@ -304,14 +304,14 @@ export default function NewNewsImportSource() {
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-harbour-400">
+          <p className="mt-1 text-xs text-subtle">
             Where to pull the excerpt from. WordPress feeds often have junk in description — try
             &quot;Use content:encoded&quot; instead. Use &quot;Test Feed&quot; to preview.
           </p>
         </div>
 
         <div>
-          <label htmlFor="entityUrl" className="block text-sm font-medium text-harbour-700 mb-1">
+          <label htmlFor="entityUrl" className="block text-sm font-medium text-heading mb-1">
             Entity Page (optional)
           </label>
           <input
@@ -319,14 +319,14 @@ export default function NewNewsImportSource() {
             id="entityUrl"
             name="entityUrl"
             placeholder="/directory/companies/technl"
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:border-harbour-500"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           />
-          <p className="mt-1 text-xs text-harbour-400">
+          <p className="mt-1 text-xs text-subtle">
             Path to the entity page in the directory. Source name will link here in listings.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-gap-2">
           <input
             type="checkbox"
             id="enabled"
@@ -334,16 +334,16 @@ export default function NewNewsImportSource() {
             defaultChecked
             className="w-4 h-4"
           />
-          <label htmlFor="enabled" className="text-sm text-harbour-700">
+          <label htmlFor="enabled" className="text-sm text-heading">
             Enabled (include in sync operations)
           </label>
         </div>
 
-        <div className="flex items-center gap-3 pt-4 border-t border-harbour-100">
+        <div className="flex items-center gap-gap-3 pt-pad-4 border-t border-harbour-100">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
           >
             {isCreating ? "Creating..." : "Add Source"}
           </button>
@@ -352,13 +352,13 @@ export default function NewNewsImportSource() {
             name="intent"
             value="test-feed"
             disabled={isSubmitting}
-            className="px-4 py-2 border border-harbour-200 hover:border-harbour-400 text-harbour-600 hover:text-harbour-700 disabled:text-harbour-300 disabled:cursor-not-allowed font-medium transition-colors"
+            className="px-pad-4 py-pad-2 border border-line hover:border-harbour-400 text-body hover:text-heading disabled:text-harbour-300 disabled:cursor-not-allowed font-medium transition-colors"
           >
             {isTesting ? "Testing..." : "Test Feed"}
           </button>
           <Link
             to="/manage/import/news"
-            className="px-4 py-2 text-harbour-500 hover:text-harbour-700"
+            className="px-pad-4 py-pad-2 text-muted hover:text-heading"
           >
             Cancel
           </Link>
@@ -367,16 +367,16 @@ export default function NewNewsImportSource() {
 
       {/* Test feed results */}
       {testResult && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-gap-3">
           {testResult.error && (
-            <div className="p-4 bg-red-50 border border-red-200 text-red-700">
+            <div className="p-pad-4 bg-red-50 border border-red-200 text-red-700">
               Feed test failed: {testResult.error}
             </div>
           )}
 
           {testResult.success && testResult.items && (
             <>
-              <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm">
+              <div className="p-pad-3 bg-green-50 border border-green-200 text-green-700 text-sm">
                 Found {testResult.totalCount} items
                 {testResult.filteredCount > 0 && (
                   <span>
@@ -387,7 +387,7 @@ export default function NewNewsImportSource() {
                 )}
               </div>
 
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-gap-1">
                 {testResult.items.map(
                   (
                     item: {
@@ -401,32 +401,32 @@ export default function NewNewsImportSource() {
                   ) => (
                     <div
                       key={i}
-                      className={`p-3 border border-harbour-200 bg-white ${!item.matched ? "opacity-40" : ""}`}
+                      className={`p-pad-3 border border-line bg-surface ${!item.matched ? "opacity-40" : ""}`}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-gap-2">
                             <a
                               href={item.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="font-medium text-harbour-700 hover:text-harbour-500 truncate"
+                              className="font-medium text-heading hover:text-muted truncate"
                             >
                               {item.title}
                             </a>
                             {!item.matched && (
-                              <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-400 shrink-0">
+                              <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-subtle shrink-0">
                                 filtered
                               </span>
                             )}
                           </div>
                           {item.excerpt && (
-                            <p className="text-sm text-harbour-500 mt-1 line-clamp-2">
+                            <p className="text-sm text-muted mt-1 line-clamp-2">
                               {item.excerpt}
                             </p>
                           )}
                           {item.publishedAt && (
-                            <p className="text-xs text-harbour-400 mt-1">
+                            <p className="text-xs text-subtle mt-1">
                               {new Date(item.publishedAt).toLocaleDateString()}
                             </p>
                           )}

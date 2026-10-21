@@ -1,4 +1,6 @@
 import { startImageUploadCleanup } from "~/lib/mcp-image-uploads.server";
+import { RouterContextProvider } from "react-router";
+import { clientIpContext } from "~/lib/request-ip.server";
 import express from "express";
 import { createRequestHandler } from "@react-router/express";
 import {
@@ -15,7 +17,9 @@ export interface CreateSiliconHarbourHttpAppOptions {
   includeFrontend?: boolean;
 }
 
-export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourHttpAppOptions = {}) {
+export async function createSiliconHarbourHttpApp(
+  options: CreateSiliconHarbourHttpAppOptions = {},
+) {
   const { includeFrontend = true } = options;
   const app = express();
   startImageUploadCleanup();
@@ -35,19 +39,24 @@ export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourH
     scopes_supported: ["mcp:read", "mcp:write"],
   };
 
-  app.use(mcpAuthMetadataRouter({
-    oauthMetadata,
-    resourceServerUrl: resource,
-    scopesSupported: ["mcp:read", "mcp:write"],
-    resourceName: "Silicon Harbour MCP",
-    dangerouslyAllowInsecureIssuerUrl: process.env.NODE_ENV !== "production",
-  }));
+  app.use(
+    mcpAuthMetadataRouter({
+      oauthMetadata,
+      resourceServerUrl: resource,
+      scopesSupported: ["mcp:read", "mcp:write"],
+      resourceName: "Silicon Harbour MCP",
+      dangerouslyAllowInsecureIssuerUrl: process.env.NODE_ENV !== "production",
+    }),
+  );
 
   app.use("/mcp", express.json());
   app.use("/mcp", (req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, Mcp-Session-Id, MCP-Protocol-Version, Authorization");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Accept, Mcp-Session-Id, MCP-Protocol-Version, Authorization",
+    );
     if (req.method === "OPTIONS") return void res.sendStatus(204);
     next();
   });
@@ -73,20 +82,36 @@ export async function createSiliconHarbourHttpApp(options: CreateSiliconHarbourH
     (context) => createMcpServer(context.authInfo?.scopes.includes("mcp:write") ?? false),
     { legacy: "stateless", onerror: (error) => console.error("MCP error:", error) },
   );
-  const nodeMcpHandler = toNodeHandler(mcpHandler, { onerror: (error) => console.error("MCP HTTP error:", error) });
+  const nodeMcpHandler = toNodeHandler(mcpHandler, {
+    onerror: (error) => console.error("MCP HTTP error:", error),
+  });
   app.all("/mcp", (req, res) => void nodeMcpHandler(req, res, req.body));
 
   if (includeFrontend) {
-    const viteDevServer = process.env.NODE_ENV === "production" ? undefined : await import("vite").then((vite) =>
-      vite.createServer({ server: { host: "127.0.0.1", middlewareMode: true, hmr: { host: "127.0.0.1" } } }),
-    );
+    const viteDevServer =
+      process.env.NODE_ENV === "production"
+        ? undefined
+        : await import("vite").then((vite) =>
+            vite.createServer({
+              server: { host: "127.0.0.1", middlewareMode: true, hmr: { host: "127.0.0.1" } },
+            }),
+          );
     if (viteDevServer) app.use(viteDevServer.middlewares);
     else app.use(express.static("build/client"));
-    app.all("/{*path}", createRequestHandler({
-      build: viteDevServer ? () => viteDevServer.ssrLoadModule("virtual:react-router/server-build") :
-        // @ts-expect-error — build output
-        await import("../../build/server/index.js"),
-    }));
+    app.all(
+      "/{*path}",
+      createRequestHandler({
+        getLoadContext(req) {
+          const context = new RouterContextProvider();
+          context.set(clientIpContext, req.ip ?? req.socket.remoteAddress ?? "unknown");
+          return context;
+        },
+        build: viteDevServer
+          ? () => viteDevServer.ssrLoadModule("virtual:react-router/server-build")
+          : // @ts-expect-error — build output
+            await import("../../build/server/index.js"),
+      }),
+    );
   }
   return app;
 }

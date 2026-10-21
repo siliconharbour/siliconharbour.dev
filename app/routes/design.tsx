@@ -1,88 +1,150 @@
+import { loadDesignExamples } from "~/lib/design-examples.server";
+import { useOGPreview } from "~/theme/use-og-preview";
+import { controlValues } from "~/theme/control-values";
+import { useRootFontSize } from "~/theme/use-root-font-size";
+import { ComponentShowcase } from "~/components/design/ComponentShowcase";
+import { useTheme } from "~/theme/provider";
 import type { Route } from "./+types/design";
 import { useState, type ReactNode } from "react";
 import { useLoaderData } from "react-router";
 import { Alert, Badge, Button } from "~/components/ui";
-import { getUpcomingEvents } from "~/lib/events.server";
-import { getPublishedNews } from "~/lib/news.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Design System - siliconharbour.dev" }];
 }
 
-export async function loader({}: Route.LoaderArgs) {
-  const [events, news] = await Promise.all([getUpcomingEvents(), getPublishedNews()]);
-  return {
-    eventPreviews: events.map(({ slug, title }) => ({ slug, title })),
-    newsPreviews: news.map(({ slug, title }) => ({ slug, title })),
-    previewToken: Date.now(),
-  };
+export function loader() {
+  return loadDesignExamples();
 }
 
 export default function DesignSystem() {
-  const { eventPreviews, newsPreviews, previewToken } = useLoaderData<typeof loader>();
+  const { theme } = useTheme();
+  const rootPixels = useRootFontSize();
+  const type = controlValues("typeScale", "×", theme, rootPixels);
+  const leading = controlValues("lineHeight", "×", theme, rootPixels);
+  const padding = controlValues("padding", "×", theme, rootPixels);
+  const gaps = controlValues("gaps", "×", theme, rootPixels);
+  const { eventPreviews, newsPreviews, previewToken, componentCompanies, componentNews } =
+    useLoaderData<typeof loader>();
 
   return (
-    <div className="min-h-screen p-6">
-      <div className="max-w-4xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen p-pad-6">
+      <div className="max-w-4xl mx-auto flex flex-col gap-gap-8">
         <div>
-          <h1 className="text-2xl font-semibold text-harbour-700">Design System</h1>
-          <p className="text-harbour-400 mt-1">
-            Visual elements and patterns used throughout siliconharbour.dev
-          </p>
+          <h1 className="text-2xl font-semibold text-heading">Design system</h1>
         </div>
 
-        {/* Color Palette */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Color Palette</h2>
-          <p className="text-sm text-harbour-500">
-            The harbour-* palette ranges from light blue to dark navy. Use 600 for primary actions,
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Theme preview</h2>
+          <div className="grid sm:grid-cols-3 gap-gap-4">
+            <div className="p-pad-4 border border-line bg-surface rounded-panel">
+              <h3 className="font-semibold text-heading">Card surface</h3>
+              <p className="text-body">Padding follows your settings.</p>
+              <p className="text-sm text-muted">Secondary text</p>
+            </div>
+            <div className="p-pad-4 bg-soft border border-line rounded-panel">
+              <h3 className="text-heading font-semibold">Muted surface</h3>
+              <p className="text-sm text-body">A lighter shade of your main colour.</p>
+            </div>
+            <div className="flex flex-col gap-gap-3">
+              <Button>Primary action</Button>
+              <label className="text-sm text-body">
+                Example input
+                <input
+                  className="w-full border border-line bg-surface px-pad-3 py-pad-2"
+                  placeholder="Try control corners"
+                />
+              </label>
+            </div>
+          </div>
+          <dl className="grid grid-cols-2 sm:grid-cols-4 gap-gap-3 text-sm text-body">
+            <div>
+              <dt className="text-muted">Body / heading fonts</dt>
+              <dd>
+                {theme.bodyFont} / {theme.headingFont}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted">Type / line height</dt>
+              <dd>
+                {type.current} / {leading.current}
+              </dd>
+              <dd className="text-xs text-muted">
+                Default: {type.baseline} / {leading.baseline}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted">Padding / gaps (spacing 4)</dt>
+              <dd>
+                {padding.current} / {gaps.current}
+              </dd>
+              <dd className="text-xs text-muted">Default: {padding.baseline} each</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Control / card corners</dt>
+              <dd>
+                {theme.controlRadius}px / {theme.panelRadius}px
+              </dd>
+            </div>
+          </dl>
+        </section>
+
+        <ComponentShowcase companies={componentCompanies} news={componentNews} />
+
+        {/* Colour palette */}
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Colour palette</h2>
+          <p className="text-sm text-muted">
+            The harbour-* OKLCH ramp follows the studio’s main colour. Use 600 for primary actions,
             700 for headings.
           </p>
-          <div className="grid grid-cols-5 md:grid-cols-10 gap-2">
+          <div className="grid grid-cols-5 md:grid-cols-10 gap-gap-2">
             {[50, 100, 200, 300, 400, 500, 600, 700, 800, 900].map((shade) => (
-              <div key={shade} className="flex flex-col gap-1">
+              <div key={shade} className="flex flex-col gap-gap-1">
                 <div
                   className={`h-12 bg-harbour-${shade}`}
-                  style={{ backgroundColor: `var(--color-harbour-${shade})` }}
+                  style={{ backgroundColor: `var(--theme-harbour-${shade})` }}
                 />
-                <span className="text-xs text-harbour-500 text-center">{shade}</span>
+                <span className="text-xs text-muted text-center">{shade}</span>
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-4 gap-2 text-sm">
-            <div className="p-2 bg-red-100 text-red-700">Red - Errors/Danger</div>
-            <div className="p-2 bg-amber-100 text-amber-700">Amber - Warnings/Hidden</div>
-            <div className="p-2 bg-green-100 text-green-700">Green - Success</div>
-            <div className="p-2 bg-purple-100 text-purple-700">Purple - Remote work</div>
+          <div className="grid grid-cols-4 gap-gap-2 text-sm">
+            <div className="p-pad-2 bg-red-100 text-red-700">Red - Errors/Danger</div>
+            <div className="p-pad-2 bg-amber-100 text-amber-700">Amber - Warnings/Hidden</div>
+            <div className="p-pad-2 bg-green-100 text-green-700">Green - Success</div>
+            <div className="p-pad-2 bg-purple-100 text-purple-700">Purple - Remote work</div>
           </div>
         </section>
 
         {/* Event timing */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Event timing</h2>
-          <p className="text-sm text-harbour-500">
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Event timing</h2>
+          <p className="text-sm text-muted">
             Scheduled events happen at a set time. Time periods run across a date range, like a game
             jam or application window.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-green-200 bg-white p-4 flex flex-col gap-2">
-              <div className="flex flex-wrap gap-2">
-                <span className="text-xs px-1.5 py-0.5 bg-green-50 text-green-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+            <div className="border border-green-200 bg-surface p-pad-4 flex flex-col gap-gap-2 rounded-panel">
+              <div className="flex flex-wrap gap-gap-2">
+                <span className="text-xs px-pad-1-5 py-pad-0-5 bg-green-50 text-green-700">
                   Happening now
                 </span>
-                <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-700">Game jam</span>
+                <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-700">
+                  Game jam
+                </span>
               </div>
-              <h3 className="font-medium text-harbour-700">GUMP Jam 3: Computer Lab</h3>
-              <p className="text-sm text-harbour-600">September 12 - September 26, 2026</p>
-              <p className="text-sm text-harbour-400">Online</p>
+              <h3 className="font-medium text-heading">GUMP Jam 3: Computer Lab</h3>
+              <p className="text-sm text-body">September 12 - September 26, 2026</p>
+              <p className="text-sm text-subtle">Online</p>
             </div>
-            <div className="border border-harbour-200 bg-white p-4 flex flex-col gap-2">
-              <span className="self-start text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+            <div className="border border-line bg-surface p-pad-4 flex flex-col gap-gap-2 rounded-panel">
+              <span className="self-start text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">
                 Earlier today
               </span>
-              <h3 className="font-medium text-harbour-700">Community Demo Night</h3>
-              <p className="text-sm text-harbour-600">Saturday, August 29 at 2:00 PM</p>
-              <p className="text-sm text-harbour-400">
+              <h3 className="font-medium text-heading">Community Demo Night</h3>
+              <p className="text-sm text-body">Saturday, August 29 at 2:00 PM</p>
+              <p className="text-sm text-subtle">
                 Events stay listed until midnight in Newfoundland.
               </p>
             </div>
@@ -90,92 +152,91 @@ export default function DesignSystem() {
         </section>
 
         {/* Typography */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Typography</h2>
-          <div className="flex flex-col gap-3 p-4 border border-harbour-200 bg-white">
-            <p className="text-2xl font-semibold text-harbour-700">
-              Page Title (text-2xl font-semibold text-harbour-700)
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Typography</h2>
+          <div className="flex flex-col gap-gap-3 p-pad-4 border border-line bg-surface rounded-panel">
+            <p className="text-2xl font-semibold text-heading">
+              Page title (text-2xl font-semibold text-heading)
             </p>
-            <p className="text-lg font-semibold text-harbour-700">
-              Section Heading (text-lg font-semibold text-harbour-700)
+            <p className="text-lg font-semibold text-heading">
+              Section heading (text-lg font-semibold text-heading)
             </p>
-            <p className="font-medium text-harbour-700">
-              Card Title (font-medium text-harbour-700)
-            </p>
-            <p className="text-harbour-600">Body text (text-harbour-600)</p>
-            <p className="text-harbour-500">Secondary text (text-harbour-500)</p>
-            <p className="text-harbour-400">Muted text (text-harbour-400)</p>
-            <p className="text-sm text-harbour-400">Small muted text (text-sm text-harbour-400)</p>
-            <p className="text-xs text-harbour-500">Extra small text (text-xs text-harbour-500)</p>
+            <p className="font-medium text-heading">Card title (font-medium text-heading)</p>
+            <p className="text-body">Body text (text-body)</p>
+            <p className="text-muted">Secondary text (text-muted)</p>
+            <p className="text-subtle">Muted text (text-subtle)</p>
+            <p className="text-sm text-subtle">Small muted text (text-sm text-subtle)</p>
+            <p className="text-xs text-muted">Extra small text (text-xs text-muted)</p>
           </div>
         </section>
 
         {/* Buttons */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Buttons</h2>
-          <p className="text-sm text-harbour-500">
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Buttons</h2>
+          <p className="text-sm text-muted">
             No rounded corners. Button variants own both their foreground and background colors for
             normal and hover states; every pairing must meet WCAG AA contrast for normal text.
           </p>
-          <div className="flex flex-wrap gap-3 p-4 border border-harbour-200 bg-white">
+          <div className="flex flex-wrap gap-gap-3 p-pad-4 border border-line bg-surface rounded-panel">
             <Button>Primary</Button>
             <Button tone="secondary">Secondary</Button>
             <Button tone="danger">Danger</Button>
             <Button tone="warning">Warning</Button>
             <Button tone="success">Success</Button>
           </div>
-          <div className="flex flex-wrap gap-3 p-4 border border-harbour-200 bg-white">
-            <Button size="sm">Small Primary</Button>
+          <div className="flex flex-wrap gap-gap-3 p-pad-4 border border-line bg-surface rounded-panel">
+            <Button size="sm">Small primary</Button>
             <Button size="sm" tone="secondary">
-              Small Secondary
+              Small secondary
             </Button>
             <Button size="sm" tone="ghost">
-              Ghost Button
+              Ghost button
             </Button>
           </div>
-          <div className="p-4 border border-harbour-200 bg-white">
-            <p className="text-sm text-harbour-500 mb-2">Button with count badge:</p>
-            <button className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white hover:text-white font-medium transition-colors flex items-center gap-2">
+          <div className="p-pad-4 border border-line bg-surface rounded-panel">
+            <p className="text-sm text-muted mb-2">Button with count badge:</p>
+            <button className="px-pad-4 py-pad-2 bg-amber-700 hover:bg-amber-800 text-white hover:text-white font-medium transition-colors flex items-center gap-gap-2">
               Review
-              <span className="px-1.5 py-0.5 bg-amber-800 text-xs">12</span>
+              <span className="px-pad-1-5 py-pad-0-5 bg-amber-800 text-xs">12</span>
             </button>
           </div>
         </section>
 
-        {/* Form Inputs */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Form Inputs</h2>
-          <p className="text-sm text-harbour-500">
-            No rounded corners. Use focus:ring-2 focus:ring-harbour-500 for focus states.
+        {/* Form inputs */}
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Form inputs</h2>
+          <p className="text-sm text-muted">
+            Inputs start with square corners. The studio can change their radius; focus rings stay
+            visible.
           </p>
-          <div className="flex flex-col gap-4 p-4 border border-harbour-200 bg-white">
+          <div className="flex flex-col gap-gap-4 p-pad-4 border border-line bg-surface rounded-panel">
             <div>
-              <label className="block text-sm font-medium text-harbour-700 mb-1">Text Input</label>
+              <label className="block text-sm font-medium text-heading mb-1">Text Input</label>
               <input
                 type="text"
                 placeholder="Placeholder text"
-                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+                className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-harbour-700 mb-1">Select</label>
-              <select className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500">
+              <label className="block text-sm font-medium text-heading mb-1">Select</label>
+              <select className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500">
                 <option>Option 1</option>
                 <option>Option 2</option>
                 <option>Option 3</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-harbour-700 mb-1">Textarea</label>
+              <label className="block text-sm font-medium text-heading mb-1">Textarea</label>
               <textarea
                 placeholder="Enter text..."
                 rows={3}
-                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+                className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-gap-2">
               <input type="checkbox" id="checkbox-demo" className="w-4 h-4 accent-harbour-600" />
-              <label htmlFor="checkbox-demo" className="text-sm text-harbour-600">
+              <label htmlFor="checkbox-demo" className="text-sm text-body">
                 Checkbox option
               </label>
             </div>
@@ -183,68 +244,69 @@ export default function DesignSystem() {
         </section>
 
         {/* Base UI */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Base UI Components</h2>
-          <div className="p-4 border border-harbour-200 bg-white flex flex-col gap-2">
-            <p className="text-sm text-harbour-600">
-              This project now uses <code>@base-ui/react</code> for advanced interactive controls
-              (for example, multi-select provenance mapping).
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Base UI components</h2>
+          <div className="p-pad-4 border border-line bg-surface flex flex-col gap-gap-2 rounded-panel">
+            <p className="text-sm text-body">
+              <code>@base-ui/react</code> handles controls such as the company multi-select.
             </p>
-            <p className="text-sm text-harbour-500">
-              Keep Base UI primitives unstyled and apply the harbour design language in our own
-              classes: square edges, no shadows, harbour palette, and semantic badges.
+            <p className="text-sm text-muted">
+              Our styles give these controls square corners, a flat surface and harbour colours by
+              default. The studio can change their appearance.
             </p>
           </div>
         </section>
 
-        {/* Cards & Containers */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Cards & Containers</h2>
-          <p className="text-sm text-harbour-500">
-            Use border border-harbour-200 for containers. No shadows, no rounded corners.
+        {/* Cards and containers */}
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Cards and containers</h2>
+          <p className="text-sm text-muted">
+            Use border border-line for containers. No shadows, no rounded corners.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border border-harbour-200 bg-white">
-              <h3 className="font-medium text-harbour-700">Standard Card</h3>
-              <p className="text-sm text-harbour-500 mt-1">border border-harbour-200 bg-white</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+            <div className="p-pad-4 border border-line bg-surface rounded-panel">
+              <h3 className="font-medium text-heading">Standard Card</h3>
+              <p className="text-sm text-muted mt-1">border border-line bg-surface</p>
             </div>
-            <div className="p-4 border border-harbour-200 bg-white hover:border-harbour-400 transition-colors cursor-pointer">
-              <h3 className="font-medium text-harbour-700">Clickable Card</h3>
-              <p className="text-sm text-harbour-500 mt-1">hover:border-harbour-400</p>
+            <div className="p-pad-4 border border-line bg-surface hover:border-harbour-400 transition-colors cursor-pointer rounded-panel">
+              <h3 className="font-medium text-heading">Clickable Card</h3>
+              <p className="text-sm text-muted mt-1">hover:border-harbour-400</p>
             </div>
-            <div className="p-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all cursor-pointer">
-              <h3 className="font-medium text-harbour-700">Ring Card (Directory style)</h3>
-              <p className="text-sm text-harbour-500 mt-1">ring-1 ring-harbour-200/50</p>
+            <div className="p-pad-4 ring-1 ring-harbour-200/50 hover:ring-harbour-300 transition-all cursor-pointer">
+              <h3 className="font-medium text-heading">Ring Card (Directory style)</h3>
+              <p className="text-sm text-muted mt-1">ring-1 ring-harbour-200/50</p>
             </div>
-            <div className="p-4 border border-harbour-200 bg-harbour-50">
-              <h3 className="font-medium text-harbour-700">Muted Background</h3>
-              <p className="text-sm text-harbour-500 mt-1">bg-harbour-50</p>
+            <div className="p-pad-4 border border-line bg-soft">
+              <h3 className="font-medium text-heading">Muted Background</h3>
+              <p className="text-sm text-muted mt-1">bg-soft</p>
             </div>
           </div>
         </section>
 
         {/* Badges */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Badges & Pills</h2>
-          <p className="text-sm text-harbour-500">
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Badges & Pills</h2>
+          <p className="text-sm text-muted">
             Status badges use no rounded corners. Only count badges use rounded-full.
           </p>
-          <div className="flex flex-wrap gap-3 p-4 border border-harbour-200 bg-white">
+          <div className="flex flex-wrap gap-gap-3 p-pad-4 border border-line bg-surface rounded-panel">
             <Badge>Default</Badge>
             <Badge tone="success">Active</Badge>
             <Badge tone="warning">Hidden</Badge>
             <Badge tone="danger">Error</Badge>
             <Badge tone="muted">Removed</Badge>
             <Badge tone="remote">Remote</Badge>
-            <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-700">Hybrid</span>
-            <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700">On-site</span>
+            <span className="text-xs px-pad-1-5 py-pad-0-5 bg-orange-100 text-orange-700">
+              Hybrid
+            </span>
+            <span className="text-xs px-pad-1-5 py-pad-0-5 bg-blue-100 text-blue-700">On-site</span>
           </div>
         </section>
 
         {/* Alerts */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Alerts & Banners</h2>
-          <div className="flex flex-col gap-3">
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Alerts & Banners</h2>
+          <div className="flex flex-col gap-gap-3">
             <Alert tone="danger" title="Error alert">
               Something went wrong. Please try again.
             </Alert>
@@ -258,39 +320,41 @@ export default function DesignSystem() {
           </div>
         </section>
 
-        {/* List Items */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">List Items</h2>
-          <p className="text-sm text-harbour-500">
+        {/* List items */}
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">List items</h2>
+          <p className="text-sm text-muted">
             Admin lists use stacked cards instead of traditional tables.
           </p>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-4 p-4 border border-harbour-200 bg-white">
-              <div className="w-12 h-12 bg-harbour-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-lg text-harbour-400">A</span>
+          <div className="flex flex-col gap-gap-2">
+            <div className="flex items-center gap-gap-4 p-pad-4 border border-line bg-surface rounded-panel">
+              <div className="w-12 h-12 bg-tint flex items-center justify-center flex-shrink-0">
+                <span className="text-lg text-subtle">A</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-harbour-700 truncate">List Item Title</p>
-                <p className="text-sm text-harbour-400">Secondary information</p>
+                <p className="font-medium text-heading truncate">List Item Title</p>
+                <p className="text-sm text-subtle">Secondary information</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">Badge</span>
-                <button className="px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors">
+              <div className="flex items-center gap-gap-2">
+                <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">Badge</span>
+                <button className="px-pad-3 py-pad-1-5 text-sm bg-tint text-heading hover:bg-harbour-200 transition-colors">
                   Edit
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-4 p-4 border border-amber-200 bg-amber-50">
+            <div className="flex items-center gap-gap-4 p-pad-4 border border-amber-200 bg-amber-50">
               <div className="w-12 h-12 bg-amber-100 flex items-center justify-center flex-shrink-0">
                 <span className="text-lg text-amber-600">H</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-harbour-700 truncate">Hidden Item</p>
-                <p className="text-sm text-harbour-400">This item is hidden</p>
+                <p className="font-medium text-heading truncate">Hidden Item</p>
+                <p className="text-sm text-subtle">This item is hidden</p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs px-1.5 py-0.5 bg-amber-200 text-amber-700">Hidden</span>
-                <button className="px-3 py-1.5 text-sm bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors">
+              <div className="flex items-center gap-gap-2">
+                <span className="text-xs px-pad-1-5 py-pad-0-5 bg-amber-200 text-amber-700">
+                  Hidden
+                </span>
+                <button className="px-pad-3 py-pad-1-5 text-sm bg-tint text-heading hover:bg-harbour-200 transition-colors">
                   Edit
                 </button>
               </div>
@@ -299,46 +363,46 @@ export default function DesignSystem() {
         </section>
 
         {/* Tables (when needed) */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Tables</h2>
-          <p className="text-sm text-harbour-500">
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Tables</h2>
+          <p className="text-sm text-muted">
             When tables are needed, use border-collapse with harbour borders.
           </p>
-          <div className="border border-harbour-200 bg-white overflow-hidden">
+          <div className="border border-line bg-surface overflow-x-auto rounded-panel">
             <table className="w-full">
-              <thead className="bg-harbour-50 border-b border-harbour-200">
+              <thead className="bg-soft border-b border-line">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-left text-sm font-medium text-body">
                     Column 1
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-left text-sm font-medium text-body">
                     Column 2
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-left text-sm font-medium text-body">
                     Column 3
                   </th>
-                  <th className="px-4 py-3 text-right text-sm font-medium text-harbour-600">
+                  <th className="px-pad-4 py-pad-3 text-right text-sm font-medium text-body">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-harbour-100">
-                <tr className="hover:bg-harbour-50">
-                  <td className="px-4 py-3 text-harbour-700">Row 1, Col 1</td>
-                  <td className="px-4 py-3 text-sm text-harbour-500">Row 1, Col 2</td>
-                  <td className="px-4 py-3 text-sm text-harbour-500">Row 1, Col 3</td>
-                  <td className="px-4 py-3 text-right">
-                    <button className="px-2 py-1 text-xs bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors">
+                <tr className="hover:bg-soft">
+                  <td className="px-pad-4 py-pad-3 text-heading">Row 1, Col 1</td>
+                  <td className="px-pad-4 py-pad-3 text-sm text-muted">Row 1, Col 2</td>
+                  <td className="px-pad-4 py-pad-3 text-sm text-muted">Row 1, Col 3</td>
+                  <td className="px-pad-4 py-pad-3 text-right">
+                    <button className="px-pad-2 py-pad-1 text-xs bg-tint text-heading hover:bg-harbour-200 transition-colors">
                       Action
                     </button>
                   </td>
                 </tr>
-                <tr className="hover:bg-harbour-50">
-                  <td className="px-4 py-3 text-harbour-700">Row 2, Col 1</td>
-                  <td className="px-4 py-3 text-sm text-harbour-500">Row 2, Col 2</td>
-                  <td className="px-4 py-3 text-sm text-harbour-500">Row 2, Col 3</td>
-                  <td className="px-4 py-3 text-right">
-                    <button className="px-2 py-1 text-xs bg-harbour-100 text-harbour-700 hover:bg-harbour-200 transition-colors">
+                <tr className="hover:bg-soft">
+                  <td className="px-pad-4 py-pad-3 text-heading">Row 2, Col 1</td>
+                  <td className="px-pad-4 py-pad-3 text-sm text-muted">Row 2, Col 2</td>
+                  <td className="px-pad-4 py-pad-3 text-sm text-muted">Row 2, Col 3</td>
+                  <td className="px-pad-4 py-pad-3 text-right">
+                    <button className="px-pad-2 py-pad-1 text-xs bg-tint text-heading hover:bg-harbour-200 transition-colors">
                       Action
                     </button>
                   </td>
@@ -349,44 +413,44 @@ export default function DesignSystem() {
         </section>
 
         {/* Stats */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Stats & Metrics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 border border-harbour-200 bg-white text-center">
-              <div className="text-3xl font-bold text-harbour-600">42</div>
-              <div className="text-sm text-harbour-500">Total Items</div>
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Stats & Metrics</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-gap-4">
+            <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
+              <div className="text-3xl font-bold text-body">42</div>
+              <div className="text-sm text-muted">Total Items</div>
             </div>
-            <div className="p-4 border border-harbour-200 bg-white text-center">
+            <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
               <div className="text-3xl font-bold text-green-600">26</div>
-              <div className="text-sm text-harbour-500">Active</div>
+              <div className="text-sm text-muted">Active</div>
             </div>
-            <div className="p-4 border border-harbour-200 bg-white text-center">
+            <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
               <div className="text-3xl font-bold text-amber-500">8</div>
-              <div className="text-sm text-harbour-500">Hidden</div>
+              <div className="text-sm text-muted">Hidden</div>
             </div>
-            <div className="p-4 border border-harbour-200 bg-white text-center">
+            <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
               <div className="text-3xl font-bold text-slate-400">8</div>
-              <div className="text-sm text-harbour-500">Removed</div>
+              <div className="text-sm text-muted">Removed</div>
             </div>
           </div>
         </section>
 
         {/* Operational patterns */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Operational Patterns</h2>
-          <p className="text-sm text-harbour-500">
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Operational Patterns</h2>
+          <p className="text-sm text-muted">
             Admin states should be immediately scannable: green means the queue is clear, amber
             means attention is needed, and destructive actions remain visually separate.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border border-green-200 bg-green-50 p-4 flex items-center justify-between gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
+            <div className="border border-green-200 bg-green-50 p-pad-4 flex items-center justify-between gap-gap-4">
               <div>
                 <p className="font-medium text-green-700">Everything is reviewed</p>
                 <p className="text-sm text-green-700/80">No events, news, or jobs are waiting.</p>
               </div>
               <Badge tone="success">0 pending</Badge>
             </div>
-            <div className="border border-amber-200 bg-amber-50 p-4 flex items-center justify-between gap-4">
+            <div className="border border-amber-200 bg-amber-50 p-pad-4 flex items-center justify-between gap-gap-4">
               <div>
                 <p className="font-medium text-amber-800">Review needed</p>
                 <p className="text-sm text-amber-700">Items need an operator decision.</p>
@@ -394,9 +458,9 @@ export default function DesignSystem() {
               <Badge tone="warning">8 pending</Badge>
             </div>
           </div>
-          <div className="border border-harbour-200 bg-white p-6 text-center">
-            <p className="font-medium text-harbour-700">Nothing here yet</p>
-            <p className="text-sm text-harbour-400 mt-1">
+          <div className="border border-line bg-surface p-pad-6 text-center rounded-panel">
+            <p className="font-medium text-heading">Nothing here yet</p>
+            <p className="text-sm text-subtle mt-1">
               Empty states should explain whether the user is done or needs to take an action.
             </p>
             <Button size="sm" className="mt-4">
@@ -406,13 +470,14 @@ export default function DesignSystem() {
         </section>
 
         {/* Social preview images */}
-        <section className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold text-harbour-700">Social Preview Images</h2>
-          <p className="text-sm text-harbour-500">
-            OG images are always 1200 × 630. These are live renderers using current data, shown at
-            their real aspect ratio so cropping and long-title problems are visible here first.
+        <section className="flex flex-col gap-gap-4">
+          <h2 className="text-lg font-semibold text-heading">Social Preview Images</h2>
+          <p className="text-sm text-muted">
+            Social images are 1200 × 630. These previews use current content so you can check
+            cropping and long titles. A logo chosen in the studio is added locally; download the PNG
+            to share it. Layout, colours and fonts follow the published social images.
           </p>
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-gap-6">
             <SocialPreview label="Site default" src={`/og.png?preview=${previewToken}`} />
             {eventPreviews.length > 0 ? (
               <SocialPreviewCarousel
@@ -423,7 +488,7 @@ export default function DesignSystem() {
                 }))}
               />
             ) : (
-              <Alert>No upcoming public event is available for an event preview.</Alert>
+              <Alert>There are no upcoming public events to preview.</Alert>
             )}
             {newsPreviews.length > 0 ? (
               <SocialPreviewCarousel
@@ -434,37 +499,22 @@ export default function DesignSystem() {
                 }))}
               />
             ) : (
-              <Alert>No published news item is available for a news preview.</Alert>
+              <Alert>There is no published news to preview.</Alert>
             )}
           </div>
         </section>
 
-        {/* Key Principles */}
-        <section className="flex flex-col gap-4 p-4 border border-harbour-200 bg-harbour-50">
-          <h2 className="text-lg font-semibold text-harbour-700">Key Principles</h2>
-          <ul className="flex flex-col gap-2 text-sm text-harbour-600">
-            <li>
-              <strong>No rounded corners</strong> - Everything uses sharp, square edges
-            </li>
-            <li>
-              <strong>Borders over shadows</strong> - Use border or ring-1 instead of shadow-*
-            </li>
-            <li>
-              <strong>Subtle interactions</strong> - Hover states change border/color, not transform
-            </li>
-            <li>
-              <strong>Consistent spacing</strong> - Use Tailwind's scale: gap-2, gap-3, gap-4, gap-6
-            </li>
-            <li>
-              <strong>harbour-* palette</strong> - Blue-focused, 600 for primary, 700 for headings
-            </li>
-            <li>
-              <strong>White backgrounds</strong> - Cards use bg-white, muted areas use bg-harbour-50
-            </li>
-            <li>
-              <strong>Semantic colors</strong> - Amber for warnings, Red for errors, Green for
-              success
-            </li>
+        {/* Published defaults */}
+        <section className="flex flex-col gap-gap-4 p-pad-4 border border-line bg-soft">
+          <h2 className="text-lg font-semibold text-heading">Published defaults</h2>
+          <ul className="flex flex-col gap-gap-2 text-sm text-body">
+            <li>Cards, inputs and buttons start with square corners.</li>
+            <li>Cards use borders and no shadows. The studio can add depth.</li>
+            <li>Hover states change colour by default. Card lift is optional.</li>
+            <li>Padding and gaps follow separate spacing scales.</li>
+            <li>The harbour palette starts blue: 600 for actions, 700 for headings.</li>
+            <li>Cards start white; muted areas use a lighter palette shade.</li>
+            <li>Amber means warning, red means error, and green means success.</li>
           </ul>
         </section>
       </div>
@@ -490,8 +540,8 @@ function SocialPreviewCarousel({
       title={current.title}
       src={current.src}
       controls={
-        <div className="flex items-center gap-2">
-          <span className="text-xs tabular-nums text-harbour-400">
+        <div className="flex items-center gap-gap-2">
+          <span className="text-xs tabular-nums text-subtle">
             {index + 1} / {items.length}
           </span>
           <Button
@@ -531,32 +581,66 @@ function SocialPreview({
   src: string;
   controls?: ReactNode;
 }) {
+  const preview = useOGPreview(src);
   return (
-    <figure className="border border-harbour-200 bg-white">
-      <div className="px-4 py-3 border-b border-harbour-200 flex flex-wrap items-center justify-between gap-4">
+    <figure className="border border-line bg-surface">
+      <div className="px-pad-4 py-pad-3 border-b border-line flex flex-wrap items-center justify-between gap-gap-4">
         <figcaption className="min-w-0">
-          <span className="font-medium text-harbour-700">{label}</span>
-          {title ? <span className="block text-sm text-harbour-400 truncate">{title}</span> : null}
+          <span className="font-medium text-heading">{label}</span>
+          {title ? <span className="block text-sm text-subtle truncate">{title}</span> : null}
         </figcaption>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-gap-3">
           {controls}
           <a
-            href={src}
+            href={preview.url}
+            aria-disabled={!preview.url}
+            onClick={(event) => {
+              if (!preview.url) event.preventDefault();
+            }}
             target="_blank"
             rel="noreferrer"
-            className="text-sm text-harbour-600 hover:text-harbour-700 whitespace-nowrap"
+            className="text-sm text-body hover:text-heading whitespace-nowrap"
           >
             Open full size
           </a>
+          {preview.url?.startsWith("blob:") && (
+            <a
+              href={preview.url}
+              download="siliconharbour-social-preview.png"
+              className="text-sm text-body hover:text-heading"
+            >
+              Download PNG
+            </a>
+          )}
         </div>
       </div>
-      <div className="bg-harbour-50 p-3">
-        <img
-          src={src}
-          alt={`${label} Open Graph preview`}
-          loading="lazy"
-          className="block w-full aspect-[1200/630] object-contain bg-white border border-harbour-100"
-        />
+      <div className="bg-soft p-pad-3">
+        {preview.error && (
+          <div role="alert">
+            <Alert tone="danger">
+              {preview.error}{" "}
+              <button type="button" onClick={preview.retry}>
+                Try again
+              </button>
+            </Alert>
+          </div>
+        )}
+        {preview.loading && (
+          <div
+            className="aspect-[1200/630] bg-tint flex items-center justify-center text-body"
+            role="status"
+          >
+            Rendering your logo…
+          </div>
+        )}
+        {preview.url && (
+          <img
+            src={preview.url}
+            alt={`${label} Open Graph preview`}
+            loading="lazy"
+            className="block w-full aspect-[1200/630] object-contain bg-surface border border-harbour-100"
+          />
+        )}
       </div>
     </figure>
   );

@@ -244,11 +244,11 @@ export function EventForm({
   return (
     <>
       <Form method="post" className="space-y-6">
-        {error && <div className="p-3 bg-red-100 text-red-700 text-sm">{error}</div>}
+        {error && <div className="p-pad-3 bg-red-100 text-red-700 text-sm">{error}</div>}
 
         {/* Title */}
         <div>
-          <label htmlFor="title" className="block text-sm font-medium mb-1 text-harbour-700">
+          <label htmlFor="title" className="block text-sm font-medium mb-1 text-heading">
             Title *
           </label>
           <input
@@ -257,13 +257,13 @@ export function EventForm({
             name="title"
             required
             defaultValue={event?.title}
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
           />
         </div>
 
         {/* Description */}
         <div>
-          <label htmlFor="description" className="block text-sm font-medium mb-1 text-harbour-700">
+          <label htmlFor="description" className="block text-sm font-medium mb-1 text-heading">
             Description * (Markdown supported)
           </label>
           <textarea
@@ -272,13 +272,13 @@ export function EventForm({
             required
             rows={5}
             defaultValue={event?.description}
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent font-mono text-sm"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent font-mono text-sm"
           />
         </div>
 
         {/* Link */}
         <div>
-          <label htmlFor="link" className="block text-sm font-medium mb-1 text-harbour-700">
+          <label htmlFor="link" className="block text-sm font-medium mb-1 text-heading">
             Event Link *
           </label>
           <input
@@ -288,28 +288,28 @@ export function EventForm({
             required
             defaultValue={event?.link}
             placeholder="https://..."
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
           />
         </div>
 
         {/* Requires Signup */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-gap-3">
           <input
             type="checkbox"
             id="requiresSignup"
             name="requiresSignup"
             checked={requiresSignup}
             onChange={(e) => setRequiresSignup(e.target.checked)}
-            className="w-4 h-4 text-harbour-600 border-harbour-300 focus:ring-harbour-500"
+            className="w-4 h-4 text-body border-harbour-300 focus:ring-harbour-500"
           />
-          <label htmlFor="requiresSignup" className="text-sm text-harbour-700">
+          <label htmlFor="requiresSignup" className="text-sm text-heading">
             Requires signup (changes button text to "Signup for event")
           </label>
         </div>
 
         {/* Location */}
         <div>
-          <label htmlFor="location" className="block text-sm font-medium mb-1 text-harbour-700">
+          <label htmlFor="location" className="block text-sm font-medium mb-1 text-heading">
             Location (optional)
           </label>
           <input
@@ -317,7 +317,7 @@ export function EventForm({
             id="location"
             name="location"
             defaultValue={event?.location || ""}
-            className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
+            className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
           />
         </div>
 
@@ -332,14 +332,14 @@ export function EventForm({
         />
 
         {/* Images */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
           {/* Cover Image */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-harbour-700">Cover Image</label>
+            <label className="block text-sm font-medium mb-2 text-heading">Cover Image</label>
             {generateCoverFromIcon ? (
-              <div className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 bg-harbour-50 px-4 text-center">
-                <span className="text-sm text-harbour-600 font-medium">Will generate on save</span>
-                <span className="mt-1 text-xs text-harbour-400">
+              <div className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 bg-soft px-pad-4 text-center">
+                <span className="text-sm text-body font-medium">Will generate on save</span>
+                <span className="mt-1 text-xs text-subtle">
                   A diagonal gradient from the icon's dominant colors will be used as the cover
                   image.
                 </span>
@@ -357,7 +357,7 @@ export function EventForm({
                     setCoverImagePreview(null);
                     setCoverImageData(null);
                   }}
-                  className="absolute top-2 right-2 p-1 bg-red-600 text-white"
+                  className="absolute top-2 right-2 p-pad-1 bg-red-600 text-white"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -370,7 +370,7 @@ export function EventForm({
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-harbour-50 transition-colors">
+              <label className="flex flex-col items-center justify-center w-full aspect-[3/1] border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-soft transition-colors">
                 <svg
                   className="w-8 h-8 text-harbour-300"
                   fill="none"
@@ -384,7 +384,7 @@ export function EventForm({
                     d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
-                <span className="mt-2 text-sm text-harbour-400">Upload cover (3:1)</span>
+                <span className="mt-2 text-sm text-subtle">Upload cover (3:1)</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -394,7 +394,7 @@ export function EventForm({
               </label>
             )}
             <label
-              className={`mt-2 flex items-center gap-2 text-xs ${iconImagePreview ? "text-harbour-600 cursor-pointer" : "text-harbour-300 cursor-not-allowed"}`}
+              className={`mt-2 flex items-center gap-gap-2 text-xs ${iconImagePreview ? "text-body cursor-pointer" : "text-harbour-300 cursor-not-allowed"}`}
             >
               <input
                 type="checkbox"
@@ -409,7 +409,7 @@ export function EventForm({
 
           {/* Icon Image */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-harbour-700">Icon Image</label>
+            <label className="block text-sm font-medium mb-2 text-heading">Icon Image</label>
             {iconImagePreview ? (
               <div className="relative w-32">
                 <img src={iconImagePreview} alt="Icon preview" className="w-32 h-32 object-cover" />
@@ -419,7 +419,7 @@ export function EventForm({
                     setIconImagePreview(null);
                     setIconImageData(null);
                   }}
-                  className="absolute top-2 right-2 p-1 bg-red-600 text-white"
+                  className="absolute top-2 right-2 p-pad-1 bg-red-600 text-white"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -432,7 +432,7 @@ export function EventForm({
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-harbour-50 transition-colors">
+              <label className="flex flex-col items-center justify-center w-32 h-32 border-2 border-dashed border-harbour-300 cursor-pointer hover:bg-soft transition-colors">
                 <svg
                   className="w-8 h-8 text-harbour-300"
                   fill="none"
@@ -446,7 +446,7 @@ export function EventForm({
                     d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
-                <span className="mt-1 text-xs text-harbour-400">Icon (1:1)</span>
+                <span className="mt-1 text-xs text-subtle">Icon (1:1)</span>
                 <input
                   type="file"
                   accept="image/*"
@@ -496,12 +496,12 @@ export function EventForm({
         {eventType !== "recurring" && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-harbour-700">Event Dates *</label>
+              <label className="block text-sm font-medium text-heading">Event Dates *</label>
               {eventType === "onetime" && (
                 <button
                   type="button"
                   onClick={addDate}
-                  className="text-sm text-harbour-600 hover:text-harbour-700"
+                  className="text-sm text-body hover:text-heading"
                 >
                   + Add Date
                 </button>
@@ -510,9 +510,9 @@ export function EventForm({
 
             <div className="space-y-4">
               {dates.map((dateEntry, index) => (
-                <div key={dateEntry.id} className="p-4 border border-harbour-200 bg-harbour-50/30">
+                <div key={dateEntry.id} className="p-pad-4 border border-line bg-soft/30">
                   <div className="flex items-start justify-between mb-3">
-                    <span className="text-sm font-medium text-harbour-500">Date {index + 1}</span>
+                    <span className="text-sm font-medium text-muted">Date {index + 1}</span>
                     {eventType === "onetime" && dates.length > 1 && (
                       <button
                         type="button"
@@ -524,9 +524,9 @@ export function EventForm({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
                     <div>
-                      <label className="block text-xs text-harbour-500 mb-1">Start Date</label>
+                      <label className="block text-xs text-muted mb-1">Start Date</label>
                       <button
                         type="button"
                         onClick={() =>
@@ -536,12 +536,12 @@ export function EventForm({
                               : `${dateEntry.id}-start`,
                           )
                         }
-                        className="w-full px-3 py-2 text-left border border-harbour-200 bg-white"
+                        className="w-full px-pad-3 py-pad-2 text-left border border-line bg-surface"
                       >
                         {formatInTimezone(dateEntry.startDate, "MMM d, yyyy")}
                       </button>
                       {activeDatePicker === `${dateEntry.id}-start` && (
-                        <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
+                        <div className="absolute z-10 mt-1 bg-surface border border-line rounded-panel">
                           <DayPicker
                             mode="single"
                             selected={dateEntry.startDate}
@@ -558,19 +558,19 @@ export function EventForm({
 
                     {!dateEntry.isAllDay && (
                       <div>
-                        <label className="block text-xs text-harbour-500 mb-1">Start Time</label>
+                        <label className="block text-xs text-muted mb-1">Start Time</label>
                         <input
                           type="time"
                           value={dateEntry.startTime}
                           onChange={(e) => updateDate(dateEntry.id, { startTime: e.target.value })}
-                          className="w-full px-3 py-2 border border-harbour-200 bg-white"
+                          className="w-full px-pad-3 py-pad-2 border border-line bg-surface"
                         />
                       </div>
                     )}
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <label className="flex items-center gap-2 text-sm text-harbour-600">
+                  <div className="mt-3 flex flex-wrap items-center gap-x-gap-4 gap-y-gap-2">
+                    <label className="flex items-center gap-gap-2 text-sm text-body">
                       <input
                         type="checkbox"
                         checked={dateEntry.isAllDay}
@@ -589,7 +589,7 @@ export function EventForm({
                       />
                       {eventType === "period" ? "All-day date range" : "All day (no specific time)"}
                     </label>
-                    <label className="flex items-center gap-2 text-sm text-harbour-600">
+                    <label className="flex items-center gap-gap-2 text-sm text-body">
                       <input
                         type="checkbox"
                         checked={dateEntry.isRange}
@@ -626,9 +626,9 @@ export function EventForm({
 
                       return (
                         <div className="mt-3">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
                             <div>
-                              <label className="block text-xs text-harbour-500 mb-1">
+                              <label className="block text-xs text-muted mb-1">
                                 End Date
                               </label>
                               <button
@@ -640,14 +640,14 @@ export function EventForm({
                                       : `${dateEntry.id}-end`,
                                   )
                                 }
-                                className={`w-full px-3 py-2 text-left border bg-white ${endIsBeforeStart ? "border-red-400" : "border-harbour-200"}`}
+                                className={`w-full px-pad-3 py-pad-2 text-left border bg-surface ${endIsBeforeStart ? "border-red-400" : "border-line"}`}
                               >
                                 {dateEntry.endDate
                                   ? formatInTimezone(dateEntry.endDate, "MMM d, yyyy")
                                   : "Select date"}
                               </button>
                               {activeDatePicker === `${dateEntry.id}-end` && (
-                                <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
+                                <div className="absolute z-10 mt-1 bg-surface border border-line rounded-panel">
                                   <DayPicker
                                     mode="single"
                                     selected={dateEntry.endDate || undefined}
@@ -665,7 +665,7 @@ export function EventForm({
 
                             {!dateEntry.isAllDay && (
                               <div>
-                                <label className="block text-xs text-harbour-500 mb-1">
+                                <label className="block text-xs text-muted mb-1">
                                   End Time
                                 </label>
                                 <input
@@ -674,7 +674,7 @@ export function EventForm({
                                   onChange={(e) =>
                                     updateDate(dateEntry.id, { endTime: e.target.value })
                                   }
-                                  className={`w-full px-3 py-2 border bg-white ${endIsBeforeStart ? "border-red-400" : "border-harbour-200"}`}
+                                  className={`w-full px-pad-3 py-pad-2 border bg-surface ${endIsBeforeStart ? "border-red-400" : "border-line"}`}
                                 />
                               </div>
                             )}
@@ -732,22 +732,22 @@ export function EventForm({
 
         {/* Recurring Event Settings */}
         {eventType === "recurring" && (
-          <div className="p-4 border border-harbour-200 bg-harbour-50/30 space-y-4">
-            <h3 className="text-sm font-medium text-harbour-700">Recurrence Settings</h3>
+          <div className="p-pad-4 border border-line bg-soft/30 space-y-4">
+            <h3 className="text-sm font-medium text-heading">Recurrence Settings</h3>
 
             {/* Series Start Date */}
             <div>
-              <label className="block text-xs text-harbour-500 mb-1">
+              <label className="block text-xs text-muted mb-1">
                 Series Start Date (optional)
               </label>
-              <p className="text-xs text-harbour-400 mb-2">
+              <p className="text-xs text-subtle mb-2">
                 When this series began. Leave empty to use creation date.
               </p>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowRecurrenceStartPicker(!showRecurrenceStartPicker)}
-                  className="w-full md:w-auto px-3 py-2 text-left border border-harbour-200 bg-white"
+                  className="w-full md:w-auto px-pad-3 py-pad-2 text-left border border-line bg-surface"
                 >
                   {recurrenceStartDate
                     ? formatInTimezone(recurrenceStartDate, "MMM d, yyyy")
@@ -763,7 +763,7 @@ export function EventForm({
                   </button>
                 )}
                 {showRecurrenceStartPicker && (
-                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
+                  <div className="absolute z-10 mt-1 bg-surface border border-line rounded-panel">
                     <DayPicker
                       mode="single"
                       selected={recurrenceStartDate || undefined}
@@ -779,11 +779,11 @@ export function EventForm({
 
             {/* Frequency */}
             <div>
-              <label className="block text-xs text-harbour-500 mb-1">Frequency *</label>
+              <label className="block text-xs text-muted mb-1">Frequency *</label>
               <select
                 value={recurrenceFrequency}
                 onChange={(e) => setRecurrenceFrequency(e.target.value as RecurrenceFrequency)}
-                className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500"
               >
                 <option value="weekly">Every week</option>
                 <option value="biweekly">Every other week</option>
@@ -792,14 +792,14 @@ export function EventForm({
             </div>
 
             {/* Day of Week */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
               {recurrenceFrequency === "monthly" && (
                 <div>
-                  <label className="block text-xs text-harbour-500 mb-1">Week of Month *</label>
+                  <label className="block text-xs text-muted mb-1">Week of Month *</label>
                   <select
                     value={monthlyPosition}
                     onChange={(e) => setMonthlyPosition(parseInt(e.target.value, 10))}
-                    className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                    className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500"
                   >
                     {MONTHLY_POSITIONS.map((pos) => (
                       <option key={pos.value} value={pos.value}>
@@ -810,11 +810,11 @@ export function EventForm({
                 </div>
               )}
               <div>
-                <label className="block text-xs text-harbour-500 mb-1">Day of Week *</label>
+                <label className="block text-xs text-muted mb-1">Day of Week *</label>
                 <select
                   value={recurrenceDayOfWeek}
                   onChange={(e) => setRecurrenceDayOfWeek(e.target.value as DayOfWeek)}
-                  className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                  className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500"
                 >
                   {DAYS_OF_WEEK.map((day) => (
                     <option key={day.value} value={day.value}>
@@ -826,18 +826,18 @@ export function EventForm({
             </div>
 
             {/* Default Times */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
               <div>
-                <label className="block text-xs text-harbour-500 mb-1">Start Time *</label>
+                <label className="block text-xs text-muted mb-1">Start Time *</label>
                 <input
                   type="time"
                   value={defaultStartTime}
                   onChange={(e) => setDefaultStartTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                  className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500"
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm text-harbour-600 mb-1">
+                <label className="flex items-center gap-gap-2 text-sm text-body mb-1">
                   <input
                     type="checkbox"
                     checked={hasEndTime}
@@ -851,7 +851,7 @@ export function EventForm({
                     type="time"
                     value={defaultEndTime}
                     onChange={(e) => setDefaultEndTime(e.target.value)}
-                    className="w-full px-3 py-2 border border-harbour-200 bg-white focus:outline-none focus:ring-2 focus:ring-harbour-500"
+                    className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500"
                   />
                 )}
               </div>
@@ -859,13 +859,13 @@ export function EventForm({
 
             {/* Recurrence End Date */}
             <div>
-              <label className="block text-xs text-harbour-500 mb-1">End Date (optional)</label>
-              <p className="text-xs text-harbour-400 mb-2">Leave empty for indefinite recurrence</p>
+              <label className="block text-xs text-muted mb-1">End Date (optional)</label>
+              <p className="text-xs text-subtle mb-2">Leave empty for indefinite recurrence</p>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setShowRecurrenceEndPicker(!showRecurrenceEndPicker)}
-                  className="w-full md:w-auto px-3 py-2 text-left border border-harbour-200 bg-white"
+                  className="w-full md:w-auto px-pad-3 py-pad-2 text-left border border-line bg-surface"
                 >
                   {recurrenceEndDate
                     ? formatInTimezone(recurrenceEndDate, "MMM d, yyyy")
@@ -881,7 +881,7 @@ export function EventForm({
                   </button>
                 )}
                 {showRecurrenceEndPicker && (
-                  <div className="absolute z-10 mt-1 bg-white border border-harbour-200">
+                  <div className="absolute z-10 mt-1 bg-surface border border-line rounded-panel">
                     <DayPicker
                       mode="single"
                       selected={recurrenceEndDate || undefined}
@@ -915,8 +915,8 @@ export function EventForm({
             )}
 
             {/* Preview */}
-            <div className="pt-2 border-t border-harbour-200">
-              <p className="text-sm text-harbour-600">
+            <div className="pt-pad-2 border-t border-line">
+              <p className="text-sm text-body">
                 <strong>Preview:</strong>{" "}
                 {recurrenceFrequency === "weekly" &&
                   `Every ${DAYS_OF_WEEK.find((d) => d.value === recurrenceDayOfWeek)?.label}`}
@@ -934,10 +934,10 @@ export function EventForm({
           </div>
         )}
 
-        <div className="flex gap-4">
+        <div className="flex gap-gap-4">
           <button
             type="submit"
-            className="px-6 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            className="px-pad-6 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
           >
             {event ? "Update Event" : "Create Event"}
           </button>
@@ -946,7 +946,7 @@ export function EventForm({
               type="submit"
               name="intent"
               value="save-and-publish"
-              className="px-4 py-2 bg-green-600 text-white hover:bg-green-700 text-sm font-medium"
+              className="px-pad-4 py-pad-2 bg-green-600 text-white hover:bg-green-700 text-sm font-medium"
             >
               Save &amp; Publish
             </button>
@@ -956,7 +956,7 @@ export function EventForm({
               type="submit"
               name="intent"
               value="save-and-unpublish"
-              className="px-4 py-2 bg-amber-600 text-white hover:bg-amber-700 text-sm font-medium"
+              className="px-pad-4 py-pad-2 bg-amber-600 text-white hover:bg-amber-700 text-sm font-medium"
             >
               Save &amp; Unpublish
             </button>

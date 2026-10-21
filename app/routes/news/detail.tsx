@@ -59,17 +59,17 @@ export default function NewsDetail() {
     useLoaderData<typeof loader>();
 
   return (
-    <div className="max-w-[60ch] mx-auto p-4 py-8">
-      <article className="flex flex-col gap-6">
+    <div className="max-w-[60ch] mx-auto p-pad-4 py-pad-8">
+      <article className="flex flex-col gap-gap-6">
         {article.type === "link" ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold text-harbour-700">{article.title}</h1>
+          <div className="flex flex-col gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <div className="flex items-center gap-gap-2">
+                <h1 className="text-3xl font-bold text-heading">{article.title}</h1>
                 {isAdmin && (
                   <Link
                     to={`/manage/news/${article.id}`}
-                    className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                    className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                     title="Edit"
                   >
                     <svg
@@ -88,10 +88,10 @@ export default function NewsDetail() {
                   </Link>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-harbour-500">
+              <div className="flex items-center gap-gap-2 text-muted">
                 {article.sourceName && (
                   article.sourceEntityUrl ? (
-                    <Link to={article.sourceEntityUrl} className="font-medium hover:text-harbour-700">
+                    <Link to={article.sourceEntityUrl} className="font-medium hover:text-heading">
                       {article.sourceName}
                     </Link>
                   ) : (
@@ -104,7 +104,7 @@ export default function NewsDetail() {
               </div>
             </div>
             {article.excerpt && (
-              <p className="text-harbour-600 text-lg">{article.excerpt}</p>
+              <p className="text-body text-lg">{article.excerpt}</p>
             )}
             {article.content &&
               article.content !== article.excerpt &&
@@ -118,7 +118,7 @@ export default function NewsDetail() {
                 href={article.externalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors self-start"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
               >
                 Read on {article.sourceName || "source"}
                 <svg
@@ -149,13 +149,13 @@ export default function NewsDetail() {
               </TintedImage>
             )}
 
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-bold text-harbour-700">{article.title}</h1>
+            <div className="flex flex-col gap-gap-2">
+              <div className="flex items-center gap-gap-2">
+                <h1 className="text-3xl font-bold text-heading">{article.title}</h1>
                 {isAdmin && (
                   <Link
                     to={`/manage/news/${article.id}`}
-                    className="p-1.5 text-harbour-400 hover:text-harbour-600 hover:bg-harbour-100 transition-colors"
+                    className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                     title="Edit"
                   >
                     <svg
@@ -175,7 +175,7 @@ export default function NewsDetail() {
                 )}
               </div>
               {article.publishedAt && (
-                <p className="text-harbour-500">
+                <p className="text-muted">
                   {format(article.publishedAt, "MMMM d, yyyy")}
                 </p>
               )}

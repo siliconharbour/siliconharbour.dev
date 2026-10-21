@@ -75,26 +75,26 @@ export default function NewProduct() {
   const actionData = useActionData<typeof action>();
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link to="/manage/products" className="text-sm text-harbour-400 hover:text-harbour-600">
+          <Link to="/manage/products" className="text-sm text-subtle hover:text-body">
             &larr; Back to Products
           </Link>
         </div>
 
-        <h1 className="text-2xl font-semibold text-harbour-700">New Product</h1>
+        <h1 className="text-2xl font-semibold text-heading">New Product</h1>
 
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
-        <Form method="post" className="flex flex-col gap-6">
+        <Form method="post" className="flex flex-col gap-gap-6">
           <ManageField label="Name *" htmlFor="name">
             <input
               type="text"
               id="name"
               name="name"
               required
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
@@ -104,7 +104,7 @@ export default function NewProduct() {
               name="description"
               required
               rows={8}
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
               placeholder="Describe the product. You can use [[References]] to link to companies, people, etc."
             />
           </ManageField>
@@ -115,20 +115,20 @@ export default function NewProduct() {
               id="website"
               name="website"
               placeholder="https://..."
-              className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </ManageField>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="type" className="font-medium text-harbour-700">
+          <div className="grid grid-cols-2 gap-gap-4">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="type" className="font-medium text-heading">
                 Type
               </label>
               <select
                 id="type"
                 name="type"
                 defaultValue="other"
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 {productTypes.map((t) => (
                   <option key={t} value={t}>
@@ -138,15 +138,15 @@ export default function NewProduct() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="companyId" className="font-medium text-harbour-700">
+            <div className="flex flex-col gap-gap-2">
+              <label htmlFor="companyId" className="font-medium text-heading">
                 Company
               </label>
               <select
                 id="companyId"
                 name="companyId"
                 defaultValue=""
-                className="px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               >
                 <option value="">None</option>
                 {companies.map((company) => (
@@ -158,7 +158,7 @@ export default function NewProduct() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-6">
             <ImageUpload
               label="Logo"
               name="logoData"

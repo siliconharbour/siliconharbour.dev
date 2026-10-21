@@ -1,3 +1,5 @@
+import { useTheme } from "~/theme/provider";
+import { BRAND_LOGO } from "~/theme/tokens";
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
 import type { SectionKey } from "~/db/schema";
@@ -17,6 +19,7 @@ const navItems: { href: string; label: string; keys?: SectionKey[] }[] = [
 ];
 
 export function Header({ visibility }: { visibility: SectionVisibility }) {
+  const { logo } = useTheme();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -36,23 +39,27 @@ export function Header({ visibility }: { visibility: SectionVisibility }) {
   const handleNavClick = () => setMobileMenuOpen(false);
 
   return (
-    <header className="border-b border-harbour-200/50">
-      <div className="max-w-6xl mx-auto p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/siliconharbour.svg" alt="Silicon Harbour" className="h-8 w-auto" />
-            <span className="font-semibold text-harbour-700">siliconharbour.dev</span>
+    <header className="border-b border-line/50">
+      <div className="max-w-6xl mx-auto p-pad-4 flex items-center justify-between">
+        <div className="flex items-center gap-gap-3">
+          <Link to="/" className="flex items-center gap-gap-3">
+            <img
+              src={logo?.src ?? BRAND_LOGO}
+              alt="Silicon Harbour"
+              className="h-8 w-auto max-w-32 object-contain"
+            />
+            <span className="font-semibold text-heading">siliconharbour.dev</span>
           </Link>
         </div>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex gap-4">
+        <nav className="hidden md:flex gap-gap-4">
           {visibleNavItems.map((item) => (
             <Link
               key={item.href}
               to={item.href}
-              className={`link-inline text-sm hover:text-harbour-700 ${
-                isNavItemActive(item) ? "text-harbour-700 font-medium" : "text-harbour-500"
+              className={`link-inline text-sm hover:text-heading ${
+                isNavItemActive(item) ? "text-heading font-medium" : "text-muted"
               }`}
             >
               {item.label}
@@ -63,7 +70,7 @@ export function Header({ visibility }: { visibility: SectionVisibility }) {
         {/* Mobile hamburger button */}
         <button
           type="button"
-          className="md:hidden p-2 -mr-2 text-harbour-500 hover:text-harbour-700"
+          className="md:hidden p-pad-2 -mr-2 text-muted hover:text-heading"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-expanded={mobileMenuOpen}
           aria-label="Toggle menu"
@@ -92,15 +99,15 @@ export function Header({ visibility }: { visibility: SectionVisibility }) {
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <nav className="md:hidden border-t border-harbour-200/50 bg-white">
-          <div className="max-w-6xl mx-auto px-4 py-2 flex flex-col">
+        <nav className="md:hidden border-t border-line/50 bg-surface">
+          <div className="max-w-6xl mx-auto px-pad-4 py-pad-2 flex flex-col">
             {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}
                 onClick={handleNavClick}
-                className={`link-inline py-3 text-sm border-b border-harbour-100 last:border-0 hover:text-harbour-700 ${
-                  isNavItemActive(item) ? "text-harbour-700 font-medium" : "text-harbour-500"
+                className={`link-inline py-pad-3 text-sm border-b border-harbour-100 last:border-0 hover:text-heading ${
+                  isNavItemActive(item) ? "text-heading font-medium" : "text-muted"
                 }`}
               >
                 {item.label}

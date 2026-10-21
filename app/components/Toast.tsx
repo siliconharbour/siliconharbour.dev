@@ -41,7 +41,7 @@ export function Toast({ message, actionLabel, onAction, onDismiss, duration = 50
         isVisible && !isLeaving ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
       }`}
     >
-      <div className="flex items-center gap-3 px-4 py-3 bg-harbour-800 text-white shadow-lg">
+      <div className="flex items-center gap-gap-3 px-pad-4 py-pad-3 bg-harbour-800 text-white shadow-lg">
         <span className="text-sm">{message}</span>
         {actionLabel && onAction && (
           <button
@@ -53,7 +53,7 @@ export function Toast({ message, actionLabel, onAction, onDismiss, duration = 50
         )}
         <button
           onClick={handleDismiss}
-          className="ml-2 text-harbour-400 hover:text-white"
+          className="ml-2 text-subtle hover:text-white"
           aria-label="Dismiss"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

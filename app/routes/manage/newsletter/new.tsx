@@ -31,19 +31,19 @@ export async function action({ request }: Route.ActionArgs) {
 export default function NewNewsletterCampaign() {
   const actionData = useActionData<typeof action>();
   return (
-    <div className="mx-auto max-w-4xl p-4 md:p-6">
-      <Link to="/manage/newsletter/campaigns" className="text-sm text-harbour-600 underline">&larr; Campaigns</Link>
-      <h1 className="mt-4 text-2xl font-semibold text-harbour-700">New campaign</h1>
-      <p className="mt-1 text-sm text-harbour-500">Write a digest in Markdown. Links to site content can be included in the body.</p>
-      {actionData?.error && <p className="mt-4 border border-red-200 bg-red-50 p-3 text-red-700">{actionData.error}</p>}
+    <div className="mx-auto max-w-4xl p-pad-4 md:p-pad-6">
+      <Link to="/manage/newsletter/campaigns" className="text-sm text-body underline">&larr; Campaigns</Link>
+      <h1 className="mt-4 text-2xl font-semibold text-heading">New campaign</h1>
+      <p className="mt-1 text-sm text-muted">Write a digest in Markdown. Links to site content can be included in the body.</p>
+      {actionData?.error && <p className="mt-4 border border-red-200 bg-red-50 p-pad-3 text-red-700">{actionData.error}</p>}
       <Form method="post" className="mt-6 space-y-4">
-        <label className="block text-sm font-medium text-harbour-700">Subject
-          <input name="subject" required maxLength={255} className="mt-1 block w-full border border-harbour-200 p-2" />
+        <label className="block text-sm font-medium text-heading">Subject
+          <input name="subject" required maxLength={255} className="mt-1 block w-full border border-line p-pad-2" />
         </label>
-        <label className="block text-sm font-medium text-harbour-700">Body (Markdown)
-          <textarea name="bodyMarkdown" required rows={18} className="mt-1 block w-full border border-harbour-200 p-2 font-mono text-sm" />
+        <label className="block text-sm font-medium text-heading">Body (Markdown)
+          <textarea name="bodyMarkdown" required rows={18} className="mt-1 block w-full border border-line p-pad-2 font-mono text-sm" />
         </label>
-        <button className="bg-harbour-600 px-4 py-2 font-medium text-white hover:bg-harbour-700">Save draft</button>
+        <button className="bg-primary px-pad-4 py-pad-2 font-medium text-white hover:bg-primary-hover">Save draft</button>
       </Form>
     </div>
   );

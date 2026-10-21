@@ -37,34 +37,34 @@ function NewsItemRow({
   const isActing = fetcher.state !== "idle";
 
   return (
-    <div className={`flex items-center gap-3 p-3 border border-harbour-200 bg-white ${isActing ? "opacity-50" : ""}`}>
+    <div className={`flex items-center gap-gap-3 p-pad-3 border border-line bg-surface ${isActing ? "opacity-50" : ""}`}>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-harbour-700 truncate">{item.title}</div>
+        <div className="font-medium text-heading truncate">{item.title}</div>
         {item.excerpt && (
-          <p className="text-sm text-harbour-400 line-clamp-1 mt-0.5">{item.excerpt}</p>
+          <p className="text-sm text-subtle line-clamp-1 mt-0.5">{item.excerpt}</p>
         )}
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-gap-2 mt-1">
           {item.publishedAt && (
-            <span className="text-xs text-harbour-400">
+            <span className="text-xs text-subtle">
               {format(item.publishedAt, "MMM d, yyyy")}
             </span>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-gap-1 shrink-0">
         {item.externalUrl && (
           <a
             href={item.externalUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+            className="px-pad-2 py-pad-1 text-xs text-muted hover:text-heading border border-line hover:border-harbour-300"
           >
             View
           </a>
         )}
         <Link
           to={`/news/${item.slug}`}
-          className="px-2 py-1 text-xs text-harbour-500 hover:text-harbour-700 border border-harbour-200 hover:border-harbour-300"
+          className="px-pad-2 py-pad-1 text-xs text-muted hover:text-heading border border-line hover:border-harbour-300"
         >
           Page
         </Link>
@@ -75,7 +75,7 @@ function NewsItemRow({
             <button
               type="submit"
               disabled={isActing}
-              className={`px-2 py-1 text-xs border disabled:opacity-50 disabled:cursor-not-allowed ${action.className}`}
+              className={`px-pad-2 py-pad-1 text-xs border disabled:opacity-50 disabled:cursor-not-allowed ${action.className}`}
             >
               {action.label}
             </button>
@@ -226,12 +226,12 @@ export default function NewsImportSourceDetail() {
     actionData && "intent" in actionData && actionData.intent === "test-feed" ? actionData : null;
 
   return (
-    <div className="min-h-screen p-4 md:p-6">
-      <div className="max-w-5xl mx-auto flex flex-col gap-6">
+    <div className="min-h-screen p-pad-4 md:p-pad-6">
+      <div className="max-w-5xl mx-auto flex flex-col gap-gap-6">
         <div>
           <Link
             to="/manage/import/news"
-            className="text-sm text-harbour-400 hover:text-harbour-600"
+            className="text-sm text-subtle hover:text-body"
           >
             &larr; Back to News Import Sources
           </Link>
@@ -240,13 +240,13 @@ export default function NewsImportSourceDetail() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-harbour-700">{source.name}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-500">
+            <h1 className="text-2xl font-semibold text-heading">{source.name}</h1>
+            <div className="flex items-center gap-gap-2 mt-1">
+              <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-muted">
                 {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] || source.sourceType}
               </span>
               {!source.enabled && (
-                <span className="text-xs px-1.5 py-0.5 bg-red-100 text-red-600">Disabled</span>
+                <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-600">Disabled</span>
               )}
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function NewsImportSourceDetail() {
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-harbour-600 text-white hover:bg-harbour-700 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-pad-4 py-pad-2 bg-primary text-white hover:bg-primary-hover text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? "Syncing..." : "Sync Now"}
             </button>
@@ -264,7 +264,7 @@ export default function NewsImportSourceDetail() {
 
         {/* Sync result */}
         {syncResult && (
-          <div className={`p-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+          <div className={`p-pad-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
             {syncResult.success ? (
               <div>
                 <p className="font-medium text-green-700">Sync completed</p>
@@ -284,48 +284,48 @@ export default function NewsImportSourceDetail() {
 
         {/* Last sync info */}
         {source.lastSyncError && (
-          <div className="p-3 bg-red-50 border border-red-200">
+          <div className="p-pad-3 bg-red-50 border border-red-200">
             <p className="text-sm text-red-700">Last sync error: {source.lastSyncError}</p>
           </div>
         )}
 
         {/* Edit source settings */}
-        <fetcher.Form method="post" className="bg-white border border-harbour-200 p-4 flex flex-col gap-3">
+        <fetcher.Form method="post" className="bg-surface border border-line p-pad-4 flex flex-col gap-gap-3">
           <input type="hidden" name="intent" value="edit-source" />
-          <h2 className="font-medium text-harbour-700">Source Settings</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <h2 className="font-medium text-heading">Source Settings</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-3">
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="name">Name</label>
+              <label className="text-sm text-muted" htmlFor="name">Name</label>
               <input
                 id="name" name="name" type="text"
                 defaultValue={source.name}
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="sourceUrl">Source URL</label>
+              <label className="text-sm text-muted" htmlFor="sourceUrl">Source URL</label>
               <input
                 id="sourceUrl" name="sourceUrl" type="text"
                 defaultValue={source.sourceUrl}
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="sourceIdentifier">
+              <label className="text-sm text-muted" htmlFor="sourceIdentifier">
                 Source Identifier
               </label>
               <input
                 id="sourceIdentifier" name="sourceIdentifier" type="text"
                 defaultValue={source.sourceIdentifier ?? ""}
                 placeholder="For custom scrapers"
-                className="w-full mt-1 px-2 py-1 text-sm font-mono border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm font-mono border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-sm text-harbour-500" htmlFor="keywords">Keywords</label>
-                <div className="flex items-center gap-4 text-xs text-harbour-500">
-                  <label className="flex items-center gap-1.5">
+                <label className="text-sm text-muted" htmlFor="keywords">Keywords</label>
+                <div className="flex items-center gap-gap-4 text-xs text-muted">
+                  <label className="flex items-center gap-gap-1-5">
                     <input
                       type="checkbox" name="useGlobalKeywords"
                       defaultChecked={source.useGlobalKeywords}
@@ -333,7 +333,7 @@ export default function NewsImportSourceDetail() {
                     />
                     Use global
                   </label>
-                  <label className="flex items-center gap-1.5">
+                  <label className="flex items-center gap-gap-1-5">
                     <input
                       type="checkbox" name="useCompanyNameFilter"
                       defaultChecked={source.useCompanyNameFilter}
@@ -347,15 +347,15 @@ export default function NewsImportSourceDetail() {
                 id="keywords" name="keywords" type="text"
                 defaultValue={source.keywords ?? ""}
                 placeholder="Comma-separated, leave empty for all"
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="excerptMode">Excerpt Mode</label>
+              <label className="text-sm text-muted" htmlFor="excerptMode">Excerpt Mode</label>
               <select
                 id="excerptMode" name="excerptMode"
                 defaultValue={source.excerptMode}
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               >
                 {excerptModes.map((mode) => (
                   <option key={mode} value={mode}>{excerptModeLabels[mode]}</option>
@@ -363,16 +363,16 @@ export default function NewsImportSourceDetail() {
               </select>
             </div>
             <div>
-              <label className="text-sm text-harbour-500" htmlFor="entityUrl">Entity Page</label>
+              <label className="text-sm text-muted" htmlFor="entityUrl">Entity Page</label>
               <input
                 id="entityUrl" name="entityUrl" type="text"
                 defaultValue={source.entityUrl ?? ""}
                 placeholder="/directory/companies/technl"
-                className="w-full mt-1 px-2 py-1 text-sm border border-harbour-200 focus:outline-none focus:border-harbour-400"
+                className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
-            <div className="flex items-end pb-1">
-              <label className="flex items-center gap-2 text-sm text-harbour-700">
+            <div className="flex items-end pb-pad-1">
+              <label className="flex items-center gap-gap-2 text-sm text-heading">
                 <input
                   type="checkbox" name="enabled"
                   defaultChecked={source.enabled}
@@ -382,11 +382,11 @@ export default function NewsImportSourceDetail() {
               </label>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-gap-3">
             <button
               type="submit"
               disabled={isLoading}
-              className="px-3 py-1 text-sm bg-harbour-600 text-white hover:bg-harbour-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-pad-3 py-pad-1 text-sm bg-primary text-white hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Save
             </button>
@@ -397,7 +397,7 @@ export default function NewsImportSourceDetail() {
               <span className="text-xs text-red-600">{editResult.error}</span>
             )}
             {source.lastSyncAt && (
-              <span className="text-xs text-harbour-400">
+              <span className="text-xs text-subtle">
                 Last sync: {format(source.lastSyncAt, "MMM d, yyyy h:mm a")}
               </span>
             )}
@@ -405,32 +405,32 @@ export default function NewsImportSourceDetail() {
         </fetcher.Form>
 
         {/* Test feed */}
-        <div className="bg-white border border-harbour-200 p-4 flex flex-col gap-3">
+        <div className="bg-surface border border-line p-pad-4 flex flex-col gap-gap-3 rounded-panel">
           <div className="flex items-center justify-between">
-            <h2 className="font-medium text-harbour-700">Test Feed</h2>
+            <h2 className="font-medium text-heading">Test Feed</h2>
             <fetcher.Form method="post">
               <input type="hidden" name="intent" value="test-feed" />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-3 py-1 text-sm border border-harbour-200 hover:border-harbour-400 text-harbour-600 hover:text-harbour-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-pad-3 py-pad-1 text-sm border border-line hover:border-harbour-400 text-body hover:text-heading disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? "Testing..." : "Test Feed"}
               </button>
             </fetcher.Form>
           </div>
-          <p className="text-xs text-harbour-400">
+          <p className="text-xs text-subtle">
             Fetch the feed and preview items with current settings. Does not import anything.
           </p>
 
           {testResult && "error" in testResult && (
-            <div className="p-3 bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="p-pad-3 bg-red-50 border border-red-200 text-sm text-red-700">
               {testResult.error}
             </div>
           )}
 
           {testResult && "success" in testResult && testResult.items && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-gap-1">
               <p className="text-sm text-green-700">
                 Found {testResult.totalCount} items in feed
               </p>
@@ -438,25 +438,25 @@ export default function NewsImportSourceDetail() {
                 (item, i) => (
                   <div
                     key={i}
-                    className={`p-2 border border-harbour-100 text-sm ${!item.matched ? "opacity-40" : ""}`}
+                    className={`p-pad-2 border border-harbour-100 text-sm ${!item.matched ? "opacity-40" : ""}`}
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-gap-2">
                       <a
                         href={item.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium text-harbour-700 hover:text-harbour-500 truncate"
+                        className="font-medium text-heading hover:text-muted truncate"
                       >
                         {item.title}
                       </a>
                       {!item.matched && (
-                        <span className="text-xs px-1 py-0.5 bg-harbour-100 text-harbour-400 shrink-0">
+                        <span className="text-xs px-pad-1 py-pad-0-5 bg-tint text-subtle shrink-0">
                           filtered
                         </span>
                       )}
                     </div>
                     {item.excerpt && (
-                      <p className="text-xs text-harbour-400 line-clamp-1 mt-0.5">{item.excerpt}</p>
+                      <p className="text-xs text-subtle line-clamp-1 mt-0.5">{item.excerpt}</p>
                     )}
                   </div>
                 ),
@@ -466,28 +466,28 @@ export default function NewsImportSourceDetail() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-gap-3">
           {[
             { label: "Pending", count: source.counts.pending, color: "text-amber-700" },
             { label: "Published", count: source.counts.published, color: "text-green-700" },
-            { label: "Hidden", count: source.counts.hidden, color: "text-harbour-500" },
+            { label: "Hidden", count: source.counts.hidden, color: "text-muted" },
             { label: "Drafts", count: source.counts.drafts, color: "text-blue-700" },
-            { label: "Total", count: source.counts.total, color: "text-harbour-700" },
+            { label: "Total", count: source.counts.total, color: "text-heading" },
           ].map((stat) => (
-            <div key={stat.label} className="p-3 bg-white border border-harbour-200 text-center">
+            <div key={stat.label} className="p-pad-3 bg-surface border border-line text-center rounded-panel">
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.count}</p>
-              <p className="text-xs text-harbour-400">{stat.label}</p>
+              <p className="text-xs text-subtle">{stat.label}</p>
             </div>
           ))}
         </div>
 
         {/* Pending Review */}
         {source.items.pending.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <h2 className="text-lg font-semibold text-heading">
               Pending Review ({source.counts.pending})
             </h2>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-gap-1">
               {source.items.pending.map((item) => (
                 <NewsItemRow
                   key={item.id}
@@ -512,11 +512,11 @@ export default function NewsImportSourceDetail() {
 
         {/* Published */}
         {source.items.published.length > 0 && (
-          <div className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold text-harbour-700">
+          <div className="flex flex-col gap-gap-2">
+            <h2 className="text-lg font-semibold text-heading">
               Published ({source.counts.published})
             </h2>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-gap-1">
               {source.items.published.map((item) => (
                 <NewsItemRow
                   key={item.id}
@@ -536,11 +536,11 @@ export default function NewsImportSourceDetail() {
 
         {/* Hidden */}
         {source.items.hidden.length > 0 && (
-          <details className="flex flex-col gap-2">
-            <summary className="text-lg font-semibold text-harbour-700 cursor-pointer">
+          <details className="flex flex-col gap-gap-2">
+            <summary className="text-lg font-semibold text-heading cursor-pointer">
               Hidden ({source.counts.hidden})
             </summary>
-            <div className="flex flex-col gap-1 mt-2">
+            <div className="flex flex-col gap-gap-1 mt-2">
               {source.items.hidden.map((item) => (
                 <NewsItemRow
                   key={item.id}
@@ -549,7 +549,7 @@ export default function NewsImportSourceDetail() {
                     {
                       label: "Unhide",
                       value: "unhide",
-                      className: "text-harbour-600 hover:bg-harbour-50 border-harbour-200 hover:border-harbour-300",
+                      className: "text-body hover:bg-soft border-line hover:border-harbour-300",
                     },
                   ]}
                 />
@@ -560,19 +560,19 @@ export default function NewsImportSourceDetail() {
 
         {/* Empty state */}
         {source.counts.total === 0 && (
-          <div className="p-8 bg-harbour-50 border border-harbour-200 text-centre">
-            <p className="text-harbour-500 text-center">
+          <div className="p-pad-8 bg-soft border border-line text-centre">
+            <p className="text-muted text-center">
               No news items imported yet. Click &quot;Sync Now&quot; to fetch from this source.
             </p>
           </div>
         )}
 
         {/* Danger Zone */}
-        <details className="border border-harbour-200 bg-white">
-          <summary className="p-4 text-sm font-medium text-red-700 cursor-pointer">
+        <details className="border border-line bg-surface">
+          <summary className="p-pad-4 text-sm font-medium text-red-700 cursor-pointer">
             Danger Zone
           </summary>
-          <div className="p-4 pt-0">
+          <div className="p-pad-4 pt-pad-0">
             <fetcher.Form
               method="post"
               onSubmit={(e) => {
@@ -585,7 +585,7 @@ export default function NewsImportSourceDetail() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-3 py-1.5 text-sm text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-pad-3 py-pad-1-5 text-sm text-red-700 hover:bg-red-50 border border-red-200 hover:border-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Delete Source & All Items
               </button>

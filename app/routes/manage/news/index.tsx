@@ -109,7 +109,7 @@ const typeLabels: Record<NewsType, string> = {
 };
 
 const statusColors: Record<NewsStatus, string> = {
-  draft: "bg-harbour-100 text-harbour-600",
+  draft: "bg-tint text-body",
   pending_review: "bg-amber-100 text-amber-700",
   published: "bg-green-100 text-green-700",
   hidden: "bg-red-100 text-red-700",
@@ -133,16 +133,16 @@ export default function ManageNewsIndex() {
     <ManagePage
       title="News"
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-gap-2">
           <Link
             to="/manage/import/news"
-            className="px-4 py-2 bg-harbour-100 hover:bg-harbour-200 text-harbour-700 font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-tint hover:bg-harbour-200 text-heading font-medium transition-colors"
           >
             Import Sources
           </Link>
           <Link
             to="/manage/news/new"
-            className="px-4 py-2 bg-harbour-600 hover:bg-harbour-700 text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
           >
             New Article
           </Link>
@@ -150,11 +150,11 @@ export default function ManageNewsIndex() {
       }
     >
       {/* Submit URL quick-add */}
-      <div className="border border-harbour-200 bg-white p-4">
-        <fetcher.Form method="post" className="flex items-end gap-3">
+      <div className="border border-line bg-surface p-pad-4 rounded-panel">
+        <fetcher.Form method="post" className="flex items-end gap-gap-3">
           <input type="hidden" name="intent" value="submit-url" />
           <div className="flex-1">
-            <label htmlFor="submit-url" className="block text-sm font-medium text-harbour-700 mb-1">
+            <label htmlFor="submit-url" className="block text-sm font-medium text-heading mb-1">
               Quick Submit URL
             </label>
             <input
@@ -163,13 +163,13 @@ export default function ManageNewsIndex() {
               name="url"
               placeholder="https://example.com/article"
               required
-              className="w-full px-3 py-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              className="w-full px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
             />
           </div>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+            className="px-pad-4 py-pad-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
           >
             {isSubmitting ? "Submitting..." : "Submit Link"}
           </button>
@@ -192,19 +192,19 @@ export default function ManageNewsIndex() {
         <ManageList>
           {articles.map((article) => (
             <ManageListItem key={article.id}>
-              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-medium truncate text-harbour-700">{article.title}</h2>
-                  <span className="text-xs px-1.5 py-0.5 bg-harbour-100 text-harbour-600">
+              <div className="flex-1 min-w-0 flex flex-col gap-gap-0-5">
+                <div className="flex items-center gap-gap-2">
+                  <h2 className="font-medium truncate text-heading">{article.title}</h2>
+                  <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">
                     {typeLabels[article.type as NewsType] || article.type}
                   </span>
                   <span
-                    className={`text-xs px-1.5 py-0.5 ${statusColors[article.status as NewsStatus] || "bg-harbour-100 text-harbour-600"}`}
+                    className={`text-xs px-pad-1-5 py-pad-0-5 ${statusColors[article.status as NewsStatus] || "bg-tint text-body"}`}
                   >
                     {statusLabels[article.status as NewsStatus] || article.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-harbour-400">
+                <div className="flex items-center gap-gap-2 text-sm text-subtle">
                   {article.publishedAt && (
                     <span>{format(article.publishedAt, "MMM d, yyyy")}</span>
                   )}
@@ -215,13 +215,13 @@ export default function ManageNewsIndex() {
               <ManageListActions>
                 <Link
                   to={`/manage/news/${article.id}`}
-                  className="px-3 py-1.5 text-sm font-medium text-harbour-600 hover:bg-harbour-50 transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm font-medium text-body hover:bg-soft transition-colors"
                 >
                   Edit
                 </Link>
                 <Link
                   to={`/manage/news/${article.id}/delete`}
-                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  className="px-pad-3 py-pad-1-5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                 >
                   Delete
                 </Link>
