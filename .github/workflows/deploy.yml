@@ -1,43 +1,50 @@
-name: Build and Push Docker Image to ghcr.io
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
+name: Verify and publish image
 on:
+  pull_request:
   push:
-    branches:
-      - main
-
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
 jobs:
-  build-and-push-image:
+  verify:
     runs-on: ubuntu-latest
-
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - name: Build test environment
+        run: docker build --pull --target development-dependencies-env -t app-tests .
+      - name: Quality gates
+        run: docker run --rm app-tests sh -c 'pnpm run lint && pnpm run typecheck && pnpm run test'
+      - name: Build runtime
+        run: docker build --pull -t app-release .
+      - name: Verify runtime TLS distrust
+        run: docker run --rm -v "$PWD/scripts/check-node-tls.mjs:/check-node-tls.mjs:ro" app-release node /check-node-tls.mjs
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           persist-credentials: false
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+      - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
+          context: .
+          pull: true
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/${{ github.repository }}:main
+            ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
