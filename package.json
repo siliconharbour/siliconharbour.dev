@@ -2,7 +2,6 @@
   "name": "siliconharbour.dev",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=26.12.1 <27" },
   "packageManager": "pnpm@12.11.1",
   "scripts": {
     "build": "react-router build",
