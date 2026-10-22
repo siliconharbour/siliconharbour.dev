@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { rawDb } from "~/db";
 import { fetchPublicImage } from "./public-image-fetch.server";
-import { deleteImage, processAndSaveCoverImage, processAndSaveIconImage } from "./images.server";
+import {
+  deleteImage,
+  processAndSaveCoverImage,
+  processAndSaveIconImage,
+  processAndSaveIconImageWithPadding,
+} from "./images.server";
 import { consumeImageUpload } from "./mcp-image-uploads.server";
 import { ImageInputError } from "./image-input.server";
 import { isImageReferenced } from "./image-orphans.server";
@@ -50,9 +55,11 @@ function targetRow(input: ImageTarget) {
   return { table: target.table, column, filename: row.filename };
 }
 async function attachBytes(input: ImageTarget, bytes: Buffer) {
-  const filename = await (
-    input.role === "cover" ? processAndSaveCoverImage : processAndSaveIconImage
-  )(bytes);
+  const filename = await processTargetImage(input.type, input.role, bytes);
+  return attachFilename(input, filename);
+}
+
+async function attachFilename(input: ImageTarget, filename: string) {
   let previous: string | null;
   try {
     previous = rawDb
@@ -91,4 +98,140 @@ export async function attachImage(input: unknown) {
   const data = attachImageSchema.parse(input);
   targetRow(data);
   return consumeImageUpload(data.uploadId, (bytes) => attachBytes(data, bytes));
+}
+
+export async function deleteUnreferencedImages(filenames: Array<string | null | undefined>) {
+  for (const filename of new Set(filenames)) {
+    if (
+      filename &&
+      /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(filename) &&
+      !isImageReferenced(rawDb, filename)
+    )
+      await deleteImage(filename);
+  }
+}
+
+export async function clearEntityImage(input: ImageTarget) {
+  const target = targetRow(input);
+  rawDb
+    .prepare(
+      `UPDATE \`${target.table}\` SET \`${target.column}\` = NULL, updated_at = ? WHERE id = ?`,
+    )
+    .run(Math.floor(Date.now() / 1000), input.id);
+  await deleteUnreferencedImages([target.filename]);
+  return { cleared: true };
+}
+
+export async function resolveImageBytes(
+  input: Extract<
+    import("zod").infer<typeof import("~/operations/fields").imageInput>,
+    { kind: "url" | "dataUrl" }
+  >,
+): Promise<Buffer> {
+  if (input.kind === "url") return fetchPublicImage(input.url);
+  const { imageContentType, validateImage } = await import("./image-input.server");
+  const match = /^data:([^;,]+);base64,([a-zA-Z0-9+/=\s]+)$/.exec(input.dataUrl);
+  if (!match) throw new ImageInputError("Invalid image data URL");
+  const bytes = Buffer.from(match[2], "base64");
+  await validateImage(bytes, imageContentType(match[1]));
+  return bytes;
+}
+
+export async function withImageBytes<T>(
+  input: Extract<
+    import("zod").infer<typeof import("~/operations/fields").imageInput>,
+    { kind: "url" | "upload" | "dataUrl" }
+  >,
+  run: (bytes: Buffer) => Promise<T>,
+): Promise<T> {
+  if (input.kind === "upload") return consumeImageUpload(input.uploadId, run);
+  return run(await resolveImageBytes(input));
+}
+
+export async function applyEntityImage(
+  input: ImageTarget,
+  image: import("zod").infer<typeof import("~/operations/fields").imageInput> | undefined,
+) {
+  if (!image || image.kind === "keep") return;
+  if (image.kind === "clear") return clearEntityImage(input);
+  if (image.kind === "generateFromIcon") {
+    if (input.role !== "cover")
+      throw new ImageInputError("Only a cover can be generated from an icon");
+    const { readFile } = await import("node:fs/promises");
+    const { generateCoverFromIcon, getImagePath } = await import("./images.server");
+    const icon = targetRow({ ...input, role: "icon" });
+    if (!icon.filename) throw new ImageInputError("Upload an icon before generating a cover");
+    const filename = await generateCoverFromIcon(await readFile(getImagePath(icon.filename)));
+    return attachFilename(input, filename);
+  }
+  return withImageBytes(image, (bytes) => attachBytes(input, bytes));
+}
+
+type ImageCommand = import("zod").infer<typeof import("~/operations/fields").imageInput>;
+type ImageFields = Partial<Record<"avatar" | "logo" | "icon" | "coverImage", string | null>>;
+
+export async function withEntityImages<T>(
+  target: { type: ImageTarget["type"]; id?: number },
+  commands: { icon?: ImageCommand; cover?: ImageCommand },
+  save: (fields: ImageFields) => Promise<T>,
+): Promise<T> {
+  const created: string[] = [];
+  const previous: Array<string | null> = [];
+  const fields: ImageFields = {};
+  const iconField =
+    target.type === "person" ? "avatar" : target.type === "technology" ? "icon" : "logo";
+  const roles = ["icon", "cover"] as const;
+  async function next(index: number): Promise<T> {
+    if (index === roles.length) return save(fields);
+    const role = roles[index];
+    const command = commands[role];
+    if (!command || command.kind === "keep") return next(index + 1);
+    if (!targets[target.type][role])
+      throw new ImageInputError(`${target.type} does not support ${role} images`);
+    const key = role === "cover" ? "coverImage" : iconField;
+    if (target.id !== undefined)
+      previous.push(targetRow({ ...target, id: target.id, role }).filename);
+    if (command.kind === "clear") {
+      fields[key] = null;
+      return next(index + 1);
+    }
+    if (command.kind === "generateFromIcon") {
+      if (role !== "cover") throw new ImageInputError("Only covers can be generated from icons");
+      const icon = Object.hasOwn(fields, iconField)
+        ? fields[iconField]
+        : target.id !== undefined
+          ? targetRow({ ...target, id: target.id, role: "icon" }).filename
+          : null;
+      if (!icon || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(icon))
+        throw new ImageInputError("Upload an icon before generating a cover");
+      const { readFile } = await import("node:fs/promises");
+      const { generateCoverFromIcon, getImagePath } = await import("./images.server");
+      fields[key] = await generateCoverFromIcon(await readFile(getImagePath(icon)));
+      created.push(fields[key]!);
+      return next(index + 1);
+    }
+    return withImageBytes(command, async (bytes) => {
+      fields[key] = await processTargetImage(target.type, role, bytes);
+      created.push(fields[key]!);
+      return next(index + 1);
+    });
+  }
+  try {
+    const result = await next(0);
+    await deleteUnreferencedImages(previous);
+    return result;
+  } catch (error) {
+    await deleteUnreferencedImages(created);
+    throw error;
+  }
+}
+
+function processTargetImage(type: ImageTarget["type"], role: ImageTarget["role"], bytes: Buffer) {
+  return (
+    role === "cover"
+      ? processAndSaveCoverImage
+      : type === "product"
+        ? processAndSaveIconImageWithPadding
+        : processAndSaveIconImage
+  )(bytes);
 }

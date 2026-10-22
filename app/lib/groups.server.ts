@@ -1,3 +1,4 @@
+import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { groups, type Group, type NewGroup } from "~/db/schema";
 import { eq, desc, asc, count, inArray, and } from "drizzle-orm";
@@ -60,7 +61,11 @@ export async function updateGroup(
 }
 
 export async function deleteGroup(id: number): Promise<boolean> {
+  const record = await getGroupById(id);
+  if (!record) return false;
+
   await db.delete(groups).where(eq(groups.id, id));
+  await deleteUnreferencedImages([record.logo, record.coverImage]);
   return true;
 }
 

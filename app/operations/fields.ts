@@ -95,3 +95,56 @@ export function formatValidationError(
     })
     .join("; ");
 }
+
+export * from "~/lib/entity-types";
+export const nullableUrl = () =>
+  nullableText(4096)
+    .transform((value) =>
+      value && !/^[a-z][a-z0-9+.-]*:/i.test(value) ? `https://${value}` : value,
+    )
+    .pipe(z.url({ protocol: /^https?$/ }).nullable());
+export const socialLinks = z
+  .object({ twitter: url().optional(), linkedin: url().optional() })
+  .strict()
+  .nullable();
+export const projectLinks = z
+  .object({
+    github: url().optional(),
+    itchio: url().optional(),
+    website: url().optional(),
+    demo: url().optional(),
+    npm: url().optional(),
+    pypi: url().optional(),
+    steam: url().optional(),
+    appstore: url().optional(),
+    playstore: url().optional(),
+  })
+  .strict()
+  .nullable();
+export const idInput = z.object({ id: id() }).strict();
+export const deleteInput = z.object({ id: id(), confirm }).strict();
+export const adminListInput = z
+  .object({
+    ...pagination,
+    query: z.string().trim().max(500).optional(),
+    visible: z.boolean().optional(),
+  })
+  .strict();
+
+export const imageFileInput = z.discriminatedUnion("kind", [
+  imageInput.options[2],
+  imageInput.options[3],
+  imageInput.options[4],
+]);
+
+export const lookupInput = z
+  .object({
+    id: id().optional(),
+    slug: text("slug", 500).optional(),
+    name: text("name", 300).optional(),
+  })
+  .strict()
+  .superRefine((input, context) => {
+    if (Object.values(input).filter((value) => value !== undefined).length !== 1)
+      context.addIssue({ code: "custom", message: "Supply exactly one of id, slug, or name" });
+  });

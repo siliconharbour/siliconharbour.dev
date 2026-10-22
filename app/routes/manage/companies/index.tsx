@@ -1,12 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useSearchParams, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getHiddenCompaniesCount,
-  getVisibleCompaniesCount,
-  hideAllVisibleCompanies,
-} from "~/lib/companies.server";
+import { getHiddenCompaniesCount, getVisibleCompaniesCount } from "~/lib/companies.server";
 import { db } from "~/db";
 import { companies, jobImportSources } from "~/db/schema";
 import { asc, and, or, eq, isNull, notInArray, count as countFn } from "drizzle-orm";
@@ -154,15 +153,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "hide-all") {
-    const count = await hideAllVisibleCompanies();
-    return { success: true, hidden: count };
-  }
-
-  return { success: false };
+  const form = await request.formData();
+  if (form.get("intent") !== "hide-all") return { success: false };
+  const result = await runAdminOperation(request, operationCatalog.companyHideAllVisible, {
+    confirm: true,
+  });
+  return result.ok
+    ? { success: true, hidden: result.data.hidden }
+    : { success: false, error: result.error };
 }
 
 function FilterButtons({

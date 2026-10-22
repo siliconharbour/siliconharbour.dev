@@ -1,8 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getProductById, deleteProduct } from "~/lib/products.server";
-import { deleteImage } from "~/lib/images.server";
+import { getProductById } from "~/lib/products.server";
+
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
@@ -26,20 +29,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
 
-  const id = parseIdOrThrow(params.id, "product");
-
-  const product = await getProductById(id);
-  if (product) {
-    // Delete associated images
-    if (product.logo) {
-      await deleteImage(product.logo);
-    }
-    if (product.coverImage) {
-      await deleteImage(product.coverImage);
-    }
-  }
-
-  await deleteProduct(id);
+  const result = await runAdminOperation(request, operationCatalog.productDelete, {
+    id: Number(params.id),
+    confirm: true,
+  });
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/products");
 }
 

@@ -1,9 +1,10 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { createProject } from "~/lib/projects.server";
-import { stringifyProjectLinks } from "~/lib/project-links";
-import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { projectTypes, projectStatuses } from "~/db/schema";
 
@@ -18,57 +19,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const type = formData.get("type") as string;
-  const status = formData.get("status") as string;
-
-  // Links
-  const github = (formData.get("github") as string) || undefined;
-  const itchio = (formData.get("itchio") as string) || undefined;
-  const website = (formData.get("website") as string) || undefined;
-  const demo = (formData.get("demo") as string) || undefined;
-  const npm = (formData.get("npm") as string) || undefined;
-  const steam = (formData.get("steam") as string) || undefined;
-
-  if (!name || !description) {
-    return { error: "Name and description are required" };
-  }
-
-  // Process images
-  let logo: string | null = null;
-  let coverImage: string | null = null;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-
-  if (logoData) {
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  }
-
-  if (coverImageData) {
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  }
-
-  const links = stringifyProjectLinks({ github, itchio, website, demo, npm, steam });
-
-  await createProject({
-    name,
-    description,
-    type: type as (typeof projectTypes)[number],
-    status: status as (typeof projectStatuses)[number],
-    links: links || null,
-    logo,
-    coverImage,
+  const result = await runAdminOperation(request, operationCatalog.projectCreate, {
+    ...directoryFormInput("project", form, false),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/projects");
 }
 
@@ -234,6 +190,39 @@ export default function NewProject() {
                   id="npm"
                   name="npm"
                   placeholder="https://npmjs.com/package/..."
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="pypi" className="text-sm text-body">
+                  PyPI
+                </label>
+                <input
+                  type="url"
+                  id="pypi"
+                  name="pypi"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="appstore" className="text-sm text-body">
+                  App Store
+                </label>
+                <input
+                  type="url"
+                  id="appstore"
+                  name="appstore"
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="playstore" className="text-sm text-body">
+                  Google Play
+                </label>
+                <input
+                  type="url"
+                  id="playstore"
+                  name="playstore"
                   className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>

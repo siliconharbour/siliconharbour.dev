@@ -1,13 +1,13 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { createGroup } from "~/lib/groups.server";
-import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
-import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
-import { actionError } from "~/lib/admin/action-result";
-import { createImageFromFormData } from "~/lib/admin/image-fields";
+
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({}: Route.MetaArgs) {
@@ -21,35 +21,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const formData = await request.formData();
-  const schema = z.object({
-    name: zRequiredString("Name"),
-    description: zRequiredString("Description"),
-    website: zOptionalNullableString,
-    meetingFrequency: zOptionalNullableString,
+  const result = await runAdminOperation(request, operationCatalog.groupCreate, {
+    ...directoryFormInput("group", form, false),
   });
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const logo = await createImageFromFormData(formData, "logoData", processAndSaveIconImage);
-  const coverImage = await createImageFromFormData(
-    formData,
-    "coverImageData",
-    processAndSaveCoverImage,
-  );
-
-  await createGroup({
-    name: parsed.data.name,
-    description: parsed.data.description,
-    website: parsed.data.website,
-    meetingFrequency: parsed.data.meetingFrequency,
-    logo,
-    coverImage,
-  });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/groups");
 }
 

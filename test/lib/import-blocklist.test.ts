@@ -104,17 +104,15 @@ describe("getBlockedExternalIds", () => {
     expect(ids.has("CamelCase-ID")).toBe(false);
   });
 
-  it("case mismatch: isBlocked is case-sensitive but getBlockedExternalIds lowercases", async () => {
+  it("matches GitHub keys case-insensitively across lookup methods", async () => {
     await blockItem("github", "MixedCase", "Mixed");
 
-    // isBlocked uses exact match — lowercase won't match
     const exact = await isBlocked("github", "MixedCase");
     const lower = await isBlocked("github", "mixedcase");
 
     expect(exact).toBe(true);
-    expect(lower).toBe(false);
+    expect(lower).toBe(true);
 
-    // getBlockedExternalIds lowercases — only lowercase in Set
     const ids = await getBlockedExternalIds("github");
     expect(ids.has("mixedcase")).toBe(true);
     expect(ids.has("MixedCase")).toBe(false);

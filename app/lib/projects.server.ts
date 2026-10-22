@@ -1,3 +1,4 @@
+import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import {
   projects,
@@ -80,7 +81,15 @@ export async function updateProject(
 }
 
 export async function deleteProject(id: number): Promise<boolean> {
+  const record = await getProjectById(id);
+  if (!record) return false;
+  const gallery = await getProjectImages(id);
   await db.delete(projects).where(eq(projects.id, id));
+  await deleteUnreferencedImages([
+    record.logo,
+    record.coverImage,
+    ...gallery.map((image) => image.image),
+  ]);
   return true;
 }
 
@@ -177,7 +186,10 @@ export async function updateProjectImage(
 }
 
 export async function removeProjectImage(imageId: number): Promise<boolean> {
+  const image = await db.select().from(projectImages).where(eq(projectImages.id, imageId)).get();
+  if (!image) return false;
   await db.delete(projectImages).where(eq(projectImages.id, imageId));
+  await deleteUnreferencedImages([image.image]);
   return true;
 }
 

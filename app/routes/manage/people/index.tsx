@@ -1,3 +1,6 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
@@ -5,7 +8,6 @@ import {
   getPaginatedPeople,
   getHiddenPeopleCount,
   getVisiblePeopleCount,
-  hideAllVisiblePeople,
 } from "~/lib/people.server";
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
@@ -33,15 +35,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "hide-all") {
-    const count = await hideAllVisiblePeople();
-    return { success: true, hidden: count };
-  }
-
-  return { success: false };
+  const form = await request.formData();
+  if (form.get("intent") !== "hide-all") return { success: false };
+  const result = await runAdminOperation(request, operationCatalog.personHideAllVisible, {
+    confirm: true,
+  });
+  return result.ok
+    ? { success: true, hidden: result.data.hidden }
+    : { success: false, error: result.error };
 }
 
 export default function ManagePeopleIndex() {

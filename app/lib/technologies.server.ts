@@ -1,3 +1,4 @@
+import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import {
   technologies,
@@ -75,8 +76,11 @@ export async function updateTechnology(
 }
 
 export async function deleteTechnology(id: number): Promise<boolean> {
-  // Assignments are cascade deleted due to FK constraint
+  const record = await getTechnologyById(id);
+  if (!record) return false;
+
   await db.delete(technologies).where(eq(technologies.id, id));
+  await deleteUnreferencedImages([record.icon]);
   return true;
 }
 
