@@ -10,6 +10,7 @@ export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> =
     name: {
       mapped: {
         companyCreate: "name",
+        jobCreate: "companyName",
         companyUpdate: "name",
       },
     },

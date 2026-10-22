@@ -1,16 +1,15 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/jobs.search";
 import { useState } from "react";
 import { Link, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  searchIndeedWithMatches,
-  searchLinkedInWithMatches,
-  type EnrichedIndeedSearchResult,
-  type EnrichedLinkedInSearchResult,
+import type {
+  EnrichedIndeedSearchResult,
+  EnrichedLinkedInSearchResult,
 } from "~/lib/job-search.server";
 import { JOB_SEARCH_TERMS } from "~/lib/job-search";
-import { createJob } from "~/lib/jobs.server";
-import { getCompanyByName } from "~/lib/companies.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Job Search - siliconharbour.dev" }];
@@ -23,73 +22,48 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-  const intent = formData.get("intent") as string;
-
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "search") {
-    const source = formData.get("source") as string;
-    const query = (formData.get("query") as string)?.trim() || undefined;
-    const location = (formData.get("location") as string)?.trim() || "St. John's, NL";
-
-    try {
-      if (source === "indeed") {
-        const results = await searchIndeedWithMatches({ query, location, limit: 50 });
-        return { intent: "search", source: "indeed", results, error: null };
-      }
-      if (source === "linkedin") {
-        const results = await searchLinkedInWithMatches({ query, location, limit: 50 });
-        return { intent: "search", source: "linkedin", results, error: null };
-      }
-      return { intent: "search", error: "Unknown source" };
-    } catch (e) {
-      return {
-        intent: "search",
-        source,
-        results: [],
-        error: e instanceof Error ? e.message : String(e),
-      };
-    }
-  }
-
-  if (intent === "import") {
-    const title = (formData.get("title") as string)?.trim();
-    const companyName = (formData.get("companyName") as string)?.trim();
-    const description = (formData.get("description") as string)?.trim();
-    const url = (formData.get("url") as string)?.trim();
-    const location = (formData.get("location") as string)?.trim();
-    const salary = (formData.get("salary") as string)?.trim();
-    const isRemote = formData.get("isRemote") === "true";
-
-    if (!title || !url) {
-      return { intent: "import", error: "Title and URL are required" };
-    }
-
-    let companyId: number | null = null;
-    if (companyName) {
-      const company = await getCompanyByName(companyName);
-      if (company) companyId = company.id;
-    }
-
-    const job = await createJob({
-      title,
-      description: description || title,
-      url,
-      companyId,
-      location: location || null,
-      salaryRange: salary || null,
-      workplaceType: isRemote ? "remote" : null,
+    const source = form.get("source");
+    const operation =
+      source === "indeed"
+        ? operationCatalog.jobSearchIndeed
+        : source === "linkedin"
+          ? operationCatalog.jobSearchLinkedIn
+          : null;
+    if (!operation) return { intent: "search", error: "Unknown source" } as const;
+    const result = await runAdminOperation(request, operation, {
+      query: form.get("query") || undefined,
+      location: form.get("location") || undefined,
+      limit: 50,
+      confirm: true,
     });
-
-    return {
-      intent: "import",
-      success: true,
-      jobId: job.id,
-      title: job.title,
-      matched: companyId ? true : false,
-    };
+    return result.ok
+      ? ({ intent: "search", source, results: result.data, error: null } as const)
+      : ({ intent: "search", source, results: [], error: result.error } as const);
   }
-
-  return { error: "Unknown intent" };
+  if (intent === "import") {
+    const result = await runAdminOperation(request, operationCatalog.jobSearchImport, {
+      title: form.get("title"),
+      companyName: form.get("companyName") ?? null,
+      description: form.get("description") ?? null,
+      url: form.get("url"),
+      location: form.get("location") ?? null,
+      salary: form.get("salary") ?? null,
+      isRemote: form.get("isRemote") === "true",
+    });
+    return result.ok
+      ? ({
+          intent: "import",
+          success: true,
+          jobId: result.data.id,
+          title: result.data.title,
+          matched: Boolean(result.data.companyId),
+        } as const)
+      : ({ intent: "import", error: result.error } as const);
+  }
+  return { error: "Unknown intent" } as const;
 }
 
 type SearchResult = EnrichedIndeedSearchResult | EnrichedLinkedInSearchResult;

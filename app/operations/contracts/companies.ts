@@ -1,3 +1,4 @@
+import { technologyProvenanceSourceKeys } from "../fields";
 import { z } from "zod";
 import {
   text,
@@ -14,7 +15,7 @@ export const evidenceGroup = z
   .object({
     technologyIds: z.array(id()).max(500),
     sourceType: z.enum(technologyEvidenceSourceTypes).optional(),
-    sourceKey: z.enum(["job_postings", "get_coding_reference"]).optional(),
+    sourceKey: z.enum(technologyProvenanceSourceKeys).optional(),
     sourceUrl: nullableUrl().default(null),
     lastVerified: z
       .string()

@@ -1,5 +1,6 @@
 export type TechnologyEvidenceSourceType = "job_posting" | "survey" | "manual";
-export type TechnologyProvenanceSourceKey = "job_postings" | "get_coding_reference";
+export const technologyProvenanceSourceKeys = ["job_postings", "get_coding_reference"] as const;
+export type TechnologyProvenanceSourceKey = (typeof technologyProvenanceSourceKeys)[number];
 export const GET_CODING_REFERENCE_URL =
   "https://docs.google.com/spreadsheets/d/1zEpwpRtq_T4bfmG51_esZ8QJZhvM13iA0aahAuCZEX8/edit?gid=0#gid=0";
 

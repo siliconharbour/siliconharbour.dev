@@ -1,7 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/jobs.technl";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { fetchTechNLJobsWithMatches } from "~/lib/technl-jobs.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "TechNL Job Board - Import - siliconharbour.dev" }];
@@ -10,8 +12,9 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   try {
-    const result = await fetchTechNLJobsWithMatches();
-    return { ...result, error: null as string | null };
+    const result = await runAdminOperation(request, operationCatalog.jobTechNLList, {});
+    if (!result.ok) return { jobs: [], fetchedAt: new Date().toISOString(), error: result.error };
+    return { ...result.data, error: null as string | null };
   } catch (err) {
     return {
       jobs: [],
@@ -23,23 +26,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  // The page intentionally has no DB-mutating actions. The "Refresh" button
-  // re-runs the loader, which re-fetches the live RSS feed; we don't store
-  // anything on our side because TechNL is the source of truth.
-  const formData = await request.formData();
-  if (formData.get("intent") === "refresh") {
-    try {
-      const result = await fetchTechNLJobsWithMatches();
-      return { intent: "refresh", success: true, ...result } as const;
-    } catch (err) {
-      return {
-        intent: "refresh",
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      } as const;
-    }
-  }
-  return { success: false, error: "Unknown action" } as const;
+  const form = await request.formData();
+  if (form.get("intent") !== "refresh") return { success: false, error: "Unknown action" } as const;
+  const result = await runAdminOperation(request, operationCatalog.jobTechNLRefresh, {
+    confirm: true,
+  });
+  return result.ok
+    ? ({ intent: "refresh", success: true, ...result.data } as const)
+    : ({ intent: "refresh", success: false, error: result.error } as const);
 }
 
 function formatDate(iso: string | null): string {

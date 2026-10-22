@@ -1,15 +1,17 @@
+import { newsFormInput } from "~/lib/admin/content-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { useState } from "react";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { createNews } from "~/lib/news.server";
-import { processAndSaveCoverImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { newsTypes, type NewsType } from "~/db/schema";
 import { actionError } from "~/lib/admin/action-result";
-import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
-import { createImageFromFormData } from "~/lib/admin/image-fields";
+
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 const typeLabels: Record<NewsType, string> = {
@@ -28,54 +30,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const itemType = (formData.get("type") as string) || "article";
-
-  const baseSchema = {
-    title: zRequiredString("Title"),
-    type: z.enum(newsTypes),
-    excerpt: zOptionalNullableString,
-    status: z.enum(["draft", "published"]).default("draft"),
-  };
-
-  const schema =
-    itemType === "link"
-      ? z.object({
-          ...baseSchema,
-          externalUrl: zRequiredString("URL"),
-          sourceName: zOptionalNullableString,
-          content: zOptionalNullableString,
-        })
-      : z.object({
-          ...baseSchema,
-          content: zRequiredString("Content"),
-          externalUrl: zOptionalNullableString,
-          sourceName: zOptionalNullableString,
-        });
-
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const coverImage =
-    itemType === "article"
-      ? await createImageFromFormData(formData, "coverImageData", processAndSaveCoverImage)
-      : undefined;
-
-  await createNews({
-    title: parsed.data.title,
-    content: parsed.data.content || "",
-    excerpt: parsed.data.excerpt,
-    type: parsed.data.type as NewsType,
-    externalUrl: parsed.data.externalUrl,
-    sourceName: parsed.data.sourceName,
-    status: parsed.data.status,
-    coverImage,
-    publishedAt: parsed.data.status === "published" ? new Date() : null,
+  const form = await request.formData();
+  const result = await runAdminOperation(request, operationCatalog.newsArticleCreate, {
+    ...newsFormInput(form, false),
   });
-
+  if (!result.ok) return actionError(result.error);
   return redirect("/manage/news");
 }
 

@@ -1,15 +1,19 @@
+import { newsFormInput } from "~/lib/admin/content-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsById, updateNews } from "~/lib/news.server";
-import { processAndSaveCoverImage } from "~/lib/images.server";
+import { getNewsById } from "~/lib/news.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import type { NewsType, NewsStatus } from "~/db/schema";
-import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
-import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+import { parseIdOrThrow } from "~/lib/admin/route";
+
 import { actionError } from "~/lib/admin/action-result";
-import { resolveUpdatedImage } from "~/lib/admin/image-fields";
+
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 const typeLabels: Record<NewsType, string> = {
@@ -42,71 +46,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const parsedId = parseIdOrError(params.id, "article");
-  if ("error" in parsedId) return parsedId;
-  const id = parsedId.id;
-
-  const existing = await getNewsById(id);
-  if (!existing) {
-    return actionError("Article not found");
-  }
-
-  const formData = await request.formData();
-  const isLink = existing.type === "link";
-
-  const schema = isLink
-    ? z.object({
-        title: zRequiredString("Title"),
-        content: zOptionalNullableString,
-        excerpt: zOptionalNullableString,
-        externalUrl: zRequiredString("URL"),
-        sourceName: zOptionalNullableString,
-        status: z.enum(["draft", "published", "hidden"]),
-      })
-    : z.object({
-        title: zRequiredString("Title"),
-        content: zRequiredString("Content"),
-        excerpt: zOptionalNullableString,
-        status: z.enum(["draft", "published", "hidden"]),
-      });
-
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const coverImage =
-    existing.type === "article"
-      ? await resolveUpdatedImage({
-          formData,
-          uploadedImageField: "coverImageData",
-          existingImageField: "existingCoverImage",
-          currentImage: existing.coverImage,
-          processor: processAndSaveCoverImage,
-        })
-      : undefined;
-
-  // Handle publish state based on status change
-  let publishedAt: Date | null | undefined = undefined;
-  if (parsed.data.status === "published" && !existing.publishedAt) {
-    publishedAt = new Date();
-  } else if (parsed.data.status !== "published") {
-    // Keep existing publishedAt if going to draft/hidden but was previously published
-    // This preserves the original publish date
-  }
-
-  await updateNews(id, {
-    title: parsed.data.title,
-    content: parsed.data.content || "",
-    excerpt: parsed.data.excerpt,
-    status: parsed.data.status as NewsStatus,
-    ...("externalUrl" in parsed.data && { externalUrl: parsed.data.externalUrl }),
-    ...("sourceName" in parsed.data && { sourceName: parsed.data.sourceName }),
-    ...(coverImage !== undefined && { coverImage }),
-    ...(publishedAt !== undefined && { publishedAt }),
+  const form = await request.formData();
+  const result = await runAdminOperation(request, operationCatalog.newsUpdate, {
+    id: Number(params.id),
+    ...newsFormInput(form, true),
   });
-
+  if (!result.ok) return actionError(result.error);
   return redirect("/manage/news");
 }
 

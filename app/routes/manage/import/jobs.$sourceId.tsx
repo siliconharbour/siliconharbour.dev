@@ -1,200 +1,22 @@
+import { VERAFIN_BROWSER_SCRIPT } from "~/lib/job-importers/verafin-browser-script";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
+import { defaultLastVerifiedMonth, isVerafinManualSource } from "~/lib/job-importers/manual";
 import type { Route } from "./+types/jobs.$sourceId";
 import { Link, useLoaderData, useFetcher, redirect } from "react-router";
 import type { ReactNode } from "react";
 import { requireAdmin } from "~/lib/session.server";
-import type { FetchedJob } from "~/lib/job-importers/types";
-import {
-  getImportSourceWithStats,
-  syncJobs,
-  syncJobsFromFetched,
-  deleteImportSource,
-  updateImportSource,
-  hideImportedJob,
-  unhideImportedJob,
-  markJobNonTechnical,
-  markJobTechnical,
-  approveJob,
-  approveJobAsNonTechnical,
-} from "~/lib/job-importers/sync.server";
+
+import { getImportSourceWithStats } from "~/lib/job-importers/sync.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
+
 import {
-  extractTechnologiesForSource,
-  getTechnologyPreviewForSource,
-} from "~/lib/job-importers/tech-extractor.server";
-import { applyTechnologyEvidenceFromJobMentions } from "~/lib/technologies.server";
-import {
-  getTechnologyProvenanceSourceByKey,
   technologyProvenanceSourceOptions,
   type TechnologyProvenanceSourceKey,
 } from "~/lib/technology-evidence";
 import { categoryLabels, type TechnologyCategory } from "~/lib/technology-categories";
-
-const VERAFIN_SOURCE_ID = 3;
-const VERAFIN_SOURCE_IDENTIFIER = "nasdaq:Global_External_Site:verafin";
-
-function defaultLastVerifiedMonth(): string {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function isVerafinManualSource(source: {
-  id: number;
-  sourceType: string;
-  sourceIdentifier: string;
-}): boolean {
-  return (
-    source.id === VERAFIN_SOURCE_ID &&
-    source.sourceType === "workday" &&
-    source.sourceIdentifier === VERAFIN_SOURCE_IDENTIFIER
-  );
-}
-
-function parseSelectedTechnologyIds(formData: FormData): number[] {
-  return formData
-    .getAll("selectedTechnologyIds")
-    .map((id) => Number(id))
-    .filter((id) => Number.isInteger(id) && id > 0);
-}
-
-function sanitizeManualFetchedJob(input: unknown): FetchedJob | null {
-  if (!input || typeof input !== "object") return null;
-
-  const value = input as Record<string, unknown>;
-  const externalId = typeof value.externalId === "string" ? value.externalId.trim() : "";
-  const title = typeof value.title === "string" ? value.title.trim() : "";
-  if (!externalId || !title) return null;
-
-  const postedAt =
-    typeof value.postedAt === "string" && value.postedAt.trim()
-      ? new Date(value.postedAt)
-      : undefined;
-
-  return {
-    externalId,
-    title,
-    location: typeof value.location === "string" ? value.location.trim() || undefined : undefined,
-    department:
-      typeof value.department === "string" ? value.department.trim() || undefined : undefined,
-    descriptionHtml:
-      typeof value.descriptionHtml === "string"
-        ? value.descriptionHtml.trim() || undefined
-        : undefined,
-    descriptionText:
-      typeof value.descriptionText === "string"
-        ? value.descriptionText.trim() || undefined
-        : undefined,
-    url: typeof value.url === "string" ? value.url.trim() : "",
-    workplaceType:
-      value.workplaceType === "remote" ||
-      value.workplaceType === "onsite" ||
-      value.workplaceType === "hybrid"
-        ? value.workplaceType
-        : undefined,
-    postedAt: postedAt && !Number.isNaN(postedAt.getTime()) ? postedAt : undefined,
-    updatedAt: undefined,
-  };
-}
-
-function parseManualJobsJson(rawJson: string): { jobs?: FetchedJob[]; error?: string } {
-  try {
-    const parsed = JSON.parse(rawJson) as unknown;
-    const list = Array.isArray(parsed)
-      ? parsed
-      : parsed &&
-          typeof parsed === "object" &&
-          Array.isArray((parsed as Record<string, unknown>).jobs)
-        ? ((parsed as Record<string, unknown>).jobs as unknown[])
-        : null;
-
-    if (!list) {
-      return { error: "Manual JSON must be an array of jobs or an object with a jobs array." };
-    }
-
-    const jobs = list.map(sanitizeManualFetchedJob).filter(Boolean) as FetchedJob[];
-    if (jobs.length === 0) {
-      return { error: "No valid jobs found. Each job needs at least externalId and title." };
-    }
-
-    return { jobs };
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : "Invalid JSON payload." };
-  }
-}
-
-const VERAFIN_BROWSER_SCRIPT = String.raw`(async () => {
-  const q = new URL(location.href).searchParams.get("q") ?? "";
-  const m = location.pathname.match(/^\/([^/]+)(?:\/|$)/);
-  if (!m) throw new Error("Could not infer Workday site from URL path.");
-
-  const site = m[1];
-  const company = location.hostname.split(".")[0];
-  const base = location.origin;
-  const apiBase = base + "/wday/cxs/" + company + "/" + site;
-  const headers = { "Accept": "application/json", "Content-Type": "application/json" };
-
-  const list = [];
-  let offset = 0;
-  const limit = 20;
-
-  while (true) {
-    const res = await fetch(apiBase + "/jobs", {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ appliedFacets: {}, limit, offset, searchText: q }),
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Workday list fetch failed: " + res.status + " " + res.statusText);
-
-    const data = await res.json();
-    const postings = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
-    if (postings.length === 0) break;
-    list.push(...postings);
-    offset += postings.length;
-    if (offset >= (Number(data?.total) || 0)) break;
-  }
-
-  const jobs = [];
-  for (const posting of list) {
-    const fallbackId = String(posting.externalPath ?? posting.title ?? "").trim();
-    const fromPath = String(posting.externalPath ?? "").match(/_([A-Z0-9-]+(?:-\d+)?)$/i);
-    const defaultJob = {
-      externalId: fromPath?.[1] || fallbackId,
-      title: String(posting.title ?? "").trim(),
-      location: String(posting.locationsText ?? "").trim() || undefined,
-      url: base + "/" + site + String(posting.externalPath ?? ""),
-    };
-
-    try {
-      const dRes = await fetch(apiBase + String(posting.externalPath ?? ""), {
-        headers: { Accept: "application/json" },
-        credentials: "include",
-      });
-      if (!dRes.ok) {
-        jobs.push(defaultJob);
-        continue;
-      }
-
-      const detail = await dRes.json();
-      const info = detail?.jobPostingInfo ?? {};
-      jobs.push({
-        externalId: String(info.jobReqId || info.id || defaultJob.externalId).trim(),
-        title: String(info.title || defaultJob.title).trim(),
-        location: info.location ? String(info.location).trim() : defaultJob.location,
-        descriptionHtml: typeof info.jobDescription === "string" ? info.jobDescription : undefined,
-        descriptionText: undefined,
-        url: String(info.externalUrl || defaultJob.url).trim(),
-        postedAt: typeof info.startDate === "string" ? info.startDate : undefined,
-      });
-    } catch {
-      jobs.push(defaultJob);
-    }
-  }
-
-  const output = JSON.stringify(jobs, null, 2);
-  console.log(output);
-  if (typeof copy === "function") copy(output);
-})();`;
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
   const companyName = data?.company?.name || "Source";
@@ -221,175 +43,85 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const sourceId = Number(params.sourceId);
-  const source = await getImportSourceWithStats(sourceId);
-  if (!source) {
-    return { success: false, error: "Source not found" };
-  }
-  const company = await getCompanyById(source.companyId);
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
+  const form = await request.formData();
+  const id = Number(params.sourceId);
+  const intent = form.get("intent");
   if (intent === "sync") {
-    const result = await syncJobs(sourceId);
-    return { intent: "sync", ...result };
-  }
-
-  if (intent === "manual-sync") {
-    if (!source || !isVerafinManualSource(source)) {
-      return {
-        intent: "manual-sync",
-        success: false,
-        error: "Manual ingestion is not enabled for this source.",
-      };
-    }
-
-    const rawJson = String(formData.get("manualJobsJson") || "").trim();
-    if (!rawJson) {
-      return {
-        intent: "manual-sync",
-        success: false,
-        error: "Paste the JSON from the browser console output.",
-      };
-    }
-
-    const parsed = parseManualJobsJson(rawJson);
-    if (!parsed.jobs) {
-      return {
-        intent: "manual-sync",
-        success: false,
-        error: parsed.error || "Invalid manual JSON.",
-      };
-    }
-
-    const result = await syncJobsFromFetched(sourceId, parsed.jobs);
-    return { intent: "manual-sync", parsedCount: parsed.jobs.length, ...result };
-  }
-
-  if (intent === "extract-tech-preview") {
-    const extraction = await extractTechnologiesForSource(sourceId);
-    const preview = await getTechnologyPreviewForSource(sourceId);
-
-    return {
-      intent: "extract-tech-preview",
-      success: true,
-      extraction,
-      preview,
-      defaults: {
-        sourceKey: "job_postings",
-        sourceUrl: source.sourceUrl || company?.careersUrl || company?.website || null,
-        lastVerified: defaultLastVerifiedMonth(),
-      },
-    };
-  }
-
-  if (intent === "apply-tech-preview") {
-    const selectedTechnologyIds = parseSelectedTechnologyIds(formData);
-    if (selectedTechnologyIds.length === 0) {
-      return {
-        intent: "apply-tech-preview",
-        success: false,
-        error: "Select at least one technology to apply.",
-      };
-    }
-
-    const sourceKey = String(formData.get("sourceKey") || "job_postings");
-    const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
-    const rawSourceUrl = String(formData.get("sourceUrl") || "").trim() || null;
-    const sourceUrl = sourceDefinition.sourceUrl ?? rawSourceUrl;
-    const lastVerified =
-      String(formData.get("lastVerified") || "").trim() || defaultLastVerifiedMonth();
-
-    const applyResult = await applyTechnologyEvidenceFromJobMentions({
-      companyId: source.companyId,
-      sourceId,
-      selectedTechnologyIds,
-      sourceType: sourceDefinition.sourceType,
-      sourceUrl,
-      lastVerified,
+    const result = await runAdminOperation(request, operationCatalog.jobSourceSync, {
+      id,
+      confirm: true,
     });
-
-    const preview = await getTechnologyPreviewForSource(sourceId);
-    return {
-      intent: "apply-tech-preview",
-      success: true,
-      applyResult,
-      preview,
-      defaults: {
-        sourceKey: sourceDefinition.key,
-        sourceUrl,
-        lastVerified,
-      },
-    };
+    return result.ok
+      ? ({ intent: "sync" as const, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
+  if (intent === "manual-sync") {
+    const result = await runAdminOperation(request, operationCatalog.jobSourceManualSync, {
+      id,
+      json: form.get("manualJobsJson"),
+    });
+    return result.ok
+      ? ({ intent: "manual-sync" as const, ...result.data } as const)
+      : ({ intent: "manual-sync" as const, success: false, error: result.error } as const);
+  }
+  if (intent === "extract-tech-preview") {
+    const result = await runAdminOperation(request, operationCatalog.jobSourceTechPreviewExtract, {
+      id,
+    });
+    return result.ok
+      ? ({ intent: "extract-tech-preview" as const, success: true, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
+  }
+  if (intent === "apply-tech-preview") {
+    const result = await runAdminOperation(request, operationCatalog.jobSourceTechPreviewApply, {
+      id,
+      technologyIds: form.getAll("selectedTechnologyIds").map(Number),
+      sourceKey: form.get("sourceKey") || "job_postings",
+      sourceUrl: form.get("sourceUrl") ?? null,
+      lastVerified: form.get("lastVerified") || undefined,
+    });
+    return result.ok
+      ? ({ intent: "apply-tech-preview" as const, success: true, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
+  }
   if (intent === "delete") {
-    await deleteImportSource(sourceId);
-    return redirect("/manage/import/jobs");
+    const result = await runAdminOperation(request, operationCatalog.jobSourceDelete, {
+      id,
+      confirm: true,
+    });
+    return result.ok
+      ? redirect("/manage/import/jobs")
+      : ({ success: false, error: result.error } as const);
   }
-
-  if (intent === "hide") {
-    const jobId = Number(formData.get("jobId"));
-    if (jobId) {
-      await hideImportedJob(jobId);
-      return { intent: "hide", jobId, success: true };
-    }
-  }
-
-  if (intent === "unhide") {
-    const jobId = Number(formData.get("jobId"));
-    if (jobId) {
-      await unhideImportedJob(jobId);
-      return { intent: "unhide", jobId, success: true };
-    }
-  }
-
-  if (intent === "mark-non-technical") {
-    const jobId = Number(formData.get("jobId"));
-    if (jobId) {
-      await markJobNonTechnical(jobId);
-      return { intent: "mark-non-technical", jobId, success: true };
-    }
-  }
-
-  if (intent === "mark-technical") {
-    const jobId = Number(formData.get("jobId"));
-    if (jobId) {
-      await markJobTechnical(jobId);
-      return { intent: "mark-technical", jobId, success: true };
-    }
-  }
-
-  if (intent === "approve") {
-    const jobId = Number(formData.get("jobId"));
-    if (jobId) {
-      await approveJob(jobId);
-      return { intent: "approve", jobId, success: true };
-    }
-  }
-
-  if (intent === "approve-non-technical") {
-    const jobId = Number(formData.get("jobId"));
-    if (jobId) {
-      await approveJobAsNonTechnical(jobId);
-      return { intent: "approve-non-technical", jobId, success: true };
-    }
-  }
-
   if (intent === "edit-source") {
-    const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
-    const sourceUrl = (formData.get("sourceUrl") as string)?.trim() || null;
-
-    if (!sourceIdentifier) {
-      return { intent: "edit-source", success: false, error: "Identifier is required" };
-    }
-
-    await updateImportSource(sourceId, { sourceIdentifier, sourceUrl });
-    return { intent: "edit-source", success: true };
+    const result = await runAdminOperation(request, operationCatalog.jobSourceUpdate, {
+      id,
+      sourceIdentifier: form.get("sourceIdentifier"),
+      sourceUrl: form.get("sourceUrl") ?? null,
+    });
+    return result.ok
+      ? ({ intent, success: true } as const)
+      : ({ intent, success: false, error: result.error } as const);
   }
-
-  return { success: false, error: "Unknown action" };
+  const statuses = {
+    hide: operationCatalog.jobHide,
+    unhide: operationCatalog.jobUnhide,
+    "mark-non-technical": operationCatalog.jobMarkNonTechnical,
+    "mark-technical": operationCatalog.jobMarkTechnical,
+    approve: operationCatalog.jobApprove,
+    "approve-non-technical": operationCatalog.jobApproveNonTechnical,
+    deactivate: operationCatalog.jobDeactivate,
+  };
+  if (typeof intent !== "string" || !Object.hasOwn(statuses, intent))
+    return { success: false, error: "Unknown action" } as const;
+  const jobId = Number(form.get("jobId"));
+  const result = await runAdminOperation(request, statuses[intent as keyof typeof statuses], {
+    id: jobId,
+    ...(intent === "deactivate" && { reason: form.get("reason") || "filled" }),
+  });
+  return result.ok
+    ? ({ intent: intent as keyof typeof statuses, jobId, success: true } as const)
+    : ({ success: false, error: result.error } as const);
 }
 
 function formatDate(date: Date | null | undefined): string {
@@ -1105,6 +837,17 @@ export default function ViewJobImportSource() {
                           className="px-pad-2 py-pad-1 text-xs bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
                         >
                           Hide
+                        </button>
+                      </fetcher.Form>
+                      <fetcher.Form method="post" className="mt-1">
+                        <input type="hidden" name="intent" value="deactivate" />
+                        <input type="hidden" name="jobId" value={job.id} />
+                        <input type="hidden" name="reason" value="filled" />
+                        <button
+                          type="submit"
+                          className="px-pad-2 py-pad-1 text-xs border border-line text-body hover:bg-soft"
+                        >
+                          Mark filled
                         </button>
                       </fetcher.Form>
                     </td>

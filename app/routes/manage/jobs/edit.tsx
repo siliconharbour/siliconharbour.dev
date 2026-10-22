@@ -1,14 +1,18 @@
+import { jobFormInput } from "~/lib/admin/content-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { getJobById, updateJob } from "~/lib/jobs.server";
+import { getJobById } from "~/lib/jobs.server";
 import { db } from "~/db";
 import { companies } from "~/db/schema";
 import { asc } from "drizzle-orm";
-import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
+import { parseIdOrThrow } from "~/lib/admin/route";
 import { actionError } from "~/lib/admin/action-result";
-import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -41,51 +45,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const parsedId = parseIdOrError(params.id, "job");
-  if ("error" in parsedId) {
-    return parsedId;
-  }
-  const id = parsedId.id;
-
-  const existing = await getJobById(id);
-  if (!existing) {
-    return actionError("Job not found");
-  }
-
-  if (existing.sourceType !== "manual") {
-    return actionError("Cannot edit imported jobs");
-  }
-
-  const formData = await request.formData();
-  const schema = z.object({
-    title: zRequiredString("Title"),
-    description: zRequiredString("Description"),
-    companyId: zOptionalNullableString,
-    location: zOptionalNullableString,
-    department: zOptionalNullableString,
-    workplaceType: z.enum(["remote", "onsite", "hybrid"]).nullable(),
-    salaryRange: zOptionalNullableString,
-    url: zRequiredString("Apply link").url("Apply link must be a valid URL"),
+  const form = await request.formData();
+  const result = await runAdminOperation(request, operationCatalog.jobUpdate, {
+    id: Number(params.id),
+    ...jobFormInput(form),
   });
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const companyId = parsed.data.companyId ? Number.parseInt(parsed.data.companyId, 10) : null;
-
-  await updateJob(id, {
-    title: parsed.data.title,
-    description: parsed.data.description,
-    companyId: companyId || null,
-    location: parsed.data.location,
-    department: parsed.data.department,
-    workplaceType: parsed.data.workplaceType,
-    salaryRange: parsed.data.salaryRange,
-    url: parsed.data.url,
-  });
-
+  if (!result.ok) return actionError(result.error);
   return redirect("/manage/jobs");
 }
 
@@ -216,6 +181,11 @@ export default function EditJob() {
             />
           </ManageField>
 
+          <input type="hidden" name="isTechnicalPresent" value="true" />
+          <label className="flex items-center gap-gap-2 text-sm text-body">
+            <input type="checkbox" name="isTechnical" defaultChecked={job.isTechnical ?? true} />
+            Technical role
+          </label>
           <ManageSubmitButton>Update Job</ManageSubmitButton>
         </Form>
       </div>

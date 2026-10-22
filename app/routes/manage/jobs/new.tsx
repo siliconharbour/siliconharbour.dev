@@ -1,12 +1,16 @@
+import { jobFormInput } from "~/lib/admin/content-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { createJob } from "~/lib/jobs.server";
+
 import { db } from "~/db";
 import { companies } from "~/db/schema";
 import { asc } from "drizzle-orm";
-import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
+
 import { actionError } from "~/lib/admin/action-result";
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
@@ -28,36 +32,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const schema = z.object({
-    title: zRequiredString("Title"),
-    description: zRequiredString("Description"),
-    companyId: zOptionalNullableString,
-    location: zOptionalNullableString,
-    department: zOptionalNullableString,
-    workplaceType: z.enum(["remote", "onsite", "hybrid"]).nullable(),
-    salaryRange: zOptionalNullableString,
-    url: zRequiredString("Apply link").url("Apply link must be a valid URL"),
+  const form = await request.formData();
+  const result = await runAdminOperation(request, operationCatalog.jobCreate, {
+    ...jobFormInput(form),
   });
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const companyId = parsed.data.companyId ? Number.parseInt(parsed.data.companyId, 10) : null;
-
-  await createJob({
-    title: parsed.data.title,
-    description: parsed.data.description,
-    companyId: companyId || null,
-    location: parsed.data.location,
-    department: parsed.data.department,
-    workplaceType: parsed.data.workplaceType,
-    salaryRange: parsed.data.salaryRange,
-    url: parsed.data.url,
-  });
-
+  if (!result.ok) return actionError(result.error);
   return redirect("/manage/jobs");
 }
 
@@ -188,6 +167,11 @@ export default function NewJob() {
             />
           </ManageField>
 
+          <input type="hidden" name="isTechnicalPresent" value="true" />
+          <label className="flex items-center gap-gap-2 text-sm text-body">
+            <input type="checkbox" name="isTechnical" defaultChecked={true} />
+            Technical role
+          </label>
           <ManageSubmitButton>Create Job</ManageSubmitButton>
         </Form>
       </div>

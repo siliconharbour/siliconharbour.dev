@@ -1,17 +1,20 @@
+import { newsSourceFormInput } from "~/lib/admin/content-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/news.new";
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import { redirect } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { createNewsImportSource } from "~/lib/news-importers/sync.server";
+
 import {
   newsSourceTypes,
   sourceTypeLabels,
   excerptModes,
   excerptModeLabels,
 } from "~/lib/news-importers/types";
-import type { NewsSourceType, ExcerptMode } from "~/lib/news-importers/types";
-import { parseRssItems } from "~/lib/news-importers/rss.server";
+
 import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
@@ -23,136 +26,28 @@ export async function loader({ request }: Route.LoaderArgs) {
   return null;
 }
 
-const formSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  sourceType: z.enum(newsSourceTypes),
-  sourceUrl: z.string().trim().min(1, "Source URL is required").url("Must be a valid URL"),
-  sourceIdentifier: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
-    z.string().nullable(),
-  ),
-  keywords: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
-    z.string().nullable(),
-  ),
-  useGlobalKeywords: z.preprocess((v) => v === "on", z.boolean()),
-  useCompanyNameFilter: z.preprocess((v) => v === "on", z.boolean()),
-  excerptMode: z.enum(excerptModes),
-  entityUrl: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
-    z.string().nullable(),
-  ),
-  enabled: z.preprocess((v) => v === "on", z.boolean()),
-});
-
-function matchesKeywords(title: string, excerpt: string | undefined, keywords: string): boolean {
-  const keywordList = keywords
-    .split(",")
-    .map((k) => k.trim().toLowerCase())
-    .filter(Boolean);
-  if (keywordList.length === 0) return true;
-  const searchText = `${title} ${excerpt || ""}`.toLowerCase();
-  return keywordList.some((keyword) => searchText.includes(keyword));
-}
-
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "test-feed") {
-    const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
-    const keywords = (formData.get("keywords") as string)?.trim() || null;
-    const excerptMode = (formData.get("excerptMode") as ExcerptMode) || "description";
-
-    if (!sourceUrl) {
-      return { intent: "test-feed", error: "Source URL is required" };
-    }
-
-    try {
-      const response = await fetch(sourceUrl, {
-        headers: {
-          "User-Agent": "siliconharbour.dev news aggregator",
-          Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
-        },
-      });
-
-      if (!response.ok) {
-        return {
-          intent: "test-feed",
-          error: `Feed returned ${response.status} ${response.statusText}`,
-        };
-      }
-
-      const xml = await response.text();
-      const allItems = parseRssItems(xml, excerptMode);
-
-      const items = allItems.map((item) => ({
-        title: item.title,
-        url: item.url,
-        excerpt: item.excerpt?.slice(0, 200) || null,
-        publishedAt: item.publishedAt?.toISOString() || null,
-        matched: keywords ? matchesKeywords(item.title, item.excerpt, keywords) : true,
-      }));
-
-      const matchedCount = items.filter((i) => i.matched).length;
-
-      return {
-        intent: "test-feed",
-        success: true,
-        items,
-        totalCount: allItems.length,
-        matchedCount,
-        filteredCount: allItems.length - matchedCount,
-      };
-    } catch (e) {
-      return {
-        intent: "test-feed",
-        error: e instanceof Error ? e.message : String(e),
-      };
-    }
-  }
-
-  // Default: create source
-  const values: Record<string, FormDataEntryValue> = {};
-  for (const [key, value] of formData.entries()) {
-    values[key] = value;
-  }
-  if (!formData.has("enabled")) {
-    values.enabled = "" as FormDataEntryValue;
-  }
-  if (!formData.has("useGlobalKeywords")) {
-    values.useGlobalKeywords = "" as FormDataEntryValue;
-  }
-  if (!formData.has("useCompanyNameFilter")) {
-    values.useCompanyNameFilter = "" as FormDataEntryValue;
-  }
-
-  const parsed = formSchema.safeParse(values);
-  if (!parsed.success) {
-    const firstIssue = parsed.error.issues[0];
-    return { error: firstIssue?.message ?? "Invalid form data" };
-  }
-
-  try {
-    await createNewsImportSource({
-      name: parsed.data.name,
-      sourceType: parsed.data.sourceType as NewsSourceType,
-      sourceUrl: parsed.data.sourceUrl,
-      sourceIdentifier: parsed.data.sourceIdentifier,
-      keywords: parsed.data.keywords,
-      useGlobalKeywords: parsed.data.useGlobalKeywords,
-      useCompanyNameFilter: parsed.data.useCompanyNameFilter,
-      excerptMode: parsed.data.excerptMode,
-      entityUrl: parsed.data.entityUrl,
-      enabled: parsed.data.enabled,
+  const form = await request.formData();
+  if (form.get("intent") === "test-feed") {
+    const result = await runAdminOperation(request, operationCatalog.newsSourceTestFeed, {
+      sourceUrl: form.get("sourceUrl"),
+      keywords: form.get("keywords") ?? null,
+      excerptMode: form.get("excerptMode") || "description",
+      confirm: true,
     });
-
-    return redirect("/manage/import/news");
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : String(e) };
+    return result.ok
+      ? ({ intent: "test-feed" as const, success: true, ...result.data } as const)
+      : ({ intent: "test-feed" as const, error: result.error } as const);
   }
+  const result = await runAdminOperation(
+    request,
+    operationCatalog.newsSourceCreate,
+    newsSourceFormInput(form, false),
+  );
+  return result.ok
+    ? redirect(`/manage/import/news/${result.data.id}`)
+    : ({ error: result.error } as const);
 }
 
 export default function NewNewsImportSource() {
@@ -351,7 +246,7 @@ export default function NewNewsImportSource() {
             </div>
           )}
 
-          {testResult.success && testResult.items && (
+          {"items" in testResult && (
             <>
               <div className="p-pad-3 bg-green-50 border border-green-200 text-green-700 text-sm">
                 Found {testResult.totalCount} items

@@ -1,3 +1,4 @@
+import { fetchPublicFeed } from "./feed-fetch.server";
 /**
  * RSS/Atom Feed Importer
  * Fetches and parses RSS/Atom feeds to extract news items
@@ -192,18 +193,7 @@ export const rssImporter: NewsImporter = {
     description: "Import news from RSS or Atom feeds",
   },
   async fetchItems(config: NewsImportSourceConfig): Promise<FetchedNewsItem[]> {
-    const response = await fetch(config.sourceUrl, {
-      headers: {
-        "User-Agent": "siliconharbour.dev news aggregator",
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`);
-    }
-
-    const xml = await response.text();
+    const xml = await fetchPublicFeed(config.sourceUrl);
     return parseRssItems(xml, config.excerptMode || "description");
   },
 };

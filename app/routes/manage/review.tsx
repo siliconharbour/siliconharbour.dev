@@ -3,13 +3,8 @@ import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { getAllPendingEvents } from "~/lib/event-importers/sync.server";
-import {
-  approveJob,
-  approveJobAsNonTechnical,
-  getAllPendingJobs,
-  hideImportedJob,
-} from "~/lib/job-importers/sync.server";
-import { approveNewsItem, getAllPendingNews, hideNewsItem } from "~/lib/news-importers/sync.server";
+import { getAllPendingJobs } from "~/lib/job-importers/sync.server";
+import { getAllPendingNews } from "~/lib/news-importers/sync.server";
 import { requireAdmin } from "~/lib/session.server";
 import { formatInTimezone } from "~/lib/timezone";
 
@@ -52,22 +47,25 @@ export async function action({ request }: Route.ActionArgs) {
       : { success: false, error: result.error };
   }
 
-  if (kind === "news") {
-    if (reviewAction === "approve") await approveNewsItem(id);
-    else if (reviewAction === "hide") await hideNewsItem(id);
-    else return { success: false, error: "Unknown news review action." };
-    return { success: true, kind, reviewAction };
-  }
-
-  if (kind === "job") {
-    if (reviewAction === "approve") await approveJob(id);
-    else if (reviewAction === "approve-non-technical") await approveJobAsNonTechnical(id);
-    else if (reviewAction === "hide") await hideImportedJob(id);
-    else return { success: false, error: "Unknown job review action." };
-    return { success: true, kind, reviewAction };
-  }
-
-  return { success: false, error: "Unknown review action." };
+  const operations = {
+    news: { approve: operationCatalog.newsApprove, hide: operationCatalog.newsHide },
+    job: {
+      approve: operationCatalog.jobApprove,
+      hide: operationCatalog.jobHide,
+      "approve-non-technical": operationCatalog.jobApproveNonTechnical,
+    },
+  };
+  if (kind !== "news" && kind !== "job") return { success: false, error: "Unknown review kind" };
+  const actions: Record<
+    string,
+    typeof operationCatalog.newsApprove | typeof operationCatalog.jobApprove
+  > = operations[kind];
+  const operation = actions[reviewAction];
+  if (!operation) return { success: false, error: "Unknown review action" };
+  const result = await runAdminOperation(request, operation, { id });
+  return result.ok
+    ? { success: true, kind, reviewAction }
+    : { success: false, error: result.error };
 }
 
 function ReviewButton({

@@ -47,6 +47,7 @@ export async function createJob(job: {
   department?: string | null;
   workplaceType?: "remote" | "onsite" | "hybrid" | null;
   salaryRange?: string | null;
+  isTechnical?: boolean;
   url: string; // apply link
 }): Promise<Job> {
   const slug = await generateJobSlug(job.title);
@@ -64,6 +65,7 @@ export async function createJob(job: {
       workplaceType: job.workplaceType,
       salaryRange: job.salaryRange,
       url: job.url,
+      isTechnical: job.isTechnical ?? true,
       sourceType: "manual",
       status: "active",
       postedAt: now,
@@ -94,6 +96,7 @@ export async function updateJob(
     department: string | null;
     workplaceType: "remote" | "onsite" | "hybrid" | null;
     salaryRange: string | null;
+    isTechnical: boolean;
     url: string;
     status: "active" | "removed" | "filled" | "expired" | "hidden";
   }>,
@@ -501,4 +504,17 @@ export async function getJobBySlugWithCompany(slug: string): Promise<JobWithComp
   }
 
   return { ...job, company };
+}
+
+export async function deactivateJob(id: number, reason: "removed" | "filled" | "expired") {
+  const now = new Date();
+  return (
+    (
+      await db
+        .update(jobs)
+        .set({ status: reason, removedAt: now, updatedAt: now })
+        .where(eq(jobs.id, id))
+        .returning()
+    )[0] ?? null
+  );
 }

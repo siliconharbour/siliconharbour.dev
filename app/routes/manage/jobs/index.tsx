@@ -1,3 +1,6 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/index";
 import { Link, Form, useLoaderData, redirect } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
@@ -14,7 +17,6 @@ import {
   ManageListEmpty,
   ManageListItem,
 } from "~/components/manage/ManageList";
-import { deleteJob, getJobById } from "~/lib/jobs.server";
 
 const PER_PAGE = 50;
 
@@ -72,27 +74,15 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "hard-delete") {
-    const jobId = Number(formData.get("jobId"));
-    if (!jobId) {
-      return { success: false, error: "Invalid job ID." };
-    }
-
-    const job = await getJobById(jobId);
-    if (!job) {
-      return { success: false, error: "Job not found." };
-    }
-
-    await deleteJob(jobId);
-    const url = new URL(request.url);
-    return redirect(`${url.pathname}${url.search}`);
-  }
-
-  return { success: false, error: "Unknown action." };
+  const form = await request.formData();
+  if (form.get("intent") !== "hard-delete") return { success: false, error: "Unknown action." };
+  const result = await runAdminOperation(request, operationCatalog.jobDelete, {
+    id: Number(form.get("jobId")),
+    confirm: true,
+  });
+  if (!result.ok) return { success: false, error: result.error };
+  const url = new URL(request.url);
+  return redirect(`${url.pathname}${url.search}`);
 }
 
 export default function ManageJobsIndex() {

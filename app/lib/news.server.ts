@@ -1,3 +1,4 @@
+import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { news, type News, type NewNews, type NewsType, newsTypes } from "~/db/schema";
 import { eq, desc, and, count, inArray } from "drizzle-orm";
@@ -57,7 +58,9 @@ export async function updateNews(
 }
 
 export async function deleteNews(id: number): Promise<boolean> {
+  const record = await getNewsById(id);
   await db.delete(news).where(eq(news.id, id));
+  if (record) await deleteUnreferencedImages([record.coverImage]);
   return true;
 }
 

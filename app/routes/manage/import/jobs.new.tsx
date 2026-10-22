@@ -1,10 +1,13 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/jobs.new";
 import { Form, Link, useLoaderData, useActionData, useNavigation, redirect } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 import { getAllCompanies } from "~/lib/companies.server";
-import { createImportSource, getAllImportSources } from "~/lib/job-importers/sync.server";
-import { getImporter, getAvailableSourceTypes } from "~/lib/job-importers";
-import { sourceTypeLabels, type JobSourceType } from "~/lib/job-importers/types";
+import { getAllImportSources } from "~/lib/job-importers/sync.server";
+import { getAvailableSourceTypes } from "~/lib/job-importers";
+import { sourceTypeLabels } from "~/lib/job-importers/types";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Add Job Import Source - siliconharbour.dev" }];
@@ -36,50 +39,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const companyId = Number(formData.get("companyId"));
-  const sourceType = formData.get("sourceType") as JobSourceType;
-  const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
-  const sourceUrl = (formData.get("sourceUrl") as string)?.trim() || null;
-
-  // Validate required fields
-  if (!companyId) {
-    return { error: "Please select a company" };
-  }
-  if (!sourceType) {
-    return { error: "Please select a source type" };
-  }
-  if (!sourceIdentifier) {
-    return { error: "Please enter a source identifier" };
-  }
-
-  // Validate with the importer
-  try {
-    const importer = getImporter(sourceType);
-    const validation = await importer.validateConfig({
-      companyId,
-      sourceType,
-      sourceIdentifier,
-      sourceUrl,
-    });
-
-    if (!validation.valid) {
-      return { error: validation.error || "Invalid configuration" };
-    }
-
-    // Create the source
-    const sourceId = await createImportSource({
-      companyId,
-      sourceType,
-      sourceIdentifier,
-      sourceUrl,
-    });
-
-    return redirect(`/manage/import/jobs/${sourceId}`);
-  } catch (e) {
-    return { error: e instanceof Error ? e.message : String(e) };
-  }
+  const form = await request.formData();
+  const result = await runAdminOperation(request, operationCatalog.jobSourceCreate, {
+    companyId: Number(form.get("companyId")),
+    sourceType: form.get("sourceType"),
+    sourceIdentifier: form.get("sourceIdentifier"),
+    sourceUrl: form.get("sourceUrl") ?? null,
+    confirm: true,
+  });
+  return result.ok
+    ? redirect(`/manage/import/jobs/${result.data.id}`)
+    : ({ error: result.error } as const);
 }
 
 export default function NewJobImportSource() {
