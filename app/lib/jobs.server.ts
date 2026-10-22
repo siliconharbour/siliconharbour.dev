@@ -5,10 +5,11 @@ import {
   jobImportSources,
   type Job,
   type JobStatus,
+  type JobSourceType,
   type NewJob,
   type WorkplaceType,
 } from "~/db/schema";
-import { eq, desc, and, count, inArray, isNotNull, like, gte } from "drizzle-orm";
+import { eq, desc, and, count, inArray, isNotNull, isNull, like, gte } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
@@ -245,7 +246,8 @@ export async function getPaginatedJobs(
   options?: {
     includeNonTechnical?: boolean;
     companyId?: number;
-    sourceId?: number;
+    sourceId?: number | null;
+    sourceType?: JobSourceType;
     status?: JobStatus | "all";
     isTechnical?: boolean;
     workplaceType?: WorkplaceType;
@@ -269,8 +271,12 @@ export async function getPaginatedJobs(
     baseConditions.push(eq(jobs.companyId, options.companyId));
   }
   if (options?.sourceId !== undefined) {
-    baseConditions.push(eq(jobs.sourceId, options.sourceId));
+    baseConditions.push(
+      options.sourceId === null ? isNull(jobs.sourceId) : eq(jobs.sourceId, options.sourceId),
+    );
   }
+  if (options?.sourceType !== undefined)
+    baseConditions.push(eq(jobs.sourceType, options.sourceType));
   if (options?.workplaceType !== undefined) {
     baseConditions.push(eq(jobs.workplaceType, options.workplaceType));
   }

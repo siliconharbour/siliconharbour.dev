@@ -79,11 +79,14 @@ export const jobListInput = z
   .object({
     ...pagination,
     query: z.string().max(500).optional(),
-    status: z.enum(jobStatuses).optional(),
+    status: z.union([z.enum(jobStatuses), z.literal("all")]).optional(),
     sourceId: id().nullable().optional(),
     companyId: id().optional(),
     isTechnical: z.boolean().optional(),
     sourceType: z.enum(jobSourceTypes).optional(),
+    workplaceType: z.enum(workplaceTypes).optional(),
+    location: z.string().trim().max(500).optional(),
+    lastSeenAfter: z.iso.datetime({ offset: true }).optional(),
   })
   .strict();
 export const jobDeactivateInput = z

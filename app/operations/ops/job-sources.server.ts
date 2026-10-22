@@ -42,6 +42,7 @@ export const jobSourceOperations = {
     output: z.array(
       jobSourceOutput
         .extend({
+          companyName: z.string().nullable(),
           activeJobCount: z.number(),
           pendingReviewCount: z.number(),
           hiddenJobCount: z.number(),

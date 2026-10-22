@@ -1,3 +1,4 @@
+import { getPaginatedJobs } from "~/lib/jobs.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError, ConflictError } from "../errors";
@@ -24,21 +25,33 @@ export const jobOperations = {
     description:
       "Return a bounded page, including hidden, nontechnical, and imported jobs. Filter by title, status, company, source, or technical classification.",
     input: jobListInput,
-    output: z.array(jobOutput),
+    output: z.array(
+      jobOutput
+        .extend({
+          companyName: z.string().nullable(),
+          companyLogo: z.string().nullable(),
+          importSourceType: z.string().nullable(),
+          importSourceIdentifier: z.string().nullable(),
+          importSourceUrl: z.string().nullable(),
+        })
+        .strict(),
+    ),
     examples: [{ title: "Pending jobs", input: { status: "pending_review" } }],
     run: async (_ctx, input) =>
       toPlain(
-        (await getAllJobs())
-          .filter(
-            (job) =>
-              (!input.query || job.title.toLowerCase().includes(input.query.toLowerCase())) &&
-              (input.status === undefined || job.status === input.status) &&
-              (input.companyId === undefined || job.companyId === input.companyId) &&
-              (input.sourceId === undefined || job.sourceId === input.sourceId) &&
-              (input.sourceType === undefined || job.sourceType === input.sourceType) &&
-              (input.isTechnical === undefined || job.isTechnical === input.isTechnical),
-          )
-          .slice(input.offset, input.offset + input.limit),
+        (
+          await getPaginatedJobs(input.limit, input.offset, input.query, {
+            includeNonTechnical: true,
+            companyId: input.companyId,
+            sourceId: input.sourceId,
+            sourceType: input.sourceType,
+            status: input.status ?? "all",
+            isTechnical: input.isTechnical,
+            workplaceType: input.workplaceType,
+            location: input.location,
+            lastSeenAfter: input.lastSeenAfter ? new Date(input.lastSeenAfter) : undefined,
+          })
+        ).items,
       ),
   }),
   jobGet: defineOperation({
