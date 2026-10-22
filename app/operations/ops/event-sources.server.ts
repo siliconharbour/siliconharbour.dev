@@ -23,7 +23,7 @@ import {
 } from "~/lib/event-importers/sync.server";
 import { syncAllEventSources } from "~/lib/event-importers/sync-all.server";
 import { orderEventSourcesForSync } from "~/lib/event-importers/source-order";
-import { startAsyncSync } from "~/mcp/async-syncs";
+import { startAsyncSync } from "~/lib/async-syncs.server";
 async function requireSource(id: number) {
   const source = await getEventImportSourceById(id);
   if (!source) throw new NotFoundError("Event source not found");

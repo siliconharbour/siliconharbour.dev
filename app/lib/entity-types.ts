@@ -118,3 +118,6 @@ export const discordChannelTypes = ["events", "jobs"] as const;
 export const discordPostItemTypes = ["event", "job"] as const;
 
 export const educationTypes = ["university", "college", "bootcamp", "online", "other"] as const;
+
+export const importJobStatuses = ["idle", "running", "paused", "completed", "error"] as const;
+export const githubFollowingModes = ["following", "followers", "both"] as const;

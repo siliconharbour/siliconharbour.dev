@@ -1,8 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/new";
 import { Form, Link, redirect, useActionData } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsletterList, saveNewsletterCampaign } from "~/lib/newsletter.server";
+import { getNewsletterList } from "~/lib/newsletter.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New newsletter - siliconharbour.dev" }];
@@ -17,15 +20,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
   const form = await request.formData();
-  try {
-    const subject = z.string().trim().min(1).max(255).parse(form.get("subject"));
-    const bodyMarkdown = z.string().trim().min(1).parse(form.get("bodyMarkdown"));
-    const list = await getNewsletterList();
-    const campaign = await saveNewsletterCampaign(list.id, { subject, bodyMarkdown });
-    return redirect(`/manage/newsletter/${campaign.id}`);
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not create campaign." };
-  }
+  const result = await runAdminOperation(request, operationCatalog.newsletterCampaignCreate, {
+    subject: form.get("subject"),
+    bodyMarkdown: form.get("bodyMarkdown"),
+  });
+  return result.ok
+    ? redirect(`/manage/newsletter/${result.data.id}`)
+    : ({ error: result.error } as const);
 }
 
 export default function NewNewsletterCampaign() {

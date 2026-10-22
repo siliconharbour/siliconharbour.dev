@@ -1,32 +1,19 @@
+import type { z } from "zod";
+import type { githubProgressOutput } from "~/operations/contracts/importers";
+type ImportProgress = z.output<typeof githubProgressOutput>;
+import { jsonFromForm } from "~/lib/admin/import-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/github-by-location";
 import { useFetcher, useLoaderData } from "react-router";
 import { useState, useEffect } from "react";
 import { requireAdmin } from "~/lib/session.server";
-import { searchNewfoundlandUsers, getUserProfiles, fetchAvatar } from "~/lib/github.server";
-import type { GitHubUser, ImportProgress } from "~/lib/github.types";
-import {
-  createPerson,
-  updatePerson,
-  getAllPeople,
-  getPersonByName,
-  getPersonByGitHub,
-  deletePerson,
-} from "~/lib/people.server";
-import {
-  findCompanyByFuzzyName,
-  parseGitHubCompanyField,
-  extractCompanyFromBio,
-  updateCompany,
-} from "~/lib/companies.server";
-import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
-import {
-  getImportProgress,
-  startImport,
-  processNextBatch,
-  pauseImport,
-  resetImport,
-} from "~/lib/github-import.server";
-import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
+
+import type { GitHubUser } from "~/lib/github.types";
+import { getAllPeople } from "~/lib/people.server";
+
+import { getBlockedExternalIds } from "~/lib/import-blocklist.server";
 import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
@@ -47,7 +34,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const blockedGitHubs = await getBlockedExternalIds("github");
 
   // Get bulk import progress
-  const importProgress = await getImportProgress();
+  const result = await runAdminOperation(request, operationCatalog.githubLocationBulkStatus, {});
+  if (!result.ok) throw new Response(result.error, { status: 400 });
+  const importProgress = result.data;
 
   return {
     existingNames: Array.from(existingNames),
@@ -59,214 +48,96 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  // Bulk import actions
-  if (intent === "bulk-start") {
-    const progress = await startImport();
-    return { intent: "bulk-start", progress, error: null };
-  }
-
-  if (intent === "bulk-continue") {
-    const downloadAvatars = formData.get("downloadAvatars") !== "false";
-    const result = await processNextBatch(downloadAvatars);
-    return {
-      intent: "bulk-continue",
-      progress: result.progress,
-      processed: result.processed,
-      errors: result.errors,
-    };
-  }
-
-  if (intent === "bulk-pause") {
-    const progress = await pauseImport();
-    return { intent: "bulk-pause", progress, error: null };
-  }
-
-  if (intent === "bulk-reset") {
-    const progress = await resetImport();
-    return { intent: "bulk-reset", progress, error: null };
-  }
-
-  // Blocklist actions
-  if (intent === "block") {
-    const externalId = formData.get("externalId") as string;
-    const name = formData.get("name") as string;
-    const reason = formData.get("reason") as string | null;
-
-    if (externalId && name) {
-      // Add to blocklist
-      await blockItem("github", externalId, name, reason || undefined);
-
-      // Also delete existing person with this GitHub URL
-      const existingPerson = await getPersonByGitHub(externalId);
-      if (existingPerson) {
-        await deletePerson(existingPerson.id);
-      }
-
-      return { intent: "block", blocked: { externalId, name } };
-    }
-    return { intent: "block", error: "Missing externalId or name" };
-  }
-
-  if (intent === "unblock") {
-    const externalId = formData.get("externalId") as string;
-
-    if (externalId) {
-      await unblockItem("github", externalId);
-      return { intent: "unblock", unblocked: externalId };
-    }
-    return { intent: "unblock", error: "Missing externalId" };
-  }
-
-  // Original manual search/import actions
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "search") {
-    const page = parseInt(formData.get("page") as string) || 1;
-
-    try {
-      const result = await searchNewfoundlandUsers(page, 30);
-
-      // Fetch full profiles for the search results
-      const usernames = result.users.map((u) => u.login);
-      const profiles = await getUserProfiles(usernames);
-
-      return {
-        intent: "search",
-        users: profiles,
-        total: result.total,
-        page,
-        rateLimit: {
-          remaining: result.rateLimit.remaining,
-          limit: result.rateLimit.limit,
-          reset: result.rateLimit.reset.toISOString(),
-        },
-        error: null,
-      };
-    } catch (e) {
-      return { intent: "search", users: [], total: 0, page: 1, rateLimit: null, error: String(e) };
-    }
+    const result = await runAdminOperation(request, operationCatalog.githubLocationSearch, {
+      page: Number(form.get("page") || 1),
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "search", ...result.data, error: null } as const)
+      : ({
+          intent: "search",
+          users: [],
+          total: 0,
+          page: 1,
+          rateLimit: null,
+          error: result.error,
+        } as const);
   }
-
   if (intent === "import") {
-    const usersJson = formData.get("users") as string;
-    const downloadAvatars = formData.get("downloadAvatars") === "true";
-
+    let users: unknown;
     try {
-      const users: GitHubUser[] = JSON.parse(usersJson);
-      const imported: string[] = [];
-      const errors: string[] = [];
-
-      for (const user of users) {
-        try {
-          let avatar: string | null = null;
-
-          // Download and save avatar if requested
-          if (downloadAvatars && user.avatar_url) {
-            const imageBuffer = await fetchAvatar(user.avatar_url);
-            if (imageBuffer) {
-              avatar = await processAndSaveIconImageWithPadding(imageBuffer);
-            }
-          }
-
-          const githubUrl = user.html_url;
-          const displayName = user.name || user.login;
-
-          // Check if person already exists by GitHub URL or name
-          const existingByGitHub = await getPersonByGitHub(githubUrl);
-          const existingByName = await getPersonByName(displayName);
-          const existing = existingByGitHub || existingByName;
-
-          // Try to find company from GitHub company field or bio
-          let companyName: string | null = null;
-          let githubOrgUrl: string | null = null;
-          let matchedCompany = null;
-
-          // First check GitHub company field
-          if (user.company) {
-            const parsed = parseGitHubCompanyField(user.company);
-            companyName = parsed.name;
-            githubOrgUrl = parsed.githubOrg;
-            matchedCompany = await findCompanyByFuzzyName(parsed.name);
-          }
-
-          // If no company from field, try to extract from bio
-          if (!companyName && user.bio) {
-            const bioCompany = extractCompanyFromBio(user.bio);
-            if (bioCompany) {
-              companyName = bioCompany;
-              matchedCompany = await findCompanyByFuzzyName(bioCompany);
-            }
-          }
-
-          // If we found a GitHub org and it matches a company, update the company's github field
-          if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
-            await updateCompany(matchedCompany.id, { github: githubOrgUrl });
-          }
-
-          // Build the bio with company reference
-          let bio = user.bio || "";
-          const companyRefName = matchedCompany?.name || companyName;
-
-          // Add "Works at [[Company]]" if we have a company and it's not already in the bio
-          if (companyRefName && !bio.toLowerCase().includes(companyRefName.toLowerCase())) {
-            const companyRef = `[[${companyRefName}]]`;
-            if (bio) {
-              bio = `${bio}\n\nWorks at ${companyRef}.`;
-            } else {
-              bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}. Works at ${companyRef}.`;
-            }
-          } else if (!bio) {
-            bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
-          }
-
-          if (existing) {
-            // Merge: update with GitHub data if not already linked
-            if (!existing.github) {
-              await updatePerson(existing.id, {
-                github: githubUrl,
-                // Only fill in missing data
-                website: existing.website || user.blog || null,
-                avatar: existing.avatar || avatar,
-                // Update bio if the existing one is generic
-                bio: existing.bio.startsWith("GitHub user from") ? bio : existing.bio,
-              });
-              imported.push(
-                `${displayName} (merged${matchedCompany ? `, linked to ${matchedCompany.name}` : ""})`,
-              );
-            } else {
-              // Already has GitHub link, skip
-              imported.push(`${displayName} (skipped - already linked)`);
-            }
-          } else {
-            // Create new person (hidden by default - needs review)
-            await createPerson({
-              name: displayName,
-              bio,
-              website: user.blog || null,
-              github: githubUrl,
-              avatar,
-              visible: false, // Imported users start hidden until reviewed
-            });
-
-            imported.push(
-              `${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`,
-            );
-          }
-        } catch (e) {
-          const name = user.name || user.login;
-          errors.push(`${name}: ${String(e)}`);
-        }
-      }
-
-      return { intent: "import", imported, errors };
-    } catch (e) {
-      return { intent: "import", imported: [], errors: [String(e)] };
+      users = jsonFromForm(form, "users");
+    } catch (error) {
+      return {
+        intent: "import",
+        imported: [],
+        errors: [error instanceof Error ? error.message : "Invalid JSON"],
+      } as const;
     }
+    const result = await runAdminOperation(request, operationCatalog.githubLocationImport, {
+      users,
+      downloadAvatars: form.get("downloadAvatars") === "true",
+    });
+    return result.ok
+      ? ({ intent: "import", ...result.data } as const)
+      : ({ intent: "import", imported: [], errors: [result.error] } as const);
   }
-
-  return null;
+  if (intent === "block") {
+    const result = await runAdminOperation(request, operationCatalog.blocklistAdd, {
+      source: "github",
+      externalId: form.get("externalId"),
+      name: form.get("name"),
+      reason: form.get("reason") ?? null,
+      deleteExisting: true,
+      confirm: true,
+    });
+    return result.ok
+      ? ({
+          intent: "block",
+          blocked: { externalId: String(form.get("externalId")), name: String(form.get("name")) },
+        } as const)
+      : ({ intent: "block", error: result.error } as const);
+  }
+  if (intent === "unblock") {
+    const result = await runAdminOperation(request, operationCatalog.blocklistRemove, {
+      source: "github",
+      externalId: form.get("externalId"),
+    });
+    return result.ok
+      ? ({ intent: "unblock", unblocked: String(form.get("externalId")) } as const)
+      : ({ intent: "unblock", error: result.error } as const);
+  }
+  if (intent === "bulk-continue") {
+    const result = await runAdminOperation(request, operationCatalog.githubLocationBulkContinue, {
+      downloadAvatars: form.get("downloadAvatars") !== "false",
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "bulk-continue", ...result.data } as const)
+      : ({
+          intent: "bulk-continue",
+          error: result.error,
+          processed: [],
+          errors: [result.error],
+        } as const);
+  }
+  const operations = {
+    "bulk-start": operationCatalog.githubLocationBulkStart,
+    "bulk-pause": operationCatalog.githubLocationBulkPause,
+    "bulk-reset": operationCatalog.githubLocationBulkReset,
+  };
+  if (typeof intent !== "string" || !Object.hasOwn(operations, intent)) return null;
+  const result = await runAdminOperation(
+    request,
+    operations[intent as keyof typeof operations],
+    intent === "bulk-pause" ? {} : { confirm: true },
+  );
+  return result.ok
+    ? ({ intent: intent as keyof typeof operations, progress: result.data, error: null } as const)
+    : ({ intent: intent as keyof typeof operations, error: result.error } as const);
 }
 
 export default function ImportGitHub() {
@@ -295,7 +166,7 @@ export default function ImportGitHub() {
     if (fetcherData?.intent === "search" && fetcherData.users) {
       if (fetchedUsers.length === 0 || fetcherData.page !== currentPage) {
         if (fetcherData.users.length > 0) {
-          setFetchedUsers(fetcherData.users);
+          setFetchedUsers([...fetcherData.users]);
           setTotalUsers(fetcherData.total);
           setCurrentPage(fetcherData.page);
         }
@@ -348,7 +219,7 @@ export default function ImportGitHub() {
   // Auto-resume after rate limit
   useEffect(() => {
     if (autoRun && bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset) {
-      const waitTime = bulkProgress.rateLimitReset.getTime() - Date.now() + 5000; // 5s buffer
+      const waitTime = new Date(bulkProgress.rateLimitReset).getTime() - Date.now() + 5000; // 5s buffer
       if (waitTime > 0 && waitTime < 3600000) {
         // Max 1 hour wait
         const timer = setTimeout(() => {
@@ -608,7 +479,7 @@ export default function ImportGitHub() {
             {bulkProgress.waitingForRateLimit && bulkProgress.rateLimitReset && (
               <div className="text-sm text-amber-600 bg-amber-50 p-pad-2">
                 Rate limited. {autoRun ? "Will auto-resume" : "Can resume"} at{" "}
-                {bulkProgress.rateLimitReset.toLocaleTimeString()}
+                {new Date(bulkProgress.rateLimitReset).toLocaleTimeString()}
               </div>
             )}
 

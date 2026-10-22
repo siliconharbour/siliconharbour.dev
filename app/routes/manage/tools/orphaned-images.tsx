@@ -1,11 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/orphaned-images";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
-import {
-  deleteAllStagedOrphans,
-  deleteStagedOrphan,
-  getOrphanedImagesState,
-  stageOrphanedImagesBatch,
-} from "~/lib/image-orphans.server";
+import { getOrphanedImagesState } from "~/lib/image-orphans.server";
 import { requireAdmin } from "~/lib/session.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -21,66 +19,28 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-  const intent = String(formData.get("intent") || "scan");
-
-  if (intent === "delete") {
-    const path = String(formData.get("path") || "");
-    if (!path) return { intent, success: false as const, error: "Image path is required." };
-    try {
-      return {
-        intent,
-        success: true as const,
-        error: null,
-        deleteResult: deleteStagedOrphan(path),
-      };
-    } catch (error) {
-      return {
-        intent,
-        success: false as const,
-        error: error instanceof Error ? error.message : "Failed to delete the image.",
-      };
-    }
-  }
-
-  if (intent === "delete-all") {
-    try {
-      return {
-        intent,
-        success: true as const,
-        error: null,
-        deleteResult: deleteAllStagedOrphans(),
-      };
-    } catch (error) {
-      return {
-        intent,
-        success: false as const,
-        error: error instanceof Error ? error.message : "Failed to delete staged images.",
-      };
-    }
-  }
-
-  const parsedBatchSize = Number(formData.get("batchSize") || 250);
-  const batchSize = Number.isFinite(parsedBatchSize)
-    ? Math.min(Math.max(Math.floor(parsedBatchSize), 1), 5000)
-    : 250;
-
-  try {
-    const result = await stageOrphanedImagesBatch({
-      batchSize,
-      useCursor: true,
-      resetCursor: formData.get("resetCursor") === "true",
-      dryRun: false,
+  const form = await request.formData();
+  const intent = form.get("intent") || "scan";
+  if (intent === "delete" || intent === "delete-all") {
+    const operation =
+      intent === "delete"
+        ? operationCatalog.imageOrphanDelete
+        : operationCatalog.imageOrphansDeleteAll;
+    const result = await runAdminOperation(request, operation, {
+      ...(intent === "delete" && { path: form.get("path") }),
+      confirm: true,
     });
-    return { intent: "scan", success: true as const, error: null, result };
-  } catch (error) {
-    return {
-      intent: "scan",
-      success: false as const,
-      error: error instanceof Error ? error.message : "Failed to scan images.",
-      result: null,
-    };
+    return result.ok
+      ? ({ intent, success: true, error: null, deleteResult: result.data } as const)
+      : ({ intent, success: false, error: result.error } as const);
   }
+  const result = await runAdminOperation(request, operationCatalog.imageOrphansStage, {
+    batchSize: Number(form.get("batchSize") || 250),
+    resetCursor: form.get("resetCursor") === "true",
+  });
+  return result.ok
+    ? ({ intent: "scan", success: true, error: null, result: result.data } as const)
+    : ({ intent: "scan", success: false, error: result.error, result: null } as const);
 }
 
 function formatBytes(bytes: number): string {

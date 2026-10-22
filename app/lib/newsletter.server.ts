@@ -1,3 +1,4 @@
+import { InvalidOperationError } from "~/operations/errors";
 import { createHash } from "node:crypto";
 import { inArray } from "drizzle-orm";
 import { db } from "~/db";
@@ -131,7 +132,7 @@ export async function setNewsletterFlags(flags: { publicSignup: boolean; liveSen
 async function listsRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const baseUrl = process.env.LISTS_API_URL;
   const token = process.env.LISTS_API_TOKEN;
-  if (!baseUrl || !token) throw new Error("Lists is not configured");
+  if (!baseUrl || !token) throw new InvalidOperationError("Lists is not configured");
   const response = await fetch(new URL(`/api/v1${path}`, baseUrl), {
     ...init,
     headers: {
@@ -146,7 +147,9 @@ async function listsRequest<T>(path: string, init: RequestInit = {}): Promise<T>
     | null;
   if (!response.ok || !body || !("data" in body)) {
     const detail = body && "error" in body ? body.error : undefined;
-    throw new Error(`Lists request failed (${response.status})${detail ? `: ${detail}` : ""}`);
+    throw new InvalidOperationError(
+      `Lists request failed (${response.status})${detail ? `: ${detail}` : ""}`,
+    );
   }
   return body.data;
 }
@@ -155,7 +158,7 @@ export async function getNewsletterList() {
   const lists = await listsRequest<MailingList[]>("/lists");
   const slug = process.env.LISTS_LIST_SLUG ?? "siliconharbour";
   const list = lists.find((item) => item.slug === slug);
-  if (!list) throw new Error(`Lists mailing list '${slug}' was not found`);
+  if (!list) throw new InvalidOperationError(`Lists mailing list '${slug}' was not found`);
   return list;
 }
 
@@ -204,7 +207,7 @@ export async function getNewsletterCampaigns(listId: number) {
 export async function getNewsletterCampaign(id: number, listId: number) {
   const campaign = await listsRequest<Campaign>(`/campaigns/${id}`);
   if (campaign.audienceType !== "list" || campaign.audienceId !== listId)
-    throw new Error("Campaign does not belong to the Silicon Harbour list");
+    throw new InvalidOperationError("Campaign does not belong to the Silicon Harbour list");
   return campaign;
 }
 
@@ -249,7 +252,7 @@ export async function sendNewsletterTest(id: number, listId: number) {
   await getNewsletterCampaign(id, listId);
   const subscriberIds = await getConfirmedPilotSubscriberIds(listId);
   if (subscriberIds.length === 0)
-    throw new Error("No pilot addresses have confirmed their subscriptions yet");
+    throw new InvalidOperationError("No pilot addresses have confirmed their subscriptions yet");
   return listsRequest<Campaign>(`/campaigns/${id}/test-send`, {
     method: "POST",
     body: JSON.stringify({ subscriberIds, confirm: true }),

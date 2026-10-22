@@ -1,3 +1,6 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/detail";
 import { Form, Link, useActionData, useLoaderData } from "react-router";
 import { z } from "zod";
@@ -9,9 +12,6 @@ import {
   getNewsletterList,
   getNewsletterPreview,
   getNewsletterSends,
-  saveNewsletterCampaign,
-  sendNewsletterLive,
-  sendNewsletterTest,
 } from "~/lib/newsletter.server";
 import { newsletterAudience } from "~/lib/newsletter-audience";
 
@@ -40,36 +40,36 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
   const form = await request.formData();
+  const id = Number(params.id);
   const intent = form.get("intent");
-  try {
-    const id = z.coerce.number().int().positive().parse(params.id);
-    const list = await getNewsletterList();
-    const campaign = await getNewsletterCampaign(id, list.id);
-    if (intent === "save") {
-      if (campaign.status !== "draft") return { error: "Only drafts can be edited." };
-      const subject = z.string().trim().min(1).max(255).parse(form.get("subject"));
-      const bodyMarkdown = z.string().trim().min(1).parse(form.get("bodyMarkdown"));
-      await saveNewsletterCampaign(list.id, { subject, bodyMarkdown }, id);
-      return { success: "Draft saved." };
-    }
-    if (intent === "test-send") {
-      if (form.get("confirm") !== "yes") return { error: "Confirm the pilot send first." };
-      const result = await sendNewsletterTest(id, list.id);
-      return { success: `Pilot send completed as campaign #${result.id}.` };
-    }
-    if (intent === "live-send") {
-      const flags = await getNewsletterFlags();
-      if (!flags.liveSend)
-        return { error: "Full-list sending is disabled in newsletter settings." };
-      if (form.get("confirm") !== campaign.subject)
-        return { error: "Enter the exact campaign subject to confirm." };
-      await sendNewsletterLive(id, list.id);
-      return { success: "Campaign sent to the confirmed list." };
-    }
-    return { error: "Unknown campaign action." };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Campaign action failed." };
+  if (intent === "save") {
+    const result = await runAdminOperation(request, operationCatalog.newsletterCampaignSave, {
+      id,
+      subject: form.get("subject"),
+      bodyMarkdown: form.get("bodyMarkdown"),
+    });
+    return result.ok ? ({ success: "Draft saved." } as const) : ({ error: result.error } as const);
   }
+  if (intent === "test-send") {
+    const result = await runAdminOperation(request, operationCatalog.newsletterCampaignSendTest, {
+      id,
+      confirm: form.get("confirm") === "yes",
+    });
+    return result.ok
+      ? ({ success: `Pilot send completed as campaign #${result.data.id}.` } as const)
+      : ({ error: result.error } as const);
+  }
+  if (intent === "live-send") {
+    const result = await runAdminOperation(request, operationCatalog.newsletterCampaignSendLive, {
+      id,
+      confirm: true,
+      confirmationSubject: String(form.get("confirm") ?? ""),
+    });
+    return result.ok
+      ? ({ success: "Campaign sent to the confirmed list." } as const)
+      : ({ error: result.error } as const);
+  }
+  return { error: "Unknown campaign action." } as const;
 }
 
 export default function NewsletterCampaignDetail() {

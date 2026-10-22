@@ -1,15 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/subscriber-new";
 import { Form, Link, redirect, useActionData } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getNewsletterFlags,
-  getNewsletterList,
-  getNewsletterSubscribers,
-  pilotEmails,
-  pilotProviderLabel,
-  subscribeToNewsletter,
-} from "~/lib/newsletter.server";
+import { getNewsletterList, pilotEmails } from "~/lib/newsletter.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Add newsletter subscriber - siliconharbour.dev" }];
@@ -24,48 +20,24 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
   const form = await request.formData();
-  try {
-    const flags = await getNewsletterFlags();
-    if (form.get("intent") === "add-pilot") {
-      const emails = pilotEmails();
-      if (emails.length === 0) return { error: "No pilot addresses are configured." };
-      const list = await getNewsletterList();
-      let requested = 0;
-      for (const email of emails) {
-        const matches = await getNewsletterSubscribers(list.id, email);
-        const existing = matches.find((item) => item.email.toLowerCase() === email);
-        if (existing?.status === "blocklisted" || existing?.membershipStatus === "confirmed")
-          continue;
-        await subscribeToNewsletter(email, "Jack", pilotProviderLabel(email));
-        requested++;
-      }
-      if (requested === 0)
-        return { error: "All pilot addresses are already confirmed or blocklisted." };
-      return redirect("/manage/newsletter/subscribers?notice=confirmation-requested");
-    }
-    if (form.get("intent") === "add") {
-      const email = z.email().parse(form.get("email")).toLowerCase();
-      if (
-        !flags.publicSignup &&
-        process.env.NODE_ENV === "production" &&
-        !pilotEmails().includes(email)
-      )
-        return {
-          error: "Only configured pilot addresses can be added while public signup is off.",
-        };
-      const firstName = String(form.get("firstName") ?? "")
-        .trim()
-        .slice(0, 255);
-      const lastName = String(form.get("lastName") ?? "")
-        .trim()
-        .slice(0, 255);
-      await subscribeToNewsletter(email, firstName, lastName);
-      return redirect("/manage/newsletter/subscribers?notice=confirmation-requested");
-    }
-    return { error: "Unknown subscriber action." };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Subscriber action failed." };
-  }
+  const intent = form.get("intent");
+  const result =
+    intent === "add-pilot"
+      ? await runAdminOperation(request, operationCatalog.newsletterPilotSubscribe, {
+          confirm: true,
+        })
+      : intent === "add"
+        ? await runAdminOperation(request, operationCatalog.newsletterSubscriberCreate, {
+            email: form.get("email"),
+            firstName: form.get("firstName") ?? null,
+            lastName: form.get("lastName") ?? null,
+            confirm: true,
+          })
+        : null;
+  if (!result) return { error: "Unknown subscriber action." } as const;
+  return result.ok
+    ? redirect("/manage/newsletter/subscribers?notice=confirmation-requested")
+    : ({ error: result.error } as const);
 }
 
 export default function AddNewsletterSubscriber({ loaderData }: Route.ComponentProps) {

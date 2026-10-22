@@ -14,25 +14,14 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { DATA_DIR } from "./paths.server";
-import {
-  ImageInputError,
-  MAX_IMAGE_BYTES,
-  imageContentType,
-  imageContentTypeSchema,
-  validateImage,
-} from "./image-input.server";
+import { ImageInputError, imageContentType, validateImage } from "./image-input.server";
 
 const UPLOAD_DIR = join(DATA_DIR, "mcp-uploads");
 const LIFETIME_MS = 10 * 60_000;
 const MAX_SLOTS = 32;
 const idPattern = /^[a-f0-9]{32}$/;
-export const prepareImageUploadSchema = z
-  .object({
-    filename: z.string().min(1).max(200).optional(),
-    contentType: imageContentTypeSchema,
-    size: z.number().int().min(1).max(MAX_IMAGE_BYTES),
-  })
-  .strict();
+import { imageUploadInput as prepareImageUploadSchema } from "~/operations/contracts/images";
+export { prepareImageUploadSchema };
 const uploadRecordSchema = prepareImageUploadSchema.extend({
   tokenHash: z.string().regex(/^[a-f0-9]{64}$/),
   expiresAt: z.number().int().positive(),

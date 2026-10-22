@@ -1,3 +1,4 @@
+import { importJobStatuses } from "~/lib/entity-types";
 import {
   contentTypes,
   eventTimeModes,
@@ -633,9 +634,7 @@ export type NewRateLimit = typeof rateLimits.$inferInsert;
 
 export const importJobs = sqliteTable("import_jobs", {
   id: text("id").primaryKey(), // e.g., "github-import"
-  status: text("status", { enum: ["idle", "running", "paused", "completed", "error"] })
-    .notNull()
-    .default("idle"),
+  status: text("status", { enum: importJobStatuses }).notNull().default("idle"),
   // Progress tracking
   totalItems: integer("total_items").default(0),
   processedItems: integer("processed_items").default(0),

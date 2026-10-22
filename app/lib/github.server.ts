@@ -1,3 +1,4 @@
+import { fetchPublicImage } from "./public-image-fetch.server";
 /**
  * GitHub API service for importing people from GitHub.
  * Uses Octokit with throttling and retry plugins for robust API access.
@@ -390,21 +391,9 @@ export async function searchNewfoundlandUsers(
  */
 export async function fetchAvatar(avatarUrl: string): Promise<Buffer | null> {
   try {
-    const response = await fetch(avatarUrl, {
-      headers: {
-        "User-Agent": "siliconharbour.dev/1.0",
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch avatar: ${avatarUrl} - ${response.status}`);
-      return null;
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  } catch (e) {
-    console.error(`Error fetching avatar: ${avatarUrl}`, e);
+    return await fetchPublicImage(avatarUrl);
+  } catch (error) {
+    console.error("Avatar download failed", error);
     return null;
   }
 }

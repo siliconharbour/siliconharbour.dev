@@ -1,3 +1,4 @@
+import type { importJobStatuses } from "./entity-types";
 /**
  * GitHub API types - shared between client and server
  */
@@ -45,7 +46,7 @@ export interface RateLimitInfo {
 /**
  * Import job status - matches the DB schema
  */
-export type ImportJobStatus = "idle" | "running" | "paused" | "completed" | "error";
+export type ImportJobStatus = (typeof importJobStatuses)[number];
 
 /**
  * Import progress state for bulk GitHub import

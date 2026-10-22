@@ -1,14 +1,9 @@
 import sharp from "sharp";
 import { z } from "zod";
 
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-export const imageContentTypeSchema = z.enum([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/avif",
-]);
+import { MAX_IMAGE_BYTES, imageContentTypes } from "./image-types";
+export { MAX_IMAGE_BYTES } from "./image-types";
+export const imageContentTypeSchema = z.enum(imageContentTypes);
 export type ImageContentType = z.infer<typeof imageContentTypeSchema>;
 export class ImageInputError extends Error {
   constructor(

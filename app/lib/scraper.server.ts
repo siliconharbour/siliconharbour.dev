@@ -1,3 +1,4 @@
+import { fetchPublicImage } from "./public-image-fetch.server";
 /**
  * Scraper utilities for importing company data from external directories.
  *
@@ -333,21 +334,9 @@ async function parseBounceCompanyDetail(
  */
 export async function fetchImage(url: string): Promise<Buffer | null> {
   try {
-    const response = await fetch(url, {
-      headers: {
-        "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch image: ${url} - ${response.status}`);
-      return null;
-    }
-
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  } catch (e) {
-    console.error(`Error fetching image: ${url}`, e);
+    return await fetchPublicImage(url);
+  } catch (error) {
+    console.error("Image download failed", error);
     return null;
   }
 }
