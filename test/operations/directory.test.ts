@@ -256,3 +256,27 @@ it("validates technology assignments before changing company fields", async () =
     "Original",
   );
 });
+
+it("rejects missing evidence jobs before saving company fields", async () => {
+  const technology = await operations.technologyCreate.execute(context, {
+    name: "TypeScript",
+    category: "language",
+  });
+  const company = await operations.companyCreate.execute(context, {
+    name: "Company",
+    description: "Original",
+    technologyIds: [technology.id],
+  });
+  await expect(
+    operations.companyUpdate.execute(context, {
+      id: company.id,
+      description: "Changed",
+      evidenceGroups: [
+        { technologyIds: [technology.id], jobIds: [987654321], sourceType: "manual" },
+      ],
+    }),
+  ).rejects.toThrow("Evidence job does not exist");
+  expect((await operations.companyGet.execute(context, { id: company.id })).description).toBe(
+    "Original",
+  );
+});

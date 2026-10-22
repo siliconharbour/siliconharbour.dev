@@ -1,3 +1,4 @@
+import { getJobById } from "~/lib/jobs.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError, ConflictError } from "../errors";
@@ -32,6 +33,9 @@ export async function validateCompanyTechnologyChanges(
 ) {
   if (technologyIds !== undefined) await validateTechnologyIds(technologyIds);
   if (groups !== undefined) {
+    const jobIds = [...new Set(groups.flatMap((group) => group.jobIds))];
+    const jobs = await Promise.all(jobIds.map(getJobById));
+    if (jobs.some((job) => !job)) throw new NotFoundError("Evidence job does not exist");
     const assigned = new Set(
       technologyIds ??
         (id ? await getTechnologiesForContent("company", id) : []).map((item) => item.technologyId),
