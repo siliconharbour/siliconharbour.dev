@@ -24,7 +24,11 @@ export async function maskedDiscordConfig() {
   const { botToken } = await getDiscordConfig();
   return {
     botTokenConfigured: Boolean(botToken),
-    botTokenMasked: botToken ? `••••${botToken.slice(-4)}` : "",
+    botTokenMasked: botToken
+      ? botToken.length > 8
+        ? `••••${botToken.slice(-4)}`
+        : "Configured"
+      : "",
   };
 }
 export const configOperations = {

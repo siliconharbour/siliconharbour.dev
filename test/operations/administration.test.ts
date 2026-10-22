@@ -171,3 +171,13 @@ it("imports guarded directory logos without exposing arbitrary server fetches", 
     logo: "imported-logo.webp",
   });
 });
+
+it("masks the entire value of unusually short configured tokens", async () => {
+  for (const token of ["abc", "12345678"]) {
+    await operations.discordConfigSet.execute(context, { botToken: token });
+    expect(await operations.discordConfigGet.execute(context, {})).toEqual({
+      botTokenConfigured: true,
+      botTokenMasked: "Configured",
+    });
+  }
+});
