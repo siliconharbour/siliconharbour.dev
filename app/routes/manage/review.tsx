@@ -1,10 +1,8 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import {
-  approveImportedEventWithCover,
-  getAllPendingEvents,
-  hideImportedEvent,
-} from "~/lib/event-importers/sync.server";
+import { getAllPendingEvents } from "~/lib/event-importers/sync.server";
 import {
   approveJob,
   approveJobAsNonTechnical,
@@ -41,14 +39,17 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (kind === "event") {
-    if (reviewAction === "approve") {
-      await approveImportedEventWithCover(id);
-      return { success: true, kind, reviewAction };
-    }
-    if (reviewAction === "hide") {
-      await hideImportedEvent(id);
-      return { success: true, kind, reviewAction };
-    }
+    const operation =
+      reviewAction === "approve"
+        ? operationCatalog.eventImportApprove
+        : reviewAction === "hide"
+          ? operationCatalog.eventImportHide
+          : null;
+    if (!operation) return { success: false, error: "Unknown event review action." };
+    const result = await runAdminOperation(request, operation, { id });
+    return result.ok
+      ? { success: true, kind, reviewAction }
+      : { success: false, error: result.error };
   }
 
   if (kind === "news") {

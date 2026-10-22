@@ -1,3 +1,5 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/settings";
 import { Form, Link, useActionData, useLoaderData, useFetcher } from "react-router";
 import { useState } from "react";
@@ -28,13 +30,7 @@ import {
   type DiscordChannelType,
   type DiscordDestination,
 } from "~/db/schema";
-import {
-  createEventTag,
-  deleteEventTag,
-  getEventTagsWithUsage,
-  isEventTagColor,
-  updateEventTag,
-} from "~/lib/event-tags.server";
+import { getEventTagsWithUsage } from "~/lib/event-tags.server";
 import { EventTagSettings } from "~/components/manage/EventTagSettings";
 
 export function meta({}: Route.MetaArgs) {
@@ -77,30 +73,19 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = formData.get("intent");
 
   if (intent === "add-event-tag" || intent === "update-event-tag") {
-    const name = formData.get("name");
-    const color = formData.get("color");
-    if (typeof name !== "string" || typeof color !== "string" || !isEventTagColor(color)) {
-      return { intent, error: "Enter a tag name and choose an available colour." };
-    }
-    try {
-      if (intent === "add-event-tag") {
-        await createEventTag(name, color);
-      } else {
-        const id = Number(formData.get("tagId"));
-        if (!Number.isInteger(id) || id < 1) return { intent, error: "Invalid event tag." };
-        await updateEventTag(id, name, color);
-      }
-      return { intent, success: true };
-    } catch (error) {
-      return { intent, error: error instanceof Error ? error.message : "Could not save the tag." };
-    }
+    const result = await runAdminOperation(request, operationCatalog.eventTagSave, {
+      ...(intent === "update-event-tag" && { id: Number(formData.get("tagId")) }),
+      name: formData.get("name"),
+      color: formData.get("color"),
+    });
+    return result.ok ? { intent, success: true } : { intent, error: result.error };
   }
-
   if (intent === "delete-event-tag") {
-    const id = Number(formData.get("tagId"));
-    if (!Number.isInteger(id) || id < 1) return { intent, error: "Invalid event tag." };
-    await deleteEventTag(id);
-    return { intent, success: true };
+    const result = await runAdminOperation(request, operationCatalog.eventTagDelete, {
+      id: Number(formData.get("tagId")),
+      confirm: true,
+    });
+    return result.ok ? { intent, success: true } : { intent, error: result.error };
   }
 
   if (intent === "test-discord") {

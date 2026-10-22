@@ -1,22 +1,18 @@
+import { eventFormInput } from "~/lib/admin/event-form-adapter";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getEventById, updateEvent } from "~/lib/events.server";
+import { getEventById } from "~/lib/events.server";
 import { getPeriodOptions } from "~/lib/event-periods.server";
-import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+
 import { EventForm } from "~/components/EventForm";
-import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
-import { resolveGeneratedCoverImage, resolveUpdatedImage } from "~/lib/admin/image-fields";
+import { parseIdOrThrow } from "~/lib/admin/route";
+
 import { actionError } from "~/lib/admin/action-result";
-import {
-  parseEventBaseForm,
-  parseEventRecurringForm,
-  parseOneTimeEventDates,
-} from "~/lib/admin/manage-schemas";
-import { validatePeriodDates } from "~/lib/event-timing";
-import { db } from "~/db";
-import { eq } from "drizzle-orm";
-import { events as eventsTable } from "~/db/schema";
+
 import { getEventTags } from "~/lib/event-tags.server";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -42,141 +38,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const parsedId = parseIdOrError(params.id, "event");
-  if ("error" in parsedId) return parsedId;
-  const id = parsedId.id;
-
-  const existingEvent = await getEventById(id);
-  if (!existingEvent) {
-    return actionError("Event not found");
-  }
-
-  const formData = await request.formData();
-  const tagIds = formData.getAll("tagIds").map(Number).filter(Number.isInteger);
-  const intent = formData.get("intent") as string | null;
-  const parsedBase = parseEventBaseForm(formData);
-  if (!parsedBase.success) {
-    return actionError(parsedBase.error);
-  }
-
-  // Check if this is a recurring event
-  const isRecurring = parsedBase.data.eventType === "recurring";
-  const timeMode = parsedBase.data.eventType === "period" ? "period" : "scheduled";
-  const iconImage = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "iconImageData",
-    existingImageField: "existingIconImage",
-    currentImage: existingEvent.iconImage,
-    processor: processAndSaveIconImage,
+  const id = parseIdOrThrow(params.id, "event");
+  const form = await request.formData();
+  const result = await runAdminOperation(request, operationCatalog.eventUpdate, {
+    id,
+    ...eventFormInput(form, true),
   });
-  // If "Generate cover from icon" was ticked, synthesize from the icon
-  // (freshly uploaded, the new saved icon, or the previous one — in that
-  // order). Otherwise fall back to the regular cover upload pipeline.
-  const generatedCover = await resolveGeneratedCoverImage(
-    formData,
-    existingEvent.coverImage,
-    iconImage ?? existingEvent.iconImage,
-  );
-  const coverImage =
-    generatedCover ??
-    (await resolveUpdatedImage({
-      formData,
-      uploadedImageField: "coverImageData",
-      existingImageField: "existingCoverImage",
-      currentImage: existingEvent.coverImage,
-      processor: processAndSaveCoverImage,
-    }));
-
-  try {
-    if (isRecurring) {
-      const parsedRecurring = parseEventRecurringForm(formData);
-      if (!parsedRecurring.success) {
-        return actionError(parsedRecurring.error);
-      }
-
-      await updateEvent(
-        id,
-        {
-          title: parsedBase.data.title,
-          description: parsedBase.data.description,
-          link: parsedBase.data.link,
-          location: parsedBase.data.location,
-          organizer: parsedBase.data.organizer,
-          requiresSignup: parsedBase.data.requiresSignup,
-          timeMode,
-          parentEventId: parsedBase.data.parentEventId,
-          ...(coverImage !== undefined && { coverImage }),
-          ...(iconImage !== undefined && { iconImage }),
-          recurrenceStart: parsedRecurring.data.recurrenceStart
-            ? new Date(parsedRecurring.data.recurrenceStart)
-            : null,
-          recurrenceRule: parsedRecurring.data.recurrenceRule,
-          recurrenceEnd: parsedRecurring.data.recurrenceEnd
-            ? new Date(parsedRecurring.data.recurrenceEnd)
-            : null,
-          defaultStartTime: parsedRecurring.data.defaultStartTime,
-          defaultEndTime: parsedRecurring.data.defaultEndTime,
-        },
-        [], // Clear explicit dates for recurring events
-        tagIds,
-      );
-    } else {
-      const parsedDates = parseOneTimeEventDates(formData);
-      if (!parsedDates.success) {
-        return actionError(parsedDates.error);
-      }
-      const periodError = validatePeriodDates(timeMode, parsedDates.data);
-      if (periodError) return actionError(periodError);
-
-      await updateEvent(
-        id,
-        {
-          title: parsedBase.data.title,
-          description: parsedBase.data.description,
-          link: parsedBase.data.link,
-          location: parsedBase.data.location,
-          organizer: parsedBase.data.organizer,
-          requiresSignup: parsedBase.data.requiresSignup,
-          timeMode,
-          parentEventId: parsedBase.data.parentEventId,
-          ...(coverImage !== undefined && { coverImage }),
-          ...(iconImage !== undefined && { iconImage }),
-          // Clear recurrence when switching to one-time
-          recurrenceRule: null,
-          recurrenceStart: null,
-          recurrenceEnd: null,
-          defaultStartTime: null,
-          defaultEndTime: null,
-        },
-        parsedDates.data,
-        tagIds,
-      );
-    }
-  } catch (error) {
-    return actionError(error instanceof Error ? error.message : "Could not save the event.");
-  }
-
-  // Toggle publish state if requested. Visibility rule everywhere is
-  // `importStatus IS NULL OR = 'published'`, so 'hidden' takes the event
-  // out of public listings while preserving the original importStatus
-  // history isn't necessary for manual events.
-  if (intent === "save-and-publish") {
-    await db
-      .update(eventsTable)
-      .set({ importStatus: "published", updatedAt: new Date() })
-      .where(eq(eventsTable.id, id));
-
-    if (existingEvent.importSourceId) {
-      return redirect(`/manage/import/events/${existingEvent.importSourceId}`);
-    }
-  } else if (intent === "save-and-unpublish") {
-    await db
-      .update(eventsTable)
-      .set({ importStatus: "hidden", updatedAt: new Date() })
-      .where(eq(eventsTable.id, id));
-  }
-
+  if (!result.ok) return actionError(result.error);
+  if (form.get("intent") === "save-and-publish" && result.data.importSourceId)
+    return redirect(`/manage/import/events/${result.data.importSourceId}`);
   return redirect("/manage/events");
 }
 

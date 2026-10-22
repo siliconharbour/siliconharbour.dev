@@ -1,3 +1,4 @@
+import { deleteEvent } from "~/lib/events.server";
 /**
  * Event Import Sync Logic
  * Handles the sync algorithm for importing events from external sources.
@@ -181,9 +182,7 @@ export async function deleteEventImportSource(sourceId: number) {
     );
 
   for (const event of eventsToDelete) {
-    // Delete event_dates first (no cascade in SQLite without FK pragma)
-    await db.delete(eventDates).where(eq(eventDates.eventId, event.id));
-    await db.delete(events).where(eq(events.id, event.id));
+    await deleteEvent(event.id);
   }
 
   // Detach approved/published events — keep them but remove the source link

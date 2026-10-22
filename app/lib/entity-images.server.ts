@@ -168,7 +168,9 @@ export async function applyEntityImage(
 }
 
 type ImageCommand = import("zod").infer<typeof import("~/operations/fields").imageInput>;
-type ImageFields = Partial<Record<"avatar" | "logo" | "icon" | "coverImage", string | null>>;
+type ImageFields = Partial<
+  Record<"avatar" | "logo" | "icon" | "iconImage" | "coverImage", string | null>
+>;
 
 export async function withEntityImages<T>(
   target: { type: ImageTarget["type"]; id?: number },
@@ -179,7 +181,13 @@ export async function withEntityImages<T>(
   const previous: Array<string | null> = [];
   const fields: ImageFields = {};
   const iconField =
-    target.type === "person" ? "avatar" : target.type === "technology" ? "icon" : "logo";
+    target.type === "event"
+      ? "iconImage"
+      : target.type === "person"
+        ? "avatar"
+        : target.type === "technology"
+          ? "icon"
+          : "logo";
   const roles = ["icon", "cover"] as const;
   async function next(index: number): Promise<T> {
     if (index === roles.length) return save(fields);

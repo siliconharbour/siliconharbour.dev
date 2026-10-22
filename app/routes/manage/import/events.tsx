@@ -1,8 +1,10 @@
-import { orderEventSourcesForSync } from "~/lib/event-importers/source-order";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/events";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllEventImportSources, syncEvents } from "~/lib/event-importers/sync.server";
+import { getAllEventImportSources } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { formatDistanceToNow } from "date-fns";
 
@@ -18,45 +20,26 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
+  const form = await request.formData();
+  const intent = form.get("intent");
+  if (intent !== "sync" && intent !== "sync-all")
+    return { success: false, error: "Unknown intent" };
   if (intent === "sync") {
-    const sourceId = Number(formData.get("sourceId"));
-    if (!sourceId) return { success: false, error: "Source ID required", intent: "sync" };
-    const result = await syncEvents(sourceId);
-    return { intent: "sync", sourceId, ...result };
+    const sourceId = Number(form.get("sourceId"));
+    const result = await runAdminOperation(request, operationCatalog.eventSourceSync, {
+      id: sourceId,
+      confirm: true,
+    });
+    return result.ok
+      ? { intent: "sync", sourceId, ...result.data }
+      : { intent: "sync", success: false, error: result.error };
   }
-
-  if (intent === "sync-all") {
-    const sources = await getAllEventImportSources();
-    let totalAdded = 0,
-      totalSkipped = 0,
-      totalRemoved = 0;
-    const errors: string[] = [];
-
-    for (const source of orderEventSourcesForSync(sources)) {
-      const result = await syncEvents(source.id);
-      if (result.success) {
-        totalAdded += result.added;
-        totalSkipped += result.skipped;
-        totalRemoved += result.removed;
-      } else if (result.error) {
-        errors.push(`${source.name}: ${result.error}`);
-      }
-    }
-
-    return {
-      intent: "sync-all",
-      success: errors.length === 0,
-      added: totalAdded,
-      skipped: totalSkipped,
-      removed: totalRemoved,
-      errors,
-    };
-  }
-
-  return { success: false, error: "Unknown intent" };
+  const result = await runAdminOperation(request, operationCatalog.eventSourceSyncAll, {
+    confirm: true,
+  });
+  return result.ok
+    ? { intent: "sync-all", ...result.data }
+    : { intent: "sync-all", success: false, error: result.error };
 }
 
 export default function ImportEvents() {

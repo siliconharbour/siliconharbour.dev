@@ -1,3 +1,4 @@
+import { InvalidOperationError } from "~/operations/errors";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "~/db";
 import {
@@ -39,13 +40,13 @@ export async function getEventTagsWithUsage(): Promise<EventTagWithUsage[]> {
 export async function createEventTag(name: string, color: EventTagColor): Promise<EventTag> {
   const cleanName = name.trim();
   const slug = generateSlug(cleanName);
-  if (!cleanName || !slug) throw new Error("Tag name is required.");
+  if (!cleanName || !slug) throw new InvalidOperationError("Tag name is required.");
   try {
     const [tag] = await db.insert(eventTags).values({ name: cleanName, slug, color }).returning();
     return tag;
   } catch (error) {
     if (error instanceof Error && error.message.includes("UNIQUE")) {
-      throw new Error("An event tag with that name already exists.");
+      throw new InvalidOperationError("An event tag with that name already exists.");
     }
     throw error;
   }
@@ -54,7 +55,7 @@ export async function createEventTag(name: string, color: EventTagColor): Promis
 export async function updateEventTag(id: number, name: string, color: EventTagColor) {
   const cleanName = name.trim();
   const slug = generateSlug(cleanName);
-  if (!cleanName || !slug) throw new Error("Tag name is required.");
+  if (!cleanName || !slug) throw new InvalidOperationError("Tag name is required.");
   try {
     await db
       .update(eventTags)
@@ -62,7 +63,7 @@ export async function updateEventTag(id: number, name: string, color: EventTagCo
       .where(eq(eventTags.id, id));
   } catch (error) {
     if (error instanceof Error && error.message.includes("UNIQUE")) {
-      throw new Error("An event tag with that name already exists.");
+      throw new InvalidOperationError("An event tag with that name already exists.");
     }
     throw error;
   }
@@ -100,7 +101,7 @@ export async function validateEventTagIds(tagIds: number[]) {
       .from(eventTags)
       .where(inArray(eventTags.id, uniqueTagIds));
     if (existing.length !== uniqueTagIds.length)
-      throw new Error("One or more event tags are invalid.");
+      throw new InvalidOperationError("One or more event tags are invalid.");
   }
   return uniqueTagIds;
 }
@@ -127,7 +128,9 @@ export async function getEventTagIdsBySlugs(slugs: string[]): Promise<number[]> 
   if (found.length !== uniqueSlugs.length) {
     const foundSlugs = new Set(found.map((tag) => tag.slug));
     const missing = uniqueSlugs.filter((slug) => !foundSlugs.has(slug));
-    throw new Error(`Unknown event tag${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
+    throw new InvalidOperationError(
+      `Unknown event tag${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`,
+    );
   }
   return found.map((tag) => tag.id);
 }
