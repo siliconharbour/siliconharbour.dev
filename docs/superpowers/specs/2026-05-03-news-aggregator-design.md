@@ -15,23 +15,23 @@ The existing `news` table is empty in production and will be dropped and rebuilt
 
 Unified table for both link posts and original articles.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | integer PK | auto-increment |
-| `slug` | text, unique | auto-generated from title |
-| `type` | text enum: `link`, `article` | distinguishes link posts from originals |
-| `title` | text, not null | article title or external article title |
-| `externalUrl` | text, nullable | set for link posts, null for articles |
-| `sourceName` | text, nullable | display name: "CBC NL", "TechNL", etc. |
-| `content` | text, not null, default `""` | full markdown for articles, brief excerpt/commentary for link posts. Empty string for link posts with no commentary. |
-| `excerpt` | text, nullable | short summary for listings/RSS |
-| `coverImage` | text, nullable | filename in /images/ |
-| `publishedAt` | timestamp, nullable | null = draft |
-| `status` | text enum: `draft`, `pending_review`, `published`, `hidden` | workflow status |
-| `sourceId` | integer, nullable FK | references `newsImportSources.id`, null for manual/original |
-| `sourceItemId` | text, nullable | unique ID from source (RSS guid/URL) for dedup |
-| `createdAt` | timestamp | auto-set |
-| `updatedAt` | timestamp | auto-set |
+| Column         | Type                                                        | Notes                                                                                                                |
+| -------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `id`           | integer PK                                                  | auto-increment                                                                                                       |
+| `slug`         | text, unique                                                | auto-generated from title                                                                                            |
+| `type`         | text enum: `link`, `article`                                | distinguishes link posts from originals                                                                              |
+| `title`        | text, not null                                              | article title or external article title                                                                              |
+| `externalUrl`  | text, nullable                                              | set for link posts, null for articles                                                                                |
+| `sourceName`   | text, nullable                                              | display name: "CBC NL", "TechNL", etc.                                                                               |
+| `content`      | text, not null, default `""`                                | full markdown for articles, brief excerpt/commentary for link posts. Empty string for link posts with no commentary. |
+| `excerpt`      | text, nullable                                              | short summary for listings/RSS                                                                                       |
+| `coverImage`   | text, nullable                                              | filename in /images/                                                                                                 |
+| `publishedAt`  | timestamp, nullable                                         | null = draft                                                                                                         |
+| `status`       | text enum: `draft`, `pending_review`, `published`, `hidden` | workflow status                                                                                                      |
+| `sourceId`     | integer, nullable FK                                        | references `newsImportSources.id`, null for manual/original                                                          |
+| `sourceItemId` | text, nullable                                              | unique ID from source (RSS guid/URL) for dedup                                                                       |
+| `createdAt`    | timestamp                                                   | auto-set                                                                                                             |
+| `updatedAt`    | timestamp                                                   | auto-set                                                                                                             |
 
 Deduplication key: `sourceId + sourceItemId`.
 
@@ -39,32 +39,34 @@ Deduplication key: `sourceId + sourceItemId`.
 
 Mirrors `jobImportSources`.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| `id` | integer PK | auto-increment |
-| `name` | text, not null | display name, e.g. "TechNL Blog" |
-| `sourceType` | text enum: `rss`, `custom` | importer type |
-| `sourceUrl` | text, not null | RSS feed URL or page URL for scrapers |
-| `sourceIdentifier` | text, nullable | opaque config for custom scrapers |
-| `keywords` | text, nullable | comma-separated keywords for filtering. Null = import everything |
-| `enabled` | integer (boolean) | whether to sync this source |
-| `lastSyncAt` | timestamp, nullable | |
-| `lastSyncStatus` | text, nullable | `success` or `error` |
-| `lastSyncError` | text, nullable | error message if failed |
-| `createdAt` | timestamp | auto-set |
-| `updatedAt` | timestamp | auto-set |
+| Column             | Type                       | Notes                                                            |
+| ------------------ | -------------------------- | ---------------------------------------------------------------- |
+| `id`               | integer PK                 | auto-increment                                                   |
+| `name`             | text, not null             | display name, e.g. "TechNL Blog"                                 |
+| `sourceType`       | text enum: `rss`, `custom` | importer type                                                    |
+| `sourceUrl`        | text, not null             | RSS feed URL or page URL for scrapers                            |
+| `sourceIdentifier` | text, nullable             | opaque config for custom scrapers                                |
+| `keywords`         | text, nullable             | comma-separated keywords for filtering. Null = import everything |
+| `enabled`          | integer (boolean)          | whether to sync this source                                      |
+| `lastSyncAt`       | timestamp, nullable        |                                                                  |
+| `lastSyncStatus`   | text, nullable             | `success` or `error`                                             |
+| `lastSyncError`    | text, nullable             | error message if failed                                          |
+| `createdAt`        | timestamp                  | auto-set                                                         |
+| `updatedAt`        | timestamp                  | auto-set                                                         |
 
 ## Import Architecture
 
 ### Source Types
 
 **`rss`** -- Generic RSS/Atom feed fetcher:
+
 - Parses the feed XML (using a lightweight parser)
 - Extracts: title, link (becomes `externalUrl`), published date, description/summary (becomes `excerpt`/`content`)
 - `sourceItemId` = RSS `<guid>` element, falling back to the article URL
 - Works for TechNL blog, Genesis blog, Bounce blog, most company blogs
 
 **`custom`** -- Pluggable scrapers:
+
 - Same pattern as job custom scrapers: a registry of named scraper functions
 - `sourceIdentifier` contains the scraper name and any config
 - Each scraper returns `FetchedNewsItem[]` with the same shape as RSS items
@@ -86,6 +88,7 @@ Return sync result counts: added, updated, unchanged, filtered.
 ### Manual URL Submission
 
 Via MCP bridge or manage UI:
+
 - Accept a URL
 - Fetch the page, extract title + excerpt + source domain (using defuddle or HTML metadata)
 - Create a link post with `type: "link"`, `status: "published"` (or `"draft"` if desired)
@@ -99,6 +102,7 @@ Via MCP bridge or manage UI:
 Unified feed of both link posts and articles, sorted by `publishedAt` desc.
 
 **Link posts display:**
+
 - Title as a link to the external URL (opens in same tab, standard web behavior)
 - Source name badge (e.g. "CBC NL", "TechNL")
 - Published date
@@ -106,6 +110,7 @@ Unified feed of both link posts and articles, sorted by `publishedAt` desc.
 - Small permalink icon linking to the siliconharbour.dev detail page (`/news/:slug`)
 
 **Articles display:**
+
 - Title links to `/news/:slug`
 - Cover image if present
 - Published date
@@ -120,6 +125,7 @@ Replaces the current announcement/general/editorial/meta tabs. Search works acro
 **For articles:** Full markdown content, cover image, comments, backlinks. Same as current.
 
 **For link posts:** Lightweight page with:
+
 - Title
 - Source name + external link
 - Excerpt
@@ -130,6 +136,7 @@ Replaces the current announcement/general/editorial/meta tabs. Search works acro
 ### Other Endpoints
 
 All existing endpoints adapted to the new schema:
+
 - **RSS feed** (`/news.rss`): Items for link posts include the external URL
 - **JSON API** (`/api/news`, `/api/news/:slug`): Include `type`, `externalUrl`, `sourceName` fields
 - **Markdown** (`/news.md`, `/news/:slug.md`): Same adaptations
@@ -169,15 +176,18 @@ Mirrors `/manage/import/jobs`:
 ## Initial Sources
 
 **RSS, auto-import everything (no keywords):**
+
 - TechNL blog
 - Genesis Centre blog
 - Bounce Health Innovation blog
 - Company engineering/tech blogs as discovered
 
 **RSS, keyword-filtered:**
+
 - CBC NL -- keywords: tech, startup, digital, innovation, software, AI, venture, funding, TechNL, Genesis, Bounce (configurable, add more as needed)
 
 **Custom scraper (if no RSS available):**
+
 - VOCM -- check for RSS first, build scraper if needed, with keyword filtering
 
 The exact source list is configuration -- added through the manage UI as the system runs. The architecture supports adding sources at any time.

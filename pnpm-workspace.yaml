@@ -9,10 +9,10 @@ allowBuilds:
   msgpackr-extract: false
 
 minimumReleaseAgeExclude:
-  - '@react-router/dev@8.4.0'
-  - '@react-router/express@8.4.0'
-  - '@react-router/node@8.4.0'
-  - '@react-router/serve@8.4.0'
+  - "@react-router/dev@8.4.0"
+  - "@react-router/express@8.4.0"
+  - "@react-router/node@8.4.0"
+  - "@react-router/serve@8.4.0"
   - react-router@8.4.0
 
 onlyBuiltDependencies:
@@ -23,7 +23,7 @@ onlyBuiltDependencies:
 
 # Code Mode 1.18.4 pins an Effect beta; its patch adapts the renamed stable APIs.
 overrides:
-  '@opencode-ai/codemode>effect': '4.0.2'
+  "@opencode-ai/codemode>effect": "4.0.2"
 
 patchedDependencies:
-  '@opencode-ai/codemode@1.18.4': patches/@opencode-ai__codemode@1.18.4.patch
+  "@opencode-ai/codemode@1.18.4": patches/@opencode-ai__codemode@1.18.4.patch

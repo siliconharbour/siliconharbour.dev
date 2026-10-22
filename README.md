@@ -67,19 +67,19 @@ docker run -p 3000:3000 -v ./data:/app/data siliconharbour
 
 ## Environment Variables
 
-| Variable          | Description                        | Default             |
-| ----------------- | ---------------------------------- | ------------------- |
-| `DATA_DIR`        | Directory for database and uploads | `./data`            |
-| `DB_NAME`         | SQLite database filename           | `siliconharbour.db` |
-| `IMAGES_DIR_NAME` | Subdirectory for uploaded images   | `images`            |
-| `SESSION_SECRET`  | Signs login and OAuth sessions      | Required in prod    |
-| `SITE_URL`        | Public application/MCP resource URL | Production URL      |
-| `OAUTH_ISSUER_URL` | OAuth issuer URL (if different)    | `SITE_URL`          |
-| `LISTS_API_URL` | Lists server base URL (server only) | Unset |
-| `LISTS_API_TOKEN` | Lists token for the Silicon Harbour list | Unset |
-| `LISTS_LIST_SLUG` | Lists mailing list slug | `siliconharbour` |
-| `LISTS_FROM_ADDRESS` | Campaign sender address | `hello@siliconharbour.dev` |
-| `LISTS_PILOT_EMAILS` | Comma-separated addresses allowed for pilot sends | Unset |
+| Variable             | Description                                       | Default                    |
+| -------------------- | ------------------------------------------------- | -------------------------- |
+| `DATA_DIR`           | Directory for database and uploads                | `./data`                   |
+| `DB_NAME`            | SQLite database filename                          | `siliconharbour.db`        |
+| `IMAGES_DIR_NAME`    | Subdirectory for uploaded images                  | `images`                   |
+| `SESSION_SECRET`     | Signs login and OAuth sessions                    | Required in prod           |
+| `SITE_URL`           | Public application/MCP resource URL               | Production URL             |
+| `OAUTH_ISSUER_URL`   | OAuth issuer URL (if different)                   | `SITE_URL`                 |
+| `LISTS_API_URL`      | Lists server base URL (server only)               | Unset                      |
+| `LISTS_API_TOKEN`    | Lists token for the Silicon Harbour list          | Unset                      |
+| `LISTS_LIST_SLUG`    | Lists mailing list slug                           | `siliconharbour`           |
+| `LISTS_FROM_ADDRESS` | Campaign sender address                           | `hello@siliconharbour.dev` |
+| `LISTS_PILOT_EMAILS` | Comma-separated addresses allowed for pilot sends | Unset                      |
 
 ## Newsletter development
 
