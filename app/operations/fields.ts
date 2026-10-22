@@ -55,18 +55,38 @@ export function formatValidationError(
     .map((issue) => {
       const location = issue.path.join(".") || "input";
       if (issue.code !== "unrecognized_keys") return `${location}: ${issue.message}`;
-      const discriminator =
-        typeof input === "object" && input && "type" in input ? input.type : undefined;
-      const variants = json && (json.oneOf ?? json.anyOf);
-      const selected = Array.isArray(variants)
-        ? variants.find(
-            (variant) =>
-              typeof variant === "object" &&
-              typeof variant.properties?.type === "object" &&
-              "const" in variant.properties.type &&
-              variant.properties.type.const === discriminator,
-          )
-        : json;
+      type Node = {
+        properties?: Record<string, Node | boolean>;
+        items?: Node | boolean;
+        oneOf?: Node[];
+        anyOf?: Node[];
+        const?: unknown;
+      };
+      function variant(node: Node | boolean | undefined, value: unknown): Node | undefined {
+        if (!node || typeof node !== "object") return undefined;
+        const options = node.oneOf ?? node.anyOf;
+        if (!options) return node;
+        const record = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+        return (
+          options.find((option) =>
+            Object.entries(option.properties ?? {}).some(
+              ([key, field]) =>
+                typeof field === "object" && "const" in field && record[key] === field.const,
+            ),
+          ) ?? options.find((option) => option.properties)
+        );
+      }
+      let selected = variant(json as Node | undefined, input);
+      let value = input;
+      for (const part of issue.path) {
+        const child =
+          typeof part === "number" ? selected?.items : selected?.properties?.[String(part)];
+        value =
+          value && typeof value === "object"
+            ? (value as Record<PropertyKey, unknown>)[part]
+            : undefined;
+        selected = variant(child, value);
+      }
       const allowed =
         selected && typeof selected === "object" && selected.properties
           ? Object.keys(selected.properties).join(", ")
