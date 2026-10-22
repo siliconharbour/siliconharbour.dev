@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Shared utilities for custom career page scrapers
  */
@@ -21,7 +22,7 @@ const execFileAsync = promisify(execFile);
  * Fetch a page's HTML content
  */
 export async function fetchPage(url: string): Promise<string> {
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       // Several career sites reject Node's default user agent even though the
@@ -42,7 +43,7 @@ export async function fetchPage(url: string): Promise<string> {
  * Fetch JSON from a URL
  */
 export async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: { Accept: "application/json" },
   });
 
@@ -63,7 +64,7 @@ export async function extractPdfText(pdfUrl: string): Promise<string | null> {
   const textPath = path.join(tempDir, "job.txt");
 
   try {
-    const response = await fetch(pdfUrl);
+    const response = await publicFetch(pdfUrl);
     if (!response.ok) {
       return null;
     }

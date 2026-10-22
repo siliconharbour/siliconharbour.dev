@@ -28,7 +28,7 @@ it("accounts for every column and checks each mapped contract field", () => {
     expect(Object.keys(coverage).sort(), name).toEqual(Object.keys(getTableColumns(table!)).sort());
     for (const entry of Object.values(coverage)) {
       if ("excluded" in entry) expect(entry.excluded.trim().length).toBeGreaterThan(0);
-      else if ("gap" in entry) expect(entry.gap).toMatch(new RegExp(`^${name}\\.`));
+      else if ("gap" in entry) throw new Error(`Unmapped column: ${entry.gap}`);
       else
         for (const [operationName, path] of Object.entries(entry.mapped)) {
           const operation = operationCatalog[operationName as keyof typeof operationCatalog];
@@ -44,10 +44,21 @@ it("accounts for every column and checks each mapped contract field", () => {
 });
 
 it("maps every directory create/update field to a real column", () => {
-  const names = ["person", "company", "education", "group", "product", "project", "technology"];
+  const names = [
+    "person",
+    "company",
+    "education",
+    "group",
+    "product",
+    "project",
+    "technology",
+    "event",
+    "job",
+    "news",
+  ];
   for (const name of names)
     for (const suffix of ["Create", "Update"]) {
-      const key = `${name}${suffix}`;
+      const key = name === "news" && suffix === "Create" ? "newsArticleCreate" : `${name}${suffix}`;
       const operation = operationCatalog[key as keyof typeof operationCatalog];
       const json = z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" });
       for (const field of Object.keys(json.properties ?? {})) {

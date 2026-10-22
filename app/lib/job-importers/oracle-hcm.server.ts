@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Oracle HCM Job Importer
  *
@@ -183,7 +184,7 @@ async function fetchJobListByKeyword(
     url += `,keyword="${encodeURIComponent(keyword)}"`;
   }
 
-  const res = await fetch(url, { headers: HEADERS });
+  const res = await publicFetch(url, { headers: HEADERS });
   if (!res.ok) throw new Error(`Oracle HCM list API error: ${res.status}`);
 
   const data = await res.json();
@@ -213,7 +214,7 @@ async function fetchJobListByLocation(
       `&expand=requisitionList.secondaryLocations` +
       `&finder=findReqs;siteNumber=${siteNumber},limit=${PAGE_SIZE},offset=${offset},sortBy=POSTING_DATES_DESC,locationId=${locationId}`;
 
-    const res = await fetch(url, { headers: HEADERS });
+    const res = await publicFetch(url, { headers: HEADERS });
     if (!res.ok) throw new Error(`Oracle HCM list API error: ${res.status}`);
 
     const data = await res.json();
@@ -248,7 +249,7 @@ async function fetchJobDetail(
     `https://${host}/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails?expand=all&onlyData=true` +
     `&finder=ById;Id=%22${jobId}%22,siteNumber=${siteNumber}`;
 
-  const res = await fetch(url, { headers: HEADERS });
+  const res = await publicFetch(url, { headers: HEADERS });
   if (!res.ok) return null;
 
   const data = await res.json();

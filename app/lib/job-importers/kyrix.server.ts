@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /** Kyrix public job-board importer. */
 
 import pLimit from "p-limit";
@@ -81,7 +82,7 @@ export function parseKyrixDetail(
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: { Accept: "text/html", "User-Agent": BROWSER_USER_AGENT },
   });
   if (!response.ok) {

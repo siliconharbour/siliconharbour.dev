@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Greenhouse Job Importer
  * Fetches jobs from Greenhouse's public API
@@ -105,7 +106,7 @@ async function fetchGreenhouseJobs(
 ): Promise<GreenhouseResponse> {
   const url = `${API_BASE}/${boardToken}/jobs${includeContent ? "?content=true" : ""}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
       "User-Agent": "siliconharbour.dev job importer",

@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * techNL Event Importer
  * Imports public events from techNL's NeonCRM Events portal.
@@ -64,7 +65,7 @@ function formatLocalDateTime(
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const response = await publicFetch(url, init);
   if (!response.ok) throw new Error(`Request failed for ${url}: ${response.status}`);
   return response.json() as Promise<T>;
 }
@@ -122,7 +123,7 @@ interface NeonPublicTokenResponse {
 }
 
 async function getCrmJwt(): Promise<string> {
-  const tokenResponse = await fetch(`${CRM_BASE}/jwt/token?client_id=${JWT_CLIENT_ID}`, {
+  const tokenResponse = await publicFetch(`${CRM_BASE}/jwt/token?client_id=${JWT_CLIENT_ID}`, {
     headers: { cookie: "orgId=technl", accept: "application/json" },
   });
   if (!tokenResponse.ok)

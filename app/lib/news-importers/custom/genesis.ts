@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 import { parseHTML } from "linkedom";
 import { normalizeTextForDisplay } from "~/lib/job-importers/text.server";
 import type { FetchedNewsItem, NewsImportSourceConfig } from "../types";
@@ -78,7 +79,7 @@ export function parseGenesisBlogItems(html: string, baseUrl = DEFAULT_BLOG_URL):
 
 export async function genesisScraper(config: NewsImportSourceConfig): Promise<FetchedNewsItem[]> {
   const url = config.sourceUrl || DEFAULT_BLOG_URL;
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       "User-Agent": "siliconharbour.dev news aggregator",

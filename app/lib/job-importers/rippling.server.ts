@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Rippling Job Importer
  * Fetches jobs from Rippling's ATS by extracting __NEXT_DATA__ from server-rendered pages
@@ -166,7 +167,7 @@ function buildDescriptionHtml(description: RipplingJobDetail["description"]): st
 async function fetchRipplingPage(path: string): Promise<RipplingPageData> {
   const url = `${BASE_URL}${path}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
     },

@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * SuccessFactors Job Importer
  *
@@ -23,7 +24,7 @@ import pLimit from "p-limit";
 const USER_AGENT = "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)";
 
 async function fetchHtml(url: string): Promise<string> {
-  const res = await fetch(url, {
+  const res = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       "User-Agent": USER_AGENT,

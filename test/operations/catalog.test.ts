@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
 import { z } from "zod";
 import { operationCatalog } from "~/operations/catalog";
 import { catalogHostFunctions } from "~/mcp/catalog-host";
@@ -6,33 +6,56 @@ import { adminContext, publicContext } from "~/operations/context";
 import { ForbiddenError, ConfirmationRequiredError } from "~/operations/errors";
 import { updateContract, nullableText, text } from "~/operations/fields";
 
-for (const [name, operation] of Object.entries(operationCatalog)) {
-  describe(name, () => {
-    it("rejects unknown input and documents a valid example", () => {
-      expect(name).toMatch(/^[a-z][a-zA-Z0-9]*$/);
-      expect(operation.summary.length).toBeGreaterThan(0);
-      expect(operation.description.length).toBeGreaterThan(0);
-      const example = operation.examples[0].input;
-      expect(operation.input.safeParse(example).success).toBe(true);
-      expect(operation.input.safeParse({ ...example, __unknown: 1 }).success).toBe(false);
-    });
-    it("enforces admin access inside the operation", async () => {
+it("documents valid examples and rejects unknown keys throughout input objects", () => {
+  function strictObjects(value: unknown, name: string) {
+    if (!value || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      for (const child of value) strictObjects(child, name);
+      return;
+    }
+    const node = value as Record<string, unknown>;
+    if (node.type === "object") expect(node.additionalProperties, name).toBe(false);
+    for (const child of Object.values(node)) strictObjects(child, name);
+  }
+  for (const [name, operation] of Object.entries(operationCatalog)) {
+    expect(operation.name).toBe(name);
+    expect(name).toMatch(/^[a-z][a-zA-Z0-9]*$/);
+    expect(operation.summary.trim().length, name).toBeGreaterThan(0);
+    expect(operation.description.trim().length, name).toBeGreaterThan(0);
+    const example = operation.examples[0].input;
+    expect(operation.input.safeParse(example).success, name).toBe(true);
+    expect(operation.input.safeParse({ ...example, __unknown: 1 }).success, name).toBe(false);
+    strictObjects(z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" }), name);
+  }
+});
+it("enforces administrator access and scopes before any operation runs", async () => {
+  for (const operation of Object.values(operationCatalog)) {
+    if (operation.access === "admin")
       await expect(
         operation.execute(publicContext(), operation.examples[0].input),
+        operation.name,
       ).rejects.toBeInstanceOf(ForbiddenError);
-    });
-    if (operation.risk === "destructive" || operation.risk === "external") {
-      it("requires explicit confirmation", async () => {
-        await expect(operation.execute(adminContext(1), {})).rejects.toBeInstanceOf(
-          ConfirmationRequiredError,
-        );
-      });
-    }
-  });
-}
+    const noScopes = { ...adminContext(1), scopes: new Set<"read" | "write">() };
+    await expect(
+      operation.execute(noScopes, operation.examples[0].input),
+      operation.name,
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  }
+});
+it("requires confirmation on every destructive or external operation", async () => {
+  for (const operation of Object.values(operationCatalog))
+    if (operation.risk === "destructive" || operation.risk === "external")
+      await expect(operation.execute(adminContext(1), {}), operation.name).rejects.toBeInstanceOf(
+        ConfirmationRequiredError,
+      );
+});
 
 it("does not expose administrative reads to anonymous clients", () => {
-  expect(catalogHostFunctions(publicContext(), true)).toEqual({});
+  expect(Object.keys(catalogHostFunctions(publicContext(), true))).toEqual(
+    Object.values(operationCatalog)
+      .filter((operation) => operation.access === "public" && operation.risk === "read")
+      .map((operation) => operation.name),
+  );
   expect(Object.keys(catalogHostFunctions(adminContext(1)))).toEqual(Object.keys(operationCatalog));
   expect(Object.keys(catalogHostFunctions(adminContext(1), true))).toEqual(
     Object.keys(operationCatalog).filter(
@@ -57,7 +80,7 @@ it("does not permit direct construction of a write runtime for anonymous or read
   expect(() => buildExecuteFunctions(publicContext())).toThrow(ForbiddenError);
   const readOnly = { ...adminContext(1), scopes: new Set<"read" | "write">(["read"]) };
   expect(() => buildExecuteFunctions(readOnly)).toThrow(ForbiddenError);
-  expect(buildReadFunctions()).toEqual({});
+expect(buildReadFunctions()).not.toHaveProperty("jobList");
 });
 
 it("derives read and write access from the granted MCP scopes", async () => {

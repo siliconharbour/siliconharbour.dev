@@ -1,3 +1,4 @@
+import { publicReadOperations } from "./ops/public-reads.server";
 import { importerStatusOperations } from "./ops/importer-status.server";
 import { githubImporterOperations } from "./ops/github-importers.server";
 import { directoryImporterOperations } from "./ops/directory-importers.server";
@@ -34,6 +35,7 @@ import { personOperations } from "./ops/people.server";
 import { themeShareOperations } from "./ops/theme-shares.server";
 
 export const operationCatalog = {
+  ...publicReadOperations,
   ...importerStatusOperations,
   ...githubImporterOperations,
   ...directoryImporterOperations,

@@ -1,3 +1,4 @@
+import * as publicNetwork from "~/lib/public-network-fetch.server";
 import { afterEach, expect, it, vi } from "vitest";
 import { jazzhrImporter } from "../../app/lib/job-importers/jazzhr.server";
 
@@ -13,7 +14,7 @@ it("imports JazzHR listings with stable IDs, locations, and full descriptions", 
       <h3 class="list-group-item-heading"><a href="https://example.applytojob.com/apply/abc123/Nurse-Practitioner">Nurse Practitioner</a></h3>
       <ul class="list-group-item-text"><li>Remote</li></ul>
     </li>`;
-  vi.spyOn(globalThis, "fetch").mockImplementation(
+  vi.spyOn(publicNetwork, "publicFetch").mockImplementation(
     async (url) =>
       ({
         ok: true,
@@ -64,7 +65,7 @@ it("limits a filtered board to Newfoundland technology roles", async () => {
     </li>`,
     )
     .join("");
-  vi.spyOn(globalThis, "fetch").mockImplementation(
+  vi.spyOn(publicNetwork, "publicFetch").mockImplementation(
     async (url) =>
       ({
         ok: true,

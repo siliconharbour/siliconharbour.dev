@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * CareerBeacon Job Importer
  *
@@ -133,7 +134,7 @@ function parseCareerBeaconPostingFromHtml(html: string, fallbackUrl: string): Ca
 }
 
 async function fetchHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       "User-Agent": "siliconharbour.dev job importer",

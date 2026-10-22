@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * BambooHR Job Importer
  * Fetches jobs from BambooHR's public careers API
@@ -102,7 +103,7 @@ async function fetchBambooHRJobs(company: string): Promise<BambooHRJobsResponse>
   const baseUrl = buildBaseUrl(company);
   const url = `${baseUrl}/careers/list`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
     },
@@ -127,7 +128,7 @@ async function fetchBambooHRJobDetail(company: string, jobId: string): Promise<B
   const baseUrl = buildBaseUrl(company);
   const url = `${baseUrl}/careers/${jobId}/detail`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
     },

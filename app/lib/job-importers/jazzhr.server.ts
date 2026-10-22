@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 import { parseHTML } from "linkedom";
 import pLimit from "p-limit";
 import { htmlToText } from "./text.server";
@@ -27,7 +28,7 @@ function selectListings(identifier: string, listings: Listing[]): Listing[] {
 }
 
 async function fetchPage(url: string): Promise<string> {
-  const response = await fetch(url, { headers: { Accept: "text/html" } });
+  const response = await publicFetch(url, { headers: { Accept: "text/html" } });
   if (!response.ok) throw new Error(`JazzHR fetch failed (${response.status}): ${url}`);
   return response.text();
 }

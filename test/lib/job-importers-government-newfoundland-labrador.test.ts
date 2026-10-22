@@ -1,3 +1,4 @@
+import * as publicNetwork from "~/lib/public-network-fetch.server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getGnlTechnicalMatchReason,
@@ -183,7 +184,7 @@ describe("Government of Newfoundland and Labrador job importer", () => {
     const internal = competition({ id: 40001, isInternal: true });
     const cancelled = competition({ id: 40002, isCancelled: true });
     const inactive = competition({ id: 40003, status: "Closed" });
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+    const fetchMock = vi.spyOn(publicNetwork, "publicFetch").mockImplementation(async (input) => {
       const url = String(input);
       if (url.endsWith("/api/competitions/public")) {
         return new Response(JSON.stringify([technical, civil, internal, cancelled, inactive]), {

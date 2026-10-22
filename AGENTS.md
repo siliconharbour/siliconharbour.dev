@@ -48,18 +48,11 @@ route("api/my-endpoint/:id", "routes/api/my-endpoint.$id.tsx"),
 
 ## MCP Parity
 
-This project exposes admin/data operations through `app/mcp/bridge.ts`.
+Admin actions and MCP share `app/operations/catalog.ts`. Add strict, client-safe Zod input/output contracts and server operations there; call the same operations through `runAdminOperation` in admin routes. MCP bindings and search are generated from the catalog.
 
-When you add or change backend features that an operator/agent may need to use remotely,
-review whether the MCP bridge should expose them too. Common cases:
+Keep validation, authorization, lifecycle rules, and side effects out of routes and `app/mcp/bridge.ts`. Operations call canonical `app/lib` services for writes. Map new columns in `app/operations/coverage` or exclude them with an explicit reason; keep the admin-route exception list empty. Use public-read operations for anonymous data, and require administrator access for hidden records and operational metadata.
 
-- New fields on entities already supported by `createEntity` / `updateEntity`
-- New import-source options or sync controls
-- New review / lifecycle actions
-- New admin-safe lookup or creation flows
-
-If a feature should be operable through MCP, update the relevant Zod schemas and handler
-paths in `app/mcp/bridge.ts` before considering the work complete.
+See `docs/operations.md` for the workflow, confirmation rules and tests.
 
 ## Database
 

@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Collage Job Importer
  * Fetches jobs from Collage's public career site by scraping HTML
@@ -158,7 +159,7 @@ function escapeRegex(str: string): string {
 async function fetchCollagePage(path: string): Promise<string> {
   const url = `${BASE_URL}${path}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
     },

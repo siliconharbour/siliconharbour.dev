@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * NetBenefit Software Event Importer
  * Scrapes https://www.netbenefitsoftware.com/events
@@ -59,7 +60,7 @@ function decodeHtmlEntities(str: string): string {
 }
 
 async function fetchNetBenefitEvents(): Promise<FetchedEvent[]> {
-  const res = await fetch(NETBENEFIT_EVENTS_URL);
+  const res = await publicFetch(NETBENEFIT_EVENTS_URL);
   if (!res.ok) throw new Error(`Failed to fetch NetBenefit events page: ${res.status}`);
   const html = await res.text();
 

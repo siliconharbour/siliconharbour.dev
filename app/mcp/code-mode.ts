@@ -6,7 +6,7 @@ import { CodeMode, Tool, toolError } from "@opencode-ai/codemode";
 import { Effect } from "effect";
 import { z } from "zod";
 
-import type { HostFunctions } from "./bridge.js";
+import type { HostFunctions } from "./host-function";
 
 export const QUERY_LIMITS = {
   timeoutMs: 10_000,
@@ -30,8 +30,12 @@ export function createCodeMode(
           io: "input",
           unrepresentable: "any",
         }) as Tool.JsonSchema,
-        // Tools without an output schema return void.
-        output: {},
+        output: fn.outputSchema
+          ? (z.toJSONSchema(fn.outputSchema, {
+              io: "output",
+              unrepresentable: "any",
+            }) as Tool.JsonSchema)
+          : {},
         execute: (input) =>
           Effect.tryPromise({
             try: () => fn(input),
