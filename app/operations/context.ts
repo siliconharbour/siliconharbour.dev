@@ -29,6 +29,9 @@ export function mcpContext(auth?: AuthInfo): OperationContext {
   return {
     ...context,
     actor: { userId, role: auth.extra?.role === "admin" ? "admin" : "regular", via: "mcp" },
-    scopes: new Set(auth.scopes.includes("mcp:write") ? ["read", "write"] : ["read"]),
+    scopes: new Set<"read" | "write">([
+      ...(auth.scopes.includes("mcp:read") ? ["read" as const] : []),
+      ...(auth.scopes.includes("mcp:write") ? ["write" as const] : []),
+    ]),
   };
 }

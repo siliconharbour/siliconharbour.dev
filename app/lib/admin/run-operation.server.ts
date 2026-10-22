@@ -1,3 +1,5 @@
+import { ImageInputError } from "~/lib/image-input.server";
+import { PublicFetchError } from "~/lib/public-fetch.server";
 import { z } from "zod";
 import { requireAdmin } from "~/lib/session.server";
 import { adminContext } from "~/operations/context";
@@ -26,6 +28,8 @@ export async function runAdminOperation<O extends Operation>(
     if (error instanceof z.ZodError)
       return { ok: false, error: formatValidationError(error, operation.input) };
     if (
+      error instanceof ImageInputError ||
+      error instanceof PublicFetchError ||
       error instanceof InvalidOperationError ||
       error instanceof ConflictError ||
       error instanceof ConfirmationRequiredError

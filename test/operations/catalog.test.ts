@@ -59,3 +59,14 @@ it("does not permit direct construction of a write runtime for anonymous or read
   expect(() => buildExecuteFunctions(readOnly)).toThrow(ForbiddenError);
   await expect(buildReadFunctions().jobs({ status: "all" })).rejects.toThrow(ForbiddenError);
 });
+
+it("derives read and write access from the granted MCP scopes", async () => {
+  const { mcpContext } = await import("~/operations/context");
+  const auth = { token: "test", clientId: "test", scopes: [], extra: { userId: 1, role: "admin" } };
+  const context = mcpContext(auth);
+  expect(catalogHostFunctions(context)).toEqual({});
+  await expect(operationCatalog.themeShareList.execute(context, {})).rejects.toThrow(
+    "Read scope required",
+  );
+  expect([...mcpContext({ ...auth, scopes: ["mcp:write"] }).scopes]).toEqual(["write"]);
+});

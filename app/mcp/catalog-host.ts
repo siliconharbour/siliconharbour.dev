@@ -9,7 +9,7 @@ export function catalogHostFunctions(context: OperationContext, readsOnly = fals
         ([, operation]) =>
           (!readsOnly || operation.risk === "read") &&
           (operation.access === "public" || context.actor?.role === "admin") &&
-          (operation.risk === "read" || context.scopes.has("write")),
+          context.scopes.has(operation.risk === "read" ? "read" : "write"),
       )
       .map(([name, operation]) => [
         name,

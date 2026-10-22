@@ -48,7 +48,7 @@ export function defineOperation<I extends z.ZodType, O extends z.ZodType>(
       if (definition.access === "admin" && context.actor?.role !== "admin")
         throw new ForbiddenError("Administrator access required");
       if (!context.scopes.has(definition.risk === "read" ? "read" : "write"))
-        throw new ForbiddenError("Write scope required");
+        throw new ForbiddenError(`${definition.risk === "read" ? "Read" : "Write"} scope required`);
       if (
         (definition.risk === "destructive" || definition.risk === "external") &&
         (typeof raw !== "object" || raw === null || !("confirm" in raw) || raw.confirm !== true)
