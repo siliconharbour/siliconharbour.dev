@@ -82,8 +82,7 @@ export function findExistingTechNLJob(
   const normalizedTitle = normalizeJobTitle(posting.title);
   const companyTitleMatch = candidates.find(
     (candidate) =>
-      candidate.companyId === companyId &&
-      normalizeJobTitle(candidate.title) === normalizedTitle,
+      candidate.companyId === companyId && normalizeJobTitle(candidate.title) === normalizedTitle,
   );
   return companyTitleMatch
     ? { job: companyTitleMatch, confidence: "company_title" }
@@ -109,7 +108,7 @@ export async function fetchTechNLJobs(): Promise<TechNLJob[]> {
  */
 export function parseTechNLFeed(xml: string): TechNLJob[] {
   const document = new DOMParser().parseFromString(xml, "text/xml");
-  const items = Array.from(document.querySelectorAll("item"));
+  const items = Array.from<Element>(document.querySelectorAll("item"));
   const jobs: TechNLJob[] = [];
 
   for (const item of items) {
@@ -117,8 +116,7 @@ export function parseTechNLFeed(xml: string): TechNLJob[] {
     const link = textOf(item, "link");
     if (!title || !link) continue;
 
-    const descriptionHtml =
-      textOf(item, "content\\:encoded") || textOf(item, "description") || "";
+    const descriptionHtml = textOf(item, "content\\:encoded") || textOf(item, "description") || "";
 
     jobs.push({
       link,
@@ -153,13 +151,9 @@ export async function fetchTechNLJobsWithMatches(): Promise<{
   // Resolve companies by case-insensitive name. WP Job Manager lets the
   // poster type the company name freely, so an exact match is unreliable —
   // we fold to lowercase and trim before comparing.
-  const companyNames = Array.from(
-    new Set(fetched.map((j) => j.company.trim()).filter(Boolean)),
-  );
+  const companyNames = Array.from(new Set(fetched.map((j) => j.company.trim()).filter(Boolean)));
 
-  const allCompanies = companyNames.length
-    ? await db.select().from(companies)
-    : [];
+  const allCompanies = companyNames.length ? await db.select().from(companies) : [];
   const companyIndex = new Map<string, (typeof allCompanies)[number]>();
   for (const c of allCompanies) {
     companyIndex.set(c.name.trim().toLowerCase(), c);
@@ -181,9 +175,7 @@ export async function fetchTechNLJobsWithMatches(): Promise<{
   // job_import_sources row.
   const companyIdsWithSources = new Set<number>();
   if (allCompanies.length) {
-    const rows = await db
-      .select({ companyId: jobImportSources.companyId })
-      .from(jobImportSources);
+    const rows = await db.select({ companyId: jobImportSources.companyId }).from(jobImportSources);
     for (const r of rows) companyIdsWithSources.add(r.companyId);
   }
 

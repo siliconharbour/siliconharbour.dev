@@ -149,7 +149,7 @@ function buildInitialProvenanceGroups(
   return technologyProvenanceSourceOptions.map((option) => byProvenance.get(option.key)!);
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.company?.name || "Company"} - siliconharbour.dev` }];
 }
 
@@ -435,7 +435,9 @@ export default function EditCompany() {
         <h1 className="text-2xl font-semibold text-heading">Edit Company</h1>
 
         {actionData?.error && (
-          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
+            {actionData.error}
+          </div>
         )}
 
         <Form method="post" className="flex flex-col gap-gap-6">
@@ -604,14 +606,12 @@ export default function EditCompany() {
                 defaultChecked={company.newsFilterInclude ?? false}
                 className="border border-harbour-300"
               />
-              <span className="text-sm text-body">
-                Include name in news import keyword filter
-              </span>
+              <span className="text-sm text-body">Include name in news import keyword filter</span>
             </label>
             <p className="text-xs text-subtle">
               When a news source enables the company name filter, articles mentioning this
-              company&rsquo;s name will be imported. Only enable for companies with distinctive names
-              to avoid false positives.
+              company&rsquo;s name will be imported. Only enable for companies with distinctive
+              names to avoid false positives.
             </p>
           </div>
 
@@ -620,12 +620,13 @@ export default function EditCompany() {
           {companyTechnologies.length > 0 && (
             <div className="flex flex-col gap-gap-3">
               <h2 className="font-medium text-heading">Technology Provenance</h2>
-              <p className="text-xs text-subtle">
-                Assign each technology to one source bucket.
-              </p>
+              <p className="text-xs text-subtle">Assign each technology to one source bucket.</p>
               <div className="flex flex-col gap-gap-3">
                 {provenanceGroups.map((group) => (
-                  <div key={group.id} className="border border-line p-pad-3 flex flex-col gap-gap-3">
+                  <div
+                    key={group.id}
+                    className="border border-line p-pad-3 flex flex-col gap-gap-3"
+                  >
                     <input type="hidden" name="provenanceGroupId" value={group.id} />
                     <div className="flex items-center gap-gap-2">
                       <div className="flex items-center gap-gap-2">

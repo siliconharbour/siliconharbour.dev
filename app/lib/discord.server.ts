@@ -1,3 +1,4 @@
+import type { GuildChannelType } from "discord-api-types/v10";
 import { createHash } from "node:crypto";
 import { REST, DiscordAPIError, HTTPError } from "@discordjs/rest";
 import {
@@ -247,7 +248,7 @@ export async function listGuilds(token: string): Promise<ListGuildsResult> {
 
 export interface ListGuildChannelsResult {
   ok: boolean;
-  channels?: APIGuildChannel<ChannelType>[];
+  channels?: APIGuildChannel<GuildChannelType>[];
   error?: string;
 }
 
@@ -348,7 +349,7 @@ export interface BotChannelPermissions {
  * in this REST-only setup.
  */
 export function computeBotChannelPermissions(
-  channel: Pick<APIGuildChannel<ChannelType>, "permission_overwrites">,
+  channel: Pick<APIGuildChannel<GuildChannelType>, "permission_overwrites">,
   guildRoles: APIRole[],
   botMember: Pick<APIGuildMember, "roles" | "user">,
   guildId: string,
@@ -462,7 +463,7 @@ export async function listPostableChannels(
 
   // Helper to coerce APIChannel into a uniform PostableChannel shape.
   const toPostable = (
-    c: APIGuildChannel<ChannelType>,
+    c: APIGuildChannel<GuildChannelType>,
     canSend: boolean,
     reason?: string,
   ): PostableChannel => {
@@ -476,7 +477,7 @@ export async function listPostableChannels(
       id: c.id,
       name: c.name ?? "",
       type: c.type,
-      position: c.position ?? 0,
+      position: "position" in c && typeof c.position === "number" ? c.position : 0,
       parentId,
       canSend,
       reason,

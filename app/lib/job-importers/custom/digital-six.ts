@@ -49,7 +49,7 @@ export async function scrapeDigitalSix(): Promise<FetchedJob[]> {
   const jobs = await fetchJson<WpAwsmJob[]>(JOBS_API_URL);
 
   return jobs
-    .map((job) => {
+    .map((job): FetchedJob | null => {
       const title = normalize(htmlToText(job.title.rendered));
       const descriptionHtml = job.content.rendered;
       const rawDescriptionText = htmlToText(descriptionHtml);

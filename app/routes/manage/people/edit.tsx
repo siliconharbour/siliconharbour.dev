@@ -6,7 +6,7 @@ import { processAndSaveIconImage, deleteImage } from "~/lib/images.server";
 import { ImageUpload } from "~/components/ImageUpload";
 import { blockItem } from "~/lib/import-blocklist.server";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.person?.name || "Person"} - siliconharbour.dev` }];
 }
 
@@ -125,7 +125,9 @@ export default function EditPerson() {
         <h1 className="text-2xl font-semibold text-heading">Edit Person</h1>
 
         {actionData?.error && (
-          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
+            {actionData.error}
+          </div>
         )}
 
         <Form method="post" className="flex flex-col gap-gap-6">

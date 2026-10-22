@@ -83,7 +83,12 @@ function getOctokit(): InstanceType<typeof ThrottledOctokit> {
     auth: token ?? undefined,
     userAgent: "siliconharbour.dev/1.0",
     throttle: {
-      onRateLimit: (retryAfter, options, octokit, retryCount) => {
+      onRateLimit: (
+        retryAfter: number,
+        options: { method?: string; url?: string },
+        octokit: { log: { warn(message: string): void; info(message: string): void } },
+        retryCount: number,
+      ) => {
         octokit.log.warn(`Rate limit hit for ${options.method} ${options.url}`);
         // Retry up to 2 times after waiting
         if (retryCount < 2) {
@@ -92,14 +97,18 @@ function getOctokit(): InstanceType<typeof ThrottledOctokit> {
         }
         return false;
       },
-      onSecondaryRateLimit: (retryAfter, options, octokit) => {
+      onSecondaryRateLimit: (
+        retryAfter: number,
+        options: { method?: string; url?: string },
+        octokit: { log: { warn(message: string): void } },
+      ) => {
         octokit.log.warn(`Secondary rate limit for ${options.method} ${options.url}`);
         // Don't retry secondary rate limits (abuse detection)
         return false;
       },
     },
     retry: {
-      doNotRetry: ["429"], // Don't retry rate limits (handled by throttling)
+      doNotRetry: [429], // Don't retry rate limits (handled by throttling)
       retries: 3,
     },
   });

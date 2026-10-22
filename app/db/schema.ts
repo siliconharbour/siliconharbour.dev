@@ -9,6 +9,7 @@ import {
   type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
+import { users, sessions } from "./auth-schema";
 export * from "./auth-schema";
 
 // =============================================================================
@@ -798,6 +799,7 @@ export const atsSourceTypes = [
   "dayforce",
   "jazzhr",
   "custom",
+  "kyrix",
 ] as const;
 export type AtsSourceType = (typeof atsSourceTypes)[number];
 

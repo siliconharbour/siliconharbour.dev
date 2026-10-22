@@ -17,8 +17,12 @@ it("reads locations separated by Collage's visual bullet elements", async () => 
       </a>
     </div>`;
   const detail = `<h1 class="ATS-position-title-main">Engineer</h1><div class="ATS-position-description"><p>Build systems.</p></div>`;
-  vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
-    ({ ok: true, text: async () => String(url).endsWith("/jobs/nordspace") ? listing : detail }) as Response,
+  vi.spyOn(globalThis, "fetch").mockImplementation(
+    async (url) =>
+      ({
+        ok: true,
+        text: async () => (String(url).endsWith("/jobs/nordspace") ? listing : detail),
+      }) as Response,
   );
 
   const jobs = await collageImporter.fetchJobs({

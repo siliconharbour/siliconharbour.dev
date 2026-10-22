@@ -2,7 +2,16 @@ import { describe, expect, it } from "vitest";
 import { createMcpServer } from "~/mcp/server";
 
 async function callTool(name: "query" | "execute", code: string) {
-  const server = await createMcpServer(name === "execute");
+  const server = await createMcpServer(
+    name === "execute"
+      ? {
+          token: "test",
+          clientId: "test",
+          scopes: ["mcp:read", "mcp:write"],
+          extra: { userId: 1, role: "admin" },
+        }
+      : undefined,
+  );
   // @ts-expect-error private SDK registry
   const handler = server._registeredTools[name].handler as (args: { code: string }) => Promise<{
     content: Array<{ type: "text"; text: string }>;

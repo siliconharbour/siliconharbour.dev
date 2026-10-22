@@ -56,10 +56,7 @@ export default function NewTechnology() {
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-2xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link
-            to="/manage/technologies"
-            className="text-sm text-subtle hover:text-body"
-          >
+          <Link to="/manage/technologies" className="text-sm text-subtle hover:text-body">
             &larr; Back to Technologies
           </Link>
         </div>
@@ -67,7 +64,9 @@ export default function NewTechnology() {
         <h1 className="text-2xl font-semibold text-heading">New Technology</h1>
 
         {actionData?.error && (
-          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{actionData.error}</div>
+          <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
+            {actionData.error}
+          </div>
         )}
 
         <Form method="post" className="flex flex-col gap-gap-6">

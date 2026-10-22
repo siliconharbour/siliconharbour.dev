@@ -1,3 +1,11 @@
+import { ForbiddenError } from "~/operations/errors";
+import { atsSourceTypes } from "~/db/schema";
+import { fetchPublicPage } from "~/lib/public-fetch.server";
+import { catalogHostFunctions } from "./catalog-host";
+import { operationCatalog } from "~/operations/catalog";
+import { adminContext, publicContext, type OperationContext } from "~/operations/context";
+import type { OperationArea } from "~/operations/define";
+import { text, nullableText, id } from "~/operations/fields";
 import { orderEventSourcesForSync } from "~/lib/event-importers/source-order";
 import {
   setEntityImage,
@@ -7,7 +15,6 @@ import {
 } from "~/lib/entity-images.server";
 import { prepareImageUpload, prepareImageUploadSchema } from "~/lib/mcp-image-uploads.server";
 import { getOAuthIssuerUrl } from "./oauth.server";
-import { listThemeShares, deleteThemeShare } from "~/lib/theme-shares.server";
 import { z } from "zod";
 import { getAsyncSync, listAsyncSyncs, startAsyncSync } from "./async-syncs.js";
 import {
@@ -139,6 +146,7 @@ import {
 import { eq, and, isNull, count } from "drizzle-orm";
 
 export type HostFnCategory =
+  | OperationArea
   | "read"
   | "sources"
   | "sync"
@@ -165,7 +173,7 @@ function host(
   fn: HostFn,
   inputSchema: z.ZodType,
 ): HostFunction {
-  return Object.assign(fn, {
+  return Object.assign(async (input: unknown) => fn(inputSchema.parse(input)), {
     doc: { signature, description, category },
     inputSchema,
   });
@@ -189,34 +197,38 @@ function entriesFor(fns: HostFunctions): HostFunctionDocsEntry[] {
 export function getHostFunctionDocs(): HostFunctionDocs {
   return {
     read: entriesFor(buildReadFunctions()),
-    execute: entriesFor(buildExecuteFunctions()),
+    execute: entriesFor(buildExecuteFunctions(adminContext(1))),
   };
 }
 
 // ── Zod schemas ────────────────────────────────────────────────────────
 
-const PaginationSchema = z.object({
-  limit: z.number().optional(),
-  offset: z.number().optional(),
-  query: z.string().optional(),
-  upcoming: z.boolean().optional(),
-});
+const PaginationSchema = z
+  .object({
+    limit: z.number().optional(),
+    offset: z.number().optional(),
+    query: z.string().optional(),
+    upcoming: z.boolean().optional(),
+  })
+  .strict();
 
-const JobQuerySchema = z.object({
-  limit: z.number().optional(),
-  offset: z.number().optional(),
-  query: z.string().optional(),
-  companyId: z.number().optional(),
-  sourceId: z.number().optional(),
-  status: z.union([z.enum(jobStatuses), z.literal("all")]).optional(),
-  isTechnical: z.boolean().optional(),
-  workplaceType: z.enum(workplaceTypes).optional(),
-  location: z.string().optional(),
-  lastSeenAfter: z.coerce.date().optional(),
-});
+const JobQuerySchema = z
+  .object({
+    limit: z.number().optional(),
+    offset: z.number().optional(),
+    query: z.string().optional(),
+    companyId: z.number().optional(),
+    sourceId: z.number().optional(),
+    status: z.union([z.enum(jobStatuses), z.literal("all")]).optional(),
+    isTechnical: z.boolean().optional(),
+    workplaceType: z.enum(workplaceTypes).optional(),
+    location: z.string().optional(),
+    lastSeenAfter: z.coerce.date().optional(),
+  })
+  .strict();
 
-const AsyncSyncLookupSchema = z.object({ runId: z.string().min(1) });
-const TechNLJobLookupSchema = z.object({ link: z.string().min(1) });
+const AsyncSyncLookupSchema = z.object({ runId: z.string().min(1) }).strict();
+const TechNLJobLookupSchema = z.object({ link: z.string().min(1) }).strict();
 
 // ── Union CRUD for entities ────────────────────────────────────────────
 //
@@ -231,191 +243,224 @@ const TechNLJobLookupSchema = z.object({ link: z.string().min(1) });
 
 // ── createEntity ──────────────────────────────────────────────────────
 
-const PersonCreateSchema = z.object({
-  type: z.literal("person"),
-  name: z.string().min(1, "name is required"),
-  bio: z.string().min(1, "bio is required"),
-  website: z.string().optional(),
-  github: z.string().optional(),
-  visible: z.boolean().optional(),
-});
+const PersonCreateSchema = z
+  .object({
+    type: z.literal("person"),
+    name: z.string().trim().min(1, "name is required"),
+    bio: z.string().trim().min(1, "bio is required"),
+    website: nullableText().optional(),
+    github: nullableText().optional(),
+    visible: z.boolean().optional(),
+  })
+  .strict();
 
-const EducationCreateSchema = z.object({
-  type: z.literal("education"),
-  name: z.string().min(1, "name is required"),
-  description: z.string().min(1, "description is required"),
-  educationType: z.enum(["university", "college", "bootcamp", "online", "other"]).optional(),
-  website: z.string().optional(),
-  technl: z.boolean().optional(),
-  genesis: z.boolean().optional(),
-  bounce: z.boolean().optional(),
-  visible: z.boolean().optional(),
-});
+const EducationCreateSchema = z
+  .object({
+    type: z.literal("education"),
+    name: z.string().trim().min(1, "name is required"),
+    description: z.string().trim().min(1, "description is required"),
+    educationType: z.enum(["university", "college", "bootcamp", "online", "other"]).optional(),
+    website: nullableText().optional(),
+    technl: z.boolean().optional(),
+    genesis: z.boolean().optional(),
+    bounce: z.boolean().optional(),
+    visible: z.boolean().optional(),
+  })
+  .strict();
 
-const ProductCreateSchema = z.object({
-  type: z.literal("product"),
-  name: z.string().min(1, "name is required"),
-  description: z.string().min(1, "description is required"),
-  productType: z.enum(["saas", "mobile", "physical", "service", "other"]).optional(),
-  website: z.string().optional(),
-  companyId: z.number().optional(),
-});
+const ProductCreateSchema = z
+  .object({
+    type: z.literal("product"),
+    name: z.string().trim().min(1, "name is required"),
+    description: z.string().trim().min(1, "description is required"),
+    productType: z.enum(["saas", "mobile", "physical", "service", "other"]).optional(),
+    website: nullableText().optional(),
+    companyId: z.number().optional(),
+  })
+  .strict();
 
-const ProjectCreateSchema = z.object({
-  type: z.literal("project"),
-  name: z.string().min(1, "name is required"),
-  description: z.string().min(1, "description is required"),
-  projectType: z.enum(["game", "webapp", "library", "tool", "hardware", "other"]).optional(),
-  status: z.enum(["active", "completed", "archived", "on-hold"]).optional(),
-});
+const ProjectCreateSchema = z
+  .object({
+    type: z.literal("project"),
+    name: z.string().trim().min(1, "name is required"),
+    description: z.string().trim().min(1, "description is required"),
+    projectType: z.enum(["game", "webapp", "library", "tool", "hardware", "other"]).optional(),
+    status: z.enum(["active", "completed", "archived", "on-hold"]).optional(),
+  })
+  .strict();
 
-const TechnologyCreateSchema = z.object({
-  type: z.literal("technology"),
-  name: z.string().min(1, "name is required"),
-  category: z.enum([
-    "language",
-    "frontend",
-    "backend",
-    "cloud",
-    "database",
-    "games-and-graphics",
-    "mobile",
-    "data-science",
-    "llm",
-    "platform",
-    "specialized",
-  ]),
-  description: z.string().optional(),
-  website: z.string().optional(),
-  visible: z.boolean().optional(),
-});
+const TechnologyCreateSchema = z
+  .object({
+    type: z.literal("technology"),
+    name: z.string().trim().min(1, "name is required"),
+    category: z.enum([
+      "language",
+      "frontend",
+      "backend",
+      "cloud",
+      "database",
+      "games-and-graphics",
+      "mobile",
+      "data-science",
+      "llm",
+      "platform",
+      "specialized",
+    ]),
+    description: text("description").optional(),
+    website: nullableText().optional(),
+    visible: z.boolean().optional(),
+  })
+  .strict();
 
-const CompanyCreateSchema = z.object({
-  type: z.literal("company"),
-  name: z.string().min(1, "name is required"),
-  website: z.string().optional(),
-  description: z.string().optional(),
-  location: z.string().optional(),
-  email: z.string().optional(),
-  linkedin: z.string().optional(),
-  github: z.string().optional(),
-  wikipedia: z.string().optional(),
-  careersUrl: z.string().optional(),
-  founded: z.string().optional(),
-  visible: z.boolean().optional(),
-  technl: z.boolean().optional(),
-  genesis: z.boolean().optional(),
-  bounce: z.boolean().optional(),
-  newsFilterInclude: z.boolean().optional(),
-});
+const CompanyCreateSchema = z
+  .object({
+    type: z.literal("company"),
+    name: z.string().trim().min(1, "name is required"),
+    website: nullableText().optional(),
+    description: text("description").optional(),
+    location: nullableText().optional(),
+    email: nullableText().optional(),
+    linkedin: nullableText().optional(),
+    github: nullableText().optional(),
+    wikipedia: nullableText().optional(),
+    careersUrl: nullableText().optional(),
+    founded: nullableText().optional(),
+    visible: z.boolean().optional(),
+    technl: z.boolean().optional(),
+    genesis: z.boolean().optional(),
+    bounce: z.boolean().optional(),
+    newsFilterInclude: z.boolean().optional(),
+  })
+  .strict();
 
-const GroupCreateSchema = z.object({
-  type: z.literal("group"),
-  name: z.string().min(1, "name is required"),
-  description: z.string().min(1, "description is required"),
-  website: z.string().optional(),
-  meetingFrequency: z.string().optional(),
-  visible: z.boolean().optional(),
-});
+const GroupCreateSchema = z
+  .object({
+    type: z.literal("group"),
+    name: z.string().trim().min(1, "name is required"),
+    description: z.string().trim().min(1, "description is required"),
+    website: nullableText().optional(),
+    meetingFrequency: nullableText().optional(),
+    visible: z.boolean().optional(),
+  })
+  .strict();
 
-const EventCreateSchema = z.object({
-  type: z.literal("event"),
-  title: z.string().min(1, "title is required"),
-  description: z.string().min(1, "description is required"),
-  link: z.string().min(1, "link is required (external URL such as the LinkedIn event URL)"),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
-  endDate: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "endDate must be YYYY-MM-DD")
-    .optional(),
-  startTime: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/, "startTime must be HH:mm (24h, local time in America/St_Johns)")
-    .optional(),
-  endTime: z
-    .string()
-    .regex(/^\d{2}:\d{2}$/, "endTime must be HH:mm (24h, local time in America/St_Johns)")
-    .optional(),
-  // When true, startTime and endTime are ignored and the event renders
-  // as an all-day occurrence on startDate (through endDate when set).
-  isAllDay: z.boolean().optional(),
-  location: z.string().optional(),
-  organizer: z.string().optional(),
-  requiresSignup: z.boolean().optional(),
-  timeMode: z.enum(["scheduled", "period"]).optional(),
-  parentEventId: z.number().int().positive().nullable().optional(),
-  eventTags: z.array(z.string().min(1)).optional(),
-});
+const EventCreateSchema = z
+  .object({
+    type: z.literal("event"),
+    title: z.string().trim().min(1, "title is required"),
+    description: z.string().trim().min(1, "description is required"),
+    link: z
+      .string()
+      .trim()
+      .min(1, "link is required (external URL such as the LinkedIn event URL)"),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "startDate must be YYYY-MM-DD"),
+    endDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "endDate must be YYYY-MM-DD")
+      .optional(),
+    startTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/, "startTime must be HH:mm (24h, local time in America/St_Johns)")
+      .optional(),
+    endTime: z
+      .string()
+      .regex(/^\d{2}:\d{2}$/, "endTime must be HH:mm (24h, local time in America/St_Johns)")
+      .optional(),
+    // When true, startTime and endTime are ignored and the event renders
+    // as an all-day occurrence on startDate (through endDate when set).
+    isAllDay: z.boolean().optional(),
+    location: nullableText().optional(),
+    organizer: nullableText().optional(),
+    requiresSignup: z.boolean().optional(),
+    timeMode: z.enum(["scheduled", "period"]).optional(),
+    parentEventId: z.number().int().positive().nullable().optional(),
+    eventTags: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
 
-const EventTagSaveSchema = z.object({
-  id: z.number().int().positive().optional(),
-  name: z.string().min(1),
-  color: z.enum(["harbour", "green", "amber", "red", "purple"]),
-});
+const EventTagSaveSchema = z
+  .object({
+    id: z.number().int().positive().optional(),
+    name: z.string().min(1),
+    color: z.enum(["harbour", "green", "amber", "red", "purple"]),
+  })
+  .strict();
 
-const EventTagDeleteSchema = z.object({ id: z.number().int().positive() });
+const EventTagDeleteSchema = z.object({ id: z.number().int().positive() }).strict();
 
-const JobCreateSchema = z.object({
-  type: z.literal("job"),
-  title: z.string().min(1, "title is required"),
-  description: z.string().min(1, "description is required"),
-  url: z.string().min(1, "url is required (apply link)"),
-  companyId: z.number().optional(),
-  companyName: z.string().optional(),
-  location: z.string().optional(),
-  department: z.string().optional(),
-  workplaceType: z.enum(["remote", "onsite", "hybrid"]).optional(),
-  salaryRange: z.string().optional(),
-  isTechnical: z.boolean().optional(),
-});
+const JobCreateSchema = z
+  .object({
+    type: z.literal("job"),
+    title: z.string().trim().min(1, "title is required"),
+    description: z.string().trim().min(1, "description is required"),
+    url: z.string().trim().min(1, "url is required (apply link)"),
+    companyId: z.number().optional(),
+    companyName: z.string().optional(),
+    location: nullableText().optional(),
+    department: nullableText().optional(),
+    workplaceType: z.enum(["remote", "onsite", "hybrid"]).optional(),
+    salaryRange: nullableText().optional(),
+    isTechnical: z.boolean().optional(),
+  })
+  .strict();
 
-const EventSourceCreateSchema = z.object({
-  type: z.literal("event-source"),
-  name: z.string().min(1, "name is required"),
-  sourceType: z.string().min(1, "sourceType is required"),
-  sourceIdentifier: z.string().min(1, "sourceIdentifier is required"),
-  sourceUrl: z.string().min(1, "sourceUrl is required"),
-  organizer: z.string().optional(),
-});
+const EventSourceCreateSchema = z
+  .object({
+    type: z.literal("event-source"),
+    name: z.string().trim().min(1, "name is required"),
+    sourceType: z.string().trim().min(1, "sourceType is required"),
+    sourceIdentifier: z.string().trim().min(1, "sourceIdentifier is required"),
+    sourceUrl: z.string().trim().min(1, "sourceUrl is required"),
+    organizer: nullableText().optional(),
+  })
+  .strict();
 
-const JobSourceCreateSchema = z.object({
-  type: z.literal("job-source"),
-  companyId: z.number("companyId is required"),
-  sourceType: z.string().min(1, "sourceType is required"),
-  sourceIdentifier: z.string().min(1, "sourceIdentifier is required"),
-  sourceUrl: z.string().optional(),
-  skipValidation: z.boolean().optional(),
-});
+const JobSourceCreateSchema = z
+  .object({
+    type: z.literal("job-source"),
+    companyId: z.number("companyId is required"),
+    sourceType: z.enum(atsSourceTypes),
+    sourceIdentifier: z.string().trim().min(1, "sourceIdentifier is required"),
+    sourceUrl: text("sourceUrl").optional(),
+    skipValidation: z.boolean().optional(),
+  })
+  .strict();
 
-const NewsSourceCreateSchema = z.object({
-  type: z.literal("news-source"),
-  name: z.string().min(1, "name is required"),
-  sourceType: z.enum(["rss", "custom"], "sourceType must be rss or custom"),
-  sourceUrl: z.string().url("sourceUrl must be a valid URL"),
-  sourceIdentifier: z.string().optional(),
-  keywords: z.string().optional(),
-  useGlobalKeywords: z.boolean().optional(),
-  useCompanyNameFilter: z.boolean().optional(),
-  excerptMode: z.enum(["description", "content", "none"]).optional(),
-  entityUrl: z.string().optional(),
-  enabled: z.boolean().optional(),
-});
+const NewsSourceCreateSchema = z
+  .object({
+    type: z.literal("news-source"),
+    name: z.string().trim().min(1, "name is required"),
+    sourceType: z.enum(["rss", "custom"], "sourceType must be rss or custom"),
+    sourceUrl: z.string().url("sourceUrl must be a valid URL"),
+    sourceIdentifier: text("sourceIdentifier").optional(),
+    keywords: z.string().optional(),
+    useGlobalKeywords: z.boolean().optional(),
+    useCompanyNameFilter: z.boolean().optional(),
+    excerptMode: z.enum(["description", "content", "none"]).optional(),
+    entityUrl: z.string().optional(),
+    enabled: z.boolean().optional(),
+  })
+  .strict();
 
-const NewsArticleCreateSchema = z.object({
-  type: z.literal("news-article"),
-  title: z.string().min(1, "title is required"),
-  content: z.string().min(1, "content is required"),
-  excerpt: z.string().optional(),
-  publish: z.boolean().optional(),
-});
+const NewsArticleCreateSchema = z
+  .object({
+    type: z.literal("news-article"),
+    title: z.string().trim().min(1, "title is required"),
+    content: z.string().trim().min(1, "content is required"),
+    excerpt: nullableText().optional(),
+    publish: z.boolean().optional(),
+  })
+  .strict();
 
-const NewsLinkCreateSchema = z.object({
-  type: z.literal("news-link"),
-  url: z.string().url(),
-  title: z.string().optional(),
-  excerpt: z.string().optional(),
-  sourceName: z.string().optional(),
-});
+const NewsLinkCreateSchema = z
+  .object({
+    type: z.literal("news-link"),
+    url: z.string().url(),
+    title: text("title").optional(),
+    excerpt: nullableText().optional(),
+    sourceName: z.string().optional(),
+  })
+  .strict();
 
 const CreateEntitySchema = z.discriminatedUnion("type", [
   PersonCreateSchema,
@@ -436,172 +481,201 @@ const CreateEntitySchema = z.discriminatedUnion("type", [
 
 // ── updateEntity ──────────────────────────────────────────────────────
 
-const UpdateEntitySchema = z.discriminatedUnion("type", [
-  PersonCreateSchema.partial({
-    name: true,
-    bio: true,
-    website: true,
-    github: true,
-    visible: true,
-  }).extend({ type: z.literal("person"), id: z.number("id is required") }),
-  EducationCreateSchema.partial({
-    name: true,
-    description: true,
-    educationType: true,
-    website: true,
-    technl: true,
-    genesis: true,
-    bounce: true,
-    visible: true,
-  }).extend({ type: z.literal("education"), id: z.number("id is required") }),
-  ProductCreateSchema.partial({
-    name: true,
-    description: true,
-    productType: true,
-    website: true,
-    companyId: true,
-  }).extend({ type: z.literal("product"), id: z.number("id is required") }),
-  ProjectCreateSchema.partial({
-    name: true,
-    description: true,
-    projectType: true,
-    status: true,
-  }).extend({ type: z.literal("project"), id: z.number("id is required") }),
-  TechnologyCreateSchema.partial({
-    name: true,
-    category: true,
-    description: true,
-    website: true,
-    visible: true,
-  }).extend({ type: z.literal("technology"), id: z.number("id is required") }),
-  // Company update: superset of create fields (admin-only extras).
-  z.object({
-    type: z.literal("company"),
-    id: z.number("id is required"),
-    name: z.string().optional(),
-    website: z.string().optional(),
-    description: z.string().optional(),
-    location: z.string().optional(),
-    email: z.string().optional(),
-    linkedin: z.string().optional(),
-    github: z.string().optional(),
-    wikipedia: z.string().optional(),
-    careersUrl: z.string().optional(),
-    founded: z.string().optional(),
-    visible: z.boolean().optional(),
-    technl: z.boolean().optional(),
-    genesis: z.boolean().optional(),
-    bounce: z.boolean().optional(),
-    newsFilterInclude: z.boolean().optional(),
-  }),
-  // Job update: patches an existing job's basic fields.
-  z.object({
-    type: z.literal("job"),
-    id: z.number("id is required"),
-    title: z.string().optional(),
-    description: z.string().optional(),
-    url: z.string().optional(),
-    location: z.string().optional(),
-    department: z.string().optional(),
-    workplaceType: z.enum(["remote", "onsite", "hybrid"]).optional(),
-    salaryRange: z.string().optional(),
-  }),
-  // Job-source update.
-  z.object({
-    type: z.literal("job-source"),
-    id: z.number("id is required"),
-    sourceType: z.string().optional(),
-    sourceIdentifier: z.string().optional(),
-    sourceUrl: z.string().optional(),
-  }),
-  // Event update: patches base fields. Date editing stays on the manage
-  // UI (the form bundles cropping + image + recurrence in one place).
-  z.object({
-    type: z.literal("event"),
-    id: z.number("id is required"),
-    title: z.string().optional(),
-    description: z.string().optional(),
-    link: z.string().optional(),
-    location: z.string().optional(),
-    organizer: z.string().optional(),
-    requiresSignup: z.boolean().optional(),
-    timeMode: z.enum(["scheduled", "period"]).optional(),
-    parentEventId: z.number().int().positive().nullable().optional(),
-    eventTags: z.array(z.string().min(1)).optional(),
-    importStatus: z
-      .enum(["pending_review", "approved", "published", "hidden", "removed"])
-      .optional(),
-    // Optional dates replacement. When supplied, all existing event_dates
-    // rows are removed and the supplied rows are inserted in their place
-    // (matching updateEvent's lib semantics). Each entry mirrors the
-    // createEntity event shape.
-    dates: z
-      .array(
-        z.object({
-          startDate: z
-            .string()
-            .regex(/^\d{4}-\d{2}-\d{2}$/, "dates[].startDate must be YYYY-MM-DD"),
-          endDate: z
-            .string()
-            .regex(/^\d{4}-\d{2}-\d{2}$/, "dates[].endDate must be YYYY-MM-DD")
-            .optional(),
-          startTime: z
-            .string()
-            .regex(/^\d{2}:\d{2}$/, "dates[].startTime must be HH:mm")
-            .optional(),
-          endTime: z
-            .string()
-            .regex(/^\d{2}:\d{2}$/, "dates[].endTime must be HH:mm")
-            .optional(),
-          isAllDay: z.boolean().optional(),
-        }),
+const UpdateEntitySchema = z
+  .discriminatedUnion("type", [
+    PersonCreateSchema.partial({
+      name: true,
+      bio: true,
+      website: true,
+      github: true,
+      visible: true,
+    }).extend({ type: z.literal("person"), id: z.number("id is required") }),
+    EducationCreateSchema.partial({
+      name: true,
+      description: true,
+      educationType: true,
+      website: true,
+      technl: true,
+      genesis: true,
+      bounce: true,
+      visible: true,
+    }).extend({ type: z.literal("education"), id: z.number("id is required") }),
+    ProductCreateSchema.partial({
+      name: true,
+      description: true,
+      productType: true,
+      website: true,
+      companyId: true,
+    }).extend({ type: z.literal("product"), id: z.number("id is required") }),
+    ProjectCreateSchema.partial({
+      name: true,
+      description: true,
+      projectType: true,
+      status: true,
+    }).extend({ type: z.literal("project"), id: z.number("id is required") }),
+    TechnologyCreateSchema.partial({
+      name: true,
+      category: true,
+      description: true,
+      website: true,
+      visible: true,
+    }).extend({ type: z.literal("technology"), id: z.number("id is required") }),
+    // Company update: superset of create fields (admin-only extras).
+    z
+      .object({
+        type: z.literal("company"),
+        id: z.number("id is required"),
+        name: text("name").optional(),
+        website: nullableText().optional(),
+        description: text("description").optional(),
+        location: nullableText().optional(),
+        email: nullableText().optional(),
+        linkedin: nullableText().optional(),
+        github: nullableText().optional(),
+        wikipedia: nullableText().optional(),
+        careersUrl: nullableText().optional(),
+        founded: nullableText().optional(),
+        visible: z.boolean().optional(),
+        technl: z.boolean().optional(),
+        genesis: z.boolean().optional(),
+        bounce: z.boolean().optional(),
+        newsFilterInclude: z.boolean().optional(),
+      })
+      .strict(),
+    // Job update: patches an existing job's basic fields.
+    z
+      .object({
+        type: z.literal("job"),
+        id: z.number("id is required"),
+        companyId: id().nullable().optional(),
+        isTechnical: z.boolean().optional(),
+        title: text("title").optional(),
+        description: text("description").optional(),
+        url: z.string().optional(),
+        location: nullableText().optional(),
+        department: nullableText().optional(),
+        workplaceType: z.enum(["remote", "onsite", "hybrid"]).optional(),
+        salaryRange: nullableText().optional(),
+      })
+      .strict(),
+    // Job-source update.
+    z
+      .object({
+        type: z.literal("job-source"),
+        id: z.number("id is required"),
+        sourceType: z.enum(atsSourceTypes).optional(),
+        sourceIdentifier: text("sourceIdentifier").optional(),
+        sourceUrl: text("sourceUrl").optional(),
+      })
+      .strict(),
+    // Event update: patches base fields. Date editing stays on the manage
+    // UI (the form bundles cropping + image + recurrence in one place).
+    z
+      .object({
+        type: z.literal("event"),
+        id: z.number("id is required"),
+        title: text("title").optional(),
+        description: text("description").optional(),
+        link: text("link").optional(),
+        location: nullableText().optional(),
+        organizer: nullableText().optional(),
+        requiresSignup: z.boolean().optional(),
+        timeMode: z.enum(["scheduled", "period"]).optional(),
+        parentEventId: z.number().int().positive().nullable().optional(),
+        eventTags: z.array(z.string().min(1)).optional(),
+        importStatus: z
+          .enum(["pending_review", "approved", "published", "hidden", "removed"])
+          .optional(),
+        // Optional dates replacement. When supplied, all existing event_dates
+        // rows are removed and the supplied rows are inserted in their place
+        // (matching updateEvent's lib semantics). Each entry mirrors the
+        // createEntity event shape.
+        dates: z
+          .array(
+            z
+              .object({
+                startDate: z
+                  .string()
+                  .regex(/^\d{4}-\d{2}-\d{2}$/, "dates[].startDate must be YYYY-MM-DD"),
+                endDate: z
+                  .string()
+                  .regex(/^\d{4}-\d{2}-\d{2}$/, "dates[].endDate must be YYYY-MM-DD")
+                  .optional(),
+                startTime: z
+                  .string()
+                  .regex(/^\d{2}:\d{2}$/, "dates[].startTime must be HH:mm")
+                  .optional(),
+                endTime: z
+                  .string()
+                  .regex(/^\d{2}:\d{2}$/, "dates[].endTime must be HH:mm")
+                  .optional(),
+                isAllDay: z.boolean().optional(),
+              })
+              .strict(),
+          )
+          .optional(),
+      })
+      .strict(),
+    // Group update.
+    z
+      .object({
+        type: z.literal("group"),
+        id: z.number("id is required"),
+        name: text("name").optional(),
+        description: text("description").optional(),
+        website: nullableText().optional(),
+        meetingFrequency: nullableText().optional(),
+        visible: z.boolean().optional(),
+      })
+      .strict(),
+    // News (the published item, not the source).
+    z
+      .object({
+        type: z.literal("news"),
+        id: z.number("id is required"),
+        title: text("title").optional(),
+        content: text("content").optional(),
+        excerpt: nullableText().optional(),
+        status: z.enum(["draft", "pending_review", "published", "hidden"]).optional(),
+      })
+      .strict(),
+    // Event-source update.
+    z
+      .object({
+        type: z.literal("event-source"),
+        id: z.number("id is required"),
+        name: text("name").optional(),
+        organizer: nullableText().optional(),
+        sourceIdentifier: text("sourceIdentifier").optional(),
+        sourceUrl: text("sourceUrl").optional(),
+      })
+      .strict(),
+    // News-source update uses the create shape without the type discriminator.
+    z
+      .object({
+        type: z.literal("news-source"),
+        id: z.number("id is required"),
+        name: text("name").optional(),
+        sourceType: z.enum(["rss", "custom"]).optional(),
+        sourceUrl: text("sourceUrl").optional(),
+        sourceIdentifier: text("sourceIdentifier").optional(),
+        keywords: z.string().optional(),
+        useGlobalKeywords: z.boolean().optional(),
+        useCompanyNameFilter: z.boolean().optional(),
+        excerptMode: z.enum(["description", "content", "none"]).optional(),
+        entityUrl: z.string().optional(),
+        enabled: z.boolean().optional(),
+      })
+      .strict(),
+  ])
+  .superRefine((input, context) => {
+    if (
+      !Object.entries(input).some(
+        ([key, value]) => key !== "id" && key !== "type" && value !== undefined,
       )
-      .optional(),
-  }),
-  // Group update.
-  z.object({
-    type: z.literal("group"),
-    id: z.number("id is required"),
-    name: z.string().optional(),
-    description: z.string().optional(),
-    website: z.string().optional(),
-    meetingFrequency: z.string().optional(),
-    visible: z.boolean().optional(),
-  }),
-  // News (the published item, not the source).
-  z.object({
-    type: z.literal("news"),
-    id: z.number("id is required"),
-    title: z.string().optional(),
-    content: z.string().optional(),
-    excerpt: z.string().optional(),
-    status: z.enum(["draft", "pending_review", "published", "hidden"]).optional(),
-  }),
-  // Event-source update.
-  z.object({
-    type: z.literal("event-source"),
-    id: z.number("id is required"),
-    name: z.string().optional(),
-    organizer: z.string().optional(),
-    sourceIdentifier: z.string().optional(),
-    sourceUrl: z.string().optional(),
-  }),
-  // News-source update uses the create shape without the type discriminator.
-  z.object({
-    type: z.literal("news-source"),
-    id: z.number("id is required"),
-    name: z.string().optional(),
-    sourceType: z.enum(["rss", "custom"]).optional(),
-    sourceUrl: z.string().optional(),
-    sourceIdentifier: z.string().optional(),
-    keywords: z.string().optional(),
-    useGlobalKeywords: z.boolean().optional(),
-    useCompanyNameFilter: z.boolean().optional(),
-    excerptMode: z.enum(["description", "content", "none"]).optional(),
-    entityUrl: z.string().optional(),
-    enabled: z.boolean().optional(),
-  }),
-]);
+    )
+      context.addIssue({ code: "custom", message: "No fields to update" });
+  });
 
 // ── deleteEntity ──────────────────────────────────────────────────────
 
@@ -620,10 +694,12 @@ const DELETABLE_ENTITY_TYPES = [
   "news-source",
 ] as const;
 
-const DeleteEntitySchema = z.object({
-  type: z.enum(DELETABLE_ENTITY_TYPES),
-  id: z.number("id is required"),
-});
+const DeleteEntitySchema = z
+  .object({
+    type: z.enum(DELETABLE_ENTITY_TYPES),
+    id: z.number("id is required"),
+  })
+  .strict();
 
 // ── getEntity ─────────────────────────────────────────────────────────
 
@@ -644,78 +720,92 @@ const GET_ENTITY_TYPES = [
   "news-source",
 ] as const;
 
-const GetEntitySchema = z.object({
-  type: z.enum(GET_ENTITY_TYPES),
-  by: z.enum(["id", "slug", "name"], "by must be id|slug|name"),
-  value: z.union([z.string(), z.number()]),
-});
+const GetEntitySchema = z
+  .object({
+    type: z.enum(GET_ENTITY_TYPES),
+    by: z.enum(["id", "slug", "name"], "by must be id|slug|name"),
+    value: z.union([z.string(), z.number()]),
+  })
+  .strict();
 
 // ── listEntities ──────────────────────────────────────────────────────
 
-const ListEntitiesSchema = z.object({
-  type: z.enum([
-    "job",
-    "event",
-    "news",
-    "company",
-    "group",
-    "person",
-    "education",
-    "technology",
-    // Source listings. Agents previously had to call eventImportSources()
-    // etc. directly; surface them via listEntities for consistency.
-    "event-source",
-    "job-source",
-    "news-source",
-  ]),
-  filter: z.enum(["manual", "pending", "all"]).optional(),
-});
+const ListEntitiesSchema = z
+  .object({
+    type: z.enum([
+      "job",
+      "event",
+      "news",
+      "company",
+      "group",
+      "person",
+      "education",
+      "technology",
+      // Source listings. Agents previously had to call eventImportSources()
+      // etc. directly; surface them via listEntities for consistency.
+      "event-source",
+      "job-source",
+      "news-source",
+    ]),
+    filter: z.enum(["manual", "pending", "all"]).optional(),
+  })
+  .strict();
 
 // ── reviewEntity ──────────────────────────────────────────────────────
 
 const ReviewEntitySchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("job"),
-    id: z.number("id is required"),
-    action: z.enum(
-      [
-        "approve",
-        "approve-non-technical",
-        "hide",
-        "requeue",
-        "deactivate-removed",
-        "deactivate-filled",
-        "deactivate-expired",
-      ],
-      "action is required",
-    ),
-  }),
-  z.object({
-    type: z.literal("news"),
-    id: z.number("id is required"),
-    action: z.enum(["approve", "hide"], "action must be approve|hide"),
-  }),
+  z
+    .object({
+      type: z.literal("job"),
+      id: z.number("id is required"),
+      action: z.enum(
+        [
+          "approve",
+          "approve-non-technical",
+          "hide",
+          "requeue",
+          "deactivate-removed",
+          "deactivate-filled",
+          "deactivate-expired",
+        ],
+        "action is required",
+      ),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("news"),
+      id: z.number("id is required"),
+      action: z.enum(["approve", "hide"], "action must be approve|hide"),
+    })
+    .strict(),
 ]);
 
 // ── sync helpers ──────────────────────────────────────────────────────
 
-const SyncSourceSchema = z.object({
-  type: z.enum(["event", "job", "news"], "type must be event|job|news"),
-  sourceId: z.number("sourceId is required"),
-});
+const SyncSourceSchema = z
+  .object({
+    type: z.enum(["event", "job", "news"], "type must be event|job|news"),
+    sourceId: z.number("sourceId is required"),
+  })
+  .strict();
 
-const SyncAllSchema = z.object({
-  type: z.enum(["event", "job", "news"]).optional(),
-});
+const SyncAllSchema = z
+  .object({
+    type: z.enum(["event", "job", "news"]).optional(),
+  })
+  .strict();
 
 // ── External search ───────────────────────────────────────────────────
 
-const SearchJobsSchema = z.object({
-  query: z.string().optional(),
-  location: z.string().default("St. John's, NL"),
-  limit: z.number().default(25),
-  hoursOld: z.number().optional(),
-});
+const SearchJobsSchema = z
+  .object({
+    query: z.string().optional(),
+    location: z.string().default("St. John's, NL"),
+    limit: z.number().default(25),
+    hoursOld: z.number().optional(),
+  })
+  .strict();
 
 export interface EntityFieldDoc {
   name: string;
@@ -908,8 +998,9 @@ async function listJobImportSourcesForMcp() {
 }
 
 /** Read-only host functions that are safe to expose without auth. */
-export function buildReadFunctions(): HostFunctions {
+export function buildReadFunctions(context: OperationContext = publicContext()): HostFunctions {
   return {
+    ...catalogHostFunctions(context, true),
     events: host(
       "events({ upcoming?, limit?, offset?, query? })",
       "List events. Pass upcoming:true to limit to future events. Defaults to limit 20.",
@@ -937,6 +1028,8 @@ export function buildReadFunctions(): HostFunctions {
       "read",
       async (opts: unknown) => {
         const o = JobQuerySchema.parse(opts ?? {});
+        if (context.actor?.role !== "admin" && o.status && o.status !== "active")
+          throw new ForbiddenError("Administrator access required for non-public jobs");
         const result = await getPaginatedJobs(o.limit ?? 20, o.offset ?? 0, o.query, {
           includeNonTechnical: true,
           companyId: o.companyId,
@@ -1033,8 +1126,7 @@ async function submitNewsLinkInternal(opts: z.infer<typeof NewsLinkCreateSchema>
   let { url, title, excerpt, sourceName } = opts;
   // If title not provided, fetch the page and extract metadata
   if (!title) {
-    const response = await fetch(url, { headers: { "User-Agent": "siliconharbour.dev" } });
-    const html = await response.text();
+    const html = await fetchPublicPage(url);
     const titleMatch = /<title[^>]*>([^<]+)<\/title>/i.exec(html);
     title = titleMatch ? titleMatch[1].trim() : new URL(url).hostname;
     if (!excerpt) {
@@ -1077,36 +1169,26 @@ async function createNewsArticleInternal(opts: z.infer<typeof NewsArticleCreateS
 }
 
 /** Execute host functions. This superset adds sync and pending actions. */
-export function buildExecuteFunctions(): HostFunctions {
+export function buildExecuteFunctions(context: OperationContext): HostFunctions {
+  if (context.actor?.role !== "admin" || !context.scopes.has("write"))
+    throw new ForbiddenError("Administrator write access required");
   return {
-    ...buildReadFunctions(),
+    ...buildReadFunctions(context),
+    ...catalogHostFunctions(context),
     themeShares: host(
       "themeShares({ limit?, offset? })",
-      "Admin-only theme share listing with creator/update IPs and timestamps. Never returns edit keys.",
+      "Deprecated: prefer themeShareList.",
       "sources",
-      async (input: unknown) => {
-        const parsed = z
-          .object({
-            limit: z.number().int().min(1).max(100).optional(),
-            offset: z.number().int().min(0).optional(),
-          })
-          .parse(input ?? {});
-        return listThemeShares(parsed.limit, parsed.offset);
-      },
-      z.object({
-        limit: z.number().int().min(1).max(100).optional(),
-        offset: z.number().int().min(0).optional(),
-      }),
+      (input) => operationCatalog.themeShareList.execute(context, input),
+      operationCatalog.themeShareList.input,
     ),
     deleteThemeShare: host(
-      "deleteThemeShare({ id })",
-      "Delete a saved theme share and its logo. Requires authenticated execute access.",
+      "deleteThemeShare({ id, confirm: true })",
+      "Deprecated: prefer themeShareDelete. Requires confirm: true.",
       "lifecycle",
-      async (input: unknown) =>
-        deleteThemeShare(z.object({ id: z.string().regex(/^[a-f0-9]{32}$/) }).parse(input).id),
-      z.object({ id: z.string().regex(/^[a-f0-9]{32}$/) }),
+      (input) => operationCatalog.themeShareDelete.execute(context, input),
+      operationCatalog.themeShareDelete.input,
     ),
-
     setEntityImage: host(
       "setEntityImage({ type, id, role, url })",
       "Set an entity cover or icon from a public HTTPS image URL. Downloads and validates up to 5 MiB and 16 megapixels, then saves WebP. Supports event, company, group, education, project, product (cover/icon), person/technology (icon only), news (cover only). Leaves visibility/review status unchanged. Can follow createEntity in the same execute call.",
@@ -1151,7 +1233,7 @@ export function buildExecuteFunctions(): HostFunctions {
           })),
         );
       },
-      z.object({}),
+      z.object({}).strict(),
     ),
 
     jobImportSources: host(
@@ -1161,7 +1243,7 @@ export function buildExecuteFunctions(): HostFunctions {
       async () => {
         return toPlain(await listJobImportSourcesForMcp());
       },
-      z.object({}),
+      z.object({}).strict(),
     ),
 
     newsImportSources: host(
@@ -1195,7 +1277,7 @@ export function buildExecuteFunctions(): HostFunctions {
         );
         return toPlain(enriched);
       },
-      z.object({}),
+      z.object({}).strict(),
     ),
 
     eventTags: host(
@@ -1203,7 +1285,7 @@ export function buildExecuteFunctions(): HostFunctions {
       "List configured event tags, their colour token, and the number of assigned events.",
       "lookup",
       async () => toPlain(await getEventTagsWithUsage()),
-      z.object({}),
+      z.object({}).strict(),
     ),
 
     saveEventTag: host(
@@ -1241,7 +1323,7 @@ export function buildExecuteFunctions(): HostFunctions {
       async () => {
         return getAllImporterMeta();
       },
-      z.object({}),
+      z.object({}).strict(),
     ),
 
     // ── Sync ─────────────────────────────────────────────────────────
@@ -1370,7 +1452,7 @@ export function buildExecuteFunctions(): HostFunctions {
       async () => {
         return toPlain(listAsyncSyncs());
       },
-      z.object({}),
+      z.object({}).strict(),
     ),
 
     // ── Entity CRUD ──────────────────────────────────────────────────
@@ -1733,8 +1815,7 @@ export function buildExecuteFunctions(): HostFunctions {
       async (opts: unknown) => {
         const o = UpdateEntitySchema.parse(opts ?? {});
 
-        const trim = (v: string | undefined): string | null | undefined =>
-          v === undefined ? undefined : v.trim() || null;
+        const trim = (v: string | null | undefined) => v;
 
         switch (o.type) {
           case "person": {
@@ -1824,7 +1905,7 @@ export function buildExecuteFunctions(): HostFunctions {
             for (const [key, value] of Object.entries(fields)) {
               if (value === undefined) continue;
               if (typeof value === "string") {
-                updates[key] = value.trim() || null;
+                updates[key] = value.trim();
               } else {
                 updates[key] = value;
               }
@@ -1851,7 +1932,7 @@ export function buildExecuteFunctions(): HostFunctions {
             for (const [key, value] of Object.entries(fields)) {
               if (value === undefined) continue;
               if (typeof value === "string") {
-                updates[key] = value.trim() || null;
+                updates[key] = value.trim();
               } else {
                 updates[key] = value;
               }
@@ -1881,7 +1962,7 @@ export function buildExecuteFunctions(): HostFunctions {
             }
 
             const updates: {
-              sourceType?: string;
+              sourceType?: JobSourceType;
               sourceIdentifier?: string;
               sourceUrl?: string | null;
             } = {};
@@ -1942,7 +2023,7 @@ export function buildExecuteFunctions(): HostFunctions {
                 continue;
               }
               if (typeof value === "string") {
-                updates[key] = value.trim() || null;
+                updates[key] = value.trim();
               } else {
                 updates[key] = value;
               }
@@ -1969,7 +2050,7 @@ export function buildExecuteFunctions(): HostFunctions {
               if (key === "type" || key === "id") continue;
               if (value === undefined) continue;
               if (typeof value === "string") {
-                updates[key] = value.trim() || null;
+                updates[key] = value.trim();
               } else {
                 updates[key] = value;
               }
@@ -1991,7 +2072,7 @@ export function buildExecuteFunctions(): HostFunctions {
               if (key === "type" || key === "id") continue;
               if (value === undefined) continue;
               if (typeof value === "string") {
-                updates[key] = value.trim() || null;
+                updates[key] = value.trim();
               } else {
                 updates[key] = value;
               }
@@ -2035,7 +2116,7 @@ export function buildExecuteFunctions(): HostFunctions {
               if (key === "type" || key === "id") continue;
               if (value === undefined) continue;
               if (typeof value === "string") {
-                updates[key] = value.trim() || null;
+                updates[key] = value.trim();
               } else {
                 updates[key] = value;
               }
@@ -2554,7 +2635,7 @@ export function buildExecuteFunctions(): HostFunctions {
           })),
         );
       },
-      z.object({}),
+      z.object({}).strict(),
     ),
 
     getTechNLJob: host(

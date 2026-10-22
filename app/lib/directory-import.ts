@@ -36,7 +36,5 @@ export function normalizeUrl(url: string): string {
 
 /** Derive a stable external ID for a scraped company */
 export function getExternalId(company: ScrapedCompany): string {
-  return company.website
-    ? normalizeUrl(company.website)
-    : company.name.toLowerCase();
+  return company.website ? normalizeUrl(company.website) : company.name.toLowerCase();
 }

@@ -1,3 +1,4 @@
+import { RouterContextProvider } from "react-router";
 /**
  * API visibility/leak tests
  *
@@ -47,24 +48,31 @@ import { loader as entitiesSearchLoader } from "~/routes/api/entities.search";
 
 interface LoaderArgs {
   request: Request;
-  params: Record<string, string>;
-  context: unknown;
+  params: Record<string, string> & { slug: string };
+  context: RouterContextProvider;
+  url: URL;
+  pattern: string;
 }
 
 function makeArgs(url: string, params: Record<string, string> = {}): LoaderArgs {
   return {
     request: new Request(`https://example.com${url}`),
-    params,
-    context: {},
+    params: { slug: "", ...params },
+    context: new RouterContextProvider(),
+    url: new URL(`https://example.com${url}`),
+    pattern: url,
   };
 }
 
 async function callLoader(
-  loader: (args: LoaderArgs) => Promise<Response> | Response,
+  loader: (
+    args: LoaderArgs,
+  ) => Promise<Response | { data: unknown; init: ResponseInit | null }> | Response,
   url: string,
   params: Record<string, string> = {},
 ): Promise<{ status: number; body: unknown }> {
   const res = await loader(makeArgs(url, params));
+  if (!(res instanceof Response)) return { status: res.init?.status ?? 200, body: res.data };
   const text = await res.text();
   let body: unknown = null;
   if (text.length > 0) {

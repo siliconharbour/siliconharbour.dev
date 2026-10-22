@@ -40,12 +40,12 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const result = await syncNewsSource(sourceId);
-    return { intent: "sync", ...result };
+    return { intent: "sync" as const, ...result };
   }
 
   if (intent === "sync-all") {
     const result = await syncAllNewsSources();
-    return { intent: "sync-all", ...result };
+    return { intent: "sync-all" as const, ...result };
   }
 
   if (intent === "review-news") {
@@ -58,12 +58,12 @@ export async function action({ request }: Route.ActionArgs) {
     } else if (reviewAction === "hide") {
       await hideNewsItem(newsId);
     }
-    return { intent: "review-news", success: true };
+    return { intent: "review-news" as const, success: true };
   }
 
   if (intent === "hide-all-pending") {
     const count = await hideAllPendingNews();
-    return { intent: "hide-all-pending", success: true, hidden: count };
+    return { intent: "hide-all-pending" as const, success: true, hidden: count };
   }
 
   return { success: false, error: "Unknown action" };
@@ -87,9 +87,7 @@ function StatusBadge({ status }: { status: string | null }) {
   };
 
   return (
-    <span
-      className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}
-    >
+    <span className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}>
       {status}
     </span>
   );
@@ -257,7 +255,7 @@ export default function ManageImportNews() {
                   {syncAllResult.sourcesFailed} source(s) failed:
                 </p>
                 <ul className="text-sm text-red-600 list-disc list-inside">
-                  {syncAllResult.errors.map((err: string, i: number) => (
+                  {syncAllResult.errors.map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
                 </ul>
@@ -303,10 +301,7 @@ export default function ManageImportNews() {
         {sources.length === 0 ? (
           <div className="p-pad-8 border border-line bg-soft text-center">
             <p className="text-body mb-4">No news import sources configured yet.</p>
-            <Link
-              to="/manage/import/news/new"
-              className="text-body hover:text-heading underline"
-            >
+            <Link to="/manage/import/news/new" className="text-body hover:text-heading underline">
               Add your first source
             </Link>
           </div>
@@ -357,9 +352,7 @@ export default function ManageImportNews() {
                         </span>
                       </td>
                       <td className="px-pad-4 py-pad-3 text-sm text-subtle">
-                        {source.keywords || (
-                          <span className="text-harbour-300">all</span>
-                        )}
+                        {source.keywords || <span className="text-harbour-300">all</span>}
                       </td>
                       <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                         {formatDate(source.lastSyncAt)}

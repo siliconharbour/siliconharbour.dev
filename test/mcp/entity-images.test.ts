@@ -1,3 +1,4 @@
+import { adminContext } from "~/operations/context";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -72,7 +73,7 @@ async function event() {
 
 describe("MCP image workflows", () => {
   it("creates an event and attaches a URL cover in one Code Mode execution", async () => {
-    const runtime = createCodeMode(buildExecuteFunctions(), EXECUTE_LIMITS);
+    const runtime = createCodeMode(buildExecuteFunctions(adminContext(1)), EXECUTE_LIMITS);
     const result = await Effect.runPromise(
       runtime.execute(`
       const created = await tools.siliconharbour.createEntity({ type: "event", title: "Image workshop", description: "Build things", link: "https://example.com", startDate: "2026-11-20", startTime: "18:00" });

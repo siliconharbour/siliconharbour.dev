@@ -4,7 +4,12 @@ import { Form, useActionData, useLoaderData } from "react-router";
 import { z } from "zod";
 import { TurnstileInput } from "~/components/Turnstile";
 import { checkRateLimit } from "~/lib/ratelimit.server";
-import { getNewsletterFlags, hashNewsletterEmail, isNewsletterConfigured, subscribeToNewsletter } from "~/lib/newsletter.server";
+import {
+  getNewsletterFlags,
+  hashNewsletterEmail,
+  isNewsletterConfigured,
+  subscribeToNewsletter,
+} from "~/lib/newsletter.server";
 import { getTurnstileSiteKey, verifyTurnstile } from "~/lib/turnstile.server";
 import { buildSeoMeta } from "~/lib/seo";
 
@@ -45,18 +50,28 @@ export async function loader({}: Route.LoaderArgs) {
   ];
 
   const flags = await getNewsletterFlags();
-  return { calendarUrl, feeds, newsletterEnabled: flags.publicSignup && isNewsletterConfigured(), turnstileSiteKey: getTurnstileSiteKey() };
+  return {
+    calendarUrl,
+    feeds,
+    newsletterEnabled: flags.publicSignup && isNewsletterConfigured(),
+    turnstileSiteKey: getTurnstileSiteKey(),
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {
   const flags = await getNewsletterFlags();
-  if (!flags.publicSignup || !isNewsletterConfigured()) return { error: "Newsletter signup is unavailable." };
+  if (!flags.publicSignup || !isNewsletterConfigured())
+    return { error: "Newsletter signup is unavailable." };
   const form = await request.formData();
   const parsed = z.email().safeParse(form.get("email"));
   if (!parsed.success) return { error: "Enter a valid email address." };
   const email = parsed.data.trim().toLowerCase();
-  const ip = request.headers.get("CF-Connecting-IP") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  if (!(await verifyTurnstile(String(form.get("cf-turnstile-response") ?? ""), ip))) return { error: "Please complete the verification and try again." };
+  const ip =
+    request.headers.get("CF-Connecting-IP") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+  if (!(await verifyTurnstile(String(form.get("cf-turnstile-response") ?? ""), ip)))
+    return { error: "Please complete the verification and try again." };
   const [emailLimit, ipLimit] = await Promise.all([
     checkRateLimit(`newsletter:email:${hashNewsletterEmail(email)}`, 2, 1800),
     checkRateLimit(`newsletter:ip:${hashNewsletterEmail(ip)}`, 10, 1800),
@@ -72,7 +87,8 @@ export async function action({ request }: Route.ActionArgs) {
 }
 
 export default function SubscribePage() {
-  const { calendarUrl, feeds, newsletterEnabled, turnstileSiteKey } = useLoaderData<typeof loader>();
+  const { calendarUrl, feeds, newsletterEnabled, turnstileSiteKey } =
+    useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -151,16 +167,43 @@ export default function SubscribePage() {
 
         <h2>Newsletter</h2>
 
-        {newsletterEnabled ? <div className="not-prose my-4 border border-line bg-soft p-pad-6">
-          <p className="text-sm text-body">A hand-written digest of local tech news, events, and jobs. Confirm your address by email. You can unsubscribe from any issue.</p>
-          {actionData?.success && <p className="mt-3 border border-green-200 bg-green-50 p-pad-3 text-sm text-green-700">Check your inbox for a confirmation link.</p>}
-          {actionData?.error && <p className="mt-3 border border-red-200 bg-red-50 p-pad-3 text-sm text-red-700">{actionData.error}</p>}
-          <Form method="post" className="mt-4 space-y-3">
-            <label className="block text-sm font-medium text-heading">Email address<input type="email" name="email" required className="mt-1 block w-full border border-line bg-surface px-pad-3 py-pad-2" /></label>
-            {turnstileSiteKey && <TurnstileInput siteKey={turnstileSiteKey} />}
-            <button className="bg-primary px-pad-4 py-pad-2 text-sm font-medium text-white hover:bg-primary-hover">Subscribe</button>
-          </Form>
-        </div> : <div className="not-prose my-4 border border-line bg-soft p-pad-6 text-center"><p className="text-sm text-subtle">Coming soon</p></div>}
+        {newsletterEnabled ? (
+          <div className="not-prose my-4 border border-line bg-soft p-pad-6">
+            <p className="text-sm text-body">
+              A hand-written digest of local tech news, events, and jobs. Confirm your address by
+              email. You can unsubscribe from any issue.
+            </p>
+            {actionData?.success && (
+              <p className="mt-3 border border-green-200 bg-green-50 p-pad-3 text-sm text-green-700">
+                Check your inbox for a confirmation link.
+              </p>
+            )}
+            {actionData?.error && (
+              <p className="mt-3 border border-red-200 bg-red-50 p-pad-3 text-sm text-red-700">
+                {actionData.error}
+              </p>
+            )}
+            <Form method="post" className="mt-4 space-y-3">
+              <label className="block text-sm font-medium text-heading">
+                Email address
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  className="mt-1 block w-full border border-line bg-surface px-pad-3 py-pad-2"
+                />
+              </label>
+              {turnstileSiteKey && <TurnstileInput siteKey={turnstileSiteKey} />}
+              <button className="bg-primary px-pad-4 py-pad-2 text-sm font-medium text-white hover:bg-primary-hover">
+                Subscribe
+              </button>
+            </Form>
+          </div>
+        ) : (
+          <div className="not-prose my-4 border border-line bg-soft p-pad-6 text-center">
+            <p className="text-sm text-subtle">Coming soon</p>
+          </div>
+        )}
 
         <h2>Social Media</h2>
 

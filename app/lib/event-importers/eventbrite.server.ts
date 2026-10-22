@@ -106,9 +106,7 @@ function parseISOToLocal(isoString: string | undefined): { date: string; time: s
 // ---------------------------------------------------------------------------
 
 function parseNextDataEvents(html: string): FetchedEvent[] {
-  const scriptMatch = html.match(
-    /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/,
-  );
+  const scriptMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
   if (!scriptMatch) return [];
 
   let data: Record<string, unknown>;
@@ -277,10 +275,13 @@ async function fetchEventPage(url: string): Promise<FetchedEvent[]> {
 }
 
 function isEventbriteEventUrl(url: string): boolean {
-  return url.startsWith('https://www.eventbrite.ca/e/');
+  return url.startsWith("https://www.eventbrite.ca/e/");
 }
 
-function applyConfiguredOrganizer(events: FetchedEvent[], organizer: string | null): FetchedEvent[] {
+function applyConfiguredOrganizer(
+  events: FetchedEvent[],
+  organizer: string | null,
+): FetchedEvent[] {
   if (!organizer) return events;
   return events.map((event) => ({ ...event, organizer: event.organizer || organizer }));
 }

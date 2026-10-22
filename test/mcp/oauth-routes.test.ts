@@ -33,14 +33,16 @@ async function sessionCookie(userId: number) {
 describe("MCP OAuth routes", () => {
   it("registers a client through the HTTP contract", async () => {
     const response = await register(
-      routeArgs(new Request("http://localhost:3000/oauth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_name: "Codex",
-          redirect_uris: ["http://127.0.0.1:4567/callback"],
+      routeArgs(
+        new Request("http://localhost:3000/oauth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            client_name: "Codex",
+            redirect_uris: ["http://127.0.0.1:4567/callback"],
+          }),
         }),
-      })),
+      ),
     );
     expect(response.status).toBe(201);
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -52,21 +54,25 @@ describe("MCP OAuth routes", () => {
 
   it("returns protocol errors without leaking unexpected failures", async () => {
     const malformed = await register(
-      routeArgs(new Request("http://localhost:3000/oauth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "not-json",
-      })),
+      routeArgs(
+        new Request("http://localhost:3000/oauth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "not-json",
+        }),
+      ),
     );
     expect(malformed.status).toBe(400);
     await expect(malformed.json()).resolves.toMatchObject({ error: "invalid_request" });
 
     const unsupported = await exchangeToken(
-      routeArgs(new Request("http://localhost:3000/oauth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ grant_type: "password" }),
-      })),
+      routeArgs(
+        new Request("http://localhost:3000/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ grant_type: "password" }),
+        }),
+      ),
     );
     expect(unsupported.status).toBe(400);
     await expect(unsupported.json()).resolves.toMatchObject({ error: "unsupported_grant_type" });
@@ -152,10 +158,9 @@ describe("MCP OAuth routes", () => {
       resource: "http://localhost:3000/mcp",
     });
     const { cookie } = await sessionCookie(user.id);
-    const authorizationRequest = new Request(
-      `http://localhost:3000/oauth/authorize?${query}`,
-      { headers: { Cookie: cookie } },
-    );
+    const authorizationRequest = new Request(`http://localhost:3000/oauth/authorize?${query}`, {
+      headers: { Cookie: cookie },
+    });
     const loaded = await loadAuthorization(routeArgs(authorizationRequest));
     expect(loaded.data).toMatchObject({
       clientName: "Codex",
@@ -170,17 +175,19 @@ describe("MCP OAuth routes", () => {
     const consentCookie = new Headers(loaded.init?.headers).get("Set-Cookie")!;
 
     const consent = await authorize(
-      routeArgs(new Request("http://localhost:3000/oauth/authorize", {
-        method: "POST",
-        headers: {
-          Cookie: consentCookie,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          consent_nonce: loaded.data.consentNonce,
-          decision: "allow",
+      routeArgs(
+        new Request("http://localhost:3000/oauth/authorize", {
+          method: "POST",
+          headers: {
+            Cookie: consentCookie,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            consent_nonce: loaded.data.consentNonce,
+            decision: "allow",
+          }),
         }),
-      })),
+      ),
     );
     expect(consent.status).toBe(302);
     const callback = new URL(consent.headers.get("location")!);
@@ -205,18 +212,20 @@ describe("MCP OAuth routes", () => {
     ).rejects.toMatchObject({ status: 400 });
 
     const token = await exchangeToken(
-      routeArgs(new Request("http://localhost:3000/oauth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "authorization_code",
-          code: callback.searchParams.get("code")!,
-          client_id: client.client_id,
-          redirect_uri: client.redirect_uris[0],
-          code_verifier: verifier,
-          resource: "http://localhost:3000/mcp",
+      routeArgs(
+        new Request("http://localhost:3000/oauth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            code: callback.searchParams.get("code")!,
+            client_id: client.client_id,
+            redirect_uri: client.redirect_uris[0],
+            code_verifier: verifier,
+            resource: "http://localhost:3000/mcp",
+          }),
         }),
-      })),
+      ),
     );
     expect(token.status).toBe(200);
     await expect(token.json()).resolves.toMatchObject({
@@ -258,17 +267,19 @@ describe("MCP OAuth routes", () => {
 
     try {
       await authorize(
-        routeArgs(new Request("http://localhost:3000/oauth/authorize", {
-          method: "POST",
-          headers: {
-            Cookie: consentCookie,
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            consent_nonce: loaded.data.consentNonce,
-            decision: "allow",
+        routeArgs(
+          new Request("http://localhost:3000/oauth/authorize", {
+            method: "POST",
+            headers: {
+              Cookie: consentCookie,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
+              consent_nonce: loaded.data.consentNonce,
+              decision: "allow",
+            }),
           }),
-        })),
+        ),
       );
       expect.fail("expected login redirect");
     } catch (error) {

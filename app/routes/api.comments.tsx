@@ -31,7 +31,10 @@ const commentSettingsByContentType = {
   news: "news",
 } as const satisfies Partial<Record<ContentType, Parameters<typeof areCommentsEnabled>[0]>>;
 
-async function isPublicCommentTarget(contentType: keyof typeof commentSettingsByContentType, id: number) {
+async function isPublicCommentTarget(
+  contentType: keyof typeof commentSettingsByContentType,
+  id: number,
+) {
   switch (contentType) {
     case "company":
       return Boolean(
@@ -92,7 +95,8 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "Invalid content type" };
   }
 
-  const commentSetting = commentSettingsByContentType[contentType as keyof typeof commentSettingsByContentType];
+  const commentSetting =
+    commentSettingsByContentType[contentType as keyof typeof commentSettingsByContentType];
   if (!commentSetting) {
     return { error: "Comments are not available for this content type" };
   }
@@ -105,7 +109,12 @@ export async function action({ request }: Route.ActionArgs) {
   if (isNaN(contentId) || contentId <= 0) {
     return { error: "Invalid content ID" };
   }
-  if (!(await isPublicCommentTarget(contentType as keyof typeof commentSettingsByContentType, contentId))) {
+  if (
+    !(await isPublicCommentTarget(
+      contentType as keyof typeof commentSettingsByContentType,
+      contentId,
+    ))
+  ) {
     return { error: "Content not found" };
   }
 

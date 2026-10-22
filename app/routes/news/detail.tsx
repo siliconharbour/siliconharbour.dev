@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 import { TintedImage } from "~/components/TintedImage";
 
-export function meta({ data, params }: Route.MetaArgs) {
+export function meta({ loaderData: data, params }: Route.MetaArgs) {
   const article = data?.article;
   const title = article?.title ?? "News";
   const description = article?.excerpt
@@ -72,12 +72,7 @@ export default function NewsDetail() {
                     className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                     title="Edit"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -89,23 +84,18 @@ export default function NewsDetail() {
                 )}
               </div>
               <div className="flex items-center gap-gap-2 text-muted">
-                {article.sourceName && (
-                  article.sourceEntityUrl ? (
+                {article.sourceName &&
+                  (article.sourceEntityUrl ? (
                     <Link to={article.sourceEntityUrl} className="font-medium hover:text-heading">
                       {article.sourceName}
                     </Link>
                   ) : (
                     <span className="font-medium">{article.sourceName}</span>
-                  )
-                )}
-                {article.publishedAt && (
-                  <span>{format(article.publishedAt, "MMMM d, yyyy")}</span>
-                )}
+                  ))}
+                {article.publishedAt && <span>{format(article.publishedAt, "MMMM d, yyyy")}</span>}
               </div>
             </div>
-            {article.excerpt && (
-              <p className="text-body text-lg">{article.excerpt}</p>
-            )}
+            {article.excerpt && <p className="text-body text-lg">{article.excerpt}</p>}
             {article.content &&
               article.content !== article.excerpt &&
               article.content.length > 0 && (
@@ -121,12 +111,7 @@ export default function NewsDetail() {
                 className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors self-start"
               >
                 Read on {article.sourceName || "source"}
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -158,12 +143,7 @@ export default function NewsDetail() {
                     className="p-pad-1-5 text-subtle hover:text-body hover:bg-tint transition-colors"
                     title="Edit"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -175,9 +155,7 @@ export default function NewsDetail() {
                 )}
               </div>
               {article.publishedAt && (
-                <p className="text-muted">
-                  {format(article.publishedAt, "MMMM d, yyyy")}
-                </p>
+                <p className="text-muted">{format(article.publishedAt, "MMMM d, yyyy")}</p>
               )}
             </div>
 

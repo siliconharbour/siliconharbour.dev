@@ -99,7 +99,8 @@ export async function validateEventTagIds(tagIds: number[]) {
       .select({ id: eventTags.id })
       .from(eventTags)
       .where(inArray(eventTags.id, uniqueTagIds));
-    if (existing.length !== uniqueTagIds.length) throw new Error("One or more event tags are invalid.");
+    if (existing.length !== uniqueTagIds.length)
+      throw new Error("One or more event tags are invalid.");
   }
   return uniqueTagIds;
 }

@@ -6,26 +6,8 @@
 /**
  * Supported ATS (Applicant Tracking System) source types
  */
-export const jobSourceTypes = [
-  "greenhouse",
-  "ashby",
-  "workday",
-  "bamboohr",
-  "lever",
-  "collage",
-  "rippling",
-  "adp",
-  "careerbeacon",
-  "kyrix",
-  "workable",
-  "icims",
-  "jibe",
-  "oracle-hcm",
-  "successfactors",
-  "dayforce",
-  "jazzhr",
-  "custom",
-] as const;
+export { atsSourceTypes as jobSourceTypes } from "~/db/schema";
+import { atsSourceTypes as jobSourceTypes } from "~/db/schema";
 export type JobSourceType = (typeof jobSourceTypes)[number];
 
 /**
@@ -65,6 +47,7 @@ export interface ImportSourceConfig {
  * A job fetched from an external ATS
  */
 export interface FetchedJob {
+  salaryRange?: string;
   externalId: string;
   title: string;
   location?: string;
@@ -102,7 +85,13 @@ export interface SyncResult {
 /**
  * Reliability rating for importer documentation
  */
-export type ImporterReliability = "high" | "medium-high" | "medium" | "medium-low" | "low" | "mixed";
+export type ImporterReliability =
+  | "high"
+  | "medium-high"
+  | "medium"
+  | "medium-low"
+  | "low"
+  | "mixed";
 
 /**
  * Self-describing metadata colocated with each importer.
@@ -196,8 +185,7 @@ export const sourceIdentifierPlaceholders: Record<JobSourceType, string> = {
   workable: "e.g., upstream (from apply.workable.com/upstream)",
   icims: "e.g., uscareers-repairify (from uscareers-repairify.icims.com)",
   jibe: "e.g., jobs.symphonyai.com (the full Jibe careers domain)",
-  "oracle-hcm":
-    "e.g., emit.fa.ca3.oraclecloud.com:CX_2001:St. John's (host:siteNumber:keyword)",
+  "oracle-hcm": "e.g., emit.fa.ca3.oraclecloud.com:CX_2001:St. John's (host:siteNumber:keyword)",
   successfactors: "e.g., jobs.hatch.com:St. John's (host:location)",
   dayforce: "e.g., tml:CANDIDATEPORTALTML (namespace:boardCode)",
   jazzhr: "e.g., fonemed (from fonemed.applytojob.com/apply)",

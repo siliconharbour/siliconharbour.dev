@@ -115,7 +115,9 @@ describe("requireAuth", () => {
     const user = await seedUser("regular-admin@example.com", "password123", "regular");
     const sessionId = await createSession(user.id);
 
-    await expect(requireAdmin(await buildRequest(sessionId))).rejects.toMatchObject({ status: 403 });
+    await expect(requireAdmin(await buildRequest(sessionId))).rejects.toMatchObject({
+      status: 403,
+    });
   });
 });
 

@@ -10,7 +10,9 @@ export function ManageList({ children }: { children: ReactNode }) {
 
 export function ManageListItem({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-gap-4 p-pad-4 bg-surface border border-line rounded-panel">{children}</div>
+    <div className="flex flex-wrap items-center gap-gap-4 p-pad-4 bg-surface border border-line rounded-panel">
+      {children}
+    </div>
   );
 }
 

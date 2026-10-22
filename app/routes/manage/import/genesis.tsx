@@ -23,9 +23,7 @@ const config: DirectoryImportConfig = {
 
 const statusCategories: StatusCategoriesConfig = {
   getValue: (company: ScrapedCompany) =>
-    company.categories.find(
-      (c) => c === "Current Company" || c === "Alumni Company",
-    ) || "",
+    company.categories.find((c) => c === "Current Company" || c === "Alumni Company") || "",
   options: [
     { value: "current", label: "Current Company" },
     { value: "alumni", label: "Alumni Company" },
@@ -33,9 +31,7 @@ const statusCategories: StatusCategoriesConfig = {
 };
 
 function filterGenesisCategories(categories: string[]): string[] {
-  return categories.filter(
-    (c) => c !== "Current Company" && c !== "Alumni Company",
-  );
+  return categories.filter((c) => c !== "Current Company" && c !== "Alumni Company");
 }
 
 export function meta({}: Route.MetaArgs) {

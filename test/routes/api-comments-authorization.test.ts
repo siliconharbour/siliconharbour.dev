@@ -77,9 +77,9 @@ describe("comment mutation authorization", () => {
       visible: false,
     });
 
-    expect(
-      await action({ request: commentRequest({}), params: {}, context: {} } as never),
-    ).toEqual({ error: "Content not found" });
+    expect(await action({ request: commentRequest({}), params: {}, context: {} } as never)).toEqual(
+      { error: "Content not found" },
+    );
     expect(
       await action({
         request: commentRequest({ contentId: "999" }),

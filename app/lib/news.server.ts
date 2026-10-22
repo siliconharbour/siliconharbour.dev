@@ -28,9 +28,7 @@ export async function generateNewsSlug(title: string, excludeId?: number): Promi
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
-export async function createNews(
-  item: Omit<NewNews, "slug">,
-): Promise<News> {
+export async function createNews(item: Omit<NewNews, "slug">): Promise<News> {
   const slug = await generateNewsSlug(item.title);
   const [newItem] = await db
     .insert(news)
@@ -76,11 +74,7 @@ export async function getAllNews(): Promise<News[]> {
 }
 
 export async function getPublishedNews(): Promise<News[]> {
-  return db
-    .select()
-    .from(news)
-    .where(eq(news.status, "published"))
-    .orderBy(desc(news.publishedAt));
+  return db.select().from(news).where(eq(news.status, "published")).orderBy(desc(news.publishedAt));
 }
 
 // Paginated queries with search

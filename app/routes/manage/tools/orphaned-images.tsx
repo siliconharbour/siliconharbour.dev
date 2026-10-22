@@ -176,8 +176,9 @@ export default function OrphanedImages() {
           )}
           {actionData?.success && "result" in actionData && actionData.result && (
             <p className="mt-3 border border-green-200 bg-green-50 px-pad-3 py-pad-2 text-sm text-green-700">
-              Scanned {actionData.result.scannedCount} images and found {actionData.result.orphanCount}{" "}
-              candidates ({actionData.result.newlyStagedCount} newly staged).
+              Scanned {actionData.result.scannedCount} images and found{" "}
+              {actionData.result.orphanCount} candidates ({actionData.result.newlyStagedCount} newly
+              staged).
             </p>
           )}
           {actionData?.success && "deleteResult" in actionData && actionData.deleteResult && (
@@ -233,8 +234,15 @@ export default function OrphanedImages() {
           ) : (
             <div className="grid grid-cols-2 gap-gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {state.items.map((item) => (
-                <article key={item.path} className="min-w-0 border border-line bg-surface p-pad-2 rounded-panel">
-                  <a href={`/images/${encodeURIComponent(item.path)}`} target="_blank" rel="noreferrer">
+                <article
+                  key={item.path}
+                  className="min-w-0 border border-line bg-surface p-pad-2 rounded-panel"
+                >
+                  <a
+                    href={`/images/${encodeURIComponent(item.path)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     <img
                       src={`/images/${encodeURIComponent(item.path)}`}
                       alt=""

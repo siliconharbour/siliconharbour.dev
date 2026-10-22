@@ -9,12 +9,7 @@ import { getPaginatedEvents } from "~/lib/events.server";
 
 export const loader = createPaginatedApiLoader({
   loadPage: async ({ limit, offset }) => {
-    const { items: eventsPage, total } = await getPaginatedEvents(
-      limit,
-      offset,
-      undefined,
-      "all",
-    );
+    const { items: eventsPage, total } = await getPaginatedEvents(limit, offset, undefined, "all");
     const eventIds = eventsPage.map((event) => event.id);
     const allDates =
       eventIds.length > 0

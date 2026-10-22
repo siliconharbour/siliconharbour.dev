@@ -10,11 +10,7 @@ import {
   hideNewsItem,
   unhideNewsItem,
 } from "~/lib/news-importers/sync.server";
-import {
-  sourceTypeLabels,
-  excerptModes,
-  excerptModeLabels,
-} from "~/lib/news-importers/types";
+import { sourceTypeLabels, excerptModes, excerptModeLabels } from "~/lib/news-importers/types";
 import type { ExcerptMode } from "~/lib/news-importers/types";
 import { parseRssItems } from "~/lib/news-importers/rss.server";
 import { format } from "date-fns";
@@ -37,17 +33,15 @@ function NewsItemRow({
   const isActing = fetcher.state !== "idle";
 
   return (
-    <div className={`flex items-center gap-gap-3 p-pad-3 border border-line bg-surface ${isActing ? "opacity-50" : ""}`}>
+    <div
+      className={`flex items-center gap-gap-3 p-pad-3 border border-line bg-surface ${isActing ? "opacity-50" : ""}`}
+    >
       <div className="flex-1 min-w-0">
         <div className="font-medium text-heading truncate">{item.title}</div>
-        {item.excerpt && (
-          <p className="text-sm text-subtle line-clamp-1 mt-0.5">{item.excerpt}</p>
-        )}
+        {item.excerpt && <p className="text-sm text-subtle line-clamp-1 mt-0.5">{item.excerpt}</p>}
         <div className="flex items-center gap-gap-2 mt-1">
           {item.publishedAt && (
-            <span className="text-xs text-subtle">
-              {format(item.publishedAt, "MMM d, yyyy")}
-            </span>
+            <span className="text-xs text-subtle">{format(item.publishedAt, "MMM d, yyyy")}</span>
           )}
         </div>
       </div>
@@ -86,7 +80,7 @@ function NewsItemRow({
   );
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `${data?.source?.name ?? "News Source"} - Import - siliconharbour.dev` }];
 }
 
@@ -111,28 +105,28 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   if (intent === "sync") {
     const result = await syncNewsSource(sourceId);
-    return { intent: "sync", ...result };
+    return { intent: "sync" as const, ...result };
   }
 
   if (intent === "approve") {
     const newsId = Number(formData.get("newsId"));
     if (!newsId) return { error: "News ID required" };
     await approveNewsItem(newsId);
-    return { intent: "approve", success: true };
+    return { intent: "approve" as const, success: true };
   }
 
   if (intent === "hide") {
     const newsId = Number(formData.get("newsId"));
     if (!newsId) return { error: "News ID required" };
     await hideNewsItem(newsId);
-    return { intent: "hide", success: true };
+    return { intent: "hide" as const, success: true };
   }
 
   if (intent === "unhide") {
     const newsId = Number(formData.get("newsId"));
     if (!newsId) return { error: "News ID required" };
     await unhideNewsItem(newsId);
-    return { intent: "unhide", success: true };
+    return { intent: "unhide" as const, success: true };
   }
 
   if (intent === "edit-source") {
@@ -146,8 +140,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     const entityUrl = (formData.get("entityUrl") as string)?.trim() || null;
     const enabled = formData.has("enabled");
 
-    if (!name) return { intent: "edit-source", error: "Name is required" };
-    if (!sourceUrl) return { intent: "edit-source", error: "Source URL is required" };
+    if (!name) return { intent: "edit-source" as const, error: "Name is required" };
+    if (!sourceUrl) return { intent: "edit-source" as const, error: "Source URL is required" };
 
     await updateNewsImportSource(sourceId, {
       name,
@@ -160,14 +154,15 @@ export async function action({ request, params }: Route.ActionArgs) {
       entityUrl,
       enabled,
     });
-    return { intent: "edit-source", success: true };
+    return { intent: "edit-source" as const, success: true };
   }
 
   if (intent === "test-feed") {
     const source = await getNewsSourceWithItems(sourceId);
-    if (!source) return { intent: "test-feed", error: "Source not found" };
+    if (!source) return { intent: "test-feed" as const, error: "Source not found" };
 
-    const excerptMode = (formData.get("excerptMode") as ExcerptMode) || source.excerptMode || "description";
+    const excerptMode =
+      (formData.get("excerptMode") as ExcerptMode) || source.excerptMode || "description";
 
     try {
       const response = await fetch(source.sourceUrl, {
@@ -178,7 +173,10 @@ export async function action({ request, params }: Route.ActionArgs) {
       });
 
       if (!response.ok) {
-        return { intent: "test-feed", error: `Feed returned ${response.status} ${response.statusText}` };
+        return {
+          intent: "test-feed" as const,
+          error: `Feed returned ${response.status} ${response.statusText}`,
+        };
       }
 
       const xml = await response.text();
@@ -190,17 +188,23 @@ export async function action({ request, params }: Route.ActionArgs) {
         excerpt: item.excerpt?.slice(0, 200) || null,
         publishedAt: item.publishedAt?.toISOString() || null,
         matched: source.keywords
-          ? `${item.title} ${item.excerpt || ""}`.toLowerCase().split(" ").some(() => {
-              const kws = source.keywords!.split(",").map((k: string) => k.trim().toLowerCase()).filter(Boolean);
-              const text = `${item.title} ${item.excerpt || ""}`.toLowerCase();
-              return kws.some((kw: string) => text.includes(kw));
-            })
+          ? `${item.title} ${item.excerpt || ""}`
+              .toLowerCase()
+              .split(" ")
+              .some(() => {
+                const kws = source
+                  .keywords!.split(",")
+                  .map((k: string) => k.trim().toLowerCase())
+                  .filter(Boolean);
+                const text = `${item.title} ${item.excerpt || ""}`.toLowerCase();
+                return kws.some((kw: string) => text.includes(kw));
+              })
           : true,
       }));
 
-      return { intent: "test-feed", success: true, items, totalCount: allItems.length };
+      return { intent: "test-feed" as const, success: true, items, totalCount: allItems.length };
     } catch (e) {
-      return { intent: "test-feed", error: e instanceof Error ? e.message : String(e) };
+      return { intent: "test-feed" as const, error: e instanceof Error ? e.message : String(e) };
     }
   }
 
@@ -229,10 +233,7 @@ export default function NewsImportSourceDetail() {
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link
-            to="/manage/import/news"
-            className="text-sm text-subtle hover:text-body"
-          >
+          <Link to="/manage/import/news" className="text-sm text-subtle hover:text-body">
             &larr; Back to News Import Sources
           </Link>
         </div>
@@ -243,10 +244,13 @@ export default function NewsImportSourceDetail() {
             <h1 className="text-2xl font-semibold text-heading">{source.name}</h1>
             <div className="flex items-center gap-gap-2 mt-1">
               <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-muted">
-                {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] || source.sourceType}
+                {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
+                  source.sourceType}
               </span>
               {!source.enabled && (
-                <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-600">Disabled</span>
+                <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-600">
+                  Disabled
+                </span>
               )}
             </div>
           </div>
@@ -264,7 +268,9 @@ export default function NewsImportSourceDetail() {
 
         {/* Sync result */}
         {syncResult && (
-          <div className={`p-pad-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+          <div
+            className={`p-pad-4 ${syncResult.success ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}
+          >
             {syncResult.success ? (
               <div>
                 <p className="font-medium text-green-700">Sync completed</p>
@@ -290,22 +296,33 @@ export default function NewsImportSourceDetail() {
         )}
 
         {/* Edit source settings */}
-        <fetcher.Form method="post" className="bg-surface border border-line p-pad-4 flex flex-col gap-gap-3">
+        <fetcher.Form
+          method="post"
+          className="bg-surface border border-line p-pad-4 flex flex-col gap-gap-3"
+        >
           <input type="hidden" name="intent" value="edit-source" />
           <h2 className="font-medium text-heading">Source Settings</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-3">
             <div>
-              <label className="text-sm text-muted" htmlFor="name">Name</label>
+              <label className="text-sm text-muted" htmlFor="name">
+                Name
+              </label>
               <input
-                id="name" name="name" type="text"
+                id="name"
+                name="name"
+                type="text"
                 defaultValue={source.name}
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-muted" htmlFor="sourceUrl">Source URL</label>
+              <label className="text-sm text-muted" htmlFor="sourceUrl">
+                Source URL
+              </label>
               <input
-                id="sourceUrl" name="sourceUrl" type="text"
+                id="sourceUrl"
+                name="sourceUrl"
+                type="text"
                 defaultValue={source.sourceUrl}
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
@@ -315,7 +332,9 @@ export default function NewsImportSourceDetail() {
                 Source Identifier
               </label>
               <input
-                id="sourceIdentifier" name="sourceIdentifier" type="text"
+                id="sourceIdentifier"
+                name="sourceIdentifier"
+                type="text"
                 defaultValue={source.sourceIdentifier ?? ""}
                 placeholder="For custom scrapers"
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm font-mono border border-line focus:outline-none focus:border-harbour-400"
@@ -323,11 +342,14 @@ export default function NewsImportSourceDetail() {
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-sm text-muted" htmlFor="keywords">Keywords</label>
+                <label className="text-sm text-muted" htmlFor="keywords">
+                  Keywords
+                </label>
                 <div className="flex items-center gap-gap-4 text-xs text-muted">
                   <label className="flex items-center gap-gap-1-5">
                     <input
-                      type="checkbox" name="useGlobalKeywords"
+                      type="checkbox"
+                      name="useGlobalKeywords"
                       defaultChecked={source.useGlobalKeywords}
                       className="w-3 h-3"
                     />
@@ -335,7 +357,8 @@ export default function NewsImportSourceDetail() {
                   </label>
                   <label className="flex items-center gap-gap-1-5">
                     <input
-                      type="checkbox" name="useCompanyNameFilter"
+                      type="checkbox"
+                      name="useCompanyNameFilter"
                       defaultChecked={source.useCompanyNameFilter}
                       className="w-3 h-3"
                     />
@@ -344,28 +367,39 @@ export default function NewsImportSourceDetail() {
                 </div>
               </div>
               <input
-                id="keywords" name="keywords" type="text"
+                id="keywords"
+                name="keywords"
+                type="text"
                 defaultValue={source.keywords ?? ""}
                 placeholder="Comma-separated, leave empty for all"
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-muted" htmlFor="excerptMode">Excerpt Mode</label>
+              <label className="text-sm text-muted" htmlFor="excerptMode">
+                Excerpt Mode
+              </label>
               <select
-                id="excerptMode" name="excerptMode"
+                id="excerptMode"
+                name="excerptMode"
                 defaultValue={source.excerptMode}
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               >
                 {excerptModes.map((mode) => (
-                  <option key={mode} value={mode}>{excerptModeLabels[mode]}</option>
+                  <option key={mode} value={mode}>
+                    {excerptModeLabels[mode]}
+                  </option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-sm text-muted" htmlFor="entityUrl">Entity Page</label>
+              <label className="text-sm text-muted" htmlFor="entityUrl">
+                Entity Page
+              </label>
               <input
-                id="entityUrl" name="entityUrl" type="text"
+                id="entityUrl"
+                name="entityUrl"
+                type="text"
                 defaultValue={source.entityUrl ?? ""}
                 placeholder="/directory/companies/technl"
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
@@ -374,7 +408,8 @@ export default function NewsImportSourceDetail() {
             <div className="flex items-end pb-pad-1">
               <label className="flex items-center gap-gap-2 text-sm text-heading">
                 <input
-                  type="checkbox" name="enabled"
+                  type="checkbox"
+                  name="enabled"
                   defaultChecked={source.enabled}
                   className="w-4 h-4"
                 />
@@ -431,36 +466,40 @@ export default function NewsImportSourceDetail() {
 
           {testResult && "success" in testResult && testResult.items && (
             <div className="flex flex-col gap-gap-1">
-              <p className="text-sm text-green-700">
-                Found {testResult.totalCount} items in feed
-              </p>
-              {(testResult.items as { title: string; url: string; excerpt: string | null; publishedAt: string | null; matched: boolean }[]).map(
-                (item, i) => (
-                  <div
-                    key={i}
-                    className={`p-pad-2 border border-harbour-100 text-sm ${!item.matched ? "opacity-40" : ""}`}
-                  >
-                    <div className="flex items-center gap-gap-2">
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-heading hover:text-muted truncate"
-                      >
-                        {item.title}
-                      </a>
-                      {!item.matched && (
-                        <span className="text-xs px-pad-1 py-pad-0-5 bg-tint text-subtle shrink-0">
-                          filtered
-                        </span>
-                      )}
-                    </div>
-                    {item.excerpt && (
-                      <p className="text-xs text-subtle line-clamp-1 mt-0.5">{item.excerpt}</p>
+              <p className="text-sm text-green-700">Found {testResult.totalCount} items in feed</p>
+              {(
+                testResult.items as {
+                  title: string;
+                  url: string;
+                  excerpt: string | null;
+                  publishedAt: string | null;
+                  matched: boolean;
+                }[]
+              ).map((item, i) => (
+                <div
+                  key={i}
+                  className={`p-pad-2 border border-harbour-100 text-sm ${!item.matched ? "opacity-40" : ""}`}
+                >
+                  <div className="flex items-center gap-gap-2">
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-heading hover:text-muted truncate"
+                    >
+                      {item.title}
+                    </a>
+                    {!item.matched && (
+                      <span className="text-xs px-pad-1 py-pad-0-5 bg-tint text-subtle shrink-0">
+                        filtered
+                      </span>
                     )}
                   </div>
-                ),
-              )}
+                  {item.excerpt && (
+                    <p className="text-xs text-subtle line-clamp-1 mt-0.5">{item.excerpt}</p>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -474,7 +513,10 @@ export default function NewsImportSourceDetail() {
             { label: "Drafts", count: source.counts.drafts, color: "text-blue-700" },
             { label: "Total", count: source.counts.total, color: "text-heading" },
           ].map((stat) => (
-            <div key={stat.label} className="p-pad-3 bg-surface border border-line text-center rounded-panel">
+            <div
+              key={stat.label}
+              className="p-pad-3 bg-surface border border-line text-center rounded-panel"
+            >
               <p className={`text-2xl font-bold ${stat.color}`}>{stat.count}</p>
               <p className="text-xs text-subtle">{stat.label}</p>
             </div>
@@ -496,7 +538,8 @@ export default function NewsImportSourceDetail() {
                     {
                       label: "Approve",
                       value: "approve",
-                      className: "text-green-700 hover:bg-green-50 border-green-200 hover:border-green-300",
+                      className:
+                        "text-green-700 hover:bg-green-50 border-green-200 hover:border-green-300",
                     },
                     {
                       label: "Hide",
@@ -576,7 +619,11 @@ export default function NewsImportSourceDetail() {
             <fetcher.Form
               method="post"
               onSubmit={(e) => {
-                if (!confirm(`Delete source "${source.name}" and all its ${source.counts.total} imported items?`)) {
+                if (
+                  !confirm(
+                    `Delete source "${source.name}" and all its ${source.counts.total} imported items?`,
+                  )
+                ) {
                   e.preventDefault();
                 }
               }}

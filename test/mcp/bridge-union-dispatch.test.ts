@@ -1,3 +1,4 @@
+import { adminContext } from "~/operations/context";
 /**
  * Smoke tests for the bridge's discriminated-union dispatchers. One
  * happy-path per union variant we care about — enough to catch a
@@ -5,7 +6,7 @@
  * coverage. Failure here means an agent calling that union shape would
  * also fail.
  *
- * Each test creates a fresh buildExecuteFunctions() against a fresh
+ * Each test creates a fresh buildExecuteFunctions(adminContext(1)) against a fresh
  * in-memory DB (the global beforeEach in test/setup.ts handles the DB
  * isolation).
  */
@@ -16,14 +17,11 @@ import { buildExecuteFunctions } from "~/mcp/bridge";
 type HostFns = ReturnType<typeof buildExecuteFunctions>;
 
 function fns(): HostFns {
-  return buildExecuteFunctions();
+  return buildExecuteFunctions(adminContext(1));
 }
 
 // Narrow the host fn return type for the assertions below.
-async function call<T = Record<string, unknown>>(
-  fn: HostFns[string],
-  args: unknown,
-): Promise<T> {
+async function call<T = Record<string, unknown>>(fn: HostFns[string], args: unknown): Promise<T> {
   return (await fn(args)) as T;
 }
 
@@ -82,15 +80,11 @@ describe("createEntity dispatch", () => {
   });
 
   it("rejects an unknown discriminator", async () => {
-    await expect(
-      fns().createEntity({ type: "alien-species", name: "X" }),
-    ).rejects.toThrow();
+    await expect(fns().createEntity({ type: "alien-species", name: "X" })).rejects.toThrow();
   });
 
   it("rejects a variant with missing required fields", async () => {
-    await expect(
-      fns().createEntity({ type: "person", name: "Bio Missing" }),
-    ).rejects.toThrow();
+    await expect(fns().createEntity({ type: "person", name: "Bio Missing" })).rejects.toThrow();
   });
 });
 
@@ -173,10 +167,11 @@ describe("updateEntity dispatch", () => {
     });
     expect(updated.updated).toBe(true);
 
-    const after = await call<{ entity: { location: string; organizer: string } }>(
-      fns().getEntity,
-      { type: "event", by: "id", value: created.entity.id },
-    );
+    const after = await call<{ entity: { location: string; organizer: string } }>(fns().getEntity, {
+      type: "event",
+      by: "id",
+      value: created.entity.id,
+    });
     expect(after.entity.location).toBe("St. John's, NL");
     expect(after.entity.organizer).toBe("Sample Organizer");
   });
@@ -310,10 +305,10 @@ describe("deleteEntity dispatch", () => {
       description: "Will be deleted",
     });
 
-    const r = await call<{ deleted: boolean; type: string; id: number }>(
-      fns().deleteEntity,
-      { type: "project", id: created.entity.id },
-    );
+    const r = await call<{ deleted: boolean; type: string; id: number }>(fns().deleteEntity, {
+      type: "project",
+      id: created.entity.id,
+    });
     expect(r.deleted).toBe(true);
     expect(r.type).toBe("project");
     expect(r.id).toBe(created.entity.id);
@@ -331,21 +326,13 @@ describe("deleteEntity dispatch", () => {
     // verify the dispatch reaches each branch without throwing.
     // Each delete fn returns ok-ish even on missing id; we're verifying the
     // dispatch, not the lib behaviour.
-    await expect(
-      fns().deleteEntity({ type: "event-source", id: 999_999 }),
-    ).resolves.toBeDefined();
-    await expect(
-      fns().deleteEntity({ type: "job-source", id: 999_999 }),
-    ).resolves.toBeDefined();
-    await expect(
-      fns().deleteEntity({ type: "news-source", id: 999_999 }),
-    ).resolves.toBeDefined();
+    await expect(fns().deleteEntity({ type: "event-source", id: 999_999 })).resolves.toBeDefined();
+    await expect(fns().deleteEntity({ type: "job-source", id: 999_999 })).resolves.toBeDefined();
+    await expect(fns().deleteEntity({ type: "news-source", id: 999_999 })).resolves.toBeDefined();
   });
 
   it("rejects an unknown discriminator", async () => {
-    await expect(
-      fns().deleteEntity({ type: "comment", id: 1 }),
-    ).rejects.toThrow();
+    await expect(fns().deleteEntity({ type: "comment", id: 1 })).rejects.toThrow();
   });
 });
 
@@ -353,17 +340,19 @@ describe("getEntity dispatch", () => {
   it("looks up a company by name and by slug", async () => {
     await fns().createEntity({ type: "company", name: "Lookup Me Co" });
 
-    const byName = await call<{ found: boolean; entity: { slug: string } }>(
-      fns().getEntity,
-      { type: "company", by: "name", value: "Lookup Me Co" },
-    );
+    const byName = await call<{ found: boolean; entity: { slug: string } }>(fns().getEntity, {
+      type: "company",
+      by: "name",
+      value: "Lookup Me Co",
+    });
     expect(byName.found).toBe(true);
     expect(byName.entity.slug).toBe("lookup-me-co");
 
-    const bySlug = await call<{ found: boolean; entity: { name: string } }>(
-      fns().getEntity,
-      { type: "company", by: "slug", value: "lookup-me-co" },
-    );
+    const bySlug = await call<{ found: boolean; entity: { name: string } }>(fns().getEntity, {
+      type: "company",
+      by: "slug",
+      value: "lookup-me-co",
+    });
     expect(bySlug.found).toBe(true);
     expect(bySlug.entity.name).toBe("Lookup Me Co");
   });
@@ -469,9 +458,7 @@ describe("reviewEntity dispatch", () => {
   });
 
   it("rejects an action not in the discriminated enum", async () => {
-    await expect(
-      fns().reviewEntity({ type: "job", id: 1, action: "explode" }),
-    ).rejects.toThrow();
+    await expect(fns().reviewEntity({ type: "job", id: 1, action: "explode" })).rejects.toThrow();
   });
 
   it("rejects a type discriminator outside { job, news }", async () => {

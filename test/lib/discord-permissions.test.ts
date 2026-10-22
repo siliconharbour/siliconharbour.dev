@@ -1,3 +1,4 @@
+import type { GuildChannelType } from "discord-api-types/v10";
 import { describe, it, expect } from "vitest";
 import {
   PermissionFlagsBits,
@@ -5,7 +6,6 @@ import {
   type APIGuildChannel,
   type APIGuildMember,
   type APIRole,
-  type ChannelType,
 } from "discord-api-types/v10";
 import { computeBotChannelPermissions } from "~/lib/discord.server";
 
@@ -24,6 +24,8 @@ function role(id: string, perms: bigint, position = 0, name = `role-${id}`): API
     position,
     permissions: perms.toString(),
     color: 0,
+    colors: { primary_color: 0, secondary_color: null, tertiary_color: null },
+    flags: 0 as import("discord-api-types/v10").RoleFlags,
     hoist: false,
     managed: false,
     mentionable: false,
@@ -43,13 +45,13 @@ function member(roles: string[]): APIGuildMember {
     joined_at: "2024-01-01T00:00:00.000Z",
     deaf: false,
     mute: false,
-    flags: 0,
+    flags: 0 as import("discord-api-types/v10").GuildMemberFlags,
   };
 }
 
 function channel(
-  overwrites: NonNullable<APIGuildChannel<ChannelType>["permission_overwrites"]> = [],
-): Pick<APIGuildChannel<ChannelType>, "permission_overwrites"> {
+  overwrites: NonNullable<APIGuildChannel<GuildChannelType>["permission_overwrites"]> = [],
+): Pick<APIGuildChannel<GuildChannelType>, "permission_overwrites"> {
   return { permission_overwrites: overwrites };
 }
 
@@ -143,12 +145,7 @@ describe("computeBotChannelPermissions", () => {
       },
     ]);
 
-    const result = computeBotChannelPermissions(
-      ch,
-      [everyone, botRole],
-      member(["200"]),
-      GUILD_ID,
-    );
+    const result = computeBotChannelPermissions(ch, [everyone, botRole], member(["200"]), GUILD_ID);
 
     expect(result.canSend).toBe(true);
   });
@@ -172,12 +169,7 @@ describe("computeBotChannelPermissions", () => {
       },
     ]);
 
-    const result = computeBotChannelPermissions(
-      ch,
-      [everyone, botRole],
-      member(["200"]),
-      GUILD_ID,
-    );
+    const result = computeBotChannelPermissions(ch, [everyone, botRole], member(["200"]), GUILD_ID);
 
     expect(result.canSend).toBe(false);
     expect(result.canView).toBe(true);

@@ -177,3 +177,20 @@ describe("public image downloads", () => {
     await expect(validateImage(animated, "image/gif")).rejects.toThrow("static");
   });
 });
+
+describe("public HTML downloads", () => {
+  it("uses the same address guard and returns bounded HTML", async () => {
+    const { fetchPublicPage } = await import("~/lib/public-fetch.server");
+    await expect(fetchPublicPage("https://127.0.0.1/admin")).rejects.toThrow();
+    expect(get).not.toHaveBeenCalled();
+    replies.push({
+      headers: { "content-type": "text/html; charset=utf-8" },
+      chunks: [Buffer.from("<title>Public page</title>")],
+    });
+    await expect(fetchPublicPage("https://public.example/page")).resolves.toBe(
+      "<title>Public page</title>",
+    );
+    replies.push({ headers: { "content-type": "text/html", "content-length": "3000000" } });
+    await expect(fetchPublicPage("https://public.example/large")).rejects.toThrow();
+  });
+});

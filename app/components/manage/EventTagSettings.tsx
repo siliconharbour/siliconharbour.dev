@@ -21,9 +21,7 @@ export function EventTagSettings({ tags, error }: EventTagSettingsProps) {
       )}
 
       <div className="mb-5 flex flex-col gap-gap-3">
-        {tags.length === 0 && (
-          <p className="text-sm text-subtle">No event tags configured.</p>
-        )}
+        {tags.length === 0 && <p className="text-sm text-subtle">No event tags configured.</p>}
         {tags.map((tag) => (
           <Form key={tag.id} method="post" className="border border-harbour-100 p-pad-3">
             <input type="hidden" name="tagId" value={tag.id} />

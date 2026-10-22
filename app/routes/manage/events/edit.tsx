@@ -19,7 +19,7 @@ import { eq } from "drizzle-orm";
 import { events as eventsTable } from "~/db/schema";
 import { getEventTags } from "~/lib/event-tags.server";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.event?.title || "Event"} - siliconharbour.dev` }];
 }
 

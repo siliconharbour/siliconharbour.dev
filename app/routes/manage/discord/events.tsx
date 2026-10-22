@@ -128,8 +128,11 @@ export async function action({ request }: Route.ActionArgs) {
     // Fan-out: post to each destination, record one discord_posts row per
     // destination, all sharing a batch_id.
     const batchId = crypto.randomUUID();
-    const successes: Array<{ destination: typeof destinations[number]; messageId: string | null }> = [];
-    const failures: Array<{ destination: typeof destinations[number]; error: string }> = [];
+    const successes: Array<{
+      destination: (typeof destinations)[number];
+      messageId: string | null;
+    }> = [];
+    const failures: Array<{ destination: (typeof destinations)[number]; error: string }> = [];
 
     logDiscord("batch.started", {
       batchId,
@@ -223,7 +226,10 @@ export default function DiscordEvents() {
     navigation.state === "submitting" && navigation.formData?.get("intent") === "post";
 
   const hasFailures =
-    actionData && "failures" in actionData && Array.isArray(actionData.failures) && actionData.failures.length > 0;
+    actionData &&
+    "failures" in actionData &&
+    Array.isArray(actionData.failures) &&
+    actionData.failures.length > 0;
 
   return (
     <div className="min-h-screen p-pad-4 md:p-pad-6">
@@ -234,10 +240,7 @@ export default function DiscordEvents() {
             <p className="text-subtle text-sm">Compose and post event roundups to Discord</p>
           </div>
           <div className="flex items-center gap-gap-4">
-            <Link
-              to="/manage/discord/jobs"
-              className="text-sm text-subtle hover:text-body"
-            >
+            <Link to="/manage/discord/jobs" className="text-sm text-subtle hover:text-body">
               Jobs
             </Link>
             <Link to="/manage" className="text-sm text-subtle hover:text-body">
@@ -288,16 +291,15 @@ export default function DiscordEvents() {
             {actionData.destinations} channel{actionData.destinations !== 1 ? "s" : ""}.
             {hasFailures && (
               <div className="mt-2 text-red-700">
-                Failed to post to: {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
+                Failed to post to:{" "}
+                {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
               </div>
             )}
           </div>
         )}
 
         {actionData && "skipped" in actionData && actionData.skipped && (
-          <div className="p-pad-4 bg-soft border border-line text-body text-sm">
-            Event skipped.
-          </div>
+          <div className="p-pad-4 bg-soft border border-line text-body text-sm">Event skipped.</div>
         )}
 
         {actionData && "undone" in actionData && actionData.undone && (
@@ -328,10 +330,7 @@ export default function DiscordEvents() {
                     const dateLine = nextDate
                       ? nextDate.isAllDay
                         ? formatInTimezone(new Date(nextDate.startDate), "EEE, MMM d")
-                        : formatInTimezone(
-                            new Date(nextDate.startDate),
-                            "EEE, MMM d 'at' h:mm a",
-                          )
+                        : formatInTimezone(new Date(nextDate.startDate), "EEE, MMM d 'at' h:mm a")
                       : "Recurring";
                     return (
                       <div
@@ -370,9 +369,7 @@ export default function DiscordEvents() {
               </div>
 
               <div className="bg-surface border border-line p-pad-6 rounded-panel">
-                <h2 className="text-lg font-semibold text-heading mb-4">
-                  Intro Text (optional)
-                </h2>
+                <h2 className="text-lg font-semibold text-heading mb-4">Intro Text (optional)</h2>
                 <textarea
                   name="introText"
                   rows={3}
@@ -400,10 +397,14 @@ export default function DiscordEvents() {
             <div className="flex flex-col divide-y divide-harbour-100">
               {history.map((batch) => {
                 const key = batch.batchId ?? `single-${batch.destinations[0]?.id}`;
-                const isSkip = batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
+                const isSkip =
+                  batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
                 const channelCount = batch.destinations.length;
                 return (
-                  <div key={key} className="py-pad-3 flex items-start justify-between text-sm gap-gap-3">
+                  <div
+                    key={key}
+                    className="py-pad-3 flex items-start justify-between text-sm gap-gap-3"
+                  >
                     <div className="flex flex-col gap-gap-1 min-w-0 flex-1">
                       <span className="text-heading">
                         {isSkip
@@ -411,9 +412,7 @@ export default function DiscordEvents() {
                           : `Posted ${batch.itemCount} event${batch.itemCount !== 1 ? "s" : ""} to ${channelCount} channel${channelCount !== 1 ? "s" : ""}`}
                       </span>
                       {batch.introText && (
-                        <span className="text-subtle text-xs truncate">
-                          {batch.introText}
-                        </span>
+                        <span className="text-subtle text-xs truncate">{batch.introText}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-gap-3 flex-shrink-0">
@@ -429,7 +428,11 @@ export default function DiscordEvents() {
                         ) : (
                           <>
                             <input type="hidden" name="intent" value="undo" />
-                            <input type="hidden" name="postId" value={batch.destinations[0]?.id ?? ""} />
+                            <input
+                              type="hidden"
+                              name="postId"
+                              value={batch.destinations[0]?.id ?? ""}
+                            />
                           </>
                         )}
                         <button

@@ -16,7 +16,7 @@ import { actionError } from "~/lib/admin/action-result";
 import { resolveUpdatedImage } from "~/lib/admin/image-fields";
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.group?.name || "Group"} - siliconharbour.dev` }];
 }
 
@@ -48,7 +48,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData();
   const schema = z.object({
     name: zRequiredString("Name"),
-    description: zOptionalNullableString,
+    description: zRequiredString("Description"),
     website: zOptionalNullableString,
     meetingFrequency: zOptionalNullableString,
     visible: zTrueBoolean,

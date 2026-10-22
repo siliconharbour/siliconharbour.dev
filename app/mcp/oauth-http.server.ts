@@ -37,9 +37,9 @@ export async function oauthJson(
                 ? 503
                 : error.code === OAuthErrorCode.TooManyRequests
                   ? 429
-              : error.code === OAuthErrorCode.InvalidClient
-                ? 401
-                : 400,
+                  : error.code === OAuthErrorCode.InvalidClient
+                    ? 401
+                    : 400,
           headers: NO_STORE_HEADERS,
         },
       );
@@ -61,7 +61,12 @@ export async function readJsonBody(request: Request): Promise<unknown> {
 }
 
 export async function readFormBody(request: Request): Promise<Record<string, string>> {
-  if (!request.headers.get("Content-Type")?.toLowerCase().startsWith("application/x-www-form-urlencoded")) {
+  if (
+    !request.headers
+      .get("Content-Type")
+      ?.toLowerCase()
+      .startsWith("application/x-www-form-urlencoded")
+  ) {
     throw new OAuthError(
       OAuthErrorCode.InvalidRequest,
       "Request body must use application/x-www-form-urlencoded",
@@ -112,7 +117,9 @@ export async function enforceRegistrationRateLimit(request: Request): Promise<Re
           status: 429,
           headers: {
             ...NO_STORE_HEADERS,
-            "Retry-After": String(Math.max(1, Math.ceil((result.resetAt.getTime() - Date.now()) / 1000))),
+            "Retry-After": String(
+              Math.max(1, Math.ceil((result.resetAt.getTime() - Date.now()) / 1000)),
+            ),
           },
         },
       );

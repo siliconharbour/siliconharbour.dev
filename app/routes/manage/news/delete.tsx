@@ -5,7 +5,7 @@ import { getNewsById, deleteNews } from "~/lib/news.server";
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Delete ${data?.article?.title || "Article"} - siliconharbour.dev` }];
 }
 
@@ -41,8 +41,8 @@ export default function DeleteNews() {
       title={`Delete ${article.type === "link" ? "Link Post" : "Article"}`}
       message={
         <>
-          Are you sure you want to delete the {typeLabel}{" "}
-          <strong>{article.title}</strong>? This action cannot be undone.
+          Are you sure you want to delete the {typeLabel} <strong>{article.title}</strong>? This
+          action cannot be undone.
         </>
       }
     >

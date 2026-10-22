@@ -5,7 +5,7 @@ import { getCompanyById, deleteCompany } from "~/lib/companies.server";
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Delete ${data?.company?.name || "Company"} - siliconharbour.dev` }];
 }
 

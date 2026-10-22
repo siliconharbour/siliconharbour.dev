@@ -146,7 +146,8 @@ export const ashbyImporter: JobImporter = {
   sourceType: "ashby",
   meta: {
     name: "Ashby",
-    approach: "Scrapes HTML page, extracts embedded window.__appData, then fetches each job detail page.",
+    approach:
+      "Scrapes HTML page, extracts embedded window.__appData, then fetches each job detail page.",
     style: "Structured data extraction from HTML shell",
     reliability: "medium",
   },

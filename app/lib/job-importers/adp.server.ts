@@ -249,8 +249,7 @@ export const adpImporter: JobImporter = {
       "Parses ADP WorkforceNow recruitment pages, extracts job data from embedded JSON structures.",
     style: "Structured data extraction from HTML",
     reliability: "medium-high",
-    quirks:
-      "ADP page structure can vary between tenants. Uses custom client ID parsing.",
+    quirks: "ADP page structure can vary between tenants. Uses custom client ID parsing.",
   },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {

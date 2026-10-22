@@ -116,10 +116,10 @@ export async function action({ request }: Route.ActionArgs) {
     // chunk failure, mark the destination as failed and continue to the next.
     const batchId = crypto.randomUUID();
     const successes: Array<{
-      destination: typeof destinations[number];
+      destination: (typeof destinations)[number];
       firstMessageId: string | null;
     }> = [];
-    const failures: Array<{ destination: typeof destinations[number]; error: string }> = [];
+    const failures: Array<{ destination: (typeof destinations)[number]; error: string }> = [];
 
     logDiscord("batch.started", {
       batchId,
@@ -249,7 +249,12 @@ function JobRow({
         </span>
         <span className="text-sm text-subtle">
           {[job.companyName, job.location, job.workplaceType].filter(Boolean).join(" \u2022 ")}
-          {job.postedAt && <> {"\u2022"} {format(new Date(job.postedAt), "MMM d")}</>}
+          {job.postedAt && (
+            <>
+              {" "}
+              {"\u2022"} {format(new Date(job.postedAt), "MMM d")}
+            </>
+          )}
         </span>
       </div>
       <Form method="post" className="flex-shrink-0">
@@ -285,7 +290,10 @@ export default function DiscordJobs() {
   const nonTechnicalJobs = jobs.filter((j) => !j.isTechnical);
 
   const hasFailures =
-    actionData && "failures" in actionData && Array.isArray(actionData.failures) && actionData.failures.length > 0;
+    actionData &&
+    "failures" in actionData &&
+    Array.isArray(actionData.failures) &&
+    actionData.failures.length > 0;
 
   return (
     <div className="min-h-screen p-pad-4 md:p-pad-6">
@@ -296,10 +304,7 @@ export default function DiscordJobs() {
             <p className="text-subtle text-sm">Compose and post job roundups to Discord</p>
           </div>
           <div className="flex items-center gap-gap-4">
-            <Link
-              to="/manage/discord/events"
-              className="text-sm text-subtle hover:text-body"
-            >
+            <Link to="/manage/discord/events" className="text-sm text-subtle hover:text-body">
               Events
             </Link>
             <Link to="/manage" className="text-sm text-subtle hover:text-body">
@@ -350,16 +355,15 @@ export default function DiscordJobs() {
             {actionData.destinations} channel{actionData.destinations !== 1 ? "s" : ""}.
             {hasFailures && (
               <div className="mt-2 text-red-700">
-                Failed to post to: {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
+                Failed to post to:{" "}
+                {actionData.failures.map((f) => `#${f.channelName} (${f.error})`).join("; ")}
               </div>
             )}
           </div>
         )}
 
         {actionData && "skipped" in actionData && actionData.skipped && (
-          <div className="p-pad-4 bg-soft border border-line text-body text-sm">
-            Job skipped.
-          </div>
+          <div className="p-pad-4 bg-soft border border-line text-body text-sm">Job skipped.</div>
         )}
 
         {actionData && "skippedOld" in actionData && actionData.skippedOld && (
@@ -427,9 +431,7 @@ export default function DiscordJobs() {
               </div>
 
               <div className="bg-surface border border-line p-pad-6 rounded-panel">
-                <h2 className="text-lg font-semibold text-heading mb-4">
-                  Intro Text (optional)
-                </h2>
+                <h2 className="text-lg font-semibold text-heading mb-4">Intro Text (optional)</h2>
                 <textarea
                   name="introText"
                   rows={3}
@@ -468,7 +470,10 @@ export default function DiscordJobs() {
                   batch.destinations.every((d) => d.discordMessageId === null) && !batch.batchId;
                 const channelCount = batch.destinations.length;
                 return (
-                  <div key={key} className="py-pad-3 flex items-start justify-between text-sm gap-gap-3">
+                  <div
+                    key={key}
+                    className="py-pad-3 flex items-start justify-between text-sm gap-gap-3"
+                  >
                     <div className="flex flex-col gap-gap-1 min-w-0 flex-1">
                       <span className="text-heading">
                         {isSkip
@@ -476,9 +481,7 @@ export default function DiscordJobs() {
                           : `Posted ${batch.itemCount} job${batch.itemCount !== 1 ? "s" : ""} to ${channelCount} channel${channelCount !== 1 ? "s" : ""}`}
                       </span>
                       {batch.introText && (
-                        <span className="text-subtle text-xs truncate">
-                          {batch.introText}
-                        </span>
+                        <span className="text-subtle text-xs truncate">{batch.introText}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-gap-3 flex-shrink-0">

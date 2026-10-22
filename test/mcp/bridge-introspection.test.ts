@@ -117,7 +117,13 @@ describe("getEntitySchemaDocs", () => {
 describe("getHostFunctionDocs", () => {
   it("keeps image mutations and share administration off the public read surface", () => {
     const docs = getHostFunctionDocs();
-    for (const name of ["setEntityImage", "prepareImageUpload", "attachImage", "themeShares", "deleteThemeShare"]) {
+    for (const name of [
+      "setEntityImage",
+      "prepareImageUpload",
+      "attachImage",
+      "themeShares",
+      "deleteThemeShare",
+    ]) {
       expect(docs.execute.some((entry) => entry.name === name)).toBe(true);
       expect(docs.read.some((entry) => entry.name === name)).toBe(false);
     }

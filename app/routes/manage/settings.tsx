@@ -19,7 +19,15 @@ import {
   addDestination,
   removeDestination,
 } from "~/lib/discord-destinations.server";
-import { sectionKeys, type SectionKey, commentableKeys, type CommentableKey, discordChannelTypes, type DiscordChannelType, type DiscordDestination } from "~/db/schema";
+import {
+  sectionKeys,
+  type SectionKey,
+  commentableKeys,
+  type CommentableKey,
+  discordChannelTypes,
+  type DiscordChannelType,
+  type DiscordDestination,
+} from "~/db/schema";
 import {
   createEventTag,
   deleteEventTag,
@@ -35,7 +43,15 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const [visibility, commentVisibility, discordConfig, eventsDestinations, jobsDestinations, newsGlobalKeywords, eventTags] = await Promise.all([
+  const [
+    visibility,
+    commentVisibility,
+    discordConfig,
+    eventsDestinations,
+    jobsDestinations,
+    newsGlobalKeywords,
+    eventTags,
+  ] = await Promise.all([
     getSectionVisibility(),
     getCommentVisibility(),
     getDiscordConfig(),
@@ -200,7 +216,9 @@ export async function action({ request }: Route.ActionArgs) {
     updateSectionVisibility(sectionUpdates),
     updateCommentVisibility(commentUpdates),
     updateDiscordConfig(discordUpdates),
-    typeof newsKeywords === "string" ? setNewsGlobalKeywords(newsKeywords.trim()) : Promise.resolve(),
+    typeof newsKeywords === "string"
+      ? setNewsGlobalKeywords(newsKeywords.trim())
+      : Promise.resolve(),
   ]);
   return { success: true };
 }
@@ -275,7 +293,11 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
   const [adding, setAdding] = useState(false);
   const [selectedGuild, setSelectedGuild] = useState<Guild | null>(null);
   const guildsFetcher = useFetcher<{ guilds?: Guild[]; error?: string }>();
-  const channelsFetcher = useFetcher<{ channels?: PostableChannel[]; error?: string; guildId?: string }>();
+  const channelsFetcher = useFetcher<{
+    channels?: PostableChannel[];
+    error?: string;
+    guildId?: string;
+  }>();
   const mutateFetcher = useFetcher<{ success?: boolean; error?: string }>();
 
   const isLoadingGuilds = guildsFetcher.state !== "idle";
@@ -336,12 +358,9 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
             >
               <div className="flex flex-col">
                 <span className="text-sm text-heading">
-                  {d.guildName}{" "}
-                  <span className="font-medium">#{d.channelName}</span>
+                  {d.guildName} <span className="font-medium">#{d.channelName}</span>
                 </span>
-                <span className="text-xs text-subtle">
-                  Channel ID: {d.channelId}
-                </span>
+                <span className="text-xs text-subtle">Channel ID: {d.channelId}</span>
               </div>
               <button
                 type="button"
@@ -387,16 +406,10 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
 
           {!selectedGuild && (
             <>
-              {isLoadingGuilds && (
-                <p className="text-xs text-subtle">Loading servers…</p>
-              )}
-              {guildError && (
-                <p className="text-xs text-red-700">Error: {guildError}</p>
-              )}
+              {isLoadingGuilds && <p className="text-xs text-subtle">Loading servers…</p>}
+              {guildError && <p className="text-xs text-red-700">Error: {guildError}</p>}
               {guildList && guildList.length === 0 && (
-                <p className="text-xs text-subtle">
-                  Bot is not in any servers. Invite it first.
-                </p>
+                <p className="text-xs text-subtle">Bot is not in any servers. Invite it first.</p>
               )}
               {guildList && guildList.length > 0 && (
                 <ul className="flex flex-col">
@@ -425,12 +438,8 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
               >
                 ← Back to servers
               </button>
-              {isLoadingChannels && (
-                <p className="text-xs text-subtle">Loading channels…</p>
-              )}
-              {channelError && (
-                <p className="text-xs text-red-700">Error: {channelError}</p>
-              )}
+              {isLoadingChannels && <p className="text-xs text-subtle">Loading channels…</p>}
+              {channelError && <p className="text-xs text-red-700">Error: {channelError}</p>}
               {channelList && channelList.length === 0 && (
                 <p className="text-xs text-subtle">
                   No text channels visible to the bot in this server.
@@ -469,9 +478,18 @@ function DestinationPicker({ type, destinations }: DestinationPickerProps) {
 }
 
 export default function Settings() {
-  const { visibility, commentVisibility, discordConfig, discordDestinations, newsGlobalKeywords, eventTags } = useLoaderData<typeof loader>();
+  const {
+    visibility,
+    commentVisibility,
+    discordConfig,
+    discordDestinations,
+    newsGlobalKeywords,
+    eventTags,
+  } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const testFetcher = useFetcher<{ discordTest?: { valid: boolean; username?: string; error?: string; guildCount?: number } }>();
+  const testFetcher = useFetcher<{
+    discordTest?: { valid: boolean; username?: string; error?: string; guildCount?: number };
+  }>();
   const discordTestResult = testFetcher.data?.discordTest;
 
   return (
@@ -624,14 +642,16 @@ export default function Settings() {
                   </p>
                 )}
                 <p className="text-xs text-subtle">
-                  After saving a new token, click Test Connection to refresh the bot&apos;s server list.
+                  After saving a new token, click Test Connection to refresh the bot&apos;s server
+                  list.
                 </p>
               </div>
 
               <div className="flex flex-col gap-gap-2">
                 <span className="font-medium text-heading text-sm">Event Destinations</span>
                 <p className="text-xs text-subtle">
-                  Channels that receive event roundups. Posting will go to every channel listed here.
+                  Channels that receive event roundups. Posting will go to every channel listed
+                  here.
                 </p>
                 <DestinationPicker type="events" destinations={discordDestinations.events} />
               </div>

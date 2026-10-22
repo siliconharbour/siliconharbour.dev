@@ -50,10 +50,10 @@ export function getTrueBoolean(formData: FormData, key: string): boolean {
   return formData.get(key) === "true";
 }
 
-export function parseFormData<T>(
+export function parseFormData<S extends z.ZodType>(
   formData: FormData,
-  schema: z.ZodType<T>,
-): { success: true; data: T } | { success: false; error: string } {
+  schema: S,
+): { success: true; data: z.output<S> } | { success: false; error: string } {
   const values: Record<string, FormDataEntryValue> = {};
   for (const [key, value] of formData.entries()) {
     values[key] = value;
@@ -65,5 +65,5 @@ export function parseFormData<T>(
     return { success: false, error: firstIssue?.message ?? "Invalid form data" };
   }
 
-  return { success: true, data: parsed.data };
+  return { success: true, data: parsed.data as z.output<S> };
 }

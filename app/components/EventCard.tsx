@@ -2,7 +2,11 @@ import { Link } from "react-router";
 import type { Event, EventDate, EventTag } from "~/db/schema";
 import { RichMarkdown, type ResolvedRef } from "./RichMarkdown";
 import { formatInTimezone } from "~/lib/timezone";
-import { formatEventPeriodRange, formatTimedRangeEnd, getEventStatusLabel } from "~/lib/event-display";
+import {
+  formatEventPeriodRange,
+  formatTimedRangeEnd,
+  getEventStatusLabel,
+} from "~/lib/event-display";
 import { getEventTimingState } from "~/lib/event-timing";
 import { eventTagColorStyles } from "~/lib/event-tags";
 import { TintedImage } from "./TintedImage";

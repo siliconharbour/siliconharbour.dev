@@ -17,7 +17,10 @@ async function seedSource() {
   return source;
 }
 
-async function seedNews(status: "draft" | "pending_review" | "published" | "hidden", title: string) {
+async function seedNews(
+  status: "draft" | "pending_review" | "published" | "hidden",
+  title: string,
+) {
   const source = await seedSource();
   const [item] = await db
     .insert(news)

@@ -8,7 +8,7 @@ import { ReferencedBy } from "~/components/ReferencedBy";
 import { format } from "date-fns";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const job = data?.job;
   const title = job?.title ?? "Job";
   const company = (job as { company?: { name?: string } } | undefined)?.company?.name;

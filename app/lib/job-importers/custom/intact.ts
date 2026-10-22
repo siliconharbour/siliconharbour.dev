@@ -59,11 +59,7 @@ interface JsonLdJobPosting {
 
 function isNlLocation(location: string): boolean {
   const lower = location.toLowerCase();
-  return (
-    lower.includes(", nl") ||
-    lower.includes("newfoundland") ||
-    lower.includes("st. john")
-  );
+  return lower.includes(", nl") || lower.includes("newfoundland") || lower.includes("st. john");
 }
 
 /**
@@ -80,7 +76,8 @@ function parseListingPage(html: string): JobListing[] {
 
     const title = linkEl.textContent?.trim() ?? "";
     const href = linkEl.getAttribute("href") ?? "";
-    const locLabel = item.querySelector(".results-list__item-street--label")?.textContent?.trim() ?? "";
+    const locLabel =
+      item.querySelector(".results-list__item-street--label")?.textContent?.trim() ?? "";
     const moreLocations = item.querySelector(".results-list__item-street--more-locations");
 
     // Extract req ID from the info spans
@@ -138,11 +135,12 @@ function parseJobDetailJsonLd(html: string): JsonLdJobPosting | null {
  * Check if a job posting has any NL locations.
  */
 function hasNlJobLocation(jsonLd: JsonLdJobPosting): boolean {
-  return jsonLd.jobLocation?.some(
-    (loc) =>
-      loc.address?.addressRegion === "NL" ||
-      isNlLocation(loc.address?.addressLocality ?? ""),
-  ) ?? false;
+  return (
+    jsonLd.jobLocation?.some(
+      (loc) =>
+        loc.address?.addressRegion === "NL" || isNlLocation(loc.address?.addressLocality ?? ""),
+    ) ?? false
+  );
 }
 
 function buildLocation(jsonLd: JsonLdJobPosting): string | undefined {

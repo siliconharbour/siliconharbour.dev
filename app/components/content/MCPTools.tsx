@@ -51,7 +51,7 @@ const CATEGORY_ORDER: HostFnCategory[] = [
   "lifecycle",
 ];
 
-const CATEGORY_LABELS: Record<HostFnCategory, string> = {
+const CATEGORY_LABELS: Partial<Record<HostFnCategory, string>> = {
   read: "Read",
   sources: "Import sources",
   sync: "Synchronous sync",
@@ -76,23 +76,25 @@ function FunctionTable({ entries }: { entries: HostFunctionDocsEntry[] }) {
   const byCat = groupByCategory(entries);
   return (
     <div className="flex flex-col gap-gap-4">
-      {CATEGORY_ORDER.filter((cat) => byCat.has(cat)).map((cat) => (
-        <div key={cat}>
-          <div className="text-xs font-medium uppercase tracking-wide text-muted mb-1.5">
-            {CATEGORY_LABELS[cat]} ({byCat.get(cat)?.length ?? 0})
-          </div>
-          <div className="border border-line divide-y divide-harbour-100">
-            {byCat.get(cat)?.map((entry) => (
-              <div key={entry.name} className="px-pad-3 py-pad-2 text-sm flex flex-col gap-gap-1">
-                <div className="flex items-baseline gap-gap-2 flex-wrap">
-                  <code className="text-heading text-xs">{`tools.siliconharbour.${entry.signature}`}</code>
+      {[...new Set([...CATEGORY_ORDER, ...byCat.keys()])]
+        .filter((cat) => byCat.has(cat))
+        .map((cat) => (
+          <div key={cat}>
+            <div className="text-xs font-medium uppercase tracking-wide text-muted mb-1.5">
+              {CATEGORY_LABELS[cat] ?? cat} ({byCat.get(cat)?.length ?? 0})
+            </div>
+            <div className="border border-line divide-y divide-harbour-100">
+              {byCat.get(cat)?.map((entry) => (
+                <div key={entry.name} className="px-pad-3 py-pad-2 text-sm flex flex-col gap-gap-1">
+                  <div className="flex items-baseline gap-gap-2 flex-wrap">
+                    <code className="text-heading text-xs">{`tools.siliconharbour.${entry.signature}`}</code>
+                  </div>
+                  <div className="text-muted text-xs">{entry.description}</div>
                 </div>
-                <div className="text-muted text-xs">{entry.description}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
     </div>
   );
 }
@@ -128,9 +130,7 @@ export function MCPTools() {
                 >
                   {tool.auth}
                 </span>
-                {entries && (
-                  <span className="text-xs text-subtle">{entries.length} functions</span>
-                )}
+                {entries && <span className="text-xs text-subtle">{entries.length} functions</span>}
               </span>
               <span className="text-subtle text-xs">expand</span>
             </summary>

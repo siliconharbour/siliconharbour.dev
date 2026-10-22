@@ -16,8 +16,7 @@ import type {
 import { htmlToText } from "./text.server";
 import pLimit from "p-limit";
 
-const CAREERBEACON_JOB_URL_RE =
-  /https?:\/\/www\.careerbeacon\.com\/en\/job\/\d+\/[^\s"'<>]+/gi;
+const CAREERBEACON_JOB_URL_RE = /https?:\/\/www\.careerbeacon\.com\/en\/job\/\d+\/[^\s"'<>]+/gi;
 
 interface CareerBeaconPosting {
   externalId: string;
@@ -205,7 +204,8 @@ export const careerbeaconImporter: JobImporter = {
   sourceType: "careerbeacon",
   meta: {
     name: "CareerBeacon",
-    approach: "Fetches individual job pages, extracts JSON-LD JobPosting schema. Supports direct URLs or listing scrape.",
+    approach:
+      "Fetches individual job pages, extracts JSON-LD JobPosting schema. Supports direct URLs or listing scrape.",
     style: "JSON-LD extraction with p-limit(5) concurrency",
     reliability: "medium-high",
     quirks: "Listing pages may be blocked by Cloudflare; direct job URLs are recommended.",

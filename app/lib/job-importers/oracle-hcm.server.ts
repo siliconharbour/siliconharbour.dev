@@ -73,7 +73,13 @@ interface OracleRequisitionDetail {
 
 type IdentifierConfig =
   | { mode: "keyword"; host: string; siteNumber: string; keyword: string }
-  | { mode: "location"; host: string; siteNumber: string; locationId: string; locationFilter: string };
+  | {
+      mode: "location";
+      host: string;
+      siteNumber: string;
+      locationId: string;
+      locationFilter: string;
+    };
 
 /**
  * Parse sourceIdentifier into config.
@@ -217,8 +223,8 @@ async function fetchJobListByLocation(
     // Client-side filter by location
     for (const item of items) {
       const loc = item.PrimaryLocation?.toLowerCase() ?? "";
-      const secondaryMatch = item.secondaryLocations?.some(
-        (s) => s.Name?.toLowerCase().includes(filterLower),
+      const secondaryMatch = item.secondaryLocations?.some((s) =>
+        s.Name?.toLowerCase().includes(filterLower),
       );
       if (loc.includes(filterLower) || secondaryMatch) {
         allItems.push(item);

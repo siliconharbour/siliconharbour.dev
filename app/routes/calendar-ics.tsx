@@ -174,7 +174,7 @@ export async function loader({}: Route.LoaderArgs) {
       for (const date of event.dates) {
         const startDate = date.startDate;
 
-        const baseAttrs: EventAttributes = {
+        const baseAttrs = {
           ...calMeta,
           title: event.title,
           description: `https://siliconharbour.dev/events/${event.slug}\n\n${event.description}`,

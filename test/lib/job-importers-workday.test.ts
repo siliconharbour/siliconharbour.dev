@@ -37,9 +37,7 @@ describe("workday importer", () => {
 
     const listingRequests = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
     expect(listingRequests).toHaveLength(2);
-    expect(
-      listingRequests.map(([, init]) => JSON.parse(String(init?.body)) as object),
-    ).toEqual([
+    expect(listingRequests.map(([, init]) => JSON.parse(String(init?.body)) as object)).toEqual([
       { appliedFacets: {}, limit: 20, offset: 0, searchText: "verafin" },
       { appliedFacets: {}, limit: 20, offset: 1, searchText: "verafin" },
     ]);

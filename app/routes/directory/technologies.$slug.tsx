@@ -8,7 +8,7 @@ import {
 import { categoryLabels } from "~/lib/technology-categories";
 import { getOptionalUser } from "~/lib/session.server";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `${data?.technology?.name ?? "Technology"} - siliconharbour.dev` }];
 }
 

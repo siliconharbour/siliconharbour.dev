@@ -1,3 +1,4 @@
+import { adminContext } from "~/operations/context";
 import { Effect } from "effect";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
@@ -121,7 +122,7 @@ describe("Code Mode", () => {
 
   it("discovers complete schema signatures only for tools in the supplied scope", async () => {
     const read = createCodeMode(buildReadFunctions());
-    const write = createCodeMode(buildExecuteFunctions());
+    const write = createCodeMode(buildExecuteFunctions(adminContext(1)));
     const code = 'return search({ query: "createEntity" });';
     const found = await Effect.runPromise(write.execute(code));
     expect(found.ok).toBe(true);

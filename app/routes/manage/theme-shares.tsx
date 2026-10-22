@@ -1,7 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/theme-shares";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { deleteThemeShare, listThemeShares } from "~/lib/theme-shares.server";
+import { listThemeShares } from "~/lib/theme-shares.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
@@ -15,7 +17,11 @@ export async function action({ request }: Route.ActionArgs) {
     throw new Response("Same-origin POST required", { status: 403 });
   const form = await request.formData();
   if (form.get("intent") !== "delete") throw new Response("Invalid action", { status: 400 });
-  return deleteThemeShare(String(form.get("id") ?? ""));
+  const result = await runAdminOperation(request, operationCatalog.themeShareDelete, {
+    id: String(form.get("id") ?? ""),
+    confirm: true,
+  });
+  return result.ok ? result.data : { error: result.error };
 }
 export function meta() {
   return [{ title: "Theme shares - Manage" }];

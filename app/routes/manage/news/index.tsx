@@ -1,3 +1,4 @@
+import { fetchPublicPage } from "~/lib/public-fetch.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
@@ -56,11 +57,7 @@ export async function action({ request }: Route.ActionArgs) {
     let title = url.hostname;
     let excerpt: string | null = null;
     try {
-      const resp = await fetch(rawUrl, {
-        headers: { "User-Agent": "SiliconHarbourBot/1.0" },
-        signal: AbortSignal.timeout(10_000),
-      });
-      const html = await resp.text();
+      const html = await fetchPublicPage(rawUrl);
 
       // Extract <title>
       const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -80,8 +77,8 @@ export async function action({ request }: Route.ActionArgs) {
       } else {
         excerpt = descMatch[1].trim();
       }
-    } catch {
-      // If fetch fails, just use the domain as title
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Could not load page" };
     }
 
     const sourceName = url.hostname.replace(/^www\./, "");
@@ -205,9 +202,7 @@ export default function ManageNewsIndex() {
                   </span>
                 </div>
                 <div className="flex items-center gap-gap-2 text-sm text-subtle">
-                  {article.publishedAt && (
-                    <span>{format(article.publishedAt, "MMM d, yyyy")}</span>
-                  )}
+                  {article.publishedAt && <span>{format(article.publishedAt, "MMM d, yyyy")}</span>}
                   {article.sourceName && <span>via {article.sourceName}</span>}
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useSearchParams, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
@@ -31,19 +32,25 @@ const MISSING_FILTERS = {
  * Called inside the loader so DB references stay server-side.
  */
 function getFilterCondition(key: string): SQL | undefined {
-  const empty = (col: typeof companies.logo) => or(isNull(col), eq(col, ""));
+  const empty = (col: AnySQLiteColumn) => or(isNull(col), eq(col, ""));
   switch (key) {
-    case "logo": return empty(companies.logo);
-    case "linkedin": return empty(companies.linkedin);
-    case "location": return empty(companies.location);
-    case "founded": return isNull(companies.founded);
-    case "careers": return empty(companies.careersUrl);
+    case "logo":
+      return empty(companies.logo);
+    case "linkedin":
+      return empty(companies.linkedin);
+    case "location":
+      return empty(companies.location);
+    case "founded":
+      return isNull(companies.founded);
+    case "careers":
+      return empty(companies.careersUrl);
     case "no-source":
       return notInArray(
         companies.id,
         db.selectDistinct({ id: jobImportSources.companyId }).from(jobImportSources),
       );
-    default: return undefined;
+    default:
+      return undefined;
   }
 }
 
@@ -105,9 +112,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       .from(companies)
       .where(whereClause)
       .orderBy(
-        rankedSearchIds
-          ? searchRankOrder(companies.id, rankedSearchIds)
-          : asc(companies.name),
+        rankedSearchIds ? searchRankOrder(companies.id, rankedSearchIds) : asc(companies.name),
       )
       .limit(PER_PAGE)
       .offset(offset),
@@ -257,7 +262,9 @@ export default function ManageCompaniesIndex() {
                   className="px-pad-4 py-pad-2 bg-slate-500 hover:bg-slate-600 text-white font-medium transition-colors flex items-center gap-gap-2"
                 >
                   Hide All
-                  <span className="px-pad-1-5 py-pad-0-5 bg-slate-600 text-xs ">{visibleCount}</span>
+                  <span className="px-pad-1-5 py-pad-0-5 bg-slate-600 text-xs ">
+                    {visibleCount}
+                  </span>
                 </button>
               </Form>
             )}
@@ -318,9 +325,7 @@ export default function ManageCompaniesIndex() {
                       </span>
                     )}
                   </div>
-                  {company.location && (
-                    <p className="text-sm text-subtle">{company.location}</p>
-                  )}
+                  {company.location && <p className="text-sm text-subtle">{company.location}</p>}
                 </div>
 
                 <div className="flex items-center gap-gap-2">

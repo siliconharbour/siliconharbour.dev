@@ -111,10 +111,7 @@ export default function JobSearchPage() {
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link
-            to="/manage/import/jobs"
-            className="text-sm text-subtle hover:text-body"
-          >
+          <Link to="/manage/import/jobs" className="text-sm text-subtle hover:text-body">
             &larr; Back to Job Import Sources
           </Link>
         </div>
@@ -143,10 +140,7 @@ export default function JobSearchPage() {
             </div>
             <div className="flex-1 flex flex-col gap-gap-1 min-w-48">
               <label className="text-sm text-body">Search Term</label>
-              <select
-                name="query"
-                className="px-pad-3 py-pad-2 border border-line text-sm"
-              >
+              <select name="query" className="px-pad-3 py-pad-2 border border-line text-sm">
                 <option value="">All jobs (no filter)</option>
                 {JOB_SEARCH_TERMS.map((term) => (
                   <option key={term} value={term}>
@@ -180,12 +174,15 @@ export default function JobSearchPage() {
           </div>
         )}
 
-        {fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "import" && "success" in fetcher.data && (
-          <div className="p-pad-3 bg-green-50 border border-green-200 text-green-700 text-sm">
-            Imported "{fetcher.data.title}" (Job #{fetcher.data.jobId})
-            {fetcher.data.matched ? "" : " — no company match, review needed"}
-          </div>
-        )}
+        {fetcher.data &&
+          "intent" in fetcher.data &&
+          fetcher.data.intent === "import" &&
+          "success" in fetcher.data && (
+            <div className="p-pad-3 bg-green-50 border border-green-200 text-green-700 text-sm">
+              Imported "{fetcher.data.title}" (Job #{fetcher.data.jobId})
+              {fetcher.data.matched ? "" : " — no company match, review needed"}
+            </div>
+          )}
 
         {results.length > 0 && (
           <div className="flex flex-col gap-gap-2">

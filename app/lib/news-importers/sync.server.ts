@@ -6,7 +6,13 @@
 import { db } from "~/db";
 import { newsImportSources, news, companies } from "~/db/schema";
 import { eq, desc, count } from "drizzle-orm";
-import type { NewsSyncResult, NewsImportSourceConfig, NewsSourceType, FetchedNewsItem, ExcerptMode } from "./types";
+import type {
+  NewsSyncResult,
+  NewsImportSourceConfig,
+  NewsSourceType,
+  FetchedNewsItem,
+  ExcerptMode,
+} from "./types";
 import { getNewsImporter } from "./index";
 import { generateNewsSlug } from "~/lib/news.server";
 import { getNewsGlobalKeywords } from "~/lib/config.server";
@@ -136,8 +142,14 @@ async function getNewsFilterCompanyNames(): Promise<string[]> {
  * Merge keyword lists into a single comma-separated string.
  */
 function mergeKeywords(...lists: (string | null | undefined)[]): string | null {
-  const all = lists
-    .flatMap((list) => (list ? list.split(",").map((k) => k.trim()).filter(Boolean) : []));
+  const all = lists.flatMap((list) =>
+    list
+      ? list
+          .split(",")
+          .map((k) => k.trim())
+          .filter(Boolean)
+      : [],
+  );
   return all.length > 0 ? all.join(", ") : null;
 }
 
@@ -182,7 +194,14 @@ async function updateSourceMeta(
 export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> {
   const source = await getNewsSourceById(sourceId);
   if (!source) {
-    return { success: false, error: "Source not found", added: 0, updated: 0, filtered: 0, totalPublished: 0 };
+    return {
+      success: false,
+      error: "Source not found",
+      added: 0,
+      updated: 0,
+      filtered: 0,
+      totalPublished: 0,
+    };
   }
 
   await updateSourceMeta(sourceId, { lastSyncStatus: "pending", lastSyncError: null });
@@ -384,10 +403,7 @@ export async function approveNewsItem(newsId: number) {
  * Hide a news item.
  */
 export async function hideNewsItem(newsId: number) {
-  await db
-    .update(news)
-    .set({ status: "hidden", updatedAt: new Date() })
-    .where(eq(news.id, newsId));
+  await db.update(news).set({ status: "hidden", updatedAt: new Date() }).where(eq(news.id, newsId));
 }
 
 /**

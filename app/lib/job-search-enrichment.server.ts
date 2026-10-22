@@ -83,7 +83,11 @@ function detectAts(urlValue: string | null | undefined): JobSearchEnrichment["di
 
   const host = url.hostname.toLowerCase();
   const parts = url.pathname.split("/").filter(Boolean);
-  const result = (sourceType: string, sourceIdentifier: string | null, confidence: "high" | "medium" = "high") => ({
+  const result = (
+    sourceType: string,
+    sourceIdentifier: string | null,
+    confidence: "high" | "medium" = "high",
+  ) => ({
     sourceType,
     sourceIdentifier,
     sourceUrl: url.toString(),

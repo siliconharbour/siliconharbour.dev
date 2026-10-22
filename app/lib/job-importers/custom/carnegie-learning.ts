@@ -20,8 +20,7 @@ const CLIENT_KEY = "9B60CD2D19720F7445BDFDD8C71C98A2";
 const PORTAL_URL = `https://www.paycomonline.net/v4/ats/web.php/portal/${CLIENT_KEY}/career-page`;
 const API_BASE = "https://portal-applicant-tracking.us-cent.paycomonline.net";
 
-const USER_AGENT =
-  "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)";
+const USER_AGENT = "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)";
 
 // -- Types -------------------------------------------------------------------
 
@@ -182,9 +181,7 @@ export async function scrapeCarnegie(): Promise<FetchedJob[]> {
 
         const descriptionHtml = posting?.description ?? "";
         const location = posting?.location || preview.locations || undefined;
-        const workplaceType = detectWorkplaceType(
-          posting?.remoteType || preview.remoteType || "",
-        );
+        const workplaceType = detectWorkplaceType(posting?.remoteType || preview.remoteType || "");
 
         const jobUrl = `https://www.paycomonline.net/v4/ats/web.php/portal/${CLIENT_KEY}/jobs/${preview.jobId}`;
 

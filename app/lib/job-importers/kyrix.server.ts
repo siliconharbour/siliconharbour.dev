@@ -33,7 +33,9 @@ export function parseKyrixListing(html: string, orgSlug: string): FetchedJob[] {
   const { document } = parseHTML(html);
   const jobs: FetchedJob[] = [];
   const seen = new Set<string>();
-  const pathPattern = new RegExp(`^/j/${orgSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/([^/?#]+)$`);
+  const pathPattern = new RegExp(
+    `^/j/${orgSlug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/([^/?#]+)$`,
+  );
 
   for (const anchor of Array.from(document.querySelectorAll("a[href]"))) {
     const href = anchor.getAttribute("href") ?? "";
@@ -66,7 +68,9 @@ export function parseKyrixListing(html: string, orgSlug: string): FetchedJob[] {
   return jobs;
 }
 
-export function parseKyrixDetail(html: string): Pick<FetchedJob, "descriptionHtml" | "descriptionText"> {
+export function parseKyrixDetail(
+  html: string,
+): Pick<FetchedJob, "descriptionHtml" | "descriptionText"> {
   const { document } = parseHTML(html);
   const content = document.querySelector("div.prose.prose-indigo.max-w-none");
   const descriptionHtml = content?.innerHTML.trim();

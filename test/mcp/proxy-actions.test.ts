@@ -49,23 +49,26 @@ describe("form actions behind Traefik", () => {
       const address = server.address();
       if (!address || typeof address === "string") throw new Error("Expected a TCP port");
       const status = await new Promise<number | undefined>((resolve, reject) => {
-        const request = httpRequest({
-          hostname: "127.0.0.1",
-          port: address.port,
-          path: "/manage/review.data",
-          method: "POST",
-          headers: {
-            Host: "siliconharbour.dev",
-            "X-Forwarded-Host": "siliconharbour.dev",
-            "X-Forwarded-Proto": "https",
-            Origin: origin,
-            "Content-Type": "application/x-www-form-urlencoded",
+        const request = httpRequest(
+          {
+            hostname: "127.0.0.1",
+            port: address.port,
+            path: "/manage/review.data",
+            method: "POST",
+            headers: {
+              Host: "siliconharbour.dev",
+              "X-Forwarded-Host": "siliconharbour.dev",
+              "X-Forwarded-Proto": "https",
+              Origin: origin,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
           },
-        }, (response) => {
-          response.resume();
-          response.on("error", reject);
-          response.on("end", () => resolve(response.statusCode));
-        });
+          (response) => {
+            response.resume();
+            response.on("error", reject);
+            response.on("end", () => resolve(response.statusCode));
+          },
+        );
         request.on("error", reject);
         request.end(new URLSearchParams({ kind: "event", action: "approve", id: "1" }).toString());
       });
@@ -79,7 +82,7 @@ describe("form actions behind Traefik", () => {
       }
     } finally {
       await new Promise<void>((resolve, reject) => {
-        server.close((error) => error ? reject(error) : resolve());
+        server.close((error) => (error ? reject(error) : resolve()));
       });
     }
   });

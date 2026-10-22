@@ -407,7 +407,7 @@ ${companyName ? `**Company:** ${companyName}\n\n` : ""}${product.website ? `**We
 interface ListPageOptions {
   title: string;
   description: string;
-  items: { slug?: string | null; url?: string | null; name: string; description?: string }[];
+  items: { slug?: string | null; url?: string | null; name: string; description?: string | null }[];
   entityType: string;
   basePath: string;
   total: number;

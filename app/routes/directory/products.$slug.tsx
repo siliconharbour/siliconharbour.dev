@@ -7,7 +7,7 @@ import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import type { ProductType } from "~/db/schema";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `${data?.product?.name ?? "Product"} - siliconharbour.dev` }];
 }
 

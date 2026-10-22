@@ -23,7 +23,7 @@ const statusOptions: { value: NewsStatus; label: string }[] = [
   { value: "hidden", label: "Hidden" },
 ];
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.article?.title || "Article"} - siliconharbour.dev` }];
 }
 
@@ -222,9 +222,7 @@ export default function EditNews() {
             </select>
           </ManageField>
 
-          <ManageSubmitButton>
-            {isLink ? "Update Link Post" : "Update Article"}
-          </ManageSubmitButton>
+          <ManageSubmitButton>{isLink ? "Update Link Post" : "Update Article"}</ManageSubmitButton>
         </Form>
       </div>
     </div>

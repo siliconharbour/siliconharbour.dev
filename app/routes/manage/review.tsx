@@ -1,10 +1,7 @@
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { db } from "~/db";
-import { events } from "~/db/schema";
 import {
-  approveImportedEvent,
-  downloadAndSaveCoverImage,
+  approveImportedEventWithCover,
   getAllPendingEvents,
   hideImportedEvent,
 } from "~/lib/event-importers/sync.server";
@@ -14,13 +11,8 @@ import {
   getAllPendingJobs,
   hideImportedJob,
 } from "~/lib/job-importers/sync.server";
-import {
-  approveNewsItem,
-  getAllPendingNews,
-  hideNewsItem,
-} from "~/lib/news-importers/sync.server";
+import { approveNewsItem, getAllPendingNews, hideNewsItem } from "~/lib/news-importers/sync.server";
 import { requireAdmin } from "~/lib/session.server";
-import { eq } from "drizzle-orm";
 import { formatInTimezone } from "~/lib/timezone";
 
 export function meta({}: Route.MetaArgs) {
@@ -50,17 +42,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (kind === "event") {
     if (reviewAction === "approve") {
-      const coverImageUrl = String(formData.get("coverImageUrl") || "");
-      if (coverImageUrl) {
-        const savedImage = await downloadAndSaveCoverImage(coverImageUrl);
-        if (savedImage) {
-          await db
-            .update(events)
-            .set({ coverImage: savedImage, updatedAt: new Date() })
-            .where(eq(events.id, id));
-        }
-      }
-      await approveImportedEvent(id);
+      await approveImportedEventWithCover(id);
       return { success: true, kind, reviewAction };
     }
     if (reviewAction === "hide") {

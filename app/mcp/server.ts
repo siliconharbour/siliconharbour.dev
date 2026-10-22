@@ -1,3 +1,5 @@
+import { mcpContext } from "~/operations/context";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { searchSpec } from "./search.js";
@@ -59,13 +61,14 @@ function buildExecuteDescription(runtime: CodeMode.Runtime): string {
   ].join("\n");
 }
 
-export async function createMcpServer(authenticated = false): Promise<McpServer> {
+export async function createMcpServer(auth?: AuthInfo): Promise<McpServer> {
   const server = new McpServer({
     name: "siliconharbour",
     version: "2.0.0",
   });
 
-  const queryRuntime = createCodeMode(buildReadFunctions(), QUERY_LIMITS);
+  const context = mcpContext(auth);
+  const queryRuntime = createCodeMode(buildReadFunctions(context), QUERY_LIMITS);
 
   server.registerTool(
     "search",
@@ -100,8 +103,8 @@ export async function createMcpServer(authenticated = false): Promise<McpServer>
     async ({ code }) => runCode(code, queryRuntime),
   );
 
-  if (authenticated) {
-    const executeRuntime = createCodeMode(buildExecuteFunctions(), EXECUTE_LIMITS);
+  if (context.actor?.role === "admin" && context.scopes.has("write")) {
+    const executeRuntime = createCodeMode(buildExecuteFunctions(context), EXECUTE_LIMITS);
     server.registerTool(
       "execute",
       {

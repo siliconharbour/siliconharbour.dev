@@ -114,12 +114,7 @@ export async function resolveReference(text: string): Promise<ResolveResult> {
   const eventMatches = await db
     .select({ id: events.id, title: events.title, slug: events.slug })
     .from(events)
-    .where(
-      and(
-        eq(events.title, text),
-        publiclyVisibleEvent,
-      ),
-    );
+    .where(and(eq(events.title, text), publiclyVisibleEvent));
   for (const e of eventMatches) {
     candidates.push({ type: "event", id: e.id, name: e.title, slug: e.slug });
   }

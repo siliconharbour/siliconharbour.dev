@@ -16,6 +16,8 @@ const styles = {
  */
 export function Callout({ type = "info", children }: CalloutProps) {
   return (
-    <div className={`not-prose border px-pad-4 py-pad-3 my-6 text-sm ${styles[type]}`}>{children}</div>
+    <div className={`not-prose border px-pad-4 py-pad-3 my-6 text-sm ${styles[type]}`}>
+      {children}
+    </div>
   );
 }

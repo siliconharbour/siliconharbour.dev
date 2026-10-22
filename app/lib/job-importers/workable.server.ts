@@ -104,7 +104,9 @@ function formatLocation(job: WorkableListJob): string | undefined {
   // Single location from locations array
   if (job.locations && job.locations.length === 1) {
     const loc = job.locations[0];
-    return loc.location || [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || undefined;
+    return (
+      loc.location || [loc.city, loc.state, loc.country].filter(Boolean).join(", ") || undefined
+    );
   }
 
   return undefined;
@@ -261,8 +263,7 @@ export const workableImporter: JobImporter = {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,
-        error:
-          "Company slug is required (e.g., 'upstream' from apply.workable.com/upstream)",
+        error: "Company slug is required (e.g., 'upstream' from apply.workable.com/upstream)",
       };
     }
 

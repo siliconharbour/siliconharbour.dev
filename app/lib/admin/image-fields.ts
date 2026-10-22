@@ -21,8 +21,7 @@ async function resolveIconBuffer(
     return decodeDataUrlImage(uploaded);
   }
   const existing = formData.get("existingIconImage");
-  const filename =
-    typeof existing === "string" && existing ? existing : currentIconImage;
+  const filename = typeof existing === "string" && existing ? existing : currentIconImage;
   if (!filename) return null;
   try {
     return await readFile(getImagePath(filename));

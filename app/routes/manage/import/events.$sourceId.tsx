@@ -6,16 +6,12 @@ import {
   deleteEventImportSource,
   updateEventImportSource,
   syncEvents,
-  approveImportedEvent,
   hideImportedEvent,
   unhideImportedEvent,
-  downloadAndSaveCoverImage,
+  approveImportedEventWithCover,
 } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { isPast } from "date-fns";
-import { db } from "~/db";
-import { events as eventsTable } from "~/db/schema";
-import { eq } from "drizzle-orm";
 import { formatInTimezone } from "~/lib/timezone";
 
 function EventDate({ date }: { date: Date | null }) {
@@ -29,7 +25,7 @@ function EventDate({ date }: { date: Date | null }) {
   );
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `${data?.source?.name ?? "Event Source"} - Import - siliconharbour.dev` }];
 }
 
@@ -61,19 +57,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const eventId = Number(formData.get("eventId"));
     if (!eventId) return { error: "Event ID required" };
 
-    // Download cover image if available
-    const coverImageUrl = formData.get("coverImageUrl") as string | null;
-    if (coverImageUrl) {
-      const savedImage = await downloadAndSaveCoverImage(coverImageUrl);
-      if (savedImage) {
-        await db
-          .update(eventsTable)
-          .set({ coverImage: savedImage, updatedAt: new Date() })
-          .where(eq(eventsTable.id, eventId));
-      }
-    }
-
-    await approveImportedEvent(eventId);
+    await approveImportedEventWithCover(eventId);
     return redirect(`/manage/events/${eventId}`);
   }
 
@@ -123,10 +107,7 @@ export default function EventImportSourceDetail() {
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-gap-8">
         <div>
-          <Link
-            to="/manage/import/events"
-            className="text-sm text-subtle hover:text-body"
-          >
+          <Link to="/manage/import/events" className="text-sm text-subtle hover:text-body">
             &larr; Back to Event Import Sources
           </Link>
         </div>
@@ -145,38 +126,57 @@ export default function EventImportSourceDetail() {
           </fetcher.Form>
         </div>
 
-        <fetcher.Form method="post" className="bg-surface border border-line p-pad-4 flex flex-col gap-gap-3">
+        <fetcher.Form
+          method="post"
+          className="bg-surface border border-line p-pad-4 flex flex-col gap-gap-3"
+        >
           <input type="hidden" name="intent" value="edit-source" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-3">
             <div>
-              <label className="text-sm text-muted" htmlFor="name">Name</label>
+              <label className="text-sm text-muted" htmlFor="name">
+                Name
+              </label>
               <input
-                id="name" name="name" type="text"
+                id="name"
+                name="name"
+                type="text"
                 defaultValue={source.name}
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-muted" htmlFor="organizer">Organizer</label>
+              <label className="text-sm text-muted" htmlFor="organizer">
+                Organizer
+              </label>
               <input
-                id="organizer" name="organizer" type="text"
+                id="organizer"
+                name="organizer"
+                type="text"
                 defaultValue={source.organizer ?? ""}
                 placeholder="e.g. GDG St. John's"
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-muted" htmlFor="sourceIdentifier">Identifier</label>
+              <label className="text-sm text-muted" htmlFor="sourceIdentifier">
+                Identifier
+              </label>
               <input
-                id="sourceIdentifier" name="sourceIdentifier" type="text"
+                id="sourceIdentifier"
+                name="sourceIdentifier"
+                type="text"
                 defaultValue={source.sourceIdentifier}
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm font-mono border border-line focus:outline-none focus:border-harbour-400"
               />
             </div>
             <div>
-              <label className="text-sm text-muted" htmlFor="sourceUrl">Source URL</label>
+              <label className="text-sm text-muted" htmlFor="sourceUrl">
+                Source URL
+              </label>
               <input
-                id="sourceUrl" name="sourceUrl" type="text"
+                id="sourceUrl"
+                name="sourceUrl"
+                type="text"
                 defaultValue={source.sourceUrl}
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />
@@ -192,12 +192,16 @@ export default function EventImportSourceDetail() {
             <span className="text-xs text-subtle">
               {sourceTypeLabels[source.sourceType] ?? source.sourceType}
             </span>
-            {actionData && "intent" in actionData && actionData.intent === "edit-source" && "success" in actionData && (
-              <span className="text-xs text-green-600">Saved</span>
-            )}
-            {actionData && "intent" in actionData && actionData.intent === "edit-source" && "error" in actionData && (
-              <span className="text-xs text-red-600">{actionData.error}</span>
-            )}
+            {actionData &&
+              "intent" in actionData &&
+              actionData.intent === "edit-source" &&
+              "success" in actionData && <span className="text-xs text-green-600">Saved</span>}
+            {actionData &&
+              "intent" in actionData &&
+              actionData.intent === "edit-source" &&
+              "error" in actionData && (
+                <span className="text-xs text-red-600">{actionData.error}</span>
+              )}
           </div>
         </fetcher.Form>
 

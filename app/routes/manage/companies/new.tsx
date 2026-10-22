@@ -203,13 +203,12 @@ export default function NewCompany() {
                 name="newsFilterInclude"
                 className="border border-harbour-300"
               />
-              <span className="text-sm text-body">
-                Include name in news import keyword filter
-              </span>
+              <span className="text-sm text-body">Include name in news import keyword filter</span>
             </label>
             <p className="text-xs text-subtle">
               When a news source enables the company name filter, articles mentioning this
-              company&rsquo;s name will be imported. Only enable for companies with distinctive names.
+              company&rsquo;s name will be imported. Only enable for companies with distinctive
+              names.
             </p>
           </div>
 

@@ -57,7 +57,15 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect(`/manage/import/events/${source.id}`);
 }
 
-const SOURCE_TYPES = ["luma-user", "luma-calendar", "technl", "netbenefit", "eventbrite", "bevy", "meetup"] as const;
+const SOURCE_TYPES = [
+  "luma-user",
+  "luma-calendar",
+  "technl",
+  "netbenefit",
+  "eventbrite",
+  "bevy",
+  "meetup",
+] as const;
 
 const FIXED_SOURCES: Partial<Record<string, { identifier: string; url: string }>> = {
   technl: {
@@ -75,10 +83,7 @@ export default function NewEventImportSource() {
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link
-            to="/manage/import/events"
-            className="text-sm text-subtle hover:text-body"
-          >
+          <Link to="/manage/import/events" className="text-sm text-subtle hover:text-body">
             &larr; Back to Event Import Sources
           </Link>
         </div>

@@ -36,9 +36,7 @@ describe("Aker Solutions XML feed", () => {
   });
 
   it("rejects an unexpected or empty feed before sync can remove jobs", () => {
-    expect(() => parseAkerSolutionsFeed("<html>Access denied</html>")).toThrow(
-      /unexpected format/,
-    );
+    expect(() => parseAkerSolutionsFeed("<html>Access denied</html>")).toThrow(/unexpected format/);
     expect(() => parseAkerSolutionsFeed("<Job-Listing />")).toThrow(/no jobs/);
   });
 });

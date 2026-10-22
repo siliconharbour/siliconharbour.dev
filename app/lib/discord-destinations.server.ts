@@ -1,17 +1,11 @@
 import { db } from "~/db";
-import {
-  discordDestinations,
-  type DiscordChannelType,
-  type DiscordDestination,
-} from "~/db/schema";
+import { discordDestinations, type DiscordChannelType, type DiscordDestination } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
 /**
  * List configured destinations for a channel type, ordered by guild name then channel name.
  */
-export async function listDestinations(
-  type: DiscordChannelType,
-): Promise<DiscordDestination[]> {
+export async function listDestinations(type: DiscordChannelType): Promise<DiscordDestination[]> {
   const rows = await db
     .select()
     .from(discordDestinations)

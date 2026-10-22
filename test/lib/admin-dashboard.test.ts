@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { db } from "~/db";
-import {
-  companies,
-  eventImportSources,
-  jobImportSources,
-  newsImportSources,
-} from "~/db/schema";
+import { companies, eventImportSources, jobImportSources, newsImportSources } from "~/db/schema";
 import { getAdminDashboardCounts } from "~/lib/admin-dashboard.server";
 
 describe("admin dashboard import health", () => {
