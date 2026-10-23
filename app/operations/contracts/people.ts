@@ -1,3 +1,4 @@
+import { blocklistReason } from "./blocklist";
 import { createOptions } from "../fields";
 import { nullableGithubProfile } from "../fields";
 import { socialLinksOutput } from "~/lib/links";
@@ -19,12 +20,14 @@ export const personDeleteInput = z
     id: id(),
     confirm,
     block: z
-      .object({ source: z.literal("github") })
+      .object({ source: z.literal("github"), reason: blocklistReason })
       .strict()
       .optional(),
   })
   .strict();
-export const personBulkRejectInput = z.object({ pattern: text("pattern", 500), confirm }).strict();
+export const personBulkRejectInput = z
+  .object({ pattern: text("pattern", 500), reason: blocklistReason, confirm })
+  .strict();
 
 export const personOutput = z
   .object({

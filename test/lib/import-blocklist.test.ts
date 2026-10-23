@@ -38,15 +38,14 @@ describe("import blocklist", () => {
     expect(blockedOnTechnl).toBe(false);
   });
 
-  it("blocking an already-blocked item is a no-op (updates reason if given)", async () => {
+  it("blocking an already-blocked item preserves its metadata", async () => {
     await blockItem("github", "user-dup", "Dup User", "spam");
     await blockItem("github", "user-dup", "Dup User", "updated reason");
 
-    // Still blocked, only one row
     const items = await getBlockedItems("github");
     const matches = items.filter((i) => i.externalId === "user-dup");
     expect(matches).toHaveLength(1);
-    expect(matches[0].reason).toBe("updated reason");
+    expect(matches[0].reason).toBe("spam");
   });
 });
 

@@ -1,3 +1,5 @@
+import { BlockReasonField } from "~/components/manage/BlockReasonField";
+import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
@@ -50,6 +52,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "bulk-reject") {
     const result = await runAdminOperation(request, operationCatalog.personBulkReject, {
       pattern: form.get("pattern"),
+      ...optionalBlockReason(form),
       confirm: true,
     });
     return result.ok
@@ -75,6 +78,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "reject") {
     const result = await runAdminOperation(request, operationCatalog.personReject, {
       id,
+      ...optionalBlockReason(form),
       confirm: true,
     });
     return result.ok
@@ -111,6 +115,7 @@ export async function action({ request }: Route.ActionArgs) {
 type UndoAction = { type: "approve"; id: number } | { type: "reject"; restoreId: number };
 
 export default function ReviewPeople() {
+  const [rejectionReason, setRejectionReason] = useState("");
   const { people: initialPeople } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
@@ -128,6 +133,7 @@ export default function ReviewPeople() {
 
   useEffect(() => {
     setEditMode(false);
+    setRejectionReason("");
   }, [currentPerson?.id]);
 
   // Optional preview: open the public person page as the current card changes.
@@ -175,7 +181,7 @@ export default function ReviewPeople() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentPerson, editMode]);
+  }, [currentPerson, editMode, rejectionReason]);
 
   useEffect(() => {
     if (fetcher.data?.success) {
@@ -223,7 +229,10 @@ export default function ReviewPeople() {
       `"${currentPerson.name}" rejected${currentPerson.github ? " and blocked" : ""}`,
     );
 
-    fetcher.submit({ intent: "reject", id: currentPerson.id.toString() }, { method: "post" });
+    fetcher.submit(
+      { intent: "reject", reason: rejectionReason, id: currentPerson.id.toString() },
+      { method: "post" },
+    );
   };
 
   const handleUndo = () => {
@@ -308,6 +317,7 @@ export default function ReviewPeople() {
           <div className="p-pad-4 border-t border-line">
             <fetcher.Form method="post" className="flex gap-gap-2">
               <input type="hidden" name="intent" value="bulk-reject" />
+              <BlockReasonField />
               <input
                 type="text"
                 name="pattern"
@@ -535,6 +545,12 @@ export default function ReviewPeople() {
           ) : (
             /* Action Buttons */
             <div className="p-pad-6 flex flex-wrap gap-gap-3">
+              <div className="w-full">
+                <BlockReasonField
+                  value={rejectionReason}
+                  onChange={(event) => setRejectionReason(event.target.value)}
+                />
+              </div>
               <button
                 onClick={handleApprove}
                 disabled={fetcher.state !== "idle"}

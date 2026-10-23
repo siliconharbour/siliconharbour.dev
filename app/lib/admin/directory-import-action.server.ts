@@ -1,3 +1,4 @@
+import { optionalBlockReason } from "./form";
 import { requireAdmin } from "~/lib/session.server";
 import { operationCatalog as operations } from "~/operations/catalog";
 import { runAdminOperation } from "./run-operation.server";
@@ -56,6 +57,7 @@ export async function runDirectoryImportAction(
       externalId: form.get("externalId"),
       name: form.get("name"),
       deleteExisting: true,
+      ...optionalBlockReason(form),
       confirm: true,
     });
     return result.ok

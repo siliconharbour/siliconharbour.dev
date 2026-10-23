@@ -67,3 +67,8 @@ export function parseFormData<S extends z.ZodType>(
 
   return { success: true, data: parsed.data as z.output<S> };
 }
+
+export function optionalBlockReason(form: FormData): { reason?: string } {
+  const reason = getString(form, "reason").trim();
+  return reason ? { reason } : {};
+}

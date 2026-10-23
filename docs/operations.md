@@ -96,3 +96,5 @@ Public detail reads use `companyPublicGet`, `personPublicGet`, `educationPublicG
 Public lists and details select fields from `contracts/public-outputs.ts`. Import identifiers, moderation flags, source configuration and evidence provenance stay in administrator outputs. Image values remain stored asset names, matching existing MCP conventions; the REST API is unchanged. When adding a public field, add it to the explicit projection and test its visibility policy.
 
 User and OAuth-client administration remains script-only. Newsletter campaign deletion and subscriber resubscription/deletion are not exposed by this integration.
+
+Blocks preserve their original name, reason and timestamp when the same identity is blocked again, including delete/reject actions. Supply a reason when creating a block, or use `blocklistUpdate({id, name?, reason?})` to edit an existing entry. Omitted fields are preserved; `reason: null` clears the reason. `/manage/blocklist` provides the same editing and unblock actions.

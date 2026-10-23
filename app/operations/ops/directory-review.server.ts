@@ -1,3 +1,4 @@
+import { blocklistReason } from "../contracts/blocklist";
 import { rejectDirectoryRecord } from "~/lib/rejected-records.server";
 import { rejectedRecordOutput } from "../contracts/rejected-records";
 import { z } from "zod";
@@ -25,17 +26,22 @@ import {
 import { blockItem } from "~/lib/import-blocklist.server";
 import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 
-async function removePerson(id: number, block: boolean) {
+async function removePerson(id: number, block: boolean, reason?: string | null) {
   const person = await getPersonById(id);
   if (!person) throw new NotFoundError("Person not found");
   if (block && !person.github)
     throw new ConflictError("Cannot block a person without a GitHub profile");
   if (block && person.github)
-    blockItem("github", person.github, person.name, "Removed during review");
+    blockItem(
+      "github",
+      person.github,
+      person.name,
+      reason === undefined ? "Removed during review" : reason,
+    );
   await deletePerson(id);
   return { deleted: true as const, record: toPlain(person) };
 }
-async function removeCompany(id: number, source?: string) {
+async function removeCompany(id: number, source?: string, reason?: string | null) {
   const company = await getCompanyById(id);
   if (!company) throw new NotFoundError("Company not found");
   if (source)
@@ -43,7 +49,7 @@ async function removeCompany(id: number, source?: string) {
       source,
       normalizeBlockKey(source, company.website || company.name),
       company.name,
-      "Removed during review",
+      reason === undefined ? "Removed during review" : reason,
     );
   await deleteCompany(id);
   return { deleted: true as const, record: toPlain(company), blockedSource: source ?? null };
@@ -57,11 +63,11 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Delete a person, optionally blocking future imports.",
     description:
-      "Read the stored GitHub profile when block is provided, normalize its import key, block before deletion, and remove unreferenced images. Requires confirm: true. Returns the removed record.",
+      "Read the stored GitHub profile when block is provided, normalize its import key, block before deletion, and remove unreferenced images. Optional block.reason explains a new block; existing block metadata is preserved. Requires confirm: true. Returns the removed record.",
     input: personDeleteInput,
     output: z.object({ deleted: z.literal(true), record: personOutput }).strict(),
     examples: [{ title: "Delete", input: { id: 1, confirm: true } }],
-    run: (_ctx, input) => removePerson(input.id, Boolean(input.block)),
+    run: (_ctx, input) => removePerson(input.id, Boolean(input.block), input.block?.reason),
   }),
   companyDelete: defineOperation({
     name: "companyDelete",
@@ -70,7 +76,7 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Delete a company, optionally blocking a directory source.",
     description:
-      "Use the stored website or lowercased name as the import key. Block before deletion and clean up unreferenced images. Requires confirm: true.",
+      "Use the stored website or lowercased name as the import key. Block before deletion and clean up unreferenced images. Optional block.reason explains a new block; existing block metadata is preserved. Requires confirm: true.",
     input: companyDeleteInput,
     output: z
       .object({
@@ -80,7 +86,7 @@ export const directoryReviewOperations = {
       })
       .strict(),
     examples: [{ title: "Delete", input: { id: 1, confirm: true } }],
-    run: (_ctx, input) => removeCompany(input.id, input.block?.source),
+    run: (_ctx, input) => removeCompany(input.id, input.block?.source, input.block?.reason),
   }),
   personApprove: defineOperation({
     name: "personApprove",
@@ -121,12 +127,12 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Reject a person from the review queue.",
     description:
-      "Block the stored import identity when present and retain the record for seven days, hidden from the directory and review queues. Preserve images, ID, slug and relationships. Use rejectedRecordRestore with restoreId to undo, or rejectedRecordDelete to permanently remove it. Requires confirm: true.",
-    input: deleteInput,
+      "Block the stored import identity when present and retain the record for seven days, hidden from the directory and review queues. Preserve images, ID, slug and relationships. Optional reason describes a new block; existing block metadata is preserved. Use rejectedRecordRestore with restoreId to undo, or rejectedRecordDelete to permanently remove it. Requires confirm: true.",
+    input: deleteInput.extend({ reason: blocklistReason }).strict(),
     output: rejectedRecordOutput.extend({ restoreId: z.number().int().positive() }).strict(),
     examples: [{ title: "Reject", input: { id: 1, confirm: true } }],
     run: (ctx, input) => {
-      const record = rejectDirectoryRecord("person", input.id, ctx.now());
+      const record = rejectDirectoryRecord("person", input.id, ctx.now(), input.reason);
       return toPlain({ ...record, restoreId: record.id });
     },
   }),
@@ -137,7 +143,7 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Reject hidden people matching every search term.",
     description:
-      "Split pattern on spaces or commas and match every term against name, biography, and social links. Only hidden people are affected. Block each stored GitHub identity and retain each rejection for seven days. Use rejectedRecordList to find restore IDs. Requires confirm: true.",
+      "Split pattern on spaces or commas and match every term against name, biography, and social links. Only hidden people are affected. Block each stored GitHub identity and retain each rejection for seven days. Optional reason describes new blocks; existing block metadata is preserved. Use rejectedRecordList to find restore IDs. Requires confirm: true.",
     input: personBulkRejectInput,
     output: z.object({ ids: z.array(z.number()), count: z.number() }).strict(),
     examples: [
@@ -155,7 +161,8 @@ export const directoryReviewOperations = {
             .includes(term),
         ),
       );
-      for (const person of matches) rejectDirectoryRecord("person", person.id, _ctx.now());
+      for (const person of matches)
+        rejectDirectoryRecord("person", person.id, _ctx.now(), input.reason);
       return { ids: matches.map((person) => person.id), count: matches.length };
     },
   }),
@@ -210,12 +217,12 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Reject a company from the review queue.",
     description:
-      "Block the stored import identity when present and retain the record for seven days, hidden from the directory and review queues. Preserve images, ID, slug and relationships. Use rejectedRecordRestore with restoreId to undo, or rejectedRecordDelete to permanently remove it. Requires confirm: true.",
-    input: deleteInput,
+      "Block the stored import identity when present and retain the record for seven days, hidden from the directory and review queues. Preserve images, ID, slug and relationships. Optional reason describes a new block; existing block metadata is preserved. Use rejectedRecordRestore with restoreId to undo, or rejectedRecordDelete to permanently remove it. Requires confirm: true.",
+    input: deleteInput.extend({ reason: blocklistReason }).strict(),
     output: rejectedRecordOutput.extend({ restoreId: z.number().int().positive() }).strict(),
     examples: [{ title: "Reject", input: { id: 1, confirm: true } }],
     run: (ctx, input) => {
-      const record = rejectDirectoryRecord("company", input.id, ctx.now());
+      const record = rejectDirectoryRecord("company", input.id, ctx.now(), input.reason);
       return toPlain({ ...record, restoreId: record.id });
     },
   }),

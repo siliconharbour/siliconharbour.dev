@@ -1,3 +1,6 @@
+import { NotFoundError } from "../errors";
+import { updateBlockedItem } from "~/lib/import-blocklist.server";
+import { blocklistUpdateInput } from "../contracts/blocklist";
 import { page } from "../listing";
 import { listBlocks } from "~/lib/content-lists.server";
 import { normalizeBlockKey } from "~/lib/import-blocklist-key";
@@ -13,6 +16,24 @@ import {
 import { unblockItem } from "~/lib/import-blocklist.server";
 import { blockImportedIdentity } from "~/lib/blocklist-admin.server";
 export const blocklistOperations = {
+  blocklistUpdate: defineOperation({
+    name: "blocklistUpdate",
+    area: "blocklist",
+    risk: "write",
+    access: "admin",
+    summary: "Edit a blocked identity's name or reason.",
+    description:
+      "Patch name or reason by blocklist row ID. Omitted fields stay unchanged; null or blank clears the reason. The identity and original block date stay unchanged. Throws NotFound for a missing row.",
+    input: blocklistUpdateInput,
+    output: blocklistItemOutput,
+    examples: [{ title: "Explain a block", input: { id: 1, reason: "Inactive on GitHub" } }],
+    run: (_ctx, { id, ...fields }) => {
+      const row = updateBlockedItem(id, fields);
+      if (!row) throw new NotFoundError("Blocklist entry not found");
+      const { externalId, ...rest } = row;
+      return toPlain({ ...rest, key: externalId });
+    },
+  }),
   blocklistList: defineOperation({
     name: "blocklistList",
     area: "blocklist",
@@ -33,7 +54,7 @@ export const blocklistOperations = {
     access: "admin",
     summary: "Block an identity from future imports.",
     description:
-      "Normalize the source key and persist the block before optional deletion of matching stored records. deleteExisting removes matching people, companies, or education institutions and unreferenced images. Requires confirm: true.",
+      "Normalize the source key and persist the block before optional deletion of matching stored records. deleteExisting removes matching people, companies, or education institutions and unreferenced images. Existing blocks keep their name, reason and date; use blocklistUpdate to edit metadata. Requires confirm: true.",
     input: blocklistAddInput,
     output: z
       .object({ blocked: z.literal(true), key: z.string(), deletedIds: z.array(z.number()) })

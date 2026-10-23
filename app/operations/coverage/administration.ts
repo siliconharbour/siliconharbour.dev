@@ -96,11 +96,18 @@ export const administrationCoverage: Record<string, Record<string, ColumnCoverag
     name: {
       mapped: {
         blocklistAdd: "name",
+        blocklistUpdate: "name",
       },
     },
     reason: {
       mapped: {
         blocklistAdd: "reason",
+        blocklistUpdate: "reason",
+        personDelete: "block.reason",
+        companyDelete: "block.reason",
+        personReject: "reason",
+        companyReject: "reason",
+        personBulkReject: "reason",
       },
     },
     blockedAt: {

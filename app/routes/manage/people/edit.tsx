@@ -1,3 +1,5 @@
+import { BlockReasonField } from "~/components/manage/BlockReasonField";
+import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
@@ -33,7 +35,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const result = await runAdminOperation(request, operationCatalog.personDelete, {
       id: Number(params.id),
       confirm: true,
-      block: { source: "github" },
+      block: { source: "github", ...optionalBlockReason(form) },
     });
     return result.ok ? redirect("/manage/people") : { error: result.error };
   }
@@ -198,6 +200,7 @@ export default function EditPerson() {
             </p>
             <Form method="post">
               <input type="hidden" name="intent" value="import-block" />
+              <BlockReasonField />
               <button
                 type="submit"
                 className="px-pad-4 py-pad-2 bg-red-600 hover:bg-red-700 text-white font-medium transition-colors"

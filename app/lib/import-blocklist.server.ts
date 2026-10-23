@@ -1,7 +1,7 @@
 import { normalizeBlockKey } from "./import-blocklist-key";
 import { db } from "~/db";
 import { importBlocklist, type ImportBlocklistItem } from "~/db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 function identity(source: string, externalId: string) {
   return and(
@@ -26,7 +26,12 @@ export async function getBlockedExternalIds(source: string): Promise<Set<string>
     .where(eq(importBlocklist.source, source));
   return new Set(items.map((item) => item.externalId));
 }
-export function blockItem(source: string, externalId: string, name: string, reason?: string): void {
+export function blockItem(
+  source: string,
+  externalId: string,
+  name: string,
+  reason?: string | null,
+): void {
   db.insert(importBlocklist)
     .values({
       source,
@@ -35,10 +40,7 @@ export function blockItem(source: string, externalId: string, name: string, reas
       reason,
       blockedAt: new Date(),
     })
-    .onConflictDoUpdate({
-      target: [importBlocklist.source, importBlocklist.externalId],
-      set: { reason: sql`coalesce(excluded.reason, ${importBlocklist.reason})` },
-    })
+    .onConflictDoNothing({ target: [importBlocklist.source, importBlocklist.externalId] })
     .run();
 }
 export function unblockItem(source: string, externalId: string): boolean {
@@ -49,4 +51,11 @@ export async function getBlockedItem(
   externalId: string,
 ): Promise<ImportBlocklistItem | null> {
   return db.select().from(importBlocklist).where(identity(source, externalId)).get() ?? null;
+}
+
+export function updateBlockedItem(id: number, fields: { name?: string; reason?: string | null }) {
+  return (
+    db.update(importBlocklist).set(fields).where(eq(importBlocklist.id, id)).returning().get() ??
+    null
+  );
 }

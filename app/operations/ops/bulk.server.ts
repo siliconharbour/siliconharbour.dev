@@ -95,7 +95,7 @@ export const bulkOperations = {
     risk: "destructive",
     summary: "Block selected import identities.",
     description:
-      "Apply blocklistAdd to at most 200 items in input order. Each item normalizes its key and can explicitly delete existing matches. Return per-item results and continue after failures. Requires confirm: true.",
+      "Apply blocklistAdd to at most 200 items in input order. Each item normalizes its key, preserves existing block metadata, and can explicitly delete existing matches. Return per-item results and continue after failures. Requires confirm: true.",
     input: blocklistAddManyInput,
     output: blocklistAddManyOutput,
     examples: [

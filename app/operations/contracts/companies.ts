@@ -1,3 +1,4 @@
+import { blocklistReason } from "./blocklist";
 import { createOptions } from "../fields";
 import { email } from "../fields";
 import { nullableGithubProfile } from "../fields";
@@ -60,7 +61,7 @@ export const companyDeleteInput = z
     id: id(),
     confirm,
     block: z
-      .object({ source: z.enum(["technl", "genesis", "bounce"]) })
+      .object({ source: z.enum(["technl", "genesis", "bounce"]), reason: blocklistReason })
       .strict()
       .optional(),
   })

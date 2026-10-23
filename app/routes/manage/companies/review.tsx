@@ -1,3 +1,5 @@
+import { BlockReasonField } from "~/components/manage/BlockReasonField";
+import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
@@ -43,6 +45,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "reject") {
     const result = await runAdminOperation(request, operationCatalog.companyReject, {
       id,
+      ...optionalBlockReason(form),
       confirm: true,
     });
     return result.ok
@@ -85,6 +88,7 @@ export async function action({ request }: Route.ActionArgs) {
 type UndoAction = { type: "approve"; id: number } | { type: "reject"; restoreId: number };
 
 export default function ReviewCompanies() {
+  const [rejectionReason, setRejectionReason] = useState("");
   const { companies: initialCompanies } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
@@ -99,6 +103,7 @@ export default function ReviewCompanies() {
 
   useEffect(() => {
     setEditMode(false);
+    setRejectionReason("");
   }, [currentCompany?.id]);
 
   useEffect(() => {
@@ -138,7 +143,7 @@ export default function ReviewCompanies() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentCompany, editMode]);
+  }, [currentCompany, editMode, rejectionReason]);
 
   useEffect(() => {
     if (!fetcher.data?.success) return;
@@ -174,7 +179,10 @@ export default function ReviewCompanies() {
 
     setToastMessage(`"${currentCompany.name}" rejected and blocked`);
 
-    fetcher.submit({ intent: "reject", id: currentCompany.id.toString() }, { method: "post" });
+    fetcher.submit(
+      { intent: "reject", reason: rejectionReason, id: currentCompany.id.toString() },
+      { method: "post" },
+    );
   };
 
   const handleUndo = () => {
@@ -465,6 +473,12 @@ export default function ReviewCompanies() {
           ) : (
             /* Action Buttons */
             <div className="p-pad-6 flex flex-wrap gap-gap-3">
+              <div className="w-full">
+                <BlockReasonField
+                  value={rejectionReason}
+                  onChange={(event) => setRejectionReason(event.target.value)}
+                />
+              </div>
               <button
                 onClick={handleApprove}
                 disabled={fetcher.state !== "idle"}

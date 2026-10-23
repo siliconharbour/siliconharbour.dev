@@ -275,9 +275,12 @@ export function DirectoryImportPage({
   // --- Action handlers ---
 
   const handleBlock = (company: ScrapedCompany) => {
+    const reason = window.prompt(`Reason for blocking ${company.name} (optional)`);
+    if (reason === null) return;
     fetcher.submit(
       {
         intent: "block",
+        reason,
         externalId: getExternalId(company),
         name: company.name,
       },
