@@ -1,3 +1,4 @@
+import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 import type { z } from "zod";
 import type { githubProgressOutput } from "~/operations/contracts/importers";
 type ImportProgress = z.output<typeof githubProgressOutput>;
@@ -97,7 +98,7 @@ export async function action({ request }: Route.ActionArgs) {
     return result.ok
       ? ({
           intent: "block",
-          blocked: { externalId: String(form.get("externalId")), name: String(form.get("name")) },
+          blocked: { externalId: result.data.key, name: String(form.get("name")) },
         } as const)
       : ({ intent: "block", error: result.error } as const);
   }
@@ -107,7 +108,7 @@ export async function action({ request }: Route.ActionArgs) {
       externalId: form.get("externalId"),
     });
     return result.ok
-      ? ({ intent: "unblock", unblocked: String(form.get("externalId")) } as const)
+      ? ({ intent: "unblock", unblocked: result.data.key } as const)
       : ({ intent: "unblock", error: result.error } as const);
   }
   if (intent === "bulk-continue") {
@@ -192,12 +193,14 @@ export default function ImportGitHub() {
 
     // Handle block/unblock responses
     if (fetcherData?.intent === "block" && fetcherData.blocked) {
-      setBlockedGitHubs((prev) => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
+      setBlockedGitHubs(
+        (prev) => new Set([...prev, normalizeBlockKey("github", fetcherData.blocked.externalId)]),
+      );
     }
     if (fetcherData?.intent === "unblock" && fetcherData.unblocked) {
       setBlockedGitHubs((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(fetcherData.unblocked.toLowerCase());
+        newSet.delete(normalizeBlockKey("github", fetcherData.unblocked));
         return newSet;
       });
     }
@@ -239,7 +242,7 @@ export default function ImportGitHub() {
   };
 
   const isUserBlocked = (user: GitHubUser) => {
-    return blockedGitHubs.has(user.html_url.toLowerCase());
+    return blockedGitHubs.has(normalizeBlockKey("github", user.html_url));
   };
 
   const toggleSelect = (login: string) => {

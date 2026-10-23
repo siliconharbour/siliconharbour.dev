@@ -2,7 +2,7 @@ import { useFetcher } from "react-router";
 import { useState, useEffect } from "react";
 import type { ScrapedCompany } from "~/lib/scraper.server";
 import type { DirectoryImportLoaderData } from "~/lib/directory-import";
-import { normalizeUrl } from "~/lib/directory-import";
+import { normalizeUrl, getExternalId } from "~/lib/directory-import";
 import { ManagePage } from "~/components/manage/ManagePage";
 
 export interface StatusCategoriesConfig {
@@ -135,10 +135,6 @@ export function DirectoryImportPage({
     if (company.website && hasSourceFlagWebsites.includes(normalizeUrl(company.website)))
       return true;
     return false;
-  };
-
-  const getExternalId = (company: ScrapedCompany) => {
-    return company.website ? normalizeUrl(company.website) : company.name.toLowerCase();
   };
 
   const isBlocked = (company: ScrapedCompany) => {
