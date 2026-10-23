@@ -1,3 +1,4 @@
+import { canonicalUrl, githubProfile } from "~/lib/url-fields";
 import { z } from "zod";
 
 export const emptyInput = z.object({}).strict();
@@ -97,12 +98,9 @@ export function formatValidationError(
 }
 
 export * from "~/lib/entity-types";
-export const nullableUrl = () =>
-  nullableText(4096)
-    .transform((value) =>
-      value && !/^[a-z][a-z0-9+.-]*:/i.test(value) ? `https://${value}` : value,
-    )
-    .pipe(z.url({ protocol: /^https?$/ }).nullable());
+export { canonicalUrl, githubProfile, email } from "~/lib/url-fields";
+export const nullableUrl = () => nullableText(4096).pipe(canonicalUrl().nullable());
+export const nullableGithubProfile = () => nullableText(4096).pipe(githubProfile().nullable());
 export { socialLinksPatch as socialLinks, projectLinksPatch as projectLinks } from "~/lib/links";
 export const idInput = z.object({ id: id() }).strict();
 export const deleteInput = z.object({ id: id(), confirm }).strict();

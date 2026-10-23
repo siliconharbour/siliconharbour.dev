@@ -1,3 +1,4 @@
+import { email } from "../fields";
 import { z } from "zod";
 import { text, nullableText, id, confirm, pagination } from "../fields";
 export const newsletterFlags = z
@@ -66,12 +67,10 @@ export const subscriberListInput = z
   .strict();
 export const subscriberCreateInput = z
   .object({
-    email: z.email().transform((email) => email.toLowerCase()),
+    email: email(),
     firstName: nullableText(255).optional(),
     lastName: nullableText(255).optional(),
     confirm,
   })
   .strict();
-export const subscriberResendInput = z
-  .object({ email: z.email().transform((email) => email.toLowerCase()), confirm })
-  .strict();
+export const subscriberResendInput = z.object({ email: email(), confirm }).strict();

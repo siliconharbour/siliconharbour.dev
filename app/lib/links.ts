@@ -1,3 +1,4 @@
+import { socialUrl } from "./url-fields";
 import { z } from "zod";
 
 export const socialLinkKeys = [
@@ -27,23 +28,26 @@ const linkUrl = z
   .trim()
   .max(4096)
   .pipe(z.url({ protocol: /^https?$/ }));
-function linkFields<const K extends readonly string[], V extends z.ZodType>(keys: K, value: V) {
-  return Object.fromEntries(keys.map((key) => [key, value])) as { [P in K[number]]: V };
+function linkFields<const K extends readonly string[], V extends z.ZodType>(
+  keys: K,
+  field: (key: K[number]) => V,
+) {
+  return Object.fromEntries(keys.map((key) => [key, field(key)])) as { [P in K[number]]: V };
 }
 export const socialLinksOutput = z
-  .object(linkFields(socialLinkKeys, linkUrl.optional()))
+  .object(linkFields(socialLinkKeys, () => linkUrl.optional()))
   .strict()
   .nullable();
 export const projectLinksOutput = z
-  .object(linkFields(projectLinkKeys, linkUrl.optional()))
+  .object(linkFields(projectLinkKeys, () => linkUrl.optional()))
   .strict()
   .nullable();
 export const socialLinksPatch = z
-  .object(linkFields(socialLinkKeys, linkUrl.nullable().optional()))
+  .object(linkFields(socialLinkKeys, (key) => socialUrl(key).nullable().optional()))
   .strict()
   .nullable();
 export const projectLinksPatch = z
-  .object(linkFields(projectLinkKeys, linkUrl.nullable().optional()))
+  .object(linkFields(projectLinkKeys, () => linkUrl.nullable().optional()))
   .strict()
   .nullable();
 export function compactLinks<T>(links: LinkPatch<T>): T | null {

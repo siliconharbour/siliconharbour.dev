@@ -1,0 +1,56 @@
+import { expect, it } from "vitest";
+import { canonicalUrl, email, githubProfile } from "~/operations/fields";
+import { socialLinksPatch } from "~/lib/links";
+import { operationCatalog } from "~/operations/catalog";
+import { adminContext } from "~/operations/context";
+import { getPersonByGitHub } from "~/lib/people.server";
+
+it("accepts profile identifiers and rejects other hosts, repositories and invalid logins", () => {
+  for (const value of ["Foo", "@Foo", "github.com/Foo", "https://www.GitHub.com/Foo/"])
+    expect(githubProfile().parse(value)).toBe("https://github.com/foo");
+  for (const value of [
+    "https://example.com/foo",
+    "github.com/foo/repo",
+    "-foo",
+    "foo-",
+    "foo--bar",
+    "foo_bar",
+    "x".repeat(40),
+    "https://user:pass@github.com/foo",
+  ])
+    expect(githubProfile().safeParse(value).success, value).toBe(false);
+});
+it("canonicalizes links without discarding website path case or www, and normalizes email", () => {
+  expect(canonicalUrl().parse("  WWW.Example.COM/Path/  ")).toBe("https://www.example.com/Path/");
+  expect(canonicalUrl().parse("https://EXAMPLE.com/")).toBe("https://example.com");
+  expect(canonicalUrl().safeParse("https://user:pass@example.com").success).toBe(false);
+  expect(canonicalUrl().safeParse("javascript:alert(1)").success).toBe(false);
+  expect(
+    socialLinksPatch.parse({
+      twitter: "https://www.twitter.com/Foo/",
+      linkedin: "https://www.linkedin.com/in/Profile",
+    }),
+  ).toEqual({ twitter: "https://x.com/foo", linkedin: "https://linkedin.com/in/Profile" });
+  expect(email().parse("  Person@Example.COM ")).toBe("person@example.com");
+});
+it("finds and blocks a profile created from a bare login through the canonical operations", async () => {
+  const context = adminContext(1);
+  const person = await operationCatalog.personCreate.execute(context, {
+    name: "Foo",
+    bio: "Bio",
+    github: "@Foo",
+  });
+  expect(person.github).toBe("https://github.com/foo");
+  expect((await getPersonByGitHub("https://github.com/FOO"))?.id).toBe(person.id);
+  const result = await operationCatalog.blocklistAdd.execute(context, {
+    source: "github",
+    externalId: "foo",
+    name: "Foo",
+    deleteExisting: true,
+    confirm: true,
+  });
+  expect(result.deletedIds).toEqual([person.id]);
+  await expect(operationCatalog.personGet.execute(context, { id: person.id })).rejects.toThrow(
+    "not found",
+  );
+});

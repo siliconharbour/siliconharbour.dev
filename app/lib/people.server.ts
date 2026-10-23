@@ -1,3 +1,4 @@
+import { githubLogin } from "./url-fields";
 import { compactLinks, type SocialLinks, type LinkPatch } from "./links";
 import { patchLinks } from "./link-patch.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
@@ -105,7 +106,7 @@ export async function getPersonByGitHub(githubUrl: string): Promise<Person | nul
   const result = await db
     .select()
     .from(people)
-    .where(sql`LOWER(${people.github}) = LOWER(${githubUrl.trim()})`)
+    .where(sql`LOWER(${people.github}) = LOWER(${`https://github.com/${githubLogin(githubUrl)}`})`)
     .limit(1);
   return result[0] ?? null;
 }

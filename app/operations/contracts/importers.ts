@@ -30,14 +30,14 @@ export const asyncSyncOutput = z
       .optional(),
   })
   .strict();
-import { text, nullableText, nullableUrl, confirm, url } from "../fields";
+import { text, nullableText, nullableUrl, confirm, url, email } from "../fields";
 export const directorySource = z.enum(["technl", "genesis", "bounce"]);
 export const scrapedCompany = z
   .object({
     name: text("name", 500),
     description: nullableText().default(null),
     website: nullableUrl().default(null),
-    email: nullableText(320).pipe(z.email().nullable()).default(null),
+    email: nullableText(320).pipe(email().nullable()).default(null),
     logoUrl: nullableUrl().default(null),
     categories: z.array(z.string().max(300)).max(100).default([]),
     sourceUrl: z.string().max(4096).default(""),
