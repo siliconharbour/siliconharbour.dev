@@ -7,7 +7,12 @@ import { buildReadFunctions, buildExecuteFunctions, type HostFunction } from "~/
 
 function hostFunction(run: (input: unknown) => Promise<unknown>): HostFunction {
   return Object.assign(run, {
-    doc: { signature: "test(input)", description: "Test tool", category: "read" as const },
+    doc: {
+      signature: "test(input)",
+      description: "Test tool",
+      category: "events" as const,
+      risk: "read" as const,
+    },
     inputSchema: z.object({}).passthrough(),
   });
 }
@@ -110,9 +115,9 @@ describe("Code Mode", () => {
   });
 
   it("returns actionable Zod validation failures", async () => {
-    const runtime = createCodeMode(buildReadFunctions());
+    const runtime = createCodeMode(buildReadFunctions(adminContext(1)));
     const result = await Effect.runPromise(
-      runtime.execute("return await tools.siliconharbour.jobs({ limit: 'bad' });"),
+      runtime.execute("return await tools.siliconharbour.themeShareList({ limit: 'bad' });"),
     );
     expect(result).toMatchObject({
       ok: false,
@@ -121,15 +126,15 @@ describe("Code Mode", () => {
   });
 
   it("discovers complete schema signatures only for tools in the supplied scope", async () => {
-    const read = createCodeMode(buildReadFunctions());
+    const read = createCodeMode(buildReadFunctions(adminContext(1)));
     const write = createCodeMode(buildExecuteFunctions(adminContext(1)));
-    const code = 'return search({ query: "createEntity" });';
+    const code = 'return search({ query: "themeShareDelete" });';
     const found = await Effect.runPromise(write.execute(code));
     expect(found.ok).toBe(true);
-    expect(JSON.stringify(found)).toContain("bio: string");
+    expect(JSON.stringify(found)).toContain("confirm: true");
     expect(JSON.stringify(found)).toContain("Promise<unknown>");
     const absent = await Effect.runPromise(read.execute(code));
     expect(absent.ok).toBe(true);
-    expect(JSON.stringify(absent)).not.toContain("siliconharbour.createEntity");
+    expect(JSON.stringify(absent)).not.toContain("siliconharbour.themeShareDelete");
   });
 });

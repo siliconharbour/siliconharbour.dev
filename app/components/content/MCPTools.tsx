@@ -14,7 +14,7 @@ const TOOLS: ToolMeta[] = [
     name: "search",
     title: "search",
     description:
-      "Search the SiliconHarbour API schema to discover available entities and field shapes. " +
+      "Find operations by task, area, or field. " +
       "Call this first to learn what data exists, then use query or execute to fetch it.",
     auth: "Public",
     bindings: "none",
@@ -33,34 +33,12 @@ const TOOLS: ToolMeta[] = [
     name: "execute",
     title: "execute",
     description:
-      "Like query, but also exposes sync, creation, review, and lifecycle functions. " +
+      "Read data and run admin operations. " +
       "Requires an OAuth-authorized MCP session with the mcp:write scope. Timeout: 60 seconds.",
     auth: "Authenticated",
     bindings: "execute",
   },
 ];
-
-const CATEGORY_ORDER: HostFnCategory[] = [
-  "read",
-  "sources",
-  "sync",
-  "async-sync",
-  "creation",
-  "lookup",
-  "search",
-  "lifecycle",
-];
-
-const CATEGORY_LABELS: Partial<Record<HostFnCategory, string>> = {
-  read: "Read",
-  sources: "Import sources",
-  sync: "Synchronous sync",
-  "async-sync": "Background sync",
-  creation: "Creation",
-  lookup: "Lookup / detail",
-  search: "External search",
-  lifecycle: "Lifecycle / review",
-};
 
 function groupByCategory(entries: HostFunctionDocsEntry[]) {
   const byCat = new Map<HostFnCategory, HostFunctionDocsEntry[]>();
@@ -76,12 +54,13 @@ function FunctionTable({ entries }: { entries: HostFunctionDocsEntry[] }) {
   const byCat = groupByCategory(entries);
   return (
     <div className="flex flex-col gap-gap-4">
-      {[...new Set([...CATEGORY_ORDER, ...byCat.keys()])]
+      {[...byCat.keys()]
+        .sort()
         .filter((cat) => byCat.has(cat))
         .map((cat) => (
           <div key={cat}>
             <div className="text-xs font-medium uppercase tracking-wide text-muted mb-1.5">
-              {CATEGORY_LABELS[cat] ?? cat} ({byCat.get(cat)?.length ?? 0})
+              {cat.replaceAll("-", " ")} ({byCat.get(cat)?.length ?? 0})
             </div>
             <div className="border border-line divide-y divide-harbour-100">
               {byCat.get(cat)?.map((entry) => (

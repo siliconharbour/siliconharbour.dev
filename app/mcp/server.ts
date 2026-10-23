@@ -8,32 +8,46 @@ import { Effect } from "effect";
 import { createCodeMode, QUERY_LIMITS, EXECUTE_LIMITS } from "./code-mode.js";
 import { buildReadFunctions, buildExecuteFunctions } from "./bridge.js";
 
-function describeRuntime(runtime: CodeMode.Runtime, limits: typeof QUERY_LIMITS): string {
+export function describeRuntime(
+  runtime: CodeMode.Runtime,
+  limits: typeof QUERY_LIMITS,
+  functions: import("./host-function").HostFunctions,
+): string {
   const catalog = runtime.catalog();
-  const entries: string[] = [];
-  let characters = 0;
-  for (const tool of [...catalog].sort((a, b) => a.signature.length - b.signature.length)) {
-    const entry = `${tool.signature}\n  ${tool.description}`;
-    if (characters + entry.length > 8_000) continue;
-    entries.push(entry);
-    characters += entry.length;
-  }
-
-  return [
-    "Run a confined JavaScript orchestration script to access SiliconHarbour tools. Call tools.siliconharbour.<function>(input) and return the fields you need.",
-    "Each tool takes one input object; use {} for tools with no parameters. Inputs are validated by the host's Zod schemas.",
-    "Use await and try/catch for tool calls. Use Promise.all for independent calls. Await every started call before returning.",
-    "Imports, export default, eval, modules, process, filesystem, fetch, timers, classes, and prototype access are unavailable.",
-    "Use the MCP search tool for entity field details. Inside this program, search({ query }) discovers tool signatures; it is distinct from the MCP search tool. Search for a function name when its signature is not shown below.",
+  const areas = new Map<string, number>();
+  for (const fn of Object.values(functions))
+    areas.set(fn.doc.category, (areas.get(fn.doc.category) ?? 0) + 1);
+  const parts = [
+    "Run confined JavaScript using tools.siliconharbour.<operation>(input), await calls, and return the fields you need.",
+    "Each operation takes one object. Unknown fields, empty update patches, and invalid required values fail validation. Destructive and external operations require confirm: true.",
+    "Use the MCP search tool for task discovery or a full operation schema. Inside the program, search({query}) discovers available runtime signatures.",
     searchSignature,
-    "Tool results have unknown shapes: inspect and narrow them before accessing fields. Filter and aggregate results in code.",
-    `Limits: ${limits.timeoutMs / 1_000} seconds, ${limits.maxToolCalls} tool calls, ${limits.maxOutputBytes / 1_024} KiB of result and logs. Output may be truncated; narrow results or paginate.`,
-    "Returns JSON with ok, value or error, toolCalls, and optional logs, warnings, and truncated. A failed execution may have completed earlier writes; inspect toolCalls before retrying.",
-    "",
-    `Available tools (${catalog.length} total): ${catalog.map((tool) => tool.path).join(", ")}`,
-    `Inline signatures (${entries.length} of ${catalog.length} shown; use search for the rest):`,
-    ...entries,
-  ].join("\n");
+    "Imports, modules, eval, process, filesystem, fetch, timers, classes, and prototype access are unavailable. Await every started call; use Promise.all for independent work.",
+    `Limits: ${limits.timeoutMs / 1000} seconds, ${limits.maxToolCalls} calls, ${limits.maxOutputBytes / 1024} KiB of results and logs. Narrow results or paginate to avoid truncation.`,
+    "A failed execution may have completed earlier writes; inspect toolCalls before retrying. Read operations remain subject to administrator access and granted scopes.",
+    `Areas: ${[...areas]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([area, count]) => `${area} (${count})`)
+      .join(", ")}.`,
+  ];
+  let size = parts.join("\n").length;
+  const common = [
+    "eventPublicList",
+    "jobPublicList",
+    "companyPublicList",
+    "personUpdate",
+    "eventCreate",
+    "newsUpdate",
+  ];
+  for (const name of common) {
+    const tool = catalog.find((tool) => tool.path.split(".").at(-1) === name);
+    if (!tool) continue;
+    const entry = `${tool.signature}\n${functions[name].doc.description}`;
+    if (size + entry.length + 1 > 8000) continue;
+    parts.push(entry);
+    size += entry.length + 1;
+  }
+  return parts.join("\n");
 }
 
 async function runCode(code: string, runtime: CodeMode.Runtime) {
@@ -44,23 +58,6 @@ async function runCode(code: string, runtime: CodeMode.Runtime) {
   };
 }
 
-function buildExecuteDescription(runtime: CodeMode.Runtime): string {
-  return [
-    "Requires the mcp:write OAuth scope. Exposes read, sync, creation, review and image functions.",
-    "Images: setEntityImage({ type, id, role: 'cover' | 'icon', url }) fetches a public HTTPS image on the server. To upload a local file, call prepareImageUpload({ filename?, contentType, size }), then PUT raw bytes to uploadUrl with the returned headers using an HTTP client OUTSIDE execute (no sandbox fetch). Finally call attachImage({ type, id, role, uploadId }). Uploads expire after 10 minutes and can be attached once. Images are limited to 5 MiB/16 megapixels; supports static JPEG, PNG, WebP, GIF and AVIF. Image attachment leaves visibility/review status unchanged.",
-    describeRuntime(runtime, EXECUTE_LIMITS),
-    "",
-    "JOB REVIEW CRITERIA:",
-    "- 'approve' if: technical role (software, engineering, data, design, product, DevOps, QA, security, AI/ML) AND located in St. John's NL or remote in Canada.",
-    "- 'approve-non-technical' if: non-technical role (sales, marketing, HR, operations, finance, admin) BUT in St. John's NL or remote. Also use for remote technical roles that are clearly not NL-connected.",
-    "- 'hide' if: not in St. John's/NL and not remote, OR completely irrelevant to the NL tech community.",
-    "- Some companies (Canadian Blood Services, PAL Aerospace, PAL Airlines) have high volumes of non-technical/non-NL roles — default to 'hide' unless clearly St. John's tech.",
-    "When uncertain, lean toward 'approve-non-technical' over 'hide'.",
-    "",
-    "For long imports prefer tools.siliconharbour.asyncSyncAllSources({}) and poll tools.siliconharbour.getAsyncSync({ runId }).",
-  ].join("\n");
-}
-
 export async function createMcpServer(auth?: AuthInfo): Promise<McpServer> {
   const server = new McpServer({
     name: "siliconharbour",
@@ -68,22 +65,21 @@ export async function createMcpServer(auth?: AuthInfo): Promise<McpServer> {
   });
 
   const context = mcpContext(auth);
-  const queryRuntime = createCodeMode(buildReadFunctions(context), QUERY_LIMITS);
+  const readFunctions = buildReadFunctions(context);
+  const queryRuntime = createCodeMode(readFunctions, QUERY_LIMITS);
 
   server.registerTool(
     "search",
     {
       title: "Search SiliconHarbour schema",
       description:
-        "Search the SiliconHarbour API schema to discover available data types and field shapes. " +
-        "Call this first to learn what entities exist and what fields they have, then use 'query' to fetch data. " +
-        "Example queries: 'event', 'job fields', 'company', 'what entities are available', 'siliconharbour tools'.",
+        "Find operations by task, area, name, or field. Search an exact operation name for its strict input schema and output shape. Results follow this session's permissions.",
       inputSchema: {
         query: z.string().describe("What to search for, e.g. 'event', 'job', 'company schema'"),
       },
     },
     async ({ query }) => ({
-      content: [{ type: "text", text: searchSpec(query) }],
+      content: [{ type: "text", text: searchSpec(query, context) }],
     }),
   );
 
@@ -91,12 +87,12 @@ export async function createMcpServer(auth?: AuthInfo): Promise<McpServer> {
     "query",
     {
       title: "Query SiliconHarbour data",
-      description: describeRuntime(queryRuntime, QUERY_LIMITS),
+      description: describeRuntime(queryRuntime, QUERY_LIMITS, readFunctions),
       inputSchema: {
         code: z
           .string()
           .describe(
-            "JavaScript program calling tools.siliconharbour functions with one input object and returning the data you want. Example: return await tools.siliconharbour.events({ upcoming: true, limit: 5 });",
+            "JavaScript program calling tools.siliconharbour functions with one input object and returning the data you want. Example: return await tools.siliconharbour.eventPublicList({ upcoming: true, limit: 5 });",
           ),
       },
     },
@@ -104,12 +100,13 @@ export async function createMcpServer(auth?: AuthInfo): Promise<McpServer> {
   );
 
   if (context.actor?.role === "admin" && context.scopes.has("write")) {
-    const executeRuntime = createCodeMode(buildExecuteFunctions(context), EXECUTE_LIMITS);
+    const executeFunctions = buildExecuteFunctions(context);
+    const executeRuntime = createCodeMode(executeFunctions, EXECUTE_LIMITS);
     server.registerTool(
       "execute",
       {
         title: "Execute authenticated SiliconHarbour actions",
-        description: buildExecuteDescription(executeRuntime),
+        description: describeRuntime(executeRuntime, EXECUTE_LIMITS, executeFunctions),
         inputSchema: {
           code: z
             .string()
