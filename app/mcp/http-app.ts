@@ -79,7 +79,6 @@ export async function createSiliconHarbourHttpApp(
     next();
   });
   const mcpHandler = createMcpHandler((context) => createMcpServer(context.authInfo), {
-    legacy: "stateless",
     onerror: (error) => console.error("MCP error:", error),
   });
   const nodeMcpHandler = toNodeHandler(mcpHandler, {
