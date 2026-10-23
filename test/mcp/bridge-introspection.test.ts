@@ -43,3 +43,23 @@ it("keeps runtime descriptions within budget without cutting a signature", () =>
   const entries = runtime.catalog().filter((tool) => description.includes(tool.signature));
   expect(entries.length).toBeGreaterThan(0);
 });
+
+it("describes authorized operations inside programs and ranks output fields and typos", async () => {
+  const context = adminContext(1);
+  expect(searchOperations("persnGet", context)[0].operation.name).toBe("personGet");
+  expect(
+    searchOperations("coverPulled", context).some(
+      (entry) => entry.operation.name === "eventImportApprove",
+    ),
+  ).toBe(true);
+  expect(searchSpec("zzzzzzzzzzzzzzzz", context)).toContain("Available areas:");
+  const description = await operationCatalog.operationDescribe.execute(context, {
+    name: "personUpdate",
+  });
+  expect(description.inputSchema).toMatchObject({ additionalProperties: false });
+  expect(description.outputSchema).toMatchObject({ type: "object" });
+  expect(operationCatalog.operationDescribe.output.safeParse(description).success).toBe(true);
+  await expect(
+    operationCatalog.operationDescribe.execute(publicContext(), { name: "themeShareList" }),
+  ).rejects.toThrow("not available");
+});

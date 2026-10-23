@@ -4,6 +4,7 @@ import { ConfirmationRequiredError, ForbiddenError } from "./errors";
 
 export type OperationRisk = "read" | "write" | "destructive" | "external";
 export type OperationArea =
+  | "operations"
   | "people"
   | "companies"
   | "education"
