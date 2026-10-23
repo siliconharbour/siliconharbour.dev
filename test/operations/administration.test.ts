@@ -235,3 +235,23 @@ it("requires the exact campaign subject before a live send", async () => {
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith(1, 7);
 });
+
+it("preserves omitted settings and clears keywords only when requested", async () => {
+  await operations.siteConfigSave.execute(context, {
+    newsGlobalKeywords: ["local"],
+    sections: { companies: false },
+    comments: { products: false },
+    confirm: true,
+  });
+  await operations.siteConfigSave.execute(context, operations.siteConfigSave.examples[0].input);
+  expect(await operations.siteConfigGet.execute(context, {})).toMatchObject({
+    newsGlobalKeywords: ["local"],
+    sections: { companies: false, jobs: false },
+    comments: { products: false },
+  });
+  await operations.siteConfigSave.execute(context, { newsGlobalKeywords: null, confirm: true });
+  expect((await operations.siteConfigGet.execute(context, {})).newsGlobalKeywords).toEqual([]);
+  await expect(
+    operations.siteConfigSave.execute(context, { sections: {}, confirm: true }),
+  ).rejects.toThrow("No fields to update");
+});

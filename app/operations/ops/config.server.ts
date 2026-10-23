@@ -37,39 +37,12 @@ export const configOperations = {
     area: "config",
     risk: "destructive",
     access: "admin",
-    summary: "Save the complete site settings form.",
+    summary: "Save supplied site settings.",
     description:
-      "Atomically replace section/comment visibility and global news keywords. An omitted botToken preserves the credential; null clears it. Return only masked Discord configuration. Requires confirm: true.",
+      "Atomically patch supplied section/comment flags, global news keywords and the Discord token. Omitted fields keep their current values; null clears keywords or the token. Return only masked Discord configuration. Prefer siteSectionVisibilitySet, siteCommentVisibilitySet or newsGlobalKeywordsSet for a single change. Requires confirm: true.",
     input: siteConfigSaveInput,
     output: siteConfigOutput,
-    examples: [
-      {
-        title: "Save settings",
-        input: {
-          sections: {
-            events: true,
-            companies: true,
-            groups: true,
-            projects: true,
-            products: true,
-            education: true,
-            people: true,
-            news: true,
-            jobs: true,
-          },
-          comments: {
-            companies: true,
-            groups: true,
-            education: true,
-            projects: true,
-            products: true,
-            news: true,
-          },
-          newsGlobalKeywords: null,
-          confirm: true,
-        },
-      },
-    ],
+    examples: [{ title: "Hide jobs", input: { sections: { jobs: false }, confirm: true } }],
     run: async (_ctx, input) => {
       saveSiteConfig(input);
       const [sections, comments, newsGlobalKeywords, discord] = await Promise.all([

@@ -58,10 +58,18 @@ export const siteConfigOutput = z
   .strict();
 export const siteConfigSaveInput = z
   .object({
-    sections: sectionVisibility,
-    comments: commentVisibility,
-    newsGlobalKeywords: keywordList.nullable(),
+    sections: sectionVisibility.partial().optional(),
+    comments: commentVisibility.partial().optional(),
+    newsGlobalKeywords: keywordList.nullable().optional(),
     botToken: nullableText(500).optional(),
     confirm,
   })
-  .strict();
+  .strict()
+  .refine(
+    (input) =>
+      input.newsGlobalKeywords !== undefined ||
+      input.botToken !== undefined ||
+      Object.keys(input.sections ?? {}).length > 0 ||
+      Object.keys(input.comments ?? {}).length > 0,
+    "No fields to update",
+  );
