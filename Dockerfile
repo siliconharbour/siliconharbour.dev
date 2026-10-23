@@ -32,6 +32,7 @@ COPY --from=build-env /app/build /app/build
 COPY ./app/assets /app/app/assets
 COPY ./app/content /app/app/content
 COPY ./app/mcp /app/app/mcp
+COPY ./app/operations /app/app/operations
 COPY ./app/lib /app/app/lib
 COPY ./app/theme /app/app/theme
 COPY ./app/db /app/app/db
@@ -39,6 +40,9 @@ COPY ./public /app/public
 COPY server.ts /app/server.ts
 COPY tsconfig.json /app/tsconfig.json
 WORKDIR /app
+RUN DATA_DIR=/tmp/image-smoke-check NODE_ENV=production SESSION_SECRET=image-build-smoke-check \
+    node --import tsx --input-type=module -e "await import('./app/mcp/http-app.ts'); await import('./build/server/index.js')" \
+    && rm -rf /tmp/image-smoke-check
 # Required env vars:
 # SESSION_SECRET=<random secret> — signs login and OAuth consent sessions
 # SITE_URL=https://siliconharbour.dev — public application and MCP resource URL
