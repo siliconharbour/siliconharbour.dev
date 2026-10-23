@@ -132,7 +132,7 @@ describe("Code Mode", () => {
     const found = await Effect.runPromise(write.execute(code));
     expect(found.ok).toBe(true);
     expect(JSON.stringify(found)).toContain("confirm: true");
-    expect(JSON.stringify(found)).toContain("Promise<unknown>");
+    expect(JSON.stringify(found)).toContain("deleted: boolean");
     const absent = await Effect.runPromise(read.execute(code));
     expect(absent.ok).toBe(true);
     expect(JSON.stringify(absent)).not.toContain("siliconharbour.themeShareDelete");

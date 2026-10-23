@@ -11,15 +11,11 @@ it("generates query and execute bindings from the catalog", () => {
   const catalog = Object.keys(operationCatalog);
   const execute = buildExecuteFunctions(context);
   const read = buildReadFunctions(context);
-  expect(Object.keys(execute).sort()).toEqual(
-    catalog.sort(),
-  );
+  expect(Object.keys(execute).sort()).toEqual(catalog.sort());
   expect(Object.keys(read).sort()).toEqual(
-    [
-      ...catalog.filter(
-        (name) => operationCatalog[name as keyof typeof operationCatalog].risk === "read",
-      ),
-    ].sort(),
+    catalog
+      .filter((name) => operationCatalog[name as keyof typeof operationCatalog].risk === "read")
+      .sort(),
   );
   for (const [name, fn] of Object.entries(buildReadFunctions(publicContext())))
     expect(fn.doc.risk, name).toBe("read");

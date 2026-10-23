@@ -72,5 +72,3 @@ Images must be static JPEG, PNG, WebP, GIF, or AVIF, at most 5 MiB and 16 megapi
 Images are prepared before entity fields are saved. Failed saves clean up newly prepared, unreferenced files. Replaced files are deleted only after the new reference is stored and the reference checker finds no remaining use.
 
 Upload bytes and hashed tokens live under `DATA_DIR/mcp-uploads`, outside public images, with restricted permissions. A process reserves at most 32 slots, bounding reserved image bytes to 160 MiB. Cleanup runs on startup, every minute, and before new reservations.
-
-The older `setEntityImage`, `prepareImageUpload`, and `attachImage` names remain deprecated aliases. See [Shared operations](operations.md) for authorization and operation development.

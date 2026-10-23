@@ -1,6 +1,6 @@
 # Shared operations
 
-`app/operations/catalog.ts` is the interface for admin actions and MCP. Operations own validation, authorization, and business rules; services in `app/lib` own database and external I/O. Routes translate forms and render results. `app/mcp/bridge.ts` only assembles catalog bindings .
+`app/operations/catalog.ts` is the interface for admin actions and MCP. Operations own validation, authorization, and business rules; services in `app/lib` own database and external I/O. Routes translate forms and render results. `app/mcp/bridge.ts` only assembles catalog bindings.
 
 ## Calling operations
 
@@ -49,4 +49,3 @@ Discord and GitHub SDK calls use their fixed provider endpoints. The newsletter 
 4. Map writable columns in `app/operations/coverage`, or exclude them with an ownership/derivation reason. New columns without a decision fail the coverage check. Keep migrated route exceptions empty.
 5. Adapt the corresponding admin form and call `runAdminOperation`. Adapters translate shape only: checkboxes, repeated IDs, JSON, and image commands. Preserve redirects and field errors. Register any new route in `app/routes.ts`.
 6. Test meaningful state and boundary behavior, including a representative admin/MCP parity case. Mock outbound I/O. Run typecheck, lint, formatting, tests, and build.
-

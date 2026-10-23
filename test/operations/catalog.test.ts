@@ -80,7 +80,7 @@ it("does not permit direct construction of a write runtime for anonymous or read
   expect(() => buildExecuteFunctions(publicContext())).toThrow(ForbiddenError);
   const readOnly = { ...adminContext(1), scopes: new Set<"read" | "write">(["read"]) };
   expect(() => buildExecuteFunctions(readOnly)).toThrow(ForbiddenError);
-expect(buildReadFunctions()).not.toHaveProperty("jobList");
+  expect(buildReadFunctions()).not.toHaveProperty("jobList");
 });
 
 it("derives read and write access from the granted MCP scopes", async () => {
