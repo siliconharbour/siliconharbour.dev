@@ -31,17 +31,20 @@ export function blockItem(
   externalId: string,
   name: string,
   reason?: string | null,
-): void {
-  db.insert(importBlocklist)
-    .values({
-      source,
-      externalId: normalizeBlockKey(source, externalId),
-      name: name.trim(),
-      reason,
-      blockedAt: new Date(),
-    })
-    .onConflictDoNothing({ target: [importBlocklist.source, importBlocklist.externalId] })
-    .run();
+): boolean {
+  return (
+    db
+      .insert(importBlocklist)
+      .values({
+        source,
+        externalId: normalizeBlockKey(source, externalId),
+        name: name.trim(),
+        reason,
+        blockedAt: new Date(),
+      })
+      .onConflictDoNothing({ target: [importBlocklist.source, importBlocklist.externalId] })
+      .run().changes > 0
+  );
 }
 export function unblockItem(source: string, externalId: string): boolean {
   return db.delete(importBlocklist).where(identity(source, externalId)).run().changes > 0;

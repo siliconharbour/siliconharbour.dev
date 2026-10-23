@@ -119,3 +119,16 @@ it("uses supplied and default reasons for new blocks", async () => {
   });
   expect((await getBlockedItem("github", "third"))?.reason).toBe("Outside the community");
 });
+
+it("restoring a rejection preserves a block that predates it", async () => {
+  const person = await ops.personCreate.execute(ctx, {
+    name: "Existing block",
+    bio: "Description",
+    github: "existing",
+  });
+  blockItem("github", "existing", "Existing block", "Custom reason");
+  const original = await getBlockedItem("github", "existing");
+  const rejected = await ops.personReject.execute(ctx, { id: person.id, confirm: true });
+  await ops.rejectedRecordRestore.execute(ctx, { id: rejected.restoreId, confirm: true });
+  expect(await getBlockedItem("github", "existing")).toEqual(original);
+});

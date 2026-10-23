@@ -42,8 +42,15 @@ export function rejectDirectoryRecord(
             : null;
     const identity = person?.github || company?.website || company?.name;
     const key = source && identity ? normalizeBlockKey(source, identity) : null;
-    if (source && key)
-      blockItem(source, key, record.name, reason === undefined ? "Rejected during review" : reason);
+    const createdBlock =
+      source && key
+        ? blockItem(
+            source,
+            key,
+            record.name,
+            reason === undefined ? "Rejected during review" : reason,
+          )
+        : false;
     if (type === "person") db.update(people).set({ visible: false }).where(eq(people.id, id)).run();
     else db.update(companies).set({ visible: false }).where(eq(companies.id, id)).run();
     return db
@@ -53,8 +60,8 @@ export function rejectDirectoryRecord(
         entityId: id,
         name: record.name,
         wasVisible: record.visible,
-        blockSource: source,
-        blockKey: key,
+        blockSource: createdBlock ? source : null,
+        blockKey: createdBlock ? key : null,
         rejectedAt: now,
         expiresAt: new Date(now.getTime() + RETENTION_MS),
       })
