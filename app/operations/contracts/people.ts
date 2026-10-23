@@ -1,3 +1,4 @@
+import { nullableGithubProfile } from "../fields";
 import { socialLinksOutput } from "~/lib/links";
 import { z } from "zod";
 import { text, nullableUrl, socialLinks, imageInput, updateContract, id, confirm } from "../fields";
@@ -5,7 +6,7 @@ export const personFields = {
   name: text("name", 300),
   bio: text("bio"),
   website: nullableUrl().optional(),
-  github: nullableUrl().optional(),
+  github: nullableGithubProfile().optional(),
   socialLinks: socialLinks.optional(),
   avatar: imageInput.optional(),
   visible: z.boolean().optional(),

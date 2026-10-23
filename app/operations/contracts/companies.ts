@@ -1,3 +1,5 @@
+import { email } from "../fields";
+import { nullableGithubProfile } from "../fields";
 import { technologyProvenanceSourceKeys } from "../fields";
 import { z } from "zod";
 import {
@@ -36,10 +38,10 @@ export const companyFields = {
   description: text("description"),
   website: nullableUrl().optional(),
   wikipedia: nullableUrl().optional(),
-  github: nullableUrl().optional(),
+  github: nullableGithubProfile().optional(),
   linkedin: nullableUrl().optional(),
   careersUrl: nullableUrl().optional(),
-  email: nullableText(320).pipe(z.email().nullable()).optional(),
+  email: nullableText(320).pipe(email().nullable()).optional(),
   location: nullableText().optional(),
   founded: nullableText(100).optional(),
   visible: z.boolean().optional(),
