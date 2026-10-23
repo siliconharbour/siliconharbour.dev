@@ -166,7 +166,7 @@ overrides:
   '@opencode-ai/codemode>effect': 4.0.2
 
 patchedDependencies:
-  '@opencode-ai/codemode@1.18.4': f7a0f332e441f473638d4fcb82ae3d345042f443e63b4f1edd8c85726fe55bb8
+  '@opencode-ai/codemode@1.18.4': 421d7edb9474f9d5bff77931969049ceac14f0a6389d0d530c57ded699c0c01c
 
 importers:
 
@@ -201,7 +201,7 @@ importers:
         version: 11.0.5(@octokit/core@7.0.8)
       '@opencode-ai/codemode':
         specifier: 1.18.4
-        version: 1.18.4(patch_hash=f7a0f332e441f473638d4fcb82ae3d345042f443e63b4f1edd8c85726fe55bb8)
+        version: 1.18.4(patch_hash=421d7edb9474f9d5bff77931969049ceac14f0a6389d0d530c57ded699c0c01c)
       '@react-router/express':
         specifier: 8.4.0
         version: 8.4.0(express@5.2.1(supports-color@7.2.0))(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(typescript@7.0.2)
@@ -4899,7 +4899,7 @@ snapshots:
       '@octokit/request-error': 7.1.2
       '@octokit/webhooks-methods': 6.0.0
 
-  '@opencode-ai/codemode@1.18.4(patch_hash=f7a0f332e441f473638d4fcb82ae3d345042f443e63b4f1edd8c85726fe55bb8)':
+  '@opencode-ai/codemode@1.18.4(patch_hash=421d7edb9474f9d5bff77931969049ceac14f0a6389d0d530c57ded699c0c01c)':
     dependencies:
       acorn: 8.15.0
       effect: 4.0.2

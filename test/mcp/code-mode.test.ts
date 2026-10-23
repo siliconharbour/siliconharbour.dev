@@ -2,7 +2,7 @@ import { adminContext } from "~/operations/context";
 import { Effect } from "effect";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { createCodeMode } from "~/mcp/code-mode";
+import { createCodeMode, QUERY_LIMITS } from "~/mcp/code-mode";
 import { buildReadFunctions, buildExecuteFunctions, type HostFunction } from "~/mcp/bridge";
 
 function hostFunction(run: (input: unknown) => Promise<unknown>): HostFunction {
@@ -136,5 +136,64 @@ describe("Code Mode", () => {
     const absent = await Effect.runPromise(read.execute(code));
     expect(absent.ok).toBe(true);
     expect(JSON.stringify(absent)).not.toContain("siliconharbour.themeShareDelete");
+  });
+});
+
+it("suggests callable names in caught errors and in sandbox search", async () => {
+  const context = adminContext(1);
+  const functions = buildReadFunctions(context);
+  const runtime = createCodeMode(functions, QUERY_LIMITS, context);
+  const caught = await Effect.runPromise(
+    runtime.execute(
+      "try { await tools.siliconharbour.persnGet({id:1}); } catch (error) { return error.message; }",
+    ),
+  );
+  expect(caught).toMatchObject({
+    ok: true,
+    value: expect.stringContaining("Did you mean personGet"),
+  });
+  const inherited = await Effect.runPromise(
+    runtime.execute(
+      "try { await tools.siliconharbour.toString(); } catch (error) { return error.message; }",
+    ),
+  );
+  expect(inherited).toMatchObject({ ok: true, value: expect.stringContaining("Unknown tool") });
+  expect(inherited).not.toMatchObject({ value: expect.stringContaining("write operation") });
+  const searched = await Effect.runPromise(
+    runtime.execute('return await search({query:"persnGet"});'),
+  );
+  expect(searched).toMatchObject({
+    ok: true,
+    value: {
+      items: expect.arrayContaining([
+        expect.objectContaining({ path: "tools.siliconharbour.personGet" }),
+      ]),
+    },
+  });
+  const keys = await Effect.runPromise(
+    runtime.execute("return Object.keys(tools.siliconharbour);"),
+  );
+  expect(keys).toMatchObject({ ok: true, value: Object.keys(functions) });
+});
+it("explains write-in-query errors even when caught, without exposing a write binding", async () => {
+  const context = adminContext(1);
+  const runtime = createCodeMode(buildReadFunctions(context), QUERY_LIMITS, context);
+  expect(
+    await Effect.runPromise(
+      runtime.execute(
+        'try { await tools.siliconharbour.personUpdate({id:1,name:"Nope"}); } catch (error) { return error.message; }',
+      ),
+    ),
+  ).toMatchObject({ ok: true, value: expect.stringContaining("Use the execute tool") });
+  const readonly = { ...context, scopes: new Set<"read" | "write">(["read"]) };
+  const result = await Effect.runPromise(
+    createCodeMode(buildReadFunctions(readonly), QUERY_LIMITS, readonly).execute(
+      'return await tools.siliconharbour.personUpdate({id:1,name:"Nope"});',
+    ),
+  );
+  expect(result).toMatchObject({
+    ok: false,
+    error: { message: expect.stringContaining("mcp:write") },
+    toolCalls: [],
   });
 });

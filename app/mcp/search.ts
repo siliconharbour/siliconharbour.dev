@@ -1,3 +1,4 @@
+import { CodeMode } from "@opencode-ai/codemode";
 import { readFileSync } from "node:fs";
 import { operationCatalog } from "~/operations/catalog";
 import { publicContext, type OperationContext } from "~/operations/context";
@@ -15,7 +16,10 @@ const entries = Object.values(operationCatalog).map((operation) => {
       area: words(operation.area),
       summary: words(operation.summary),
       description: words(operation.description),
-      fields: words(schemaFields(input as JsonSchema).join(" ")),
+      examples: words(operation.examples.map((example) => example.title).join(" ")),
+      fields: words(
+        [...schemaFields(input as JsonSchema), ...schemaFields(output as JsonSchema)].join(" "),
+      ),
     },
   };
 });
@@ -47,20 +51,29 @@ const stopWords = new Set([
 ]);
 export function searchOperations(query: string, context: OperationContext = publicContext()) {
   const tokens = words(query).filter((word) => !stopWords.has(word));
-  return entries
-    .filter(
-      ({ operation }) =>
-        (operation.access === "public" || context.actor?.role === "admin") &&
-        context.scopes.has(operation.risk === "read" ? "read" : "write"),
-    )
+  const visible = entries.filter(
+    ({ operation }) =>
+      (operation.access === "public" || context.actor?.role === "admin") &&
+      context.scopes.has(operation.risk === "read" ? "read" : "write"),
+  );
+  const nearby = !/\s/.test(query.trim())
+    ? CodeMode.closestNames(
+        query.trim(),
+        visible.map((entry) => entry.operation.name),
+      )
+    : [];
+  return visible
     .map((entry) => {
       let score = entry.operation.name.toLowerCase() === query.toLowerCase().trim() ? 1000 : 0;
+      if (nearby.includes(entry.operation.name))
+        score += 200 - nearby.indexOf(entry.operation.name);
       for (const token of tokens)
         for (const [field, weight] of [
           ["name", 16],
           ["area", 10],
           ["summary", 8],
           ["description", 2],
+          ["examples", 4],
           ["fields", 4],
         ] as const)
           if (entry.words[field].some((word) => word === token)) score += weight;
@@ -110,7 +123,7 @@ export function searchSpec(query: string, context: OperationContext = publicCont
   if (!matches.length)
     return (
       publicApiMatches(query) ||
-      `No matching operations for ${JSON.stringify(query)}. Search an area or an operation name.`
+      `No matching operations for ${JSON.stringify(query)}. Available areas: ${[...new Set(searchOperations("", context).map((entry) => entry.operation.area))].join(", ")}. Search an area or an operation name.`
     );
   if (!words(query).some((word) => !stopWords.has(word))) {
     const areas = new Map<string, string[]>();
