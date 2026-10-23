@@ -3,7 +3,7 @@ import { notRejected, assertDirectoryIdentityAvailable } from "./directory-activ
 import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { companies, type Company, type NewCompany } from "~/db/schema";
-import { eq, or, desc, asc, count, inArray, and, isNotNull, sql } from "drizzle-orm";
+import { eq, or, asc, count, inArray, and, isNotNull, sql } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
@@ -152,22 +152,6 @@ export async function getAllCompanies(includeHidden: boolean = false): Promise<C
     .orderBy(asc(companies.name));
 }
 
-export async function getHiddenCompanies(): Promise<Company[]> {
-  return db
-    .select()
-    .from(companies)
-    .where(and(notRejected("company", companies.id), eq(companies.visible, false)))
-    .orderBy(desc(companies.createdAt));
-}
-
-export async function getHiddenCompaniesCount(): Promise<number> {
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(companies)
-    .where(and(notRejected("company", companies.id), eq(companies.visible, false)));
-  return total;
-}
-
 /**
  * Get a deterministic "random" selection of companies based on a daily seed.
  * Only returns companies that have logos for better visual presentation.
@@ -204,14 +188,6 @@ export async function getRandomCompanies(count: number, seed?: number): Promise<
     .map((x) => x.company);
 
   return shuffled;
-}
-
-export async function getVisibleCompaniesCount(): Promise<number> {
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(companies)
-    .where(and(notRejected("company", companies.id), eq(companies.visible, true)));
-  return total;
 }
 
 export async function hideAllVisibleCompanies(): Promise<number> {
@@ -274,10 +250,6 @@ export async function getPaginatedCompanies(
 
   return { items, total };
 }
-
-// =============================================================================
-// Fuzzy company matching for GitHub import
-// =============================================================================
 
 /**
  * Normalize a company name for fuzzy matching.

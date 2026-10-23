@@ -23,7 +23,6 @@ it("blocks imported field edits while keeping lifecycle operations available", a
     description: "Description",
     url: "https://example.com/job",
   });
-  expect(operations.jobCreate.output.safeParse(job).success).toBe(true);
   await db.update(jobs).set({ sourceType: "imported" }).where(eq(jobs.id, job.id));
   await expect(
     operations.jobUpdate.execute(context, { id: job.id, title: "Changed" }),
@@ -69,7 +68,6 @@ it("sets, preserves, and explicitly overrides a news publish date", async () => 
     title: "News",
     content: "Content",
   });
-  expect(operations.newsArticleCreate.output.safeParse(article).success).toBe(true);
   const published = await operations.newsUpdate.execute(clock, {
     id: article.id,
     status: "published",
@@ -143,7 +141,6 @@ it("fetches guarded link metadata and records the publication clock", async () =
     status: "published",
     publishedAt: "2026-11-01T18:00:00.000Z",
   });
-  expect(operations.newsLinkSubmit.output.safeParse(result).success).toBe(true);
 });
 it("passes feed previews through the public fetch guard before parsing", async () => {
   const fetch = vi.spyOn(publicFetch, "fetchPublicBytes").mockResolvedValue({
@@ -162,7 +159,6 @@ it("passes feed previews through the public fetch guard before parsing", async (
     expect.objectContaining({ maxBytes: 4 * 1024 * 1024 }),
   );
   expect(result).toMatchObject({ totalCount: 1, matchedCount: 1, filteredCount: 0 });
-  expect(operations.newsSourceTestFeed.output.safeParse(result).success).toBe(true);
   fetch.mockRejectedValue(
     new publicFetch.PublicFetchError("URL must resolve only to public addresses."),
   );

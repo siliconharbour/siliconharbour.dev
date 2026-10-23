@@ -220,14 +220,6 @@ export function reorderProjectImages(projectId: number, imageIds: number[]): Pro
 
 export type ProjectWithImages = Project & { images: ProjectImage[] };
 
-export async function getProjectWithImages(id: number): Promise<ProjectWithImages | null> {
-  const project = await getProjectById(id);
-  if (!project) return null;
-
-  const images = await getProjectImages(id);
-  return { ...project, images };
-}
-
 export async function getProjectBySlugWithImages(slug: string): Promise<ProjectWithImages | null> {
   const project = await getProjectBySlug(slug);
   if (!project) return null;

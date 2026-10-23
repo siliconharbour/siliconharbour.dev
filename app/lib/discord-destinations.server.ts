@@ -19,13 +19,6 @@ export async function listDestinations(type: DiscordChannelType): Promise<Discor
 }
 
 /**
- * List all destinations across all channel types.
- */
-export async function listAllDestinations(): Promise<DiscordDestination[]> {
-  return db.select().from(discordDestinations).all();
-}
-
-/**
  * Add a destination. Unique on (channelType, channelId); does nothing on conflict.
  * Returns the inserted-or-existing row, or null if the lookup somehow fails.
  */

@@ -6,10 +6,6 @@ import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
 
-// =============================================================================
-// Slug generation
-// =============================================================================
-
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: products.slug }).from(products);
   return rows.map((r) => r.slug);
@@ -32,10 +28,6 @@ export async function generateProductSlug(name: string, excludeId?: number): Pro
 
   return makeSlugUnique(baseSlug, existingSlugs);
 }
-
-// =============================================================================
-// Product CRUD
-// =============================================================================
 
 export async function createProduct(product: Omit<NewProduct, "slug">): Promise<Product> {
   const slug = await generateProductSlug(product.name);
@@ -95,24 +87,7 @@ export async function getAllProducts(): Promise<Product[]> {
   return db.select().from(products).orderBy(asc(products.name));
 }
 
-// =============================================================================
-// Product with company helper
-// =============================================================================
-
 export type ProductWithCompany = Product & { company: Company | null };
-
-export async function getProductWithCompany(id: number): Promise<ProductWithCompany | null> {
-  const product = await getProductById(id);
-  if (!product) return null;
-
-  let company: Company | null = null;
-  if (product.companyId) {
-    company =
-      (await db.select().from(companies).where(eq(companies.id, product.companyId)).get()) ?? null;
-  }
-
-  return { ...product, company };
-}
 
 export async function getProductBySlugWithCompany(
   slug: string,
@@ -128,30 +103,6 @@ export async function getProductBySlugWithCompany(
 
   return { ...product, company };
 }
-
-export async function getAllProductsWithCompany(): Promise<ProductWithCompany[]> {
-  const allProducts = await getAllProducts();
-
-  // Batch fetch companies for efficiency
-  const companyIds = [...new Set(allProducts.filter((p) => p.companyId).map((p) => p.companyId!))];
-  const companyMap = new Map<number, Company>();
-
-  if (companyIds.length > 0) {
-    const companyList = await db.select().from(companies).where(inArray(companies.id, companyIds));
-    for (const c of companyList) {
-      companyMap.set(c.id, c);
-    }
-  }
-
-  return allProducts.map((product) => ({
-    ...product,
-    company: product.companyId ? (companyMap.get(product.companyId) ?? null) : null,
-  }));
-}
-
-// =============================================================================
-// Paginated queries with search
-// =============================================================================
 
 export interface PaginatedProducts {
   items: ProductWithCompany[];
@@ -231,10 +182,6 @@ export async function getPaginatedProducts(
 
   return { items, total };
 }
-
-// =============================================================================
-// Products by company
-// =============================================================================
 
 export async function getProductsByCompany(companyId: number): Promise<Product[]> {
   return db

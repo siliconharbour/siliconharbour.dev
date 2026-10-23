@@ -1,5 +1,4 @@
 import { publicFetch } from "~/lib/public-network-fetch.server";
-import { fetchPublicImage } from "./public-image-fetch.server";
 /**
  * Scraper utilities for importing company data from external directories.
  *
@@ -20,10 +19,6 @@ export interface ScrapedCompany {
   sourceUrl: string;
   sourceId: string;
 }
-
-// =============================================================================
-// TechNL Scraper
-// =============================================================================
 
 const TECHNL_DIRECTORY_URL = "https://members.technl.ca/memberdirectory/FindStartsWith?term=%23%21";
 
@@ -112,10 +107,6 @@ function parseTechNLCard(card: Element): ScrapedCompany | null {
   };
 }
 
-// =============================================================================
-// Genesis Scraper
-// =============================================================================
-
 const GENESIS_PORTFOLIO_URL = "https://www.genesiscentre.ca/portfolio";
 
 /**
@@ -200,10 +191,6 @@ function parseGenesisCard(card: Element): ScrapedCompany | null {
     sourceId,
   };
 }
-
-// =============================================================================
-// Bounce Health Innovation Scraper
-// =============================================================================
 
 const BOUNCE_COMPANIES_URL = "https://bounceinnovation.ca/companies/";
 
@@ -322,22 +309,6 @@ async function parseBounceCompanyDetail(
       sourceId: slug,
     };
   } catch {
-    return null;
-  }
-}
-
-// =============================================================================
-// Image Utilities
-// =============================================================================
-
-/**
- * Download an image from a URL and return it as a buffer
- */
-export async function fetchImage(url: string): Promise<Buffer | null> {
-  try {
-    return await fetchPublicImage(url);
-  } catch (error) {
-    console.error("Image download failed", error);
     return null;
   }
 }

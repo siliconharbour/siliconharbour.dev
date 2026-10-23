@@ -24,7 +24,8 @@
     "push-prod-db": "tsx scripts/sync-prod.ts push",
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "knip": "react-router typegen && knip"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -86,6 +87,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitest/coverage-v8": "^5.0.3",
     "drizzle-kit": "^0.31.11",
+    "knip": "6.42.1",
     "node-gyp": "^13.1.0",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",

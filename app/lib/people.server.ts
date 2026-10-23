@@ -172,22 +172,6 @@ export async function getHiddenPeople(): Promise<Person[]> {
     .orderBy(desc(people.createdAt));
 }
 
-export async function getHiddenPeopleCount(): Promise<number> {
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(people)
-    .where(and(notRejected("person", people.id), eq(people.visible, false)));
-  return total;
-}
-
-export async function getVisiblePeopleCount(): Promise<number> {
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(people)
-    .where(and(notRejected("person", people.id), eq(people.visible, true)));
-  return total;
-}
-
 export async function hideAllVisiblePeople(): Promise<number> {
   const result = await db
     .update(people)

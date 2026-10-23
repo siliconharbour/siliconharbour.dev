@@ -556,29 +556,6 @@ export async function getEventsThisWeek(): Promise<EventWithDates[]> {
     .sort((a, b) => compareEventDateOrder(a.dates, b.dates, "upcoming", now));
 }
 
-export async function getEventsByMonth(year: number, month: number): Promise<EventWithDates[]> {
-  const startOfMonth = parseAsTimezone(`${year}-${String(month + 1).padStart(2, "0")}-01`, "00:00");
-  const nextMonth = new Date(Date.UTC(year, month + 1, 1));
-  const endOfMonth = parseAsTimezone(nextMonth.toISOString().slice(0, 10), "00:00");
-
-  const eventIdsInMonth = await db
-    .selectDistinct({ eventId: eventDates.eventId })
-    .from(eventDates)
-    .where(and(gte(eventDates.startDate, startOfMonth), lt(eventDates.startDate, endOfMonth)));
-
-  if (eventIdsInMonth.length === 0) return [];
-
-  const ids = eventIdsInMonth.map((r) => r.eventId);
-  const eventRows = await db.select().from(events).where(inArray(events.id, ids));
-  const eventsWithDates = await attachDates(eventRows);
-
-  return eventsWithDates.filter(isEventPublic);
-}
-
-// =============================================================================
-// Paginated queries with search
-// =============================================================================
-
 export interface PaginatedEvents {
   items: EventWithDates[];
   total: number;
@@ -738,10 +715,6 @@ export async function getPaginatedEvents(
   return { items: paginatedItems, total: actualTotal };
 }
 
-// =============================================================================
-// Recurring event functions
-// =============================================================================
-
 /**
  * Get all occurrence overrides for an event
  */
@@ -819,20 +792,6 @@ export async function deleteOccurrenceOverride(id: number, eventId: number): Pro
       .where(and(eq(eventOccurrences.id, id), eq(eventOccurrences.eventId, eventId)))
       .run().changes > 0
   );
-}
-
-/**
- * Cancel a specific occurrence of a recurring event
- */
-export async function cancelOccurrence(eventId: number, occurrenceDate: Date): Promise<void> {
-  await upsertOccurrenceOverride(eventId, occurrenceDate, { cancelled: true });
-}
-
-/**
- * Uncancel a specific occurrence
- */
-export async function uncancelOccurrence(eventId: number, occurrenceDate: Date): Promise<void> {
-  await upsertOccurrenceOverride(eventId, occurrenceDate, { cancelled: false });
 }
 
 /**
@@ -939,51 +898,4 @@ export async function getEventWithOccurrences(
   occurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
 
   return { ...event, occurrences };
-}
-
-/**
- * Check if an event is recurring
- */
-export function isRecurringEvent(event: Event): boolean {
-  return !!event.recurrenceRule;
-}
-
-/**
- * Get upcoming occurrences for all recurring events (for calendar/listings)
- */
-export async function getUpcomingRecurringOccurrences(
-  startDate: Date = new Date(),
-  endDate: Date = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
-): Promise<Array<EventOccurrenceDisplay & { event: Event }>> {
-  // Get all events with recurrence rules
-  const recurringEvents = await db
-    .select()
-    .from(events)
-    .where(
-      and(
-        // Has a recurrence rule
-        gte(events.recurrenceRule, ""),
-      ),
-    );
-
-  // Filter to only those with actual rules
-  const eventsWithRules = recurringEvents.filter((e) => e.recurrenceRule);
-
-  const allOccurrences: Array<EventOccurrenceDisplay & { event: Event }> = [];
-
-  for (const event of eventsWithRules) {
-    const eventWithOccurrences = await getEventWithOccurrences(event.id, startDate, endDate);
-    if (eventWithOccurrences) {
-      for (const occurrence of eventWithOccurrences.occurrences) {
-        if (!occurrence.cancelled && occurrence.date >= startDate && occurrence.date <= endDate) {
-          allOccurrences.push({ ...occurrence, event });
-        }
-      }
-    }
-  }
-
-  // Sort by date
-  allOccurrences.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-  return allOccurrences;
 }

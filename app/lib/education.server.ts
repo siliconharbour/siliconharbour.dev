@@ -81,13 +81,6 @@ export async function getEducationBySlug(slug: string): Promise<Education | null
   return db.select().from(education).where(eq(education.slug, slug)).get() ?? null;
 }
 
-export async function getEducationByName(name: string): Promise<Education | null> {
-  // Case-insensitive search by lowercasing both sides
-  const all = await db.select().from(education);
-  const nameLower = name.toLowerCase();
-  return all.find((l) => l.name.toLowerCase() === nameLower) ?? null;
-}
-
 export async function getAllEducation(includeHidden: boolean = false): Promise<Education[]> {
   if (includeHidden) {
     return db.select().from(education).orderBy(desc(education.createdAt));
@@ -98,10 +91,6 @@ export async function getAllEducation(includeHidden: boolean = false): Promise<E
     .where(eq(education.visible, true))
     .orderBy(desc(education.createdAt));
 }
-
-// =============================================================================
-// Paginated queries with search
-// =============================================================================
 
 export interface PaginatedEducation {
   items: Education[];
@@ -148,10 +137,6 @@ export async function getPaginatedEducation(
     },
   });
 }
-
-// =============================================================================
-// Company to Education conversion
-// =============================================================================
 
 /**
  * Convert a company to an educational institution.
