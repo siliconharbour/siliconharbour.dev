@@ -34,15 +34,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     getDetailedBacklinks("person", person.id),
   ]);
 
-  // Parse social links if present
-  let socialLinks: Record<string, string> = {};
-  if (person.socialLinks) {
-    try {
-      socialLinks = JSON.parse(person.socialLinks);
-    } catch {
-      // ignore parse errors
-    }
-  }
+  const socialLinks = person.socialLinks ?? {};
 
   return { person, resolvedRefs, backlinks, socialLinks, isAdmin };
 }
@@ -129,9 +121,9 @@ export default function PersonDetail() {
                   Website
                 </a>
               )}
-              {(person.github || socialLinks.github) && (
+              {person.github && (
                 <a
-                  href={person.github || socialLinks.github}
+                  href={person.github}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-body hover:text-heading text-sm"

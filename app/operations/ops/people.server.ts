@@ -71,24 +71,13 @@ export const personOperations = {
     run: async (_context, input) => {
       const { avatar, socialLinks, ...fields } = input;
 
-      const result = await withEntityImages(
-        { type: "person" },
-        { icon: avatar },
-        async (images) => {
-          const record = await createPerson({
-            socialLinks:
-              socialLinks === undefined
-                ? undefined
-                : socialLinks && Object.values(socialLinks).some(Boolean)
-                  ? JSON.stringify(socialLinks)
-                  : null,
-            ...fields,
-            visible: fields.visible ?? false,
-            ...images,
-          });
-
-          return record;
-        },
+      const result = await withEntityImages({ type: "person" }, { icon: avatar }, (images) =>
+        createPerson({
+          socialLinks,
+          ...fields,
+          visible: fields.visible ?? false,
+          ...images,
+        }),
       );
       return toPlain(result);
     },
@@ -100,7 +89,7 @@ export const personOperations = {
     access: "admin",
     summary: "Update a person.",
     description:
-      "Patch only supplied fields; empty patches and unknown keys fail. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
+      "Patch only supplied fields; empty patches and unknown keys fail. socialLinks merges supplied keys; a null key removes that link, and a null object clears all links. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
     input: personUpdateInput,
     output: personOutput,
     examples: [{ title: "Rename", input: { id: 1, name: "Updated Person" } }],
@@ -112,12 +101,7 @@ export const personOperations = {
         { icon: avatar },
         async (images) => {
           const record = (await updatePerson(id, {
-            socialLinks:
-              socialLinks === undefined
-                ? undefined
-                : socialLinks && Object.values(socialLinks).some(Boolean)
-                  ? JSON.stringify(socialLinks)
-                  : null,
+            socialLinks,
             ...fields,
             ...images,
           }))!;

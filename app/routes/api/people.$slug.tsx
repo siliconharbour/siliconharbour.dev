@@ -12,7 +12,7 @@ const mapPerson = (person: typeof people.$inferSelect) => ({
   bio: person.bio,
   website: person.website,
   avatar: imageUrl(person.avatar),
-  socialLinks: person.socialLinks ? JSON.parse(person.socialLinks) : null,
+  socialLinks: person.socialLinks,
   url: contentUrl("people", person.slug),
   createdAt: person.createdAt.toISOString(),
   updatedAt: person.updatedAt.toISOString(),

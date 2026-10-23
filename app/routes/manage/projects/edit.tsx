@@ -5,7 +5,6 @@ import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 import { getProjectWithImages } from "~/lib/projects.server";
-import { parseProjectLinks } from "~/lib/project-links";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
@@ -87,7 +86,7 @@ const statusLabels: Record<string, string> = {
 export default function EditProject() {
   const { project, allTechnologies, selectedTechnologyIds } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const links = parseProjectLinks(project.links);
+  const links = project.links ?? {};
 
   return (
     <div className="min-h-screen p-pad-4 md:p-pad-6">

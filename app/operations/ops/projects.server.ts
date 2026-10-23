@@ -16,7 +16,6 @@ import {
   getProjectImages,
 } from "~/lib/projects.server";
 import { withEntityImages } from "~/lib/entity-images.server";
-import { stringifyProjectLinks } from "~/lib/project-links";
 import { setTechnologiesForContent, getTechnologiesForContent } from "~/lib/technologies.server";
 
 export const projectOperations = {
@@ -95,12 +94,7 @@ export const projectOperations = {
         { icon: logo, cover: coverImage },
         async (images) => {
           const record = await createProject({
-            links:
-              links === undefined
-                ? undefined
-                : links && Object.values(links).some(Boolean)
-                  ? stringifyProjectLinks(links)
-                  : null,
+            links,
             ...fields,
             ...images,
           });
@@ -119,7 +113,7 @@ export const projectOperations = {
     access: "admin",
     summary: "Update a project.",
     description:
-      "Patch only supplied fields; empty patches and unknown keys fail. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
+      "Patch only supplied fields; empty patches and unknown keys fail. links merges supplied keys; a null key removes that link, and a null object clears all links. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
     input: projectUpdateInput,
     output: projectOutput,
     examples: [{ title: "Rename", input: { id: 1, name: "Updated Project" } }],
@@ -132,12 +126,7 @@ export const projectOperations = {
         { icon: logo, cover: coverImage },
         async (images) => {
           const record = (await updateProject(id, {
-            links:
-              links === undefined
-                ? undefined
-                : links && Object.values(links).some(Boolean)
-                  ? stringifyProjectLinks(links)
-                  : null,
+            links,
             ...fields,
             ...images,
           }))!;

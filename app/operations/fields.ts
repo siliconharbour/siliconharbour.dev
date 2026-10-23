@@ -103,24 +103,7 @@ export const nullableUrl = () =>
       value && !/^[a-z][a-z0-9+.-]*:/i.test(value) ? `https://${value}` : value,
     )
     .pipe(z.url({ protocol: /^https?$/ }).nullable());
-export const socialLinks = z
-  .object({ twitter: url().optional(), linkedin: url().optional() })
-  .strict()
-  .nullable();
-export const projectLinks = z
-  .object({
-    github: url().optional(),
-    itchio: url().optional(),
-    website: url().optional(),
-    demo: url().optional(),
-    npm: url().optional(),
-    pypi: url().optional(),
-    steam: url().optional(),
-    appstore: url().optional(),
-    playstore: url().optional(),
-  })
-  .strict()
-  .nullable();
+export { socialLinksPatch as socialLinks, projectLinksPatch as projectLinks } from "~/lib/links";
 export const idInput = z.object({ id: id() }).strict();
 export const deleteInput = z.object({ id: id(), confirm }).strict();
 export const adminListInput = z

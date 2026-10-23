@@ -1,3 +1,4 @@
+import { socialLinkKeys, projectLinkKeys } from "~/lib/links";
 import { personFields } from "~/operations/contracts/people";
 import { companyFields } from "~/operations/contracts/companies";
 import { educationFields } from "~/operations/contracts/education";
@@ -54,24 +55,13 @@ export function directoryFormInput(
     } else if (name === "companyId") {
       input[name] = form.get(name) ? Number(form.get(name)) : null;
     } else if (name === "socialLinks" || name === "links") {
-      const keys =
-        name === "socialLinks"
-          ? ["twitter", "linkedin"]
-          : [
-              "github",
-              "itchio",
-              "website",
-              "demo",
-              "npm",
-              "pypi",
-              "steam",
-              "appstore",
-              "playstore",
-            ];
+      const keys = name === "socialLinks" ? socialLinkKeys : projectLinkKeys;
       const values = Object.fromEntries(
-        keys.flatMap((key) => (form.get(key) ? [[key, String(form.get(key))]] : [])),
+        keys
+          .filter((key) => form.has(key))
+          .map((key) => [key, String(form.get(key) ?? "").trim() || null]),
       );
-      input[name] = Object.keys(values).length ? values : null;
+      if (Object.keys(values).length) input[name] = values;
     } else if (name === "technologyIds") {
       if (editing) input[name] = form.getAll("technologies").map(Number);
     } else if (name === "evidenceGroups") {

@@ -1,3 +1,5 @@
+import { compactLinks, type SocialLinks, type LinkPatch } from "./links";
+import { patchLinks } from "./link-patch.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { people, type Person, type NewPerson } from "~/db/schema";
@@ -27,11 +29,20 @@ export async function generatePersonSlug(name: string, excludeId?: number): Prom
   });
 }
 
-export async function createPerson(person: Omit<NewPerson, "slug">): Promise<Person> {
+export async function createPerson(
+  person: Omit<NewPerson, "slug" | "socialLinks"> & { socialLinks?: LinkPatch<SocialLinks> },
+): Promise<Person> {
   const slug = await generatePersonSlug(person.name);
   const [newPerson] = await db
     .insert(people)
-    .values({ ...person, slug })
+    .values({
+      ...person,
+      slug,
+      socialLinks:
+        person.socialLinks === undefined
+          ? undefined
+          : compactLinks<SocialLinks>(person.socialLinks),
+    })
     .returning();
 
   await syncReferences("person", newPerson.id, newPerson.bio);
@@ -41,13 +52,17 @@ export async function createPerson(person: Omit<NewPerson, "slug">): Promise<Per
 
 export async function updatePerson(
   id: number,
-  person: Partial<Omit<NewPerson, "slug">>,
+  person: Partial<Omit<NewPerson, "slug" | "socialLinks">> & {
+    socialLinks?: LinkPatch<SocialLinks>;
+  },
 ): Promise<Person | null> {
-  let updateData: Partial<NewPerson> = { ...person, updatedAt: new Date() };
-
-  if (person.name) {
-    updateData.slug = await generatePersonSlug(person.name, id);
-  }
+  const { socialLinks, ...fields } = person;
+  const updateData = {
+    ...fields,
+    updatedAt: new Date(),
+    slug: person.name ? await generatePersonSlug(person.name, id) : undefined,
+    ...(socialLinks !== undefined && { socialLinks: patchLinks(people.socialLinks, socialLinks) }),
+  };
 
   const [updated] = await db.update(people).set(updateData).where(eq(people.id, id)).returning();
 
@@ -129,10 +144,6 @@ export async function hideAllVisiblePeople(): Promise<number> {
     .where(eq(people.visible, true));
   return result.changes;
 }
-
-// =============================================================================
-// Paginated queries with search
-// =============================================================================
 
 export interface PaginatedPeople {
   items: Person[];
