@@ -26,6 +26,7 @@ export function describeRuntime(
     "Imports, modules, eval, process, filesystem, fetch, timers, classes, and prototype access are unavailable. Await every started call; use Promise.all for independent work.",
     `Limits: ${limits.timeoutMs / 1000} seconds, ${limits.maxToolCalls} calls, ${limits.maxOutputBytes / 1024} KiB of results and logs. Narrow results or paginate to avoid truncation.`,
     "A failed execution may have completed earlier writes; inspect toolCalls before retrying. Read operations remain subject to administrator access and granted scopes.",
+    "List calls return {items,total,nextOffset}. total is null when a remote provider has no count. Continue using nextOffset until null, even if a filtered remote page has no items. Example: let offset=0; const ids=[]; while(true){const page=await tools.siliconharbour.companyPublicList({limit:100,offset}); ids.push(...page.items.map(item=>item.id)); if(page.nextOffset===null) break; offset=page.nextOffset;} return ids; Stay within the call/output limits.",
     `Operations: ${catalog.length}. Areas: ${[...areas]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([area, count]) => `${area} (${count})`)

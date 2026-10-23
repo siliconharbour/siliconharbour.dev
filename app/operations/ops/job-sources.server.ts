@@ -1,3 +1,4 @@
+import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError, InvalidOperationError } from "../errors";
@@ -38,8 +39,8 @@ export const jobSourceOperations = {
     summary: "List job import sources and lifecycle counts.",
     description:
       "Return ATS configuration and active, pending, hidden, removed, filled, expired, and total job counts.",
-    input: emptyInput,
-    output: z.array(
+    input: listInput(["createdAt", "name"]),
+    output: page(
       jobSourceOutput
         .extend({
           companyName: z.string().nullable(),
@@ -54,7 +55,14 @@ export const jobSourceOperations = {
         .strict(),
     ),
     examples: [{ title: "All sources", input: {} }],
-    run: async () => toPlain(await getAllImportSources()),
+    run: async (_ctx, input) =>
+      toPlain(
+        collectionPage(await getAllImportSources(), input, {
+          createdAt: (row) => row.createdAt,
+          name: (row) => `${row.companyName ?? ""} ${row.sourceIdentifier}`,
+          sourceUrl: (row) => row.sourceUrl,
+        }),
+      ),
   }),
   jobSourceCreate: defineOperation({
     name: "jobSourceCreate",

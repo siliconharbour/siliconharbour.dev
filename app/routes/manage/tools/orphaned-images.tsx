@@ -3,7 +3,6 @@ import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/orphaned-images";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
-import { getOrphanedImagesState } from "~/lib/image-orphans.server";
 import { requireAdmin } from "~/lib/session.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -14,7 +13,17 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const url = new URL(request.url);
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
-  return getOrphanedImagesState({ page });
+  const result = await runAdminOperation(request, operationCatalog.imageOrphansList, {
+    limit: 48,
+    offset: (page - 1) * 48,
+  });
+  if (!result.ok) throw new Response(result.error, { status: 400 });
+  return {
+    ...result.data,
+    page,
+    pageSize: 48,
+    totalPages: Math.max(1, Math.ceil((result.data.total ?? 0) / 48)),
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {

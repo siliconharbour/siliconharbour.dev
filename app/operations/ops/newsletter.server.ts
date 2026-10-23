@@ -1,3 +1,5 @@
+import { listNewsletterSubscribers, listNewsletterCampaigns } from "~/lib/newsletter.server";
+import { listInput, page } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { ConflictError, InvalidOperationError } from "../errors";
@@ -53,11 +55,15 @@ export const newsletterOperations = {
     access: "admin",
     summary: "List newsletter campaigns.",
     description:
-      "Read campaigns belonging to the configured Silicon Harbour list through the lists API. Subscriber and campaign data remain administrator-only.",
-    input: emptyInput,
-    output: z.array(campaignOutput),
+      "Read campaigns belonging to the configured Silicon Harbour list through the lists API, newest first. total is null because the provider has no count. Offsets track provider rows; a filtered page may be empty with a non-null nextOffset. Subscriber and campaign data remain administrator-only.",
+    input: listInput(["createdAt"])
+      .extend({ order: z.literal("desc").default("desc") })
+      .strict(),
+    output: page(campaignOutput)
+      .extend({ total: z.null().describe("The provider does not expose a count.") })
+      .strict(),
     examples: [{ title: "Campaigns", input: {} }],
-    run: async () => getNewsletterCampaigns((await getNewsletterList()).id),
+    run: async (_ctx, input) => listNewsletterCampaigns((await getNewsletterList()).id, input),
   }),
   newsletterCampaignGet: defineOperation({
     name: "newsletterCampaignGet",
@@ -175,14 +181,13 @@ export const newsletterOperations = {
     access: "admin",
     summary: "List newsletter subscribers.",
     description:
-      "Search the configured list and return up to 50 subscribers starting at offset. Email addresses and membership status are administrator-only.",
+      "Search the configured list with limit/offset, newest first. total is null because the provider has no count; follow nextOffset until null. Email addresses and membership status are administrator-only.",
     input: subscriberListInput,
-    output: z.array(subscriberOutput),
+    output: page(subscriberOutput)
+      .extend({ total: z.null().describe("The provider does not expose a count.") })
+      .strict(),
     examples: [{ title: "Subscribers", input: {} }],
-    run: async (_ctx, input) =>
-      (
-        await getNewsletterSubscribers((await getNewsletterList()).id, input.search, input.offset)
-      ).slice(0, input.limit),
+    run: async (_ctx, input) => listNewsletterSubscribers((await getNewsletterList()).id, input),
   }),
   newsletterSubscriberCreate: defineOperation({
     name: "newsletterSubscriberCreate",

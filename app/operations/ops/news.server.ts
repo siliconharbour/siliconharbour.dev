@@ -1,3 +1,5 @@
+import { page } from "../listing";
+import { listNews } from "~/lib/content-lists.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError, InvalidOperationError } from "../errors";
@@ -27,20 +29,9 @@ export const newsOperations = {
     summary: "List news including drafts.",
     description: "Return a bounded page filtered by title, status, source, or article/link type.",
     input: newsListInput,
-    output: z.array(newsOutput),
+    output: page(newsOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) =>
-      toPlain(
-        (await getAllNews())
-          .filter(
-            (row) =>
-              (!input.query || row.title.toLowerCase().includes(input.query.toLowerCase())) &&
-              (input.status === undefined || row.status === input.status) &&
-              (input.type === undefined || row.type === input.type) &&
-              (input.sourceId === undefined || row.sourceId === input.sourceId),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      ),
+    run: async (_ctx, input) => toPlain(await listNews(input)),
   }),
   newsGet: defineOperation({
     name: "newsGet",

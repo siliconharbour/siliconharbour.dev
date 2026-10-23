@@ -1,3 +1,4 @@
+import { collectionPage } from "~/operations/listing";
 import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * TechNL job board aggregator
@@ -243,4 +244,15 @@ function decodeEntities(value: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&nbsp;/g, " ");
+}
+
+export async function getTechNLJobsPage(input: import("~/operations/listing").ListInput) {
+  const result = await fetchTechNLJobsWithMatches();
+  return {
+    ...collectionPage(result.jobs, input, {
+      title: (row) => `${row.title} ${row.company}`,
+      postedAt: (row) => row.postedAt,
+    }),
+    fetchedAt: result.fetchedAt,
+  };
 }

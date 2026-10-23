@@ -1,3 +1,4 @@
+import { listInput, page } from "../listing";
 import { z } from "zod";
 import { discordChannelTypes } from "../fields";
 export const discordDestinationOutput = z
@@ -61,28 +62,28 @@ export const discordPostOutput = z
     batchId: z.string(),
   })
   .strict();
-export const discordHistoryInput = discordTypeInput
-  .extend({ limit: z.number().int().min(1).max(100).default(10) })
+export const discordHistoryInput = listInput(["postedAt"])
+  .extend({ type: discordTypeInput.shape.type })
   .strict();
-export const discordHistoryOutput = z.array(
-  z
-    .object({
-      batchId: z.string().nullable(),
-      channelType: z.string(),
-      introText: z.string().nullable(),
-      postedAt: z.string(),
-      itemCount: z.number(),
-      skippedCount: z.number(),
-      destinations: z.array(
-        z
-          .object({
-            id: z.number(),
-            discordMessageId: z.string().nullable(),
-            discordGuildId: z.string().nullable(),
-            discordChannelId: z.string(),
-          })
-          .strict(),
-      ),
-    })
-    .strict(),
-);
+const discordHistoryItem = z
+  .object({
+    batchId: z.string().nullable(),
+    channelType: z.string(),
+    introText: z.string().nullable(),
+    postedAt: z.string(),
+    itemCount: z.number(),
+    skippedCount: z.number(),
+    destinations: z.array(
+      z
+        .object({
+          id: z.number(),
+          discordMessageId: z.string().nullable(),
+          discordGuildId: z.string().nullable(),
+          discordChannelId: z.string(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();
+
+export const discordHistoryOutput = page(discordHistoryItem);

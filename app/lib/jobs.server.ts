@@ -9,7 +9,7 @@ import {
   type NewJob,
   type WorkplaceType,
 } from "~/db/schema";
-import { eq, desc, and, count, inArray, isNotNull, isNull, like, gte } from "drizzle-orm";
+import { eq, asc, desc, and, count, inArray, isNotNull, isNull, like, gte } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
@@ -253,9 +253,20 @@ export async function getPaginatedJobs(
     workplaceType?: WorkplaceType;
     location?: string;
     lastSeenAfter?: Date;
+    sort?: "createdAt" | "postedAt" | "title" | "lastSeenAt";
+    order?: "asc" | "desc";
   },
 ): Promise<PaginatedJobs> {
   const includeNonTechnical = options?.includeNonTechnical ?? false;
+  const sortColumn = options?.sort
+    ? {
+        createdAt: jobs.createdAt,
+        postedAt: jobs.postedAt,
+        title: jobs.title,
+        lastSeenAt: jobs.lastSeenAt,
+      }[options.sort]
+    : undefined;
+  const ordering = sortColumn ? (options?.order === "asc" ? asc : desc)(sortColumn) : undefined;
 
   // Build base conditions
   const baseConditions = [];
@@ -310,7 +321,7 @@ export async function getPaginatedJobs(
       .leftJoin(companies, eq(jobs.companyId, companies.id))
       .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
       .where(and(baseCondition, inArray(jobs.id, matchingIds)))
-      .orderBy(searchRankOrder(jobs.id, matchingIds))
+      .orderBy(ordering ?? searchRankOrder(jobs.id, matchingIds), desc(jobs.id))
       .limit(limit)
       .offset(offset);
 
@@ -345,7 +356,7 @@ export async function getPaginatedJobs(
     .leftJoin(companies, eq(jobs.companyId, companies.id))
     .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
     .where(baseCondition)
-    .orderBy(desc(jobs.postedAt))
+    .orderBy(ordering ?? desc(jobs.postedAt), desc(jobs.id))
     .limit(limit)
     .offset(offset);
 

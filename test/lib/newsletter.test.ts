@@ -90,3 +90,44 @@ describe("newsletter rollout", () => {
     });
   });
 });
+
+it("returns honest provider pagination, including empty filtered campaign pages", async () => {
+  vi.stubEnv("LISTS_API_URL", "https://lists.example.com");
+  vi.stubEnv("LISTS_API_TOKEN", "test-token");
+  const requests: URL[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: URL | string) => {
+      const url = new URL(input);
+      requests.push(url);
+      const offset = Number(url.searchParams.get("offset"));
+      const data = url.pathname.endsWith("subscribers")
+        ? offset === 0
+          ? [{ id: 1 }, { id: 2 }, { id: 3 }]
+          : [{ id: 3 }]
+        : offset === 0
+          ? [
+              { id: 1, audienceType: "list", audienceId: 99, subject: "Other" },
+              { id: 2, audienceType: "list", audienceId: 99, subject: "Other" },
+              { id: 3, audienceType: "list", audienceId: 7, subject: "Community" },
+            ]
+          : [{ id: 3, audienceType: "list", audienceId: 7, subject: "Community" }];
+      return new Response(JSON.stringify({ data }), { status: 200 });
+    }),
+  );
+  const { listNewsletterSubscribers, listNewsletterCampaigns } =
+    await import("~/lib/newsletter.server");
+  const first = await listNewsletterSubscribers(7, { limit: 2, offset: 0, query: "person" });
+  expect(first).toMatchObject({ items: [{ id: 1 }, { id: 2 }], total: null, nextOffset: 2 });
+  expect(requests[0].searchParams.get("search")).toBe("person");
+  expect(await listNewsletterSubscribers(7, { limit: 2, offset: first.nextOffset! })).toMatchObject(
+    { items: [{ id: 3 }], total: null, nextOffset: null },
+  );
+  const empty = await listNewsletterCampaigns(7, { limit: 2, offset: 0 });
+  expect(empty).toMatchObject({ items: [], total: null, nextOffset: 2 });
+  expect(await listNewsletterCampaigns(7, { limit: 2, offset: empty.nextOffset! })).toMatchObject({
+    items: [{ id: 3 }],
+    total: null,
+    nextOffset: null,
+  });
+});

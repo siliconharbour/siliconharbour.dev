@@ -1,3 +1,6 @@
+import { directoryListInputs } from "../contracts/directory-lists";
+import { page } from "../listing";
+import { listPeople } from "~/lib/directory-lists.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
@@ -17,21 +20,10 @@ export const personOperations = {
     summary: "List people for administration.",
     description:
       "Return a bounded page including hidden records. Filter by query or visibility. Use personGet for one record.",
-    input: adminListInput,
-    output: z.array(personOutput),
+    input: directoryListInputs.person,
+    output: page(personOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_context, input) => {
-      const records = await getAllPeople(true);
-      return toPlain(
-        records
-          .filter(
-            (record) =>
-              (!input.query || record.name.toLowerCase().includes(input.query.toLowerCase())) &&
-              (input.visible === undefined || record.visible === input.visible),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      );
-    },
+    run: async (_ctx, input) => toPlain(listPeople(input)),
   }),
   personGet: defineOperation({
     name: "personGet",

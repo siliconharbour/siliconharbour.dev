@@ -1,3 +1,6 @@
+import { directoryListInputs } from "../contracts/directory-lists";
+import { page } from "../listing";
+import { listCompanies } from "~/lib/directory-lists.server";
 import { getTechnologiesForContent } from "~/lib/technologies.server";
 import { technologyAssignmentOutput } from "../contracts/directory-relations";
 import {
@@ -28,21 +31,10 @@ export const companyOperations = {
     summary: "List companies for administration.",
     description:
       "Return a bounded page including hidden records. Filter by query or visibility. Use companyGet for one record.",
-    input: adminListInput,
-    output: z.array(companyOutput),
+    input: directoryListInputs.company,
+    output: page(companyOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_context, input) => {
-      const records = await getAllCompanies(true);
-      return toPlain(
-        records
-          .filter(
-            (record) =>
-              (!input.query || record.name.toLowerCase().includes(input.query.toLowerCase())) &&
-              (input.visible === undefined || record.visible === input.visible),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      );
-    },
+    run: async (_ctx, input) => toPlain(listCompanies(input)),
   }),
   companyGet: defineOperation({
     name: "companyGet",

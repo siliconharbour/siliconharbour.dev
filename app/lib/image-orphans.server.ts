@@ -1,3 +1,4 @@
+import { collectionPage, type ListInput } from "~/operations/listing";
 import Database from "better-sqlite3";
 import {
   existsSync,
@@ -182,17 +183,13 @@ function writeJsonFile(path: string, data: unknown): void {
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
-export function getOrphanedImagesState(input: { page?: number; pageSize?: number } = {}) {
+export function getOrphanedImagesState(input: ListInput) {
   const stageDir = join(DATA_DIR, "orphaned-images");
   const cursorPath = join(stageDir, "cursor.json");
   const stagedPath = join(stageDir, "staged.json");
   const reportsDir = join(stageDir, "reports");
-  const pageSize = Math.min(Math.max(Math.floor(input.pageSize ?? 48), 1), 200);
   const staged = readJsonFile<StagedOrphan[]>(stagedPath, []);
   const cursor = readJsonFile<CursorState | null>(cursorPath, null);
-  const totalPages = Math.max(1, Math.ceil(staged.length / pageSize));
-  const page = Math.min(Math.max(Math.floor(input.page ?? 1), 1), totalPages);
-  const start = (page - 1) * pageSize;
 
   let reportCount = 0;
   try {
@@ -204,14 +201,16 @@ export function getOrphanedImagesState(input: { page?: number; pageSize?: number
   }
 
   return {
-    items: staged.slice(start, start + pageSize),
+    ...collectionPage(staged, input, {
+      stagedAt: (row) => row.stagedAt,
+      filename: (row) => row.filename,
+      sizeBytes: (row) => row.sizeBytes,
+      reason: (row) => row.reason,
+    }),
     stagedTotal: staged.length,
     stagedBytes: staged.reduce((total, entry) => total + entry.sizeBytes, 0),
     cursor,
     reportCount,
-    page,
-    pageSize,
-    totalPages,
   };
 }
 

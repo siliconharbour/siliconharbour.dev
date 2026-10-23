@@ -163,17 +163,28 @@ export interface ThemeShareSummary {
   createdIp: string;
   updatedIp: string;
 }
-export function listThemeShares(limit = 20, offset = 0) {
+export function listThemeShares(
+  limit = 20,
+  offset = 0,
+  query = "",
+  sort: "createdAt" | "updatedAt" | "name" = "createdAt",
+  order: "asc" | "desc" = "desc",
+) {
+  const column = { createdAt: "created_at", updatedAt: "updated_at", name: "name" }[sort];
+  if (!column) throw new Error("Unsupported theme share sort");
+  const where = "(? = '' OR instr(lower(name), ?) > 0)";
+  const params = [query.toLowerCase(), query.toLowerCase()];
   const items = rawDb
     .prepare(
-      "SELECT id,name,logo_bytes AS logoBytes,revision,created_at AS createdAt,updated_at AS updatedAt,created_ip AS createdIp,updated_ip AS updatedIp FROM theme_shares ORDER BY created_at DESC, id LIMIT ? OFFSET ?",
+      `SELECT id,name,logo_bytes AS logoBytes,revision,created_at AS createdAt,updated_at AS updatedAt,created_ip AS createdIp,updated_ip AS updatedIp FROM theme_shares WHERE ${where} ORDER BY ${column} ${order === "asc" ? "ASC" : "DESC"}, id LIMIT ? OFFSET ?`,
     )
-    .all(Math.min(100, Math.max(1, limit)), Math.max(0, offset)) as ThemeShareSummary[];
-  const { count: total } = rawDb.prepare("SELECT COUNT(*) AS count FROM theme_shares").get() as {
-    count: number;
-  };
+    .all(...params, Math.min(200, Math.max(1, limit)), Math.max(0, offset)) as ThemeShareSummary[];
+  const { count: total } = rawDb
+    .prepare(`SELECT COUNT(*) AS count FROM theme_shares WHERE ${where}`)
+    .get(...params) as { count: number };
   return { items, total };
 }
+
 export function deleteThemeShare(id: string) {
   return { deleted: rawDb.prepare("DELETE FROM theme_shares WHERE id = ?").run(id).changes > 0 };
 }

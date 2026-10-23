@@ -1,3 +1,4 @@
+import { listInput } from "../listing";
 import { z } from "zod";
 import { id, url, identifier, confirm, imageContentTypes, MAX_IMAGE_BYTES } from "../fields";
 export const imageTargetInput = z
@@ -45,12 +46,7 @@ export const imageUploadOutput = z
     expiresAt: z.string(),
   })
   .strict();
-export const orphanListInput = z
-  .object({
-    page: z.number().int().min(1).default(1),
-    pageSize: z.number().int().min(1).max(200).default(48),
-  })
-  .strict();
+export const orphanListInput = listInput(["stagedAt", "filename", "sizeBytes"]);
 export const orphanStageInput = z
   .object({
     batchSize: z.number().int().min(1).max(5000).default(250),
@@ -79,9 +75,8 @@ export const orphanListOutput = z
     stagedBytes: z.number(),
     cursor: cursorOutput.nullable(),
     reportCount: z.number(),
-    page: z.number(),
-    pageSize: z.number(),
-    totalPages: z.number(),
+    total: z.number().int().nonnegative(),
+    nextOffset: z.number().int().nonnegative().nullable(),
   })
   .strict();
 export const orphanDeleteOutput = z

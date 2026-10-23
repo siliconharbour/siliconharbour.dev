@@ -1,3 +1,4 @@
+import { listInput } from "../listing";
 import { z } from "zod";
 import { newsTypes, newsStatuses, newsSourceTypes, excerptModes } from "../fields";
 export const newsOutput = z
@@ -86,10 +87,8 @@ export const newsLinkSubmitInput = z
     confirm,
   })
   .strict();
-export const newsListInput = z
-  .object({
-    ...pagination,
-    query: z.string().max(500).optional(),
+export const newsListInput = listInput(["createdAt", "updatedAt", "title", "publishedAt"])
+  .extend({
     status: z.enum(newsStatuses).optional(),
     sourceId: id().nullable().optional(),
     type: z.enum(newsTypes).optional(),

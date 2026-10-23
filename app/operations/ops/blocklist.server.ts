@@ -1,3 +1,5 @@
+import { page } from "../listing";
+import { listBlocks } from "~/lib/content-lists.server";
 import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -20,13 +22,9 @@ export const blocklistOperations = {
     description:
       "Return a bounded page for a selected source or all directory/GitHub sources. Keys use the same normalization as importers.",
     input: blocklistListInput,
-    output: z.array(blocklistItemOutput),
+    output: page(blocklistItemOutput),
     examples: [{ title: "GitHub blocks", input: { source: "github" } }],
-    run: async (_ctx, input) => {
-      const sources = input.source ? [input.source] : ["github", "technl", "genesis", "bounce"];
-      const lists = await Promise.all(sources.map(getBlockedItems));
-      return toPlain(lists.flat().slice(input.offset, input.offset + input.limit));
-    },
+    run: async (_ctx, input) => toPlain(await listBlocks(input)),
   }),
   blocklistAdd: defineOperation({
     name: "blocklistAdd",

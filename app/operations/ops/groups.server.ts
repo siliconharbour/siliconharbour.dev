@@ -1,3 +1,6 @@
+import { directoryListInputs } from "../contracts/directory-lists";
+import { page } from "../listing";
+import { listGroups } from "~/lib/directory-lists.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
@@ -23,21 +26,10 @@ export const groupOperations = {
     summary: "List groups for administration.",
     description:
       "Return a bounded page including hidden records. Filter by query or visibility. Use groupGet for one record.",
-    input: adminListInput,
-    output: z.array(groupOutput),
+    input: directoryListInputs.group,
+    output: page(groupOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_context, input) => {
-      const records = await getAllGroups(true);
-      return toPlain(
-        records
-          .filter(
-            (record) =>
-              (!input.query || record.name.toLowerCase().includes(input.query.toLowerCase())) &&
-              (input.visible === undefined || record.visible === input.visible),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      );
-    },
+    run: async (_ctx, input) => toPlain(listGroups(input)),
   }),
   groupGet: defineOperation({
     name: "groupGet",

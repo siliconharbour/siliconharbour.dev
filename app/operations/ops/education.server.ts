@@ -1,3 +1,6 @@
+import { directoryListInputs } from "../contracts/directory-lists";
+import { page } from "../listing";
+import { listEducation } from "~/lib/directory-lists.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
@@ -23,21 +26,10 @@ export const educationOperations = {
     summary: "List education for administration.",
     description:
       "Return a bounded page including hidden records. Filter by query or visibility. Use educationGet for one record.",
-    input: adminListInput,
-    output: z.array(educationOutput),
+    input: directoryListInputs.education,
+    output: page(educationOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_context, input) => {
-      const records = await getAllEducation(true);
-      return toPlain(
-        records
-          .filter(
-            (record) =>
-              (!input.query || record.name.toLowerCase().includes(input.query.toLowerCase())) &&
-              (input.visible === undefined || record.visible === input.visible),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      );
-    },
+    run: async (_ctx, input) => toPlain(listEducation(input)),
   }),
   educationGet: defineOperation({
     name: "educationGet",

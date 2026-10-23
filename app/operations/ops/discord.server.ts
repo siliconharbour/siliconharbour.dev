@@ -1,3 +1,5 @@
+import { getPostHistoryPage } from "~/lib/discord-posts.server";
+import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { ConflictError, InvalidOperationError } from "../errors";
@@ -71,13 +73,14 @@ export const discordOperations = {
     summary: "List the bot's Discord guilds.",
     description:
       "Read live Discord guild IDs and names using the stored bot token. No credentials are returned.",
-    input: emptyInput,
-    output: z.array(discordGuildOutput),
+    input: listInput(["name"]),
+    output: page(discordGuildOutput),
     examples: [{ title: "Guilds", input: {} }],
-    run: async () => {
+    run: async (_ctx, input) => {
       const result = await listGuilds(await botToken());
       if (!result.ok) throw new InvalidOperationError(result.error ?? "Failed to load guilds");
-      return (result.guilds ?? []).map((guild) => ({ id: guild.id, name: guild.name }));
+      const rows = (result.guilds ?? []).map((guild) => ({ id: guild.id, name: guild.name }));
+      return collectionPage(rows, input, { name: (row) => row.name });
     },
   }),
   discordChannelsList: defineOperation({
@@ -88,13 +91,16 @@ export const discordOperations = {
     summary: "List postable Discord channels for a guild.",
     description:
       "Read live channel permissions using the stored bot token. Include channels the bot cannot send to with a reason.",
-    input: z.object({ guildId: text("guildId", 32).regex(/^\d+$/) }).strict(),
-    output: z.array(discordChannelOutput),
+    input: listInput(["name"])
+      .extend({ guildId: text("guildId", 32).regex(/^\d+$/) })
+      .strict(),
+    output: page(discordChannelOutput),
     examples: [{ title: "Channels", input: { guildId: "123456789012345678" } }],
-    run: async (_ctx, { guildId }) => {
-      const result = await listPostableChannels(guildId, await botToken());
+    run: async (_ctx, input) => {
+      const result = await listPostableChannels(input.guildId, await botToken());
       if (!result.ok) throw new InvalidOperationError(result.error ?? "Failed to load channels");
-      return result.channels ?? [];
+      const rows = result.channels ?? [];
+      return collectionPage(rows, input, { name: (row) => row.name });
     },
   }),
   discordDestinationList: defineOperation({
@@ -105,10 +111,15 @@ export const discordOperations = {
     summary: "List Discord posting destinations.",
     description:
       "Return configured guild/channel destinations for event or job roundups. This reads stored configuration only.",
-    input: discordTypeInput,
-    output: z.array(discordDestinationOutput),
+    input: listInput(["name"]).extend({ type: discordTypeInput.shape.type }).strict(),
+    output: page(discordDestinationOutput),
     examples: [{ title: "Event destinations", input: { type: "events" } }],
-    run: async (_ctx, { type }) => toPlain(await listDestinations(type)),
+    run: async (_ctx, input) =>
+      toPlain(
+        collectionPage(await listDestinations(input.type), input, {
+          name: (row) => `${row.guildName} ${row.channelName}`,
+        }),
+      ),
   }),
   discordDestinationAdd: defineOperation({
     name: "discordDestinationAdd",
@@ -162,14 +173,20 @@ export const discordOperations = {
     summary: "List items awaiting a Discord roundup.",
     description:
       "Return eligible public events or active jobs not already posted or skipped. Event records retain recurrence fields for message generation.",
-    input: discordTypeInput,
-    output: z.union([
-      z.array(eventOutput),
-      z.array(jobOutput.extend({ companyName: z.string().nullable() }).strict()),
-    ]),
+    input: listInput(["createdAt", "title"]).extend({ type: discordTypeInput.shape.type }).strict(),
+    output: page(
+      z.union([eventOutput, jobOutput.extend({ companyName: z.string().nullable() }).strict()]),
+    ),
     examples: [{ title: "Unposted events", input: { type: "events" } }],
-    run: async (_ctx, { type }) =>
-      toPlain(type === "events" ? await getUnpostedEvents() : await getUnpostedJobs()),
+    run: async (_ctx, input) => {
+      const rows = input.type === "events" ? await getUnpostedEvents() : await getUnpostedJobs();
+      return toPlain(
+        collectionPage(rows as Array<(typeof rows)[number]>, input, {
+          createdAt: (row) => row.createdAt,
+          title: (row) => row.title,
+        }),
+      );
+    },
   }),
   discordPost: defineOperation({
     name: "discordPost",
@@ -253,6 +270,6 @@ export const discordOperations = {
     input: discordHistoryInput,
     output: discordHistoryOutput,
     examples: [{ title: "Event history", input: { type: "events" } }],
-    run: async (_ctx, { type, limit }) => toPlain(await getPostHistory(type, limit)),
+    run: async (_ctx, input) => toPlain(await getPostHistoryPage(input.type, input)),
   }),
 };

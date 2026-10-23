@@ -1,3 +1,4 @@
+import { listInput, page } from "../listing";
 import { z } from "zod";
 import { contentTypes } from "../fields";
 export const commentOutput = z
@@ -15,12 +16,12 @@ export const commentOutput = z
     createdAt: z.iso.datetime(),
   })
   .strict();
-export const commentListInput = z
-  .object({
-    page: z.number().int().min(1).default(1),
-    perPage: z.number().int().min(1).max(200).default(20),
+export const commentListInput = listInput(["createdAt", "authorName"])
+  .extend({
+    contentType: z.enum(contentTypes).optional(),
+    contentId: z.number().int().positive().optional(),
+    createdAfter: z.iso.datetime().optional(),
+    createdBefore: z.iso.datetime().optional(),
   })
   .strict();
-export const commentListOutput = z
-  .object({ comments: z.array(commentOutput), total: z.number(), totalPages: z.number() })
-  .strict();
+export const commentListOutput = page(commentOutput);

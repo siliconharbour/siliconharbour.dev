@@ -1,3 +1,4 @@
+import { listInput } from "../listing";
 import { z } from "zod";
 import { eventTimeModes, eventTagColors, eventSourceTypes, fetchStatuses } from "../fields";
 export const eventRowOutput = z
@@ -171,10 +172,8 @@ export const eventCreateInput = z
 export const eventUpdateInput = updateContract(z.object(eventFields).partial().shape).superRefine(
   validateSchedule,
 );
-export const eventListInput = z
-  .object({
-    ...pagination,
-    query: z.string().max(500).optional(),
+export const eventListInput = listInput(["createdAt", "updatedAt", "title"])
+  .extend({
     importStatus: eventStatus.nullable().optional(),
     sourceId: id().nullable().optional(),
   })

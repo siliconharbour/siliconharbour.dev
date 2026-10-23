@@ -1,3 +1,4 @@
+import { pageResult } from "../listing";
 import { defineOperation } from "../define";
 import { listThemeShares, deleteThemeShare } from "~/lib/theme-shares.server";
 import {
@@ -19,7 +20,16 @@ export const themeShareOperations = {
     input: themeShareListInput,
     output: themeShareListOutput,
     examples: [{ title: "First page", input: {} }],
-    run: (_context, input) => listThemeShares(input.limit, input.offset),
+    run: (_context, input) => {
+      const result = listThemeShares(
+        input.limit,
+        input.offset,
+        input.query,
+        input.sort,
+        input.order,
+      );
+      return pageResult(input, result.items, result.total);
+    },
   }),
   themeShareDelete: defineOperation({
     name: "themeShareDelete",

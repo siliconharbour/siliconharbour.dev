@@ -1,3 +1,5 @@
+import { listInput } from "../listing";
+import { listReviewQueue } from "~/lib/review-queue.server";
 import { defineOperation } from "../define";
 import { emptyInput } from "../fields";
 import { dashboardOutput, reviewQueueOutput } from "../contracts/dashboard";
@@ -28,16 +30,9 @@ export const dashboardOperations = {
     summary: "Get pending events, news, and jobs.",
     description:
       "Return the unified administrator review queue. Use the corresponding eventImportApprove, newsApprove, or jobApprove operation to review an item.",
-    input: emptyInput,
+    input: listInput(["createdAt", "title"]),
     output: reviewQueueOutput,
     examples: [{ title: "Review queue", input: {} }],
-    run: async () => {
-      const [events, news, jobs] = await Promise.all([
-        getAllPendingEvents(),
-        getAllPendingNews(),
-        getAllPendingJobs(),
-      ]);
-      return toPlain({ events, news, jobs });
-    },
+    run: async (_ctx, input) => toPlain(await listReviewQueue(input)),
   }),
 };

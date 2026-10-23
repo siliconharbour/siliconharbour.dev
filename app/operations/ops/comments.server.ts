@@ -1,3 +1,5 @@
+import { page } from "../listing";
+import { listComments } from "~/lib/content-lists.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { deleteInput } from "../fields";
@@ -17,7 +19,7 @@ export const commentOperations = {
     input: commentListInput,
     output: commentListOutput,
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(await getPaginatedComments(input.page, input.perPage)),
+    run: async (_ctx, input) => toPlain(await listComments(input)),
   }),
   commentDelete: defineOperation({
     name: "commentDelete",
