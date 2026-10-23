@@ -3,7 +3,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { emptyInput, deleteInput } from "../fields";
+import { deleteInput } from "../fields";
 import { eventTagSaveInput, eventTagOutput } from "../contracts/events";
 import {
   getEventTagsWithUsage,

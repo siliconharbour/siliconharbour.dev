@@ -37,3 +37,23 @@ it("keeps migrated route mutations behind operations", () => {
     }
   }
 });
+
+it("keeps admin reads behind the catalog", () => {
+  const allowedServerImports: Record<string, string> = {
+    "~/lib/session.server": "Session authentication and logout.",
+    "~/lib/auth.server": "Login authenticates credentials outside the operation catalog.",
+    "~/lib/admin/run-operation.server": "Authenticated catalog transport.",
+    "~/lib/admin/directory-import-action.server": "Form adapter for catalog operations.",
+    "~/lib/recurrence.server": "Pure recurrence parsing and display labels; no I/O.",
+  };
+  for (const path of files("app/routes/manage")) {
+    const source = readFileSync(path, "utf8");
+    expect(source, path).not.toMatch(/from\s*["']~\/operations\/ops\//);
+    expect(source, path).not.toMatch(/import\s+(?!type\b)[^;]*from\s*["']~\/db["']/);
+    for (const match of source.matchAll(
+      /import\s+(?!type\b)[^;]*from\s*["'](~\/lib\/[^"']+\.server)["']/g,
+    )) {
+      expect(allowedServerImports[match[1]], `${path}: ${match[1]}`).toBeTruthy();
+    }
+  }
+});

@@ -1,12 +1,8 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getNewsletterFlags,
-  getNewsletterList,
-  getNewsletterStats,
-  isNewsletterConfigured,
-} from "~/lib/newsletter.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Newsletter - siliconharbour.dev" }];
@@ -14,10 +10,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const flags = await getNewsletterFlags();
-  if (!isNewsletterConfigured()) return { configured: false as const, flags };
-  const list = await getNewsletterList();
-  return { configured: true as const, flags, stats: await getNewsletterStats(list.id) };
+  return loadAdminOperation(request, operationCatalog.newsletterOverviewGet, {});
 }
 
 const links = [

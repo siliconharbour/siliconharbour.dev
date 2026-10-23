@@ -11,7 +11,7 @@ export const blocklistItemOutput = z
     blockedAt: z.iso.datetime(),
   })
   .strict();
-import { text, nullableText, confirm, pagination } from "../fields";
+import { text, nullableText, confirm } from "../fields";
 export const blocklistSource = z.enum(["github", "technl", "genesis", "bounce"]);
 export const blocklistListInput = listInput(["blockedAt", "name", "key"])
   .extend({ source: blocklistSource.optional() })

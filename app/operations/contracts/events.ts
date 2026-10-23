@@ -229,3 +229,17 @@ export const eventSyncOutput = z
 export const eventTagSaveInput = z
   .object({ id: id().optional(), name: text("name", 200), color: z.enum(eventTagColors) })
   .strict();
+
+export const occurrenceDisplayOutput = z
+  .object({
+    eventId: z.number(),
+    date: z.iso.datetime(),
+    endDate: z.iso.datetime().nullable(),
+    location: z.string().nullable(),
+    description: z.string().nullable(),
+    link: z.string().nullable(),
+    cancelled: z.boolean(),
+    isGenerated: z.boolean(),
+    overrideId: z.number().optional(),
+  })
+  .strict();

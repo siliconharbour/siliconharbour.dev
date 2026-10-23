@@ -1,11 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-import { getGroupById } from "~/lib/groups.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { parseIdOrThrow } from "~/lib/admin/route";
@@ -21,10 +20,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "group");
 
-  const group = await getGroupById(id);
-  if (!group) {
-    throw new Response("Group not found", { status: 404 });
-  }
+  const group = await loadAdminOperation(request, operationCatalog.groupGet, { id });
 
   return { group };
 }

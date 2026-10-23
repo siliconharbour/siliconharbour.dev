@@ -1,8 +1,8 @@
 import type { EventTag } from "~/db/schema";
 
 interface EventTagPickerProps {
-  availableTags: EventTag[];
-  selectedTags?: EventTag[];
+  availableTags: Pick<EventTag, "id" | "name" | "slug" | "color">[];
+  selectedTags?: Pick<EventTag, "id" | "name" | "slug" | "color">[];
 }
 
 export function EventTagPicker({ availableTags, selectedTags = [] }: EventTagPickerProps) {

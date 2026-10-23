@@ -1,7 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAllAdminItems } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getTechnologiesByCategory } from "~/lib/technologies.server";
+
 import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,7 +12,17 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const byCategory = await getTechnologiesByCategory(true);
+  const technologies = await loadAllAdminItems(request, operationCatalog.technologyList, {
+    sort: "name",
+    order: "asc",
+  });
+  const byCategory = technologies.reduce(
+    (groups, technology) => {
+      (groups[technology.category] ??= []).push(technology);
+      return groups;
+    },
+    {} as Record<string, typeof technologies>,
+  );
   return { byCategory };
 }
 

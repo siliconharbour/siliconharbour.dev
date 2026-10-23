@@ -9,7 +9,7 @@ import {
   type NewJob,
   type WorkplaceType,
 } from "~/db/schema";
-import { eq, asc, desc, and, count, inArray, isNotNull, isNull, like, gte } from "drizzle-orm";
+import { eq, asc, desc, and, count, inArray, isNotNull, isNull, like, gte, or } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
@@ -235,16 +235,14 @@ export interface PaginatedJobs {
   total: number;
 }
 
-/**
- * Get paginated active jobs with optional search
- * @param includeNonTechnical - if true, include non-technical jobs (default: false)
- */
+/** Get a filtered page of jobs with company and source summaries. */
 export async function getPaginatedJobs(
   limit: number,
   offset: number,
   searchQuery?: string,
   options?: {
     includeNonTechnical?: boolean;
+    searchCompanyNames?: boolean;
     companyId?: number;
     sourceId?: number | null;
     sourceType?: JobSourceType;
@@ -253,7 +251,7 @@ export async function getPaginatedJobs(
     workplaceType?: WorkplaceType;
     location?: string;
     lastSeenAfter?: Date;
-    sort?: "createdAt" | "postedAt" | "title" | "lastSeenAt";
+    sort?: "createdAt" | "updatedAt" | "postedAt" | "title" | "lastSeenAt";
     order?: "asc" | "desc";
   },
 ): Promise<PaginatedJobs> {
@@ -261,6 +259,7 @@ export async function getPaginatedJobs(
   const sortColumn = options?.sort
     ? {
         createdAt: jobs.createdAt,
+        updatedAt: jobs.updatedAt,
         postedAt: jobs.postedAt,
         title: jobs.title,
         lastSeenAt: jobs.lastSeenAt,
@@ -303,11 +302,25 @@ export async function getPaginatedJobs(
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("job", searchQuery);
 
-    if (matchingIds.length === 0) {
+    if (!matchingIds.length && !options?.searchCompanyNames) {
       return { items: [], total: 0 };
     }
 
-    // Filter to only active jobs that match search
+    const searchCondition = options?.searchCompanyNames
+      ? or(
+          inArray(jobs.id, matchingIds),
+          like(jobs.title, `%${searchQuery}%`),
+          like(jobs.location, `%${searchQuery}%`),
+          inArray(
+            jobs.companyId,
+            db
+              .select({ id: companies.id })
+              .from(companies)
+              .where(like(companies.name, `%${searchQuery}%`)),
+          ),
+        )
+      : inArray(jobs.id, matchingIds);
+
     const rows = await db
       .select({
         job: jobs,
@@ -320,16 +333,19 @@ export async function getPaginatedJobs(
       .from(jobs)
       .leftJoin(companies, eq(jobs.companyId, companies.id))
       .leftJoin(jobImportSources, eq(jobs.sourceId, jobImportSources.id))
-      .where(and(baseCondition, inArray(jobs.id, matchingIds)))
-      .orderBy(ordering ?? searchRankOrder(jobs.id, matchingIds), desc(jobs.id))
+      .where(and(baseCondition, searchCondition))
+      .orderBy(
+        ordering ??
+          (matchingIds.length ? searchRankOrder(jobs.id, matchingIds) : desc(jobs.createdAt)),
+        desc(jobs.id),
+      )
       .limit(limit)
       .offset(offset);
 
-    // Count total matching active jobs
     const [{ total }] = await db
       .select({ total: count() })
       .from(jobs)
-      .where(and(baseCondition, inArray(jobs.id, matchingIds)));
+      .where(and(baseCondition, searchCondition));
 
     return {
       items: rows.map(({ job, ...related }) => ({
@@ -340,7 +356,6 @@ export async function getPaginatedJobs(
     };
   }
 
-  // No search - get total count and paginated items (active only)
   const [{ total }] = await db.select({ total: count() }).from(jobs).where(baseCondition);
 
   const rows = await db

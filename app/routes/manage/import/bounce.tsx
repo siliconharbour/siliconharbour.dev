@@ -1,21 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import { runDirectoryImportAction } from "~/lib/admin/directory-import-action.server";
 import type { Route } from "./+types/bounce";
 import { useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { scrapeBounce } from "~/lib/scraper.server";
-import {
-  buildDirectoryImportLoaderData,
-  type DirectoryImportConfig,
-} from "~/lib/directory-import.server";
-import { DirectoryImportPage } from "~/components/manage/DirectoryImportPage";
 
-const config: DirectoryImportConfig = {
-  sourceKey: "bounce",
-  sourceFlag: "bounce",
-  sourceLabel: "Bounce Health Innovation",
-  defaultLocation: "St. John's, NL",
-  scrapeFn: scrapeBounce,
-};
+import { DirectoryImportPage } from "~/components/manage/DirectoryImportPage";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from Bounce Health Innovation - siliconharbour.dev" }];
@@ -23,7 +13,9 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  return buildDirectoryImportLoaderData(config);
+  return loadAdminOperation(request, operationCatalog.directoryImportReviewGet, {
+    source: "bounce",
+  });
 }
 
 export async function action({ request }: Route.ActionArgs) {

@@ -1,15 +1,17 @@
+import {
+  loadAdminOperation,
+  loadAllAdminItems,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getProjectWithImages } from "~/lib/projects.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
 import { projectTypes, projectStatuses, type ProjectImage } from "~/db/schema";
-import { getAllTechnologies, getTechnologiesForContent } from "~/lib/technologies.server";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.project?.name || "Project"} - siliconharbour.dev` }];
@@ -23,15 +25,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Invalid project ID", { status: 400 });
   }
 
-  const project = await getProjectWithImages(id);
-  if (!project) {
-    throw new Response("Project not found", { status: 404 });
-  }
+  const project = await loadAdminOperation(request, operationCatalog.projectGet, { id });
 
-  const [allTechnologies, projectTechnologies] = await Promise.all([
-    getAllTechnologies(),
-    getTechnologiesForContent("project", id),
-  ]);
+  const allTechnologies = await loadAllAdminItems(request, operationCatalog.technologyList, {
+    sort: "name",
+    order: "asc",
+  });
+  const projectTechnologies = project.technologies;
 
   return {
     project,
@@ -330,7 +330,7 @@ export default function EditProject() {
   );
 }
 
-function GalleryManager({ images }: { images: ProjectImage[] }) {
+function GalleryManager({ images }: { images: Pick<ProjectImage, "id" | "image" | "caption">[] }) {
   const fetcher = useFetcher();
 
   return (

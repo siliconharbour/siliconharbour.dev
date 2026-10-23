@@ -1,10 +1,9 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getProductById } from "~/lib/products.server";
 
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
@@ -18,10 +17,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "product");
 
-  const product = await getProductById(id);
-  if (!product) {
-    throw new Response("Product not found", { status: 404 });
-  }
+  const product = await loadAdminOperation(request, operationCatalog.productGet, { id });
 
   return { product };
 }

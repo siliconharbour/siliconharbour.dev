@@ -1,10 +1,11 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllNews } from "~/lib/news.server";
+
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 import { ManagePage } from "~/components/manage/ManagePage";
@@ -24,16 +25,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const articles = await getAllNews();
-  // Client-side filter for search
-  const filtered = searchQuery
-    ? articles.filter(
-        (a) =>
-          a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          a.excerpt?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : articles;
-  return { articles: filtered, searchQuery };
+  const { limit, offset } = parsePaginationParams(url);
+  const { items: articles, total } = await loadAdminOperation(request, operationCatalog.newsList, {
+    limit,
+    offset,
+    query: searchQuery,
+  });
+  return { articles, searchQuery, total, limit, offset };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -67,7 +65,7 @@ const statusLabels: Record<NewsStatus, string> = {
 };
 
 export default function ManageNewsIndex() {
-  const { articles } = useLoaderData<typeof loader>();
+  const { articles, total, limit, offset } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
 
   const isSubmitting = fetcher.state !== "idle";
@@ -126,6 +124,7 @@ export default function ManageNewsIndex() {
         )}
       </div>
 
+      <Pagination total={total} limit={limit} offset={offset} />
       <SearchInput placeholder="Search news..." />
 
       {articles.length === 0 ? (

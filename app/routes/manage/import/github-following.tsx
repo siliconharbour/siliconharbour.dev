@@ -1,6 +1,6 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { jsonFromForm } from "~/lib/admin/import-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/github-following";
 import { useFetcher, useLoaderData } from "react-router";
@@ -8,8 +8,6 @@ import { useState, useMemo } from "react";
 import { requireAdmin } from "~/lib/session.server";
 
 import type { GitHubUser, GitHubUserBasic } from "~/lib/github.types";
-
-import { getAllPeople } from "~/lib/people.server";
 
 import { ManagePage } from "~/components/manage/ManagePage";
 
@@ -20,13 +18,11 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
-  // Get existing people for duplicate detection
-  const existingPeople = await getAllPeople(true);
+  const existingPeople = await loadAllAdminItems(request, operationCatalog.personList);
   const existingGitHubs = new Set(
     existingPeople.filter((p) => p.github).map((p) => p.github!.toLowerCase()),
   );
 
-  // Get current job progress - this is the source of truth
   const result = await runAdminOperation(request, operationCatalog.githubFollowingStatus, {});
   if (!result.ok) throw new Response(result.error, { status: 400 });
   const progress = result.data;

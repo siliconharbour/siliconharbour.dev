@@ -25,7 +25,7 @@ import { groupOutput } from "../contracts/groups";
 import { personOutput } from "../contracts/people";
 import { educationOutput } from "../contracts/education";
 import { technologyOutput } from "../contracts/technologies";
-import { productOutput } from "../contracts/products";
+import { productListItemOutput } from "../contracts/products";
 import { projectOutput } from "../contracts/projects";
 import { getPaginatedEvents } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
@@ -172,7 +172,7 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Follow the public directory visibility rules. Administrators use productList for moderation data.",
     input: publicListInput,
-    output: page(productOutput),
+    output: page(productListItemOutput),
     examples: [{ title: "First page", input: {} }],
     run: async (_ctx, input) => toPlain(listProducts({ ...input })),
   }),

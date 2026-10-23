@@ -1,15 +1,17 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/theme-shares";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { listThemeShares } from "~/lib/theme-shares.server";
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const rawOffset = Number(new URL(request.url).searchParams.get("offset"));
   const offset = Number.isSafeInteger(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
-  return { ...listThemeShares(20, offset), offset };
+  return {
+    ...(await loadAdminOperation(request, operationCatalog.themeShareList, { limit: 20, offset })),
+    offset,
+  };
 }
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);

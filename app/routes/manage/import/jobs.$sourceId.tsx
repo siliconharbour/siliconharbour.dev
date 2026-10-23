@@ -1,7 +1,7 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { jsonFromForm } from "~/lib/admin/import-form-adapters";
 import { VERAFIN_BROWSER_SCRIPT } from "~/lib/job-importers/verafin-browser-script";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import { defaultLastVerifiedMonth, isVerafinManualSource } from "~/lib/job-importers/manual";
 import type { Route } from "./+types/jobs.$sourceId";
@@ -9,8 +9,6 @@ import { Link, useLoaderData, useFetcher, redirect } from "react-router";
 import type { ReactNode } from "react";
 import { requireAdmin } from "~/lib/session.server";
 
-import { getImportSourceWithStats } from "~/lib/job-importers/sync.server";
-import { getCompanyById } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
 import {
@@ -32,12 +30,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  const source = await getImportSourceWithStats(sourceId);
+  const source = await loadAdminOperation(request, operationCatalog.jobSourceGet, { id: sourceId });
   if (!source) {
     throw new Response("Not Found", { status: 404 });
   }
 
-  const company = await getCompanyById(source.companyId);
+  const company = await loadAdminOperation(request, operationCatalog.companyGet, {
+    id: source.companyId,
+  });
 
   return { source, company, isVerafinManualMode: isVerafinManualSource(source) };
 }
@@ -125,7 +125,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     : ({ success: false, error: result.error } as const);
 }
 
-function formatDate(date: Date | null | undefined): string {
+function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "Never";
   return new Date(date).toLocaleString("en-CA", {
     dateStyle: "medium",

@@ -1,11 +1,9 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/settings";
 import { Form, Link, useActionData, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsletterFlags } from "~/lib/newsletter.server";
-import { getTurnstileSiteKey, isTurnstileEnabled } from "~/lib/turnstile.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Newsletter settings - siliconharbour.dev" }];
@@ -13,10 +11,12 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  return {
-    flags: await getNewsletterFlags(),
-    signupVerificationReady: Boolean(getTurnstileSiteKey() && isTurnstileEnabled()),
-  };
+  const { signupVerificationReady, publicSignup, liveSend } = await loadAdminOperation(
+    request,
+    operationCatalog.newsletterSettingsGet,
+    {},
+  );
+  return { flags: { publicSignup, liveSend }, signupVerificationReady };
 }
 
 export async function action({ request }: Route.ActionArgs) {

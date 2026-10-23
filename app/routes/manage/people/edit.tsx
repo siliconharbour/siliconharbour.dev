@@ -1,10 +1,9 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPersonById } from "~/lib/people.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 
@@ -20,10 +19,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Invalid ID", { status: 400 });
   }
 
-  const person = await getPersonById(id);
-  if (!person) {
-    throw new Response("Person not found", { status: 404 });
-  }
+  const person = await loadAdminOperation(request, operationCatalog.personGet, { id });
 
   const socialLinks = person.socialLinks ?? {};
 

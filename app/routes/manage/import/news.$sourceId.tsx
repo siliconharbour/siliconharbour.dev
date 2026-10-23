@@ -1,11 +1,11 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { newsSourceFormInput } from "~/lib/admin/content-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/news.$sourceId";
 import { Link, redirect, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsSourceWithItems } from "~/lib/news-importers/sync.server";
+
 import { sourceTypeLabels, excerptModes, excerptModeLabels } from "~/lib/news-importers/types";
 
 import { format } from "date-fns";
@@ -19,7 +19,7 @@ function NewsItemRow({
     title: string;
     externalUrl: string | null;
     excerpt: string | null;
-    publishedAt: Date | null;
+    publishedAt: Date | string | null;
     slug: string;
   };
   actions: { label: string; value: string; className: string }[];
@@ -84,7 +84,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const sourceId = Number(params.sourceId);
   if (!sourceId) throw new Response("Not Found", { status: 404 });
 
-  const source = await getNewsSourceWithItems(sourceId);
+  const source = await loadAdminOperation(request, operationCatalog.newsSourceGet, {
+    id: sourceId,
+  });
   if (!source) throw new Response("Not Found", { status: 404 });
 
   return { source };

@@ -1,10 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getGroupById } from "~/lib/groups.server";
+
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
@@ -17,10 +17,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "group");
 
-  const group = await getGroupById(id);
-  if (!group) {
-    throw new Response("Group not found", { status: 404 });
-  }
+  const group = await loadAdminOperation(request, operationCatalog.groupGet, { id });
 
   return { group };
 }

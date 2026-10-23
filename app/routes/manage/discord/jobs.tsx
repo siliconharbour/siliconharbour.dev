@@ -1,12 +1,13 @@
+import {
+  loadAdminOperation,
+  loadAllAdminItems,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/jobs";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getDiscordConfig } from "~/lib/config.server";
-import { listDestinations } from "~/lib/discord-destinations.server";
-import { getUnpostedJobs, getPostHistory } from "~/lib/discord-posts.server";
 
 import { format } from "date-fns";
 
@@ -17,16 +18,19 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const [config, destinations, unpostedJobs, history] = await Promise.all([
-    getDiscordConfig(),
-    listDestinations("jobs"),
-    getUnpostedJobs(),
-    getPostHistory("jobs"),
+    loadAdminOperation(request, operationCatalog.discordConfigGet, {}),
+    loadAllAdminItems(request, operationCatalog.discordDestinationList, { type: "jobs" }),
+    loadAllAdminItems(request, operationCatalog.discordUnpostedList, { type: "jobs" }),
+    loadAllAdminItems(request, operationCatalog.discordPostHistory, { type: "jobs" }),
   ]);
 
   return {
-    configured: Boolean(config.botToken && destinations.length > 0),
+    configured: Boolean(config.botTokenConfigured && destinations.length > 0),
     destinations,
-    jobs: unpostedJobs,
+    jobs: unpostedJobs.map((job) => {
+      if (!("companyName" in job)) throw new Error("Expected a job in the Discord job queue");
+      return job;
+    }),
     history,
   };
 }
@@ -85,7 +89,7 @@ function JobRow({
     location: string | null;
     workplaceType: string | null;
     isTechnical: boolean;
-    postedAt: Date | null;
+    postedAt: Date | string | null;
   };
 }) {
   return (

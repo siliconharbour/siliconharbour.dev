@@ -1,15 +1,16 @@
+import {
+  loadAdminOperation,
+  loadAllAdminItems,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/events";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getDiscordConfig } from "~/lib/config.server";
-import { listDestinations } from "~/lib/discord-destinations.server";
-import { getUnpostedEvents, getPostHistory } from "~/lib/discord-posts.server";
 
 import { format } from "date-fns";
-import { getGeneratedOccurrences } from "~/lib/events.server";
+
 import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
 import { formatInTimezone } from "~/lib/timezone";
 
@@ -20,37 +21,27 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const [config, destinations, unpostedEvents, history] = await Promise.all([
-    getDiscordConfig(),
-    listDestinations("events"),
-    getUnpostedEvents(),
-    getPostHistory("events"),
+    loadAdminOperation(request, operationCatalog.discordConfigGet, {}),
+    loadAllAdminItems(request, operationCatalog.discordDestinationList, { type: "events" }),
+    loadAllAdminItems(request, operationCatalog.discordUnpostedList, { type: "events" }),
+    loadAllAdminItems(request, operationCatalog.discordPostHistory, { type: "events" }),
   ]);
 
   // For recurring events without explicit dates, generate synthetic dates
   // Also compute a human-readable recurrence label for display
   const eventsWithDates = unpostedEvents.map((event) => {
+    if (!("dates" in event)) throw new Error("Expected an event in the Discord event queue");
     let recurrenceLabel: string | null = null;
     if (event.recurrenceRule) {
       const parsed = parseRecurrenceRule(event.recurrenceRule);
       if (parsed) recurrenceLabel = describeRecurrenceRule(parsed);
     }
 
-    if (event.dates.length === 0 && event.recurrenceRule) {
-      const occurrences = getGeneratedOccurrences(event);
-      const syntheticDates = occurrences.slice(0, 1).map((date, i) => ({
-        id: -(i + 1),
-        eventId: event.id,
-        startDate: date,
-        endDate: null,
-        isAllDay: !event.defaultStartTime,
-      }));
-      return { ...event, dates: syntheticDates, recurrenceLabel };
-    }
     return { ...event, recurrenceLabel };
   });
 
   return {
-    configured: Boolean(config.botToken && destinations.length > 0),
+    configured: Boolean(config.botTokenConfigured && destinations.length > 0),
     destinations,
     events: eventsWithDates,
     history,

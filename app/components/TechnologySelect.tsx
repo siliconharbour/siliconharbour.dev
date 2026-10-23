@@ -2,8 +2,10 @@ import { useState } from "react";
 import type { Technology, TechnologyCategory } from "~/db/schema";
 import { categoryLabels } from "~/lib/technology-categories";
 
+type TechnologyChoice = Pick<Technology, "id" | "name" | "category" | "icon">;
+
 interface TechnologySelectProps {
-  technologies: Technology[];
+  technologies: TechnologyChoice[];
   selectedIds: number[];
   name?: string;
 }
@@ -26,7 +28,7 @@ export function TechnologySelect({
       acc[tech.category].push(tech);
       return acc;
     },
-    {} as Record<TechnologyCategory, Technology[]>,
+    {} as Record<TechnologyCategory, TechnologyChoice[]>,
   );
 
   // Filter by search
@@ -39,7 +41,7 @@ export function TechnologySelect({
       }
       return acc;
     },
-    {} as Record<TechnologyCategory, Technology[]>,
+    {} as Record<TechnologyCategory, TechnologyChoice[]>,
   );
 
   const toggleTech = (id: number) => {

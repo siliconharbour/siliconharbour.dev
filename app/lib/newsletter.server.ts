@@ -187,7 +187,13 @@ export async function getNewsletterList() {
   const slug = process.env.LISTS_LIST_SLUG ?? "siliconharbour";
   const list = lists.find((item) => item.slug === slug);
   if (!list) throw new InvalidOperationError(`Lists mailing list '${slug}' was not found`);
-  return list;
+  return {
+    id: list.id,
+    slug: list.slug,
+    name: list.name,
+    fromDomain: list.fromDomain,
+    fromAddress: list.fromAddress,
+  };
 }
 
 export async function getNewsletterStats(listId: number) {

@@ -1,14 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getTechnologyById,
-  getCompaniesUsingTechnology,
-  getProjectsUsingTechnology,
-} from "~/lib/technologies.server";
+
 import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
 
 import { ImageUpload } from "~/components/ImageUpload";
@@ -25,15 +21,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Invalid technology ID", { status: 400 });
   }
 
-  const technology = await getTechnologyById(id);
-  if (!technology) {
-    throw new Response("Technology not found", { status: 404 });
-  }
+  const technology = await loadAdminOperation(request, operationCatalog.technologyGet, { id });
 
-  const [companiesUsing, projectsUsing] = await Promise.all([
-    getCompaniesUsingTechnology(id),
-    getProjectsUsingTechnology(id),
-  ]);
+  const { companiesUsing, projectsUsing } = technology;
 
   return {
     technology,

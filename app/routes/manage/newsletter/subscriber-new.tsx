@@ -1,11 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/subscriber-new";
 import { Form, Link, redirect, useActionData } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsletterList, pilotEmails } from "~/lib/newsletter.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Add newsletter subscriber - siliconharbour.dev" }];
@@ -13,8 +12,13 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  await getNewsletterList();
-  return { pilotCount: pilotEmails().length };
+  await loadAdminOperation(request, operationCatalog.newsletterListGet, {});
+  const { pilotCount } = await loadAdminOperation(
+    request,
+    operationCatalog.newsletterSettingsGet,
+    {},
+  );
+  return { pilotCount };
 }
 
 export async function action({ request }: Route.ActionArgs) {

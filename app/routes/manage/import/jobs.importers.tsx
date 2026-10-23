@@ -1,7 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAllAdminItems } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/jobs.importers";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllImporterMeta } from "~/lib/job-importers/index";
+
 import type { ImporterReliability } from "~/lib/job-importers/types";
 
 export function meta({}: Route.MetaArgs) {
@@ -13,11 +15,11 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const importers = getAllImporterMeta();
+  const importers = await loadAllAdminItems(request, operationCatalog.importerTypeList);
   return { importers };
 }
 
-const reliabilityColors: Record<ImporterReliability, string> = {
+const reliabilityColors: Record<string, string> = {
   high: "bg-green-100 text-green-700",
   "medium-high": "bg-green-50 text-green-600",
   medium: "bg-amber-100 text-amber-700",
@@ -26,7 +28,7 @@ const reliabilityColors: Record<ImporterReliability, string> = {
   mixed: "bg-tint text-body",
 };
 
-const reliabilityLabels: Record<ImporterReliability, string> = {
+const reliabilityLabels: Record<string, string> = {
   high: "High",
   "medium-high": "Medium-High",
   medium: "Medium",

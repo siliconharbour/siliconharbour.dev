@@ -1,18 +1,11 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/detail";
 import { Form, Link, useActionData, useLoaderData } from "react-router";
 import { z } from "zod";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getConfirmedPilotSubscriberIds,
-  getNewsletterCampaign,
-  getNewsletterFlags,
-  getNewsletterList,
-  getNewsletterPreview,
-  getNewsletterSends,
-} from "~/lib/newsletter.server";
+
 import { newsletterAudience } from "~/lib/newsletter-audience";
 
 export function meta({}: Route.MetaArgs) {
@@ -22,19 +15,17 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAdmin(request);
   const id = z.coerce.number().int().positive().parse(params.id);
-  const list = await getNewsletterList();
-  const campaign = await getNewsletterCampaign(id, list.id);
   const page = Math.max(
     1,
     Number.parseInt(new URL(request.url).searchParams.get("page") ?? "1", 10) || 1,
   );
-  const [preview, flags, pilotIds, sends] = await Promise.all([
-    getNewsletterPreview(id),
-    getNewsletterFlags(),
-    getConfirmedPilotSubscriberIds(list.id),
-    getNewsletterSends(id, (page - 1) * 50),
-  ]);
-  return { campaign, preview, flags, pilotCount: pilotIds.length, sends, page };
+  return {
+    ...(await loadAdminOperation(request, operationCatalog.newsletterCampaignGet, {
+      id,
+      offset: (page - 1) * 50,
+    })),
+    page,
+  };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {

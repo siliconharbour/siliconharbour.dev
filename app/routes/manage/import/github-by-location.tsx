@@ -1,10 +1,10 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 import type { z } from "zod";
 import type { githubProgressOutput } from "~/operations/contracts/importers";
 type ImportProgress = z.output<typeof githubProgressOutput>;
 import { jsonFromForm } from "~/lib/admin/import-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/github-by-location";
 import { useFetcher, useLoaderData } from "react-router";
@@ -12,9 +12,7 @@ import { useState, useEffect } from "react";
 import { requireAdmin } from "~/lib/session.server";
 
 import type { GitHubUser } from "~/lib/github.types";
-import { getAllPeople } from "~/lib/people.server";
 
-import { getBlockedExternalIds } from "~/lib/import-blocklist.server";
 import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
@@ -24,17 +22,18 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
-  // Get existing people for duplicate detection
-  const existingPeople = await getAllPeople(true); // include hidden
+  const existingPeople = await loadAllAdminItems(request, operationCatalog.personList);
   const existingNames = new Set(existingPeople.map((p) => p.name.toLowerCase()));
   const existingGitHubs = new Set(
     existingPeople.filter((p) => p.github).map((p) => p.github!.toLowerCase()),
   );
 
-  // Get blocked GitHub URLs
-  const blockedGitHubs = await getBlockedExternalIds("github");
+  const blockedGitHubs = new Set(
+    (await loadAllAdminItems(request, operationCatalog.blocklistList, { source: "github" })).map(
+      (item) => item.key,
+    ),
+  );
 
-  // Get bulk import progress
   const result = await runAdminOperation(request, operationCatalog.githubLocationBulkStatus, {});
   if (!result.ok) throw new Response(result.error, { status: 400 });
   const importProgress = result.data;

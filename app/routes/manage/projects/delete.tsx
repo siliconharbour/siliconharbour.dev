@@ -1,10 +1,9 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getProjectById } from "~/lib/projects.server";
 
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
@@ -18,10 +17,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "project");
 
-  const project = await getProjectById(id);
-  if (!project) {
-    throw new Response("Project not found", { status: 404 });
-  }
+  const project = await loadAdminOperation(request, operationCatalog.projectGet, { id });
 
   return { project };
 }

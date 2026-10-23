@@ -1,3 +1,4 @@
+import { isNewsletterConfigured, getNewsletterStats } from "~/lib/newsletter.server";
 import { createIfAbsent, identityKey } from "../creation.server";
 import { findNewsletterSubscriberForCreate } from "~/lib/newsletter.server";
 import { findNewsletterCampaignForCreate } from "~/lib/newsletter.server";
@@ -48,7 +49,63 @@ async function assertSignupAllowed(email: string) {
       "Only configured pilot addresses can be added while public signup is off.",
     );
 }
+const mailingListOutput = z
+  .object({
+    id: z.number(),
+    slug: z.string(),
+    name: z.string(),
+    fromDomain: z.string(),
+    fromAddress: z.string(),
+  })
+  .strict();
 export const newsletterOperations = {
+  newsletterListGet: defineOperation({
+    name: "newsletterListGet",
+    area: "newsletter",
+    risk: "read",
+    access: "admin",
+    summary: "Get the configured mailing list.",
+    description:
+      "Return the list identity and sender address. No credentials are returned; missing configuration fails.",
+    input: emptyInput,
+    output: mailingListOutput,
+    examples: [{ title: "Mailing list", input: {} }],
+    run: () => getNewsletterList(),
+  }),
+  newsletterOverviewGet: defineOperation({
+    name: "newsletterOverviewGet",
+    area: "newsletter",
+    risk: "read",
+    access: "admin",
+    summary: "Get newsletter configuration and subscriber counts.",
+    description:
+      "Return rollout flags and provider counts when configured. Provider errors remain visible; an unconfigured service makes no outbound request.",
+    input: emptyInput,
+    output: z.discriminatedUnion("configured", [
+      z.object({ configured: z.literal(false), flags: newsletterFlags }).strict(),
+      z
+        .object({
+          configured: z.literal(true),
+          flags: newsletterFlags,
+          stats: z
+            .object({
+              listId: z.number(),
+              confirmed: z.number(),
+              unconfirmed: z.number(),
+              unsubscribed: z.number(),
+            })
+            .strict(),
+        })
+        .strict(),
+    ]),
+    examples: [{ title: "Overview", input: {} }],
+    run: async () => {
+      const flags = await getNewsletterFlags();
+      if (!isNewsletterConfigured()) return { configured: false as const, flags };
+      const list = await getNewsletterList();
+      return { configured: true as const, flags, stats: await getNewsletterStats(list.id) };
+    },
+  }),
   newsletterCampaignList: defineOperation({
     name: "newsletterCampaignList",
     area: "newsletter",
@@ -310,9 +367,15 @@ export const newsletterOperations = {
     summary: "Get newsletter rollout flags.",
     description: "Return publicSignup and liveSend. Configuration credentials are never returned.",
     input: emptyInput,
-    output: newsletterFlags,
+    output: newsletterFlags
+      .extend({ signupVerificationReady: z.boolean(), pilotCount: z.number().int().nonnegative() })
+      .strict(),
     examples: [{ title: "Rollout flags", input: {} }],
-    run: () => getNewsletterFlags(),
+    run: async () => ({
+      ...(await getNewsletterFlags()),
+      signupVerificationReady: Boolean(getTurnstileSiteKey() && isTurnstileEnabled()),
+      pilotCount: pilotEmails().length,
+    }),
   }),
   newsletterSettingsSet: defineOperation({
     name: "newsletterSettingsSet",

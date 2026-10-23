@@ -10,7 +10,7 @@ import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
 import { lookupInput, deleteInput } from "../fields";
 import { productCreateInput, productUpdateInput } from "../contracts/products";
-import { productOutput } from "../contracts/products";
+import { productOutput, productListItemOutput } from "../contracts/products";
 import {
   createProduct,
   updateProduct,
@@ -30,7 +30,7 @@ export const productOperations = {
     description:
       "Return a bounded page including hidden records. Filter by query or visibility. Use productGet for one record.",
     input: directoryListInputs.product,
-    output: page(productOutput),
+    output: page(productListItemOutput),
     examples: [{ title: "First page", input: {} }],
     run: async (_ctx, input) => toPlain(listProducts(input)),
   }),

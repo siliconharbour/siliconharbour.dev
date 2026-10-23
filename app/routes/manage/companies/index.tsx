@@ -1,19 +1,12 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
-import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useSearchParams, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getHiddenCompaniesCount, getVisibleCompaniesCount } from "~/lib/companies.server";
-import { db } from "~/db";
-import { companies, jobImportSources } from "~/db/schema";
-import { asc, and, or, eq, isNull, notInArray, count as countFn } from "drizzle-orm";
-import type { SQL } from "drizzle-orm";
+
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
-import { searchContentIds, searchRankOrder } from "~/lib/search.server";
-import { inArray } from "drizzle-orm";
 
 const PER_PAGE = 50;
 
@@ -25,33 +18,6 @@ const MISSING_FILTERS = {
   careers: "No Careers URL",
   "no-source": "No Job Source",
 } as const;
-
-/**
- * Build the WHERE condition for a missing-field filter.
- * Called inside the loader so DB references stay server-side.
- */
-function getFilterCondition(key: string): SQL | undefined {
-  const empty = (col: AnySQLiteColumn) => or(isNull(col), eq(col, ""));
-  switch (key) {
-    case "logo":
-      return empty(companies.logo);
-    case "linkedin":
-      return empty(companies.linkedin);
-    case "location":
-      return empty(companies.location);
-    case "founded":
-      return isNull(companies.founded);
-    case "careers":
-      return empty(companies.careersUrl);
-    case "no-source":
-      return notInArray(
-        companies.id,
-        db.selectDistinct({ id: jobImportSources.companyId }).from(jobImportSources),
-      );
-    default:
-      return undefined;
-  }
-}
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage Companies - siliconharbour.dev" }];
@@ -65,89 +31,44 @@ export async function loader({ request }: Route.LoaderArgs) {
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const offset = (page - 1) * PER_PAGE;
 
-  // Build WHERE conditions
-  const conditions: SQL[] = [];
-  let rankedSearchIds: number[] | null = null;
-
-  // Search filter
-  if (searchQuery.trim()) {
-    const matchingIds = searchContentIds("company", searchQuery);
-    if (matchingIds.length === 0) {
-      const [hiddenCount, visibleCount] = await Promise.all([
-        getHiddenCompaniesCount(),
-        getVisibleCompaniesCount(),
-      ]);
-      return {
-        companies: [],
-        searchQuery,
-        missingFilter: missingParam,
-        hiddenCount,
-        visibleCount,
-        currentPage: 1,
-        totalPages: 0,
-        total: 0,
-        filterCounts: {} as Record<string, number>,
-      };
-    }
-    rankedSearchIds = matchingIds;
-    conditions.push(inArray(companies.id, matchingIds));
-  }
-
-  // Missing field filter
-  const filterCondition = getFilterCondition(missingParam);
-  if (filterCondition) {
-    conditions.push(filterCondition);
-    // Only show visible companies when filtering by missing fields
-    conditions.push(eq(companies.visible, true));
-  }
-
-  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-  // Count + fetch in parallel
-  const [[{ total }], items] = await Promise.all([
-    db.select({ total: countFn() }).from(companies).where(whereClause),
-    db
-      .select()
-      .from(companies)
-      .where(whereClause)
-      .orderBy(
-        rankedSearchIds ? searchRankOrder(companies.id, rankedSearchIds) : asc(companies.name),
-      )
-      .limit(PER_PAGE)
-      .offset(offset),
-  ]);
-
-  const totalPages = Math.ceil(total / PER_PAGE);
-
-  // Get counts for each missing filter (visible companies only)
-  const filterCountResults = await Promise.all(
-    Object.keys(MISSING_FILTERS).map(async (key) => {
-      const cond = getFilterCondition(key);
-      if (!cond) return [key, 0] as const;
-      const [{ cnt }] = await db
-        .select({ cnt: countFn() })
-        .from(companies)
-        .where(and(eq(companies.visible, true), cond));
-      return [key, cnt] as const;
+  const missing = Object.hasOwn(MISSING_FILTERS, missingParam) ? missingParam : undefined;
+  const [result, hidden, visible, filters] = await Promise.all([
+    loadAdminOperation(request, operationCatalog.companyList, {
+      limit: PER_PAGE,
+      offset,
+      query: searchQuery,
+      sort: "name",
+      order: "asc",
+      ...(missing && { missing, visible: true }),
     }),
-  );
-  const filterCounts = Object.fromEntries(filterCountResults) as Record<string, number>;
-
-  const [hiddenCount, visibleCount] = await Promise.all([
-    getHiddenCompaniesCount(),
-    getVisibleCompaniesCount(),
+    loadAdminOperation(request, operationCatalog.companyList, { limit: 1, visible: false }),
+    loadAdminOperation(request, operationCatalog.companyList, { limit: 1, visible: true }),
+    Promise.all(
+      Object.keys(MISSING_FILTERS).map(
+        async (missing) =>
+          [
+            missing,
+            (
+              await loadAdminOperation(request, operationCatalog.companyList, {
+                limit: 1,
+                visible: true,
+                missing,
+              })
+            ).total,
+          ] as const,
+      ),
+    ),
   ]);
-
   return {
-    companies: items,
+    companies: result.items,
+    total: result.total,
     searchQuery,
-    missingFilter: missingParam,
-    hiddenCount,
-    visibleCount,
+    missingFilter: missing ?? "",
+    hiddenCount: hidden.total,
+    visibleCount: visible.total,
     currentPage: page,
-    totalPages,
-    total,
-    filterCounts,
+    totalPages: Math.ceil(result.total / PER_PAGE),
+    filterCounts: Object.fromEntries(filters),
   };
 }
 

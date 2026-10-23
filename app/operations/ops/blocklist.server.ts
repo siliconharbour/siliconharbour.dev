@@ -10,7 +10,7 @@ import {
   blocklistRemoveInput,
   blocklistItemOutput,
 } from "../contracts/blocklist";
-import { getBlockedItems, unblockItem } from "~/lib/import-blocklist.server";
+import { unblockItem } from "~/lib/import-blocklist.server";
 import { blockImportedIdentity } from "~/lib/blocklist-admin.server";
 export const blocklistOperations = {
   blocklistList: defineOperation({

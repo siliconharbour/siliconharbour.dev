@@ -1,12 +1,11 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { newsFormInput } from "~/lib/admin/content-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsById } from "~/lib/news.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import type { NewsType, NewsStatus } from "~/db/schema";
@@ -36,10 +35,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "article");
 
-  const article = await getNewsById(id);
-  if (!article) {
-    throw new Response("Article not found", { status: 404 });
-  }
+  const article = await loadAdminOperation(request, operationCatalog.newsGet, { id });
 
   return { article };
 }

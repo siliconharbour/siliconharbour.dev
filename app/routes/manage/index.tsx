@@ -1,7 +1,8 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAdminDashboardCounts } from "~/lib/admin-dashboard.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Manage - siliconharbour.dev" }];
@@ -9,7 +10,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const dashboard = await getAdminDashboardCounts();
+  const dashboard = await loadAdminOperation(request, operationCatalog.dashboardCounts, {});
   return dashboard;
 }
 

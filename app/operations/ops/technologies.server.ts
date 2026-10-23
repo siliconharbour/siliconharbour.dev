@@ -16,6 +16,8 @@ import {
   deleteTechnology,
   getTechnologyById,
   getAllTechnologies,
+  getCompaniesUsingTechnology,
+  getProjectsUsingTechnology,
 } from "~/lib/technologies.server";
 import { withEntityImages } from "~/lib/entity-images.server";
 
@@ -42,7 +44,30 @@ export const technologyOperations = {
     description:
       "Return the stored record including hidden fields for administration. Throws when the record does not exist.",
     input: lookupInput,
-    output: technologyOutput,
+    output: technologyOutput
+      .extend({
+        companiesUsing: z.array(
+          z
+            .object({
+              id: z.number(),
+              slug: z.string(),
+              name: z.string(),
+              logo: z.string().nullable(),
+            })
+            .strict(),
+        ),
+        projectsUsing: z.array(
+          z
+            .object({
+              id: z.number(),
+              slug: z.string(),
+              name: z.string(),
+              logo: z.string().nullable(),
+            })
+            .strict(),
+        ),
+      })
+      .strict(),
     examples: [{ title: "By ID", input: { id: 1 } }],
     run: async (_context, input) => {
       const record =
@@ -54,7 +79,11 @@ export const technologyOperations = {
                 : item.name.toLowerCase() === input.name?.toLowerCase(),
             );
       if (!record) throw new NotFoundError("Technology not found");
-      return toPlain(record);
+      return toPlain({
+        ...record,
+        companiesUsing: await getCompaniesUsingTechnology(record.id),
+        projectsUsing: await getProjectsUsingTechnology(record.id),
+      });
     },
   }),
   technologyCreate: defineOperation({

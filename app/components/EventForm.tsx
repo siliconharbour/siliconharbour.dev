@@ -10,9 +10,34 @@ import { EventTimingFields, type EventFormTiming } from "./EventTimingFields";
 import { EventTagPicker } from "./EventTagPicker";
 
 type EventFormProps = {
-  event?: Event & { dates: EventDate[]; tags?: EventTag[] };
+  event?: Pick<
+    Event,
+    | "title"
+    | "description"
+    | "link"
+    | "location"
+    | "organizer"
+    | "coverImage"
+    | "iconImage"
+    | "timeMode"
+    | "parentEventId"
+    | "recurrenceRule"
+    | "defaultStartTime"
+    | "defaultEndTime"
+    | "requiresSignup"
+  > & {
+    recurrenceStart: Date | string | null;
+    recurrenceEnd: Date | string | null;
+    dates: Array<
+      Omit<EventDate, "startDate" | "endDate"> & {
+        startDate: Date | string;
+        endDate: Date | string | null;
+      }
+    >;
+    tags?: Pick<EventTag, "id" | "name" | "slug" | "color">[];
+  };
   periodOptions?: Array<Pick<Event, "id" | "title">>;
-  availableTags?: EventTag[];
+  availableTags?: Pick<EventTag, "id" | "name" | "slug" | "color">[];
   error?: string;
   showPublish?: boolean;
   showUnpublish?: boolean;
@@ -113,11 +138,11 @@ export function EventForm({
   const [defaultEndTime, setDefaultEndTime] = useState(event?.defaultEndTime || "21:00");
   const [hasEndTime, setHasEndTime] = useState(!!event?.defaultEndTime);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<Date | null>(
-    event?.recurrenceEnd || null,
+    event?.recurrenceEnd ? new Date(event.recurrenceEnd) : null,
   );
   const [showRecurrenceEndPicker, setShowRecurrenceEndPicker] = useState(false);
   const [recurrenceStartDate, setRecurrenceStartDate] = useState<Date | null>(
-    event?.recurrenceStart || null,
+    event?.recurrenceStart ? new Date(event.recurrenceStart) : null,
   );
   const [showRecurrenceStartPicker, setShowRecurrenceStartPicker] = useState(false);
   const [requiresSignup, setRequiresSignup] = useState(event?.requiresSignup ?? false);
@@ -127,10 +152,10 @@ export function EventForm({
     if (!isExistingRecurring && event?.dates.length) {
       return event.dates.map((d, i) => ({
         id: `existing-${i}`,
-        startDate: d.startDate,
-        startTime: getTimeInTimezone(d.startDate),
-        endDate: d.endDate,
-        endTime: d.endDate ? getTimeInTimezone(d.endDate) : "",
+        startDate: new Date(d.startDate),
+        startTime: getTimeInTimezone(new Date(d.startDate)),
+        endDate: d.endDate ? new Date(d.endDate) : null,
+        endTime: d.endDate ? getTimeInTimezone(new Date(d.endDate)) : "",
         isRange: !!d.endDate,
         isAllDay: d.isAllDay ?? false,
       }));

@@ -1,14 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getTechnologyById,
-  getCompaniesUsingTechnology,
-  getProjectsUsingTechnology,
-} from "~/lib/technologies.server";
+
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
@@ -21,15 +17,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "technology");
 
-  const technology = await getTechnologyById(id);
-  if (!technology) {
-    throw new Response("Technology not found", { status: 404 });
-  }
+  const technology = await loadAdminOperation(request, operationCatalog.technologyGet, { id });
 
-  const [companiesUsing, projectsUsing] = await Promise.all([
-    getCompaniesUsingTechnology(id),
-    getProjectsUsingTechnology(id),
-  ]);
+  const { companiesUsing, projectsUsing } = technology;
 
   return { technology, usageCount: companiesUsing.length + projectsUsing.length };
 }

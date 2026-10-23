@@ -1,12 +1,14 @@
+import {
+  loadAllAdminItems,
+  loadAdminOperation,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-import { getProductById } from "~/lib/products.server";
-import { getAllCompanies } from "~/lib/companies.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { productTypes } from "~/db/schema";
@@ -23,12 +25,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "product");
 
-  const product = await getProductById(id);
-  if (!product) {
-    throw new Response("Product not found", { status: 404 });
-  }
+  const product = await loadAdminOperation(request, operationCatalog.productGet, { id });
 
-  const companies = await getAllCompanies();
+  const companies = await loadAllAdminItems(request, operationCatalog.companyList, {
+    sort: "name",
+    order: "asc",
+  });
 
   return { product, companies };
 }

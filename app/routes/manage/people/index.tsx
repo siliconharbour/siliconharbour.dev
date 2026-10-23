@@ -1,14 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getPaginatedPeople,
-  getHiddenPeopleCount,
-  getVisiblePeopleCount,
-} from "~/lib/people.server";
+
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
 
@@ -25,9 +21,19 @@ export async function loader({ request }: Route.LoaderArgs) {
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const offset = (page - 1) * PER_PAGE;
   const [{ items: people, total }, hiddenCount, visibleCount] = await Promise.all([
-    getPaginatedPeople(PER_PAGE, offset, searchQuery, true),
-    getHiddenPeopleCount(),
-    getVisiblePeopleCount(),
+    loadAdminOperation(request, operationCatalog.personList, {
+      limit: PER_PAGE,
+      offset,
+      query: searchQuery,
+      sort: "createdAt",
+      order: "desc",
+    }),
+    loadAdminOperation(request, operationCatalog.personList, { limit: 1, visible: false }).then(
+      (page) => page.total,
+    ),
+    loadAdminOperation(request, operationCatalog.personList, { limit: 1, visible: true }).then(
+      (page) => page.total,
+    ),
   ]);
   const totalPages = Math.ceil(total / PER_PAGE);
   return { people, searchQuery, hiddenCount, visibleCount, currentPage: page, totalPages, total };

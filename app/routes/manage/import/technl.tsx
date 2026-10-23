@@ -1,22 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import { runDirectoryImportAction } from "~/lib/admin/directory-import-action.server";
 import type { Route } from "./+types/technl";
 import { useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { scrapeTechNL } from "~/lib/scraper.server";
-import {
-  buildDirectoryImportLoaderData,
-  type DirectoryImportConfig,
-} from "~/lib/directory-import.server";
-import { DirectoryImportPage } from "~/components/manage/DirectoryImportPage";
 
-const config: DirectoryImportConfig = {
-  sourceKey: "technl",
-  sourceFlag: "technl",
-  sourceLabel: "TechNL",
-  defaultLocation: null,
-  scrapeFn: scrapeTechNL,
-  includesEducation: true,
-};
+import { DirectoryImportPage } from "~/components/manage/DirectoryImportPage";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Import from TechNL - siliconharbour.dev" }];
@@ -24,7 +13,9 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  return buildDirectoryImportLoaderData(config);
+  return loadAdminOperation(request, operationCatalog.directoryImportReviewGet, {
+    source: "technl",
+  });
 }
 
 export async function action({ request }: Route.ActionArgs) {

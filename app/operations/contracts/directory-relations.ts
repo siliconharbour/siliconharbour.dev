@@ -40,3 +40,24 @@ export const projectImageOutput = z
     createdAt: z.iso.datetime(),
   })
   .strict();
+
+export const companyTechnologyDetailsOutput = z
+  .object({
+    technologies: z.array(technologyAssignmentOutput),
+    companyJobs: z.array(
+      z.object({ id: z.number(), title: z.string(), status: z.string() }).strict(),
+    ),
+    jobPostingEvidenceRows: z.array(
+      z
+        .object({
+          technologyId: z.number(),
+          technologyName: z.string(),
+          jobId: z.number(),
+          jobTitle: z.string(),
+          confidence: z.number().nullable(),
+          excerptText: z.string().nullable(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();

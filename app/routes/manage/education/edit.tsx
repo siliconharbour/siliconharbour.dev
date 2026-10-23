@@ -1,10 +1,9 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getEducationById } from "~/lib/education.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 
@@ -20,10 +19,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Invalid ID", { status: 400 });
   }
 
-  const institution = await getEducationById(id);
-  if (!institution) {
-    throw new Response("Institution not found", { status: 404 });
-  }
+  const institution = await loadAdminOperation(request, operationCatalog.educationGet, { id });
 
   return { institution };
 }

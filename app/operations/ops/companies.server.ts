@@ -1,10 +1,11 @@
+import { getCompanyTechnologyDetails } from "~/lib/company-technology-details.server";
+import { companyTechnologyDetailsOutput } from "../contracts/directory-relations";
 import { normalizeDirectoryIdentity, normalizeGithubIdentity } from "../creation.server";
 import { createIfAbsent, urlIdentity } from "../creation.server";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listCompanies } from "~/lib/directory-lists.server";
-import { getTechnologiesForContent } from "~/lib/technologies.server";
-import { technologyAssignmentOutput } from "../contracts/directory-relations";
+
 import {
   applyCompanyTechnologyChanges,
   validateCompanyTechnologyChanges,
@@ -47,7 +48,7 @@ export const companyOperations = {
     description:
       "Return the stored record including hidden fields for administration. Throws when the record does not exist.",
     input: lookupInput,
-    output: companyOutput.extend({ technologies: z.array(technologyAssignmentOutput) }).strict(),
+    output: companyOutput.extend(companyTechnologyDetailsOutput.shape).strict(),
     examples: [{ title: "By ID", input: { id: 1 } }],
     run: async (_context, input) => {
       const record =
@@ -61,7 +62,7 @@ export const companyOperations = {
       if (!record) throw new NotFoundError("Company not found");
       return toPlain({
         ...record,
-        technologies: await getTechnologiesForContent("company", record.id),
+        ...(await getCompanyTechnologyDetails(record.id)),
       });
     },
   }),

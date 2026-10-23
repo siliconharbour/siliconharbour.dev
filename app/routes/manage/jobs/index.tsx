@@ -1,12 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/index";
 import { Link, Form, useLoaderData, redirect } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { db } from "~/db";
-import { jobs, companies } from "~/db/schema";
-import { eq, desc, like, or, count } from "drizzle-orm";
+
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
 import { format } from "date-fns";
@@ -31,45 +29,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const offset = (page - 1) * PER_PAGE;
 
-  const searchFilter = searchQuery
-    ? or(
-        like(jobs.title, `%${searchQuery}%`),
-        like(companies.name, `%${searchQuery}%`),
-        like(jobs.location, `%${searchQuery}%`),
-      )
-    : undefined;
-
-  // Get total count
-  const [{ total: totalCount }] = await db
-    .select({ total: count() })
-    .from(jobs)
-    .leftJoin(companies, eq(jobs.companyId, companies.id))
-    .where(searchFilter);
-
-  // Get page of results
-  let query = db
-    .select({
-      job: jobs,
-      companyName: companies.name,
-    })
-    .from(jobs)
-    .leftJoin(companies, eq(jobs.companyId, companies.id))
-    .orderBy(desc(jobs.updatedAt))
-    .$dynamic();
-
-  if (searchFilter) {
-    query = query.where(searchFilter);
-  }
-
-  const results = await query.limit(PER_PAGE).offset(offset);
-
-  const jobsList = results.map((r) => ({
-    ...r.job,
-    companyName: r.companyName,
-  }));
-
-  const totalPages = Math.ceil(totalCount / PER_PAGE);
-  return { jobs: jobsList, searchQuery, currentPage: page, totalPages, total: totalCount };
+  const { items: jobsList, total } = await loadAdminOperation(request, operationCatalog.jobList, {
+    limit: PER_PAGE,
+    offset,
+    query: searchQuery,
+    sort: "updatedAt",
+    order: "desc",
+  });
+  const totalPages = Math.ceil(total / PER_PAGE);
+  return { jobs: jobsList, searchQuery, currentPage: page, totalPages, total };
 }
 
 export async function action({ request }: Route.ActionArgs) {

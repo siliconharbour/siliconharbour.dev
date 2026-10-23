@@ -6,7 +6,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { confirm, url } from "../fields";
+import { url } from "../fields";
 import {
   jobSearchInput,
   jobSearchImportInput,

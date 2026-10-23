@@ -1,7 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPaginatedEvents } from "~/lib/events.server";
+
 import { SearchInput } from "~/components/SearchInput";
 import { Pagination } from "~/components/manage/Pagination";
 import { formatInTimezone } from "~/lib/timezone";
@@ -18,14 +20,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const searchQuery = url.searchParams.get("q") || "";
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const offset = (page - 1) * PER_PAGE;
-  const { items: events, total } = await getPaginatedEvents(
-    PER_PAGE,
+  const { items: events, total } = await loadAdminOperation(request, operationCatalog.eventList, {
+    limit: PER_PAGE,
     offset,
-    searchQuery,
-    "all",
-    undefined,
-    "all",
-  );
+    query: searchQuery,
+  });
   const totalPages = Math.ceil(total / PER_PAGE);
   return { events, searchQuery, currentPage: page, totalPages, total };
 }
@@ -90,10 +89,10 @@ export default function ManageEventsIndex() {
                     </p>
                   ) : event.dates.length > 0 ? (
                     <p className="text-sm text-subtle">
-                      {formatInTimezone(event.dates[0].startDate, "MMM d, yyyy")}
+                      {formatInTimezone(new Date(event.dates[0].startDate), "MMM d, yyyy")}
                       {event.timeMode === "period" &&
                         event.dates[0].endDate &&
-                        ` - ${formatInTimezone(event.dates[0].endDate, "MMM d, yyyy")}`}
+                        ` - ${formatInTimezone(new Date(event.dates[0].endDate), "MMM d, yyyy")}`}
                       {event.dates.length > 1 && ` (+${event.dates.length - 1} more)`}
                     </p>
                   ) : null}

@@ -12,6 +12,9 @@ import {
   events,
   jobs,
   news,
+  jobImportSources,
+  eventImportSources,
+  newsImportSources,
 } from "~/db/schema";
 import { operationCatalog } from "~/operations/catalog";
 import { adminContext } from "~/operations/context";
@@ -62,6 +65,22 @@ it("executes every catalog read against persisted records or mocked provider bou
   await db
     .insert(news)
     .values({ id: 1, title: "News", slug: "news", content: "Content", type: "article" });
+  await db
+    .insert(jobImportSources)
+    .values({ id: 1, companyId: 1, sourceType: "greenhouse", sourceIdentifier: "example" });
+  await db.insert(eventImportSources).values({
+    id: 1,
+    name: "Events",
+    sourceType: "luma-calendar",
+    sourceIdentifier: "example",
+    sourceUrl: "https://example.com/events",
+  });
+  await db.insert(newsImportSources).values({
+    id: 1,
+    name: "News",
+    sourceType: "rss",
+    sourceUrl: "https://example.com/news",
+  });
   await updateDiscordConfig({ botToken: "test-token" });
   vi.spyOn(discord, "listGuilds").mockResolvedValue({ ok: true, guilds: [] });
   vi.spyOn(discord, "listPostableChannels").mockResolvedValue({ ok: true, channels: [] });
@@ -106,6 +125,13 @@ it("executes every catalog read against persisted records or mocked provider bou
     sentAt: null,
     lastError: null,
   };
+  vi.spyOn(newsletter, "isNewsletterConfigured").mockReturnValue(true);
+  vi.spyOn(newsletter, "getNewsletterStats").mockResolvedValue({
+    listId: 1,
+    confirmed: 1,
+    unconfirmed: 0,
+    unsubscribed: 0,
+  });
   vi.spyOn(newsletter, "getNewsletterList").mockResolvedValue({
     id: 1,
     name: "List",

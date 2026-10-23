@@ -1,7 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/comments";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPaginatedComments } from "~/lib/comments.server";
+
 import { formatDistanceToNow } from "date-fns";
 import type { Comment, ContentType } from "~/db/schema";
 
@@ -16,7 +18,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
   const perPage = 20;
 
-  const { comments, total, totalPages } = await getPaginatedComments(page, perPage);
+  const { items: comments, total } = await loadAdminOperation(
+    request,
+    operationCatalog.commentList,
+    { limit: perPage, offset: (page - 1) * perPage },
+  );
+  const totalPages = Math.ceil(total / perPage);
 
   return { comments, total, totalPages, currentPage: page };
 }
@@ -109,7 +116,7 @@ export default function ManageComments() {
   );
 }
 
-function CommentRow({ comment }: { comment: Comment }) {
+function CommentRow({ comment }: { comment: Omit<Comment, "createdAt"> & { createdAt: string } }) {
   const fetcher = useFetcher();
   const isDeleting = fetcher.state !== "idle";
 
