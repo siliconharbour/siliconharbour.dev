@@ -216,24 +216,23 @@ export async function updateDiscordConfig(config: Partial<DiscordConfig>): Promi
 }
 
 export function saveSiteConfig(input: {
-  sections: SectionVisibility;
-  comments: CommentVisibility;
-  newsGlobalKeywords: string[] | null;
+  sections?: Partial<SectionVisibility>;
+  comments?: Partial<CommentVisibility>;
+  newsGlobalKeywords?: string[] | null;
   botToken?: string | null;
 }) {
-  const entries: Array<[string, string]> = [
-    ...sectionKeys.map(
-      (key) => [`${VISIBILITY_PREFIX}${key}`, String(input.sections[key])] as [string, string],
-    ),
-    ...commentableKeys.map(
-      (key) =>
-        [`${COMMENT_VISIBILITY_PREFIX}${key}`, String(input.comments[key])] as [string, string],
-    ),
-    [NEWS_KEYWORDS_KEY, input.newsGlobalKeywords?.join(",") ?? ""],
-    ...(input.botToken !== undefined
-      ? [[DISCORD_BOT_TOKEN_KEY, input.botToken ?? ""] as [string, string]]
-      : []),
-  ];
+  const entries: Array<[string, string]> = [];
+  for (const key of sectionKeys) {
+    const value = input.sections?.[key];
+    if (value !== undefined) entries.push([`${VISIBILITY_PREFIX}${key}`, String(value)]);
+  }
+  for (const key of commentableKeys) {
+    const value = input.comments?.[key];
+    if (value !== undefined) entries.push([`${COMMENT_VISIBILITY_PREFIX}${key}`, String(value)]);
+  }
+  if (input.newsGlobalKeywords !== undefined)
+    entries.push([NEWS_KEYWORDS_KEY, input.newsGlobalKeywords?.join(",") ?? ""]);
+  if (input.botToken !== undefined) entries.push([DISCORD_BOT_TOKEN_KEY, input.botToken ?? ""]);
   db.transaction((tx) => {
     for (const [key, value] of entries)
       tx.insert(siteConfig)

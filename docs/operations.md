@@ -62,3 +62,7 @@ All list operations use limit/offset, query, an explicit supported sort and orde
 News-source and global keywords are arrays of strings. Admin text fields adapt comma-separated input; the existing TEXT columns retain their storage format. Campaign `audienceData` is a parsed subscriber-ID array, a `{testSubscriberIds}` object, or null. Timestamps, including campaign and theme-share dates, use ISO 8601 strings.
 
 `jobSourceManualSync` accepts `{id, jobs}` with typed job records, not JSON text. The admin form parses the browser script's array before calling it. Invalid rows fail validation instead of disappearing. Async sync results expose typed importer counts and errors, the initiating administrator and transport, and mark `success:false` responses as failed steps.
+
+## Settings changes
+
+`siteConfigSave` patches supplied fields atomically. Omitted flags, keywords and credentials keep their values. Use `newsGlobalKeywords: null` or `[]` to clear keywords, and `botToken: null` to clear the credential. The example hides only jobs; it preserves every other setting. Prefer the granular visibility or keyword operations when changing one setting.

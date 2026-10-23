@@ -93,3 +93,21 @@ it("derives read and write access from the granted MCP scopes", async () => {
   );
   expect([...mcpContext({ ...auth, scopes: ["mcp:write"] }).scopes]).toEqual(["write"]);
 });
+
+it("labels examples that clear nullable settings in destructive or replacement operations", () => {
+  function nullFields(value: unknown, path = ""): string[] {
+    if (value === null) return [path];
+    if (!value || typeof value !== "object") return [];
+    return Object.entries(value).flatMap(([key, child]) =>
+      nullFields(child, path ? `${path}.${key}` : key),
+    );
+  }
+  for (const op of Object.values(operationCatalog)) {
+    if (op.risk !== "destructive" && !/replace/i.test(op.description)) continue;
+    for (const example of op.examples) {
+      const cleared = nullFields(example.input);
+      if (cleared.length)
+        expect(example.title, `${op.name} clears ${cleared.join(", ")}`).toMatch(/clear/i);
+    }
+  }
+});
