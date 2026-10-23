@@ -132,10 +132,7 @@ export default function ReviewPeople() {
   const currentPerson = people[currentIndex];
   const remaining = people.length - currentIndex;
 
-  // Parse social links for the current person
-  const socialLinks: Record<string, string> = currentPerson?.socialLinks
-    ? JSON.parse(currentPerson.socialLinks)
-    : {};
+  const socialLinks = currentPerson?.socialLinks ?? {};
 
   // Keep edit mode scoped to the current card.
   useEffect(() => {

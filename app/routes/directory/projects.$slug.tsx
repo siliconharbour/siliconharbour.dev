@@ -1,7 +1,6 @@
 import type { Route } from "./+types/projects.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getProjectBySlugWithImages } from "~/lib/projects.server";
-import { parseProjectLinks } from "~/lib/project-links";
 import { loadDirectoryCommonData } from "~/lib/directory-page.server";
 import { RichMarkdown } from "~/components/RichMarkdown";
 import { CommentSection } from "~/components/CommentSection";
@@ -148,7 +147,7 @@ const linkConfig: Record<string, { label: string; icon: React.ReactNode }> = {
 export default function ProjectDetail() {
   const { project, resolvedRefs, backlinks, comments, turnstileSiteKey, isAdmin, commentsEnabled } =
     useLoaderData<typeof loader>();
-  const links = parseProjectLinks(project.links);
+  const links = project.links ?? {};
   const linkEntries = Object.entries(links).filter(([, url]) => url);
 
   return (

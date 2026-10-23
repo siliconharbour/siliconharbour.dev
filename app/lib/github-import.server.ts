@@ -27,7 +27,6 @@ import { processAndSaveIconImageWithPadding } from "./images.server";
 import { isBlocked, blockItem } from "./import-blocklist.server";
 import type { ImportProgress, ImportJobStatus } from "./github.types";
 
-// Re-export for convenience
 export type { ImportProgress };
 
 const GITHUB_IMPORT_JOB_ID = "github-newfoundland";
@@ -52,7 +51,6 @@ export function locationLooksLikeNewfoundland(location: string | null): boolean 
   if (!location) return true; // No location, trust the search hit
   const loc = location.toLowerCase();
 
-  // Obvious positive signals - allow.
   const positives = [
     "newfoundland",
     "labrador",
@@ -113,9 +111,6 @@ export function locationLooksLikeNewfoundland(location: string | null): boolean 
   return true;
 }
 
-/**
- * Get current import job status
- */
 export async function getImportProgress(): Promise<ImportProgress> {
   const job = await db
     .select()
@@ -170,9 +165,6 @@ export async function getImportProgress(): Promise<ImportProgress> {
   };
 }
 
-/**
- * Start or resume the GitHub import job
- */
 export async function startImport(): Promise<ImportProgress> {
   const existing = await db
     .select()
@@ -181,15 +173,12 @@ export async function startImport(): Promise<ImportProgress> {
     .get();
 
   if (existing?.status === "running") {
-    // Already running
     return getImportProgress();
   }
 
-  // Check if we need to wait for rate limit
   if (existing?.rateLimitRemaining === 0 && existing?.rateLimitReset) {
     const resetTime = existing.rateLimitReset * 1000;
     if (resetTime > Date.now()) {
-      // Still rate limited, update status but can't proceed
       await db
         .update(importJobs)
         .set({
@@ -203,7 +192,6 @@ export async function startImport(): Promise<ImportProgress> {
   }
 
   if (!existing) {
-    // First run - get total count
     try {
       const searchResult = await searchNewfoundlandUsers(1, 1);
       const totalPages = Math.ceil(searchResult.total / USERS_PER_PAGE);
@@ -235,7 +223,6 @@ export async function startImport(): Promise<ImportProgress> {
       return getImportProgress();
     }
   } else {
-    // Resume existing job
     await db
       .update(importJobs)
       .set({
@@ -249,10 +236,6 @@ export async function startImport(): Promise<ImportProgress> {
   return getImportProgress();
 }
 
-/**
- * Process the next batch of users
- * Returns the updated progress
- */
 export async function processNextBatch(downloadAvatars: boolean = true): Promise<{
   progress: ImportProgress;
   processed: string[];
@@ -277,12 +260,10 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
   let rateLimit: RateLimitInfo | null = null;
 
   try {
-    // Fetch current page of users
     const searchResult = await searchNewfoundlandUsers(job.currentPage ?? 1, USERS_PER_PAGE);
     rateLimit = searchResult.rateLimit;
 
     if (searchResult.users.length === 0) {
-      // No more users, we're done
       await db
         .update(importJobs)
         .set({
@@ -300,7 +281,6 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
       };
     }
 
-    // Process up to BATCH_SIZE users from this page
     const startIdx = (job.processedItems ?? 0) % USERS_PER_PAGE;
     const usersToProcess = searchResult.users.slice(startIdx, startIdx + BATCH_SIZE);
 
@@ -311,14 +291,12 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
 
     for (const searchUser of usersToProcess) {
       try {
-        // Fetch full profile
         const { user, rateLimit: profileRateLimit } = await getUserProfileWithRateLimit(
           searchUser.login,
         );
         rateLimit = profileRateLimit;
 
         if (rateLimit.remaining < 5) {
-          // Getting low, pause and wait
           await db
             .update(importJobs)
             .set({
@@ -386,13 +364,11 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
       }
     }
 
-    // Check if we need to move to next page
     let currentPage = job.currentPage ?? 1;
     if (processedItems >= currentPage * USERS_PER_PAGE) {
       currentPage++;
     }
 
-    // Check if we're done
     const isComplete =
       currentPage > (job.totalPages ?? 0) || processedItems >= (job.totalItems ?? 0);
 
@@ -432,9 +408,6 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
   };
 }
 
-/**
- * Pause the import job
- */
 export async function pauseImport(): Promise<ImportProgress> {
   await db
     .update(importJobs)
@@ -447,19 +420,12 @@ export async function pauseImport(): Promise<ImportProgress> {
   return getImportProgress();
 }
 
-/**
- * Reset the import job (start over)
- */
 export async function resetImport(): Promise<ImportProgress> {
   await db.delete(importJobs).where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-  // Clear the cached search results so we fetch fresh data
   clearNewfoundlandUsersCache();
   return getImportProgress();
 }
 
-/**
- * Import a single GitHub user
- */
 async function importSingleUser(
   user: GitHubUserWithSocials,
   downloadAvatars: boolean,
@@ -467,7 +433,6 @@ async function importSingleUser(
   const githubUrl = user.html_url;
   const displayName = user.name || user.login;
 
-  // Check if blocked from import
   const blocked = await isBlocked("github", githubUrl);
   if (blocked) {
     return { name: displayName, action: "blocked" };
@@ -487,7 +452,6 @@ async function importSingleUser(
     return { name: displayName, action: "blocked" };
   }
 
-  // Check if person already exists
   const existingByGitHub = await getPersonByGitHub(githubUrl);
   if (existingByGitHub) {
     return { name: displayName, action: "skipped" };
@@ -495,7 +459,6 @@ async function importSingleUser(
 
   const existingByName = await getPersonByName(displayName);
 
-  // Download avatar if requested
   let avatar: string | null = null;
   if (downloadAvatars && user.avatar_url) {
     const imageBuffer = await fetchAvatar(user.avatar_url);
@@ -504,7 +467,6 @@ async function importSingleUser(
     }
   }
 
-  // Try to find company from GitHub company field or bio
   let companyName: string | null = null;
   let githubOrgUrl: string | null = null;
   let matchedCompany = null;
@@ -524,12 +486,10 @@ async function importSingleUser(
     }
   }
 
-  // Update company's github field if we found a match
   if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
     await updateCompany(matchedCompany.id, { github: githubOrgUrl });
   }
 
-  // Build bio with company reference
   let bio = user.bio || "";
   const companyRefName = matchedCompany?.name || companyName;
 
@@ -544,16 +504,12 @@ async function importSingleUser(
     bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
   }
 
-  // Build social links from GitHub profile
-  // GitHub provides twitter_username directly, and social_accounts for others
   const socialLinks: Record<string, string> = {};
 
-  // Twitter can come from twitter_username field or social accounts
   if (user.twitter_username) {
     socialLinks.twitter = `https://twitter.com/${user.twitter_username}`;
   }
 
-  // Process social accounts (instagram, linkedin, etc.)
   for (const account of user.socialAccounts || []) {
     const provider = account.provider.toLowerCase();
     if (provider === "twitter" && !socialLinks.twitter) {
@@ -569,49 +525,29 @@ async function importSingleUser(
     } else if (provider === "facebook") {
       socialLinks.facebook = account.url;
     }
-    // Other providers can be added as needed
   }
 
-  const socialLinksJson = Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null;
-
   if (existingByName) {
-    // Merge with existing person
     if (!existingByName.github) {
-      // Parse existing social links to merge
-      let existingSocialLinks: Record<string, string> = {};
-      if (existingByName.socialLinks) {
-        try {
-          existingSocialLinks = JSON.parse(existingByName.socialLinks);
-        } catch {
-          // ignore
-        }
-      }
-
-      // Merge social links (prefer existing values)
-      const mergedSocialLinks = { ...socialLinks, ...existingSocialLinks };
-      const mergedSocialLinksJson =
-        Object.keys(mergedSocialLinks).length > 0 ? JSON.stringify(mergedSocialLinks) : null;
-
       await updatePerson(existingByName.id, {
         github: githubUrl,
         website: existingByName.website || user.blog || null,
         avatar: existingByName.avatar || avatar,
         bio: existingByName.bio?.startsWith("GitHub user from") ? bio : existingByName.bio,
-        socialLinks: mergedSocialLinksJson,
+        socialLinks: { ...socialLinks, ...existingByName.socialLinks },
       });
       return { name: displayName, action: "merged" };
     }
     return { name: displayName, action: "skipped" };
   }
 
-  // Create new person (hidden by default - needs manual review)
   await createPerson({
     name: displayName,
     bio,
     website: user.blog || null,
     github: githubUrl,
     avatar,
-    socialLinks: socialLinksJson,
+    socialLinks,
     visible: false, // Imported users start hidden until reviewed
   });
 

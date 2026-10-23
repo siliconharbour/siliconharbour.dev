@@ -149,7 +149,9 @@ export const directoryReviewOperations = {
         .filter(Boolean);
       const matches = (await getHiddenPeople()).filter((person) =>
         terms.every((term) =>
-          `${person.name} ${person.bio} ${person.socialLinks ?? ""}`.toLowerCase().includes(term),
+          `${person.name} ${person.bio} ${Object.values(person.socialLinks ?? {}).join(" ")}`
+            .toLowerCase()
+            .includes(term),
         ),
       );
       for (const person of matches) await removePerson(person.id, Boolean(person.github));

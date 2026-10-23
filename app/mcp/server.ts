@@ -20,12 +20,12 @@ export function describeRuntime(
   const parts = [
     "Run confined JavaScript using tools.siliconharbour.<operation>(input), await calls, and return the fields you need.",
     "Each operation takes one object. Unknown fields, empty update patches, and invalid required values fail validation. Destructive and external operations require confirm: true.",
-    "Use the MCP search tool for task discovery or a full operation schema. Inside the program, search({query}) discovers available runtime signatures.",
+    "Use the MCP search tool for task discovery or a full operation schema. Inside the program, search({query}) discovers available runtime signatures. Use search({query}) to check names; typeof is not an existence check, and unknown names fail with Unknown tool.",
     searchSignature,
     "Imports, modules, eval, process, filesystem, fetch, timers, classes, and prototype access are unavailable. Await every started call; use Promise.all for independent work.",
     `Limits: ${limits.timeoutMs / 1000} seconds, ${limits.maxToolCalls} calls, ${limits.maxOutputBytes / 1024} KiB of results and logs. Narrow results or paginate to avoid truncation.`,
     "A failed execution may have completed earlier writes; inspect toolCalls before retrying. Read operations remain subject to administrator access and granted scopes.",
-    `Areas: ${[...areas]
+    `Operations: ${catalog.length}. Areas: ${[...areas]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([area, count]) => `${area} (${count})`)
       .join(", ")}.`,

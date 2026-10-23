@@ -6,24 +6,11 @@ import {
   markdownResponse,
 } from "~/lib/markdown.server";
 
-// =============================================================================
-// formatFrontmatter — tested indirectly via exported converters
-//
-// formatFrontmatter is a private function, so we test its behavior through
-// companyToMarkdown, eventToMarkdown, and jobToMarkdown which rely on it.
-// =============================================================================
-
-/**
- * Extract the frontmatter block (between --- delimiters) from markdown output.
- */
 function extractFrontmatter(md: string): string {
   const match = md.match(/^---\n([\s\S]*?)\n---/);
   return match ? match[1] : "";
 }
 
-/**
- * Parse frontmatter lines into a key-value map (shallow, no nested parsing).
- */
 function parseFrontmatterLines(fm: string): Record<string, string> {
   const result: Record<string, string> = {};
   for (const line of fm.split("\n")) {
@@ -37,10 +24,6 @@ function parseFrontmatterLines(fm: string): Record<string, string> {
   }
   return result;
 }
-
-// =============================================================================
-// Simple key-value (string without special chars)
-// =============================================================================
 
 describe("formatFrontmatter via companyToMarkdown", () => {
   const baseCompany = {
@@ -151,10 +134,6 @@ describe("formatFrontmatter via companyToMarkdown", () => {
   });
 });
 
-// =============================================================================
-// String escaping: values with quotes, newlines, colons
-// =============================================================================
-
 describe("formatFrontmatter string escaping", () => {
   it("value with double quotes is escaped", () => {
     const company = {
@@ -250,10 +229,6 @@ describe("formatFrontmatter string escaping", () => {
   });
 });
 
-// =============================================================================
-// Nested object values
-// =============================================================================
-
 describe("formatFrontmatter nested objects", () => {
   it("object values render as nested YAML keys", () => {
     // personToMarkdown passes socialLinks as a nested object
@@ -267,7 +242,7 @@ describe("formatFrontmatter nested objects", () => {
       type: "library" as const,
       status: "active" as const,
       logo: null,
-      links: JSON.stringify({ github: "https://github.com/test", docs: "https://docs.test" }),
+      links: { github: "https://github.com/test", website: "https://docs.test" },
       hidden: false,
       visible: true,
       technl: false,
@@ -282,13 +257,9 @@ describe("formatFrontmatter nested objects", () => {
     const fm = extractFrontmatter(projectToMarkdown(project));
     expect(fm).toContain("links:");
     expect(fm).toContain("  github: https://github.com/test");
-    expect(fm).toContain("  docs: https://docs.test");
+    expect(fm).toContain("  website: https://docs.test");
   });
 });
-
-// =============================================================================
-// Date values
-// =============================================================================
 
 describe("formatFrontmatter date handling", () => {
   it("Date objects are serialized as ISO strings", () => {
@@ -321,10 +292,6 @@ describe("formatFrontmatter date handling", () => {
     expect(fm).toMatch(/updated_at: \d{4}-\d{2}-\d{2}T/);
   });
 });
-
-// =============================================================================
-// markdownResponse
-// =============================================================================
 
 describe("markdownResponse", () => {
   it("returns a Response with text/markdown content type", () => {

@@ -2,7 +2,6 @@ import type { Route } from "./+types/projects";
 import { useLoaderData } from "react-router";
 import { getPaginatedProjects } from "~/lib/projects.server";
 import { getOptionalUser } from "~/lib/session.server";
-import { parseProjectLinks } from "~/lib/project-links";
 import type { ProjectType, ProjectStatus } from "~/db/schema";
 import { DirectoryListPage } from "~/components/directory/DirectoryListPage";
 import { parsePublicListParams } from "~/lib/public-query.server";
@@ -64,7 +63,7 @@ export default function DirectoryProjects() {
       <>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gap-4">
           {items.map((project) => {
-            const links = parseProjectLinks(project.links);
+            const links = project.links ?? {};
             return (
               <a
                 key={project.id}

@@ -48,7 +48,11 @@ it("blocks newsletter live sends before contacting the provider when rollout is 
     .spyOn(newsletter, "sendNewsletterLive")
     .mockRejectedValue(new Error("must not send"));
   await expect(
-    operations.newsletterCampaignSendLive.execute(context, { id: 1, confirm: true }),
+    operations.newsletterCampaignSendLive.execute(context, {
+      id: 1,
+      confirm: true,
+      confirmationSubject: "Community news",
+    }),
   ).rejects.toThrow("disabled");
   expect(send).not.toHaveBeenCalled();
   await expect(operations.newsletterCampaignSendLive.execute(context, { id: 1 })).rejects.toThrow(
@@ -180,4 +184,54 @@ it("masks the entire value of unusually short configured tokens", async () => {
       botTokenMasked: "Configured",
     });
   }
+});
+
+it("requires the exact campaign subject before a live send", async () => {
+  await newsletter.setNewsletterFlags({ publicSignup: false, liveSend: true });
+  const list = {
+    id: 7,
+    name: "Community",
+    slug: "siliconharbour",
+    fromDomain: "example.com",
+    fromAddress: "hello@example.com",
+    description: null,
+    createdAt: "2026-10-23T00:00:00Z",
+  };
+  const campaign: newsletter.Campaign = {
+    id: 1,
+    subject: "Community news",
+    bodyMarkdown: "News",
+    fromAddress: "hello@example.com",
+    fromName: null,
+    audienceType: "list",
+    audienceId: 7,
+    audienceData: null,
+    status: "draft",
+    createdAt: "2026-10-23T00:00:00Z",
+    sentAt: null,
+    lastError: null,
+  };
+  vi.spyOn(newsletter, "getNewsletterList").mockResolvedValue(list);
+  vi.spyOn(newsletter, "getNewsletterCampaign").mockResolvedValue(campaign);
+  const send = vi
+    .spyOn(newsletter, "sendNewsletterLive")
+    .mockResolvedValue({ ...campaign, status: "sent" });
+  await expect(
+    operations.newsletterCampaignSendLive.execute(context, { id: 1, confirm: true }),
+  ).rejects.toThrow("confirmationSubject");
+  await expect(
+    operations.newsletterCampaignSendLive.execute(context, {
+      id: 1,
+      confirm: true,
+      confirmationSubject: "wrong",
+    }),
+  ).rejects.toThrow("exact campaign subject");
+  expect(send).not.toHaveBeenCalled();
+  await operations.newsletterCampaignSendLive.execute(context, {
+    id: 1,
+    confirm: true,
+    confirmationSubject: campaign.subject,
+  });
+  expect(send).toHaveBeenCalledOnce();
+  expect(send).toHaveBeenCalledWith(1, 7);
 });

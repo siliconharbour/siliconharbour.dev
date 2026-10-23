@@ -131,7 +131,7 @@ export async function buildSiteExport() {
       slug: person.slug,
       website: person.website,
       avatar: person.avatar ? `${SITE_URL}/images/${person.avatar}` : null,
-      socialLinks: person.socialLinks ? JSON.parse(person.socialLinks) : null,
+      socialLinks: person.socialLinks,
       createdAt: person.createdAt.toISOString(),
       updatedAt: person.updatedAt.toISOString(),
     });
@@ -181,7 +181,7 @@ export async function buildSiteExport() {
       slug: project.slug,
       type: project.type,
       status: project.status,
-      links: project.links ? JSON.parse(project.links) : null,
+      links: project.links,
       logo: project.logo ? `${SITE_URL}/images/${project.logo}` : null,
       coverImage: project.coverImage ? `${SITE_URL}/images/${project.coverImage}` : null,
       createdAt: project.createdAt.toISOString(),

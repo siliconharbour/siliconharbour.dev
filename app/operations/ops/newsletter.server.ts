@@ -140,7 +140,7 @@ export const newsletterOperations = {
     access: "admin",
     summary: "Send a newsletter to the confirmed list.",
     description:
-      "Verify campaign ownership and require the liveSend rollout flag. This sends real email to the full confirmed audience. Requires confirm: true.",
+      "Verify campaign ownership and require the liveSend rollout flag. This sends real email to the full confirmed audience. Requires the exact confirmationSubject and confirm: true.",
     input: z
       .object({
         id: id(),
@@ -148,21 +148,23 @@ export const newsletterOperations = {
         confirmationSubject: z
           .string()
           .max(255)
-          .optional()
-          .describe("If supplied, must exactly match the campaign subject."),
+          .describe("Must exactly match the campaign subject."),
       })
       .strict(),
     output: campaignOutput,
-    examples: [{ title: "Live send", input: { id: 1, confirm: true } }],
+    examples: [
+      {
+        title: "Live send",
+        input: { id: 1, confirm: true, confirmationSubject: "Community news" },
+      },
+    ],
     run: async (_ctx, { id, confirmationSubject }) => {
       if (!(await getNewsletterFlags()).liveSend)
         throw new ConflictError("Full-list sending is disabled in newsletter settings.");
       const list = await getNewsletterList();
-      if (confirmationSubject !== undefined) {
-        const campaign = await getNewsletterCampaign(id, list.id);
-        if (confirmationSubject !== campaign.subject)
-          throw new ConflictError("Enter the exact campaign subject to confirm.");
-      }
+      const campaign = await getNewsletterCampaign(id, list.id);
+      if (confirmationSubject !== campaign.subject)
+        throw new ConflictError("Enter the exact campaign subject to confirm.");
       return sendNewsletterLive(id, list.id);
     },
   }),

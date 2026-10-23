@@ -12,7 +12,7 @@ const mapProject = (project: typeof projects.$inferSelect) => ({
   description: project.description,
   type: project.type,
   status: project.status,
-  links: project.links ? JSON.parse(project.links) : null,
+  links: project.links,
   logo: imageUrl(project.logo),
   coverImage: imageUrl(project.coverImage),
   url: contentUrl("projects", project.slug),

@@ -1,3 +1,4 @@
+import { projectLinksOutput } from "~/lib/links";
 import { z } from "zod";
 import {
   text,
@@ -40,7 +41,7 @@ export const projectOutput = z
     slug: z.string(),
     name: z.string(),
     description: z.string(),
-    links: z.string().nullable(),
+    links: projectLinksOutput,
     type: z.enum(projectTypes),
     status: z.enum(projectStatuses),
     logo: z.string().nullable(),

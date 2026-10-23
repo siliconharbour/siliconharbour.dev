@@ -280,3 +280,102 @@ it("rejects missing evidence jobs before saving company fields", async () => {
     "Original",
   );
 });
+
+it("round-trips social links and atomically patches keys without dropping other providers", async () => {
+  const person = await operations.personCreate.execute(context, {
+    name: "Link owner",
+    bio: "Bio",
+    visible: true,
+    socialLinks: {
+      twitter: "https://example.com/old",
+      linkedin: "https://example.com/profile",
+      mastodon: "https://example.com/@me",
+    },
+  });
+  expect(person.socialLinks).toEqual({
+    twitter: "https://example.com/old",
+    linkedin: "https://example.com/profile",
+    mastodon: "https://example.com/@me",
+  });
+  await Promise.all([
+    operations.personUpdate.execute(context, {
+      id: person.id,
+      socialLinks: { twitter: "https://example.com/new" },
+    }),
+    operations.personUpdate.execute(context, {
+      id: person.id,
+      socialLinks: { linkedin: "https://example.com/new-profile" },
+    }),
+  ]);
+  const saved = await operations.personGet.execute(context, { id: person.id });
+  expect(saved.socialLinks).toEqual({
+    twitter: "https://example.com/new",
+    linkedin: "https://example.com/new-profile",
+    mastodon: "https://example.com/@me",
+  });
+  expect(
+    (
+      await operations.personUpdate.execute(context, {
+        id: person.id,
+        socialLinks: saved.socialLinks,
+      })
+    ).socialLinks,
+  ).toEqual(saved.socialLinks);
+  await execute("personUpdate", { id: person.id, socialLinks: { twitter: null } });
+  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
+    linkedin: "https://example.com/new-profile",
+    mastodon: "https://example.com/@me",
+  });
+  await editPerson({
+    request: request({ name: "Link owner", bio: "Bio", linkedin: "", visible: "true" }),
+    params: { id: String(person.id) },
+  } as Parameters<typeof editPerson>[0]);
+  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
+    mastodon: "https://example.com/@me",
+  });
+  expect(
+    (await operations.personUpdate.execute(context, { id: person.id, socialLinks: null }))
+      .socialLinks,
+  ).toBeNull();
+});
+
+it("merges and clears project links, including admin field clearing", async () => {
+  const project = await operations.projectCreate.execute(context, {
+    name: "Linked project",
+    description: "Description",
+    links: {
+      github: "https://github.com/example/project",
+      website: "https://example.com",
+      npm: "https://npmjs.com/package/example",
+    },
+  });
+  await execute("projectUpdate", {
+    id: project.id,
+    links: { website: "https://example.com/new", npm: null },
+  });
+  const saved = await operations.projectGet.execute(context, { id: project.id });
+  expect(saved.links).toEqual({
+    github: "https://github.com/example/project",
+    website: "https://example.com/new",
+  });
+  expect(
+    (await operations.projectUpdate.execute(context, { id: project.id, links: saved.links })).links,
+  ).toEqual(saved.links);
+  await editProject({
+    request: request({
+      name: "Linked project",
+      description: "Description",
+      website: "",
+      type: "other",
+      status: "active",
+    }),
+    params: { id: String(project.id) },
+  } as Parameters<typeof editProject>[0]);
+  expect((await operations.projectGet.execute(context, { id: project.id })).links).toEqual({
+    github: "https://github.com/example/project",
+  });
+  expect(
+    (await operations.projectUpdate.execute(context, { id: project.id, links: { github: null } }))
+      .links,
+  ).toBeNull();
+});

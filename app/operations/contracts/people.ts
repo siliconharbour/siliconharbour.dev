@@ -1,3 +1,4 @@
+import { socialLinksOutput } from "~/lib/links";
 import { z } from "zod";
 import { text, nullableUrl, socialLinks, imageInput, updateContract, id, confirm } from "../fields";
 export const personFields = {
@@ -32,7 +33,7 @@ export const personOutput = z
     website: z.string().nullable(),
     github: z.string().nullable(),
     avatar: z.string().nullable(),
-    socialLinks: z.string().nullable(),
+    socialLinks: socialLinksOutput,
     visible: z.boolean(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),

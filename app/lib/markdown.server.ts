@@ -246,12 +246,7 @@ ${edu.website ? `**Website:** ${edu.website}\n\n` : ""}${edu.description}
 }
 
 export function personToMarkdown(person: Person): string {
-  let socialLinks: Record<string, string> = {};
-  if (person.socialLinks) {
-    try {
-      socialLinks = JSON.parse(person.socialLinks);
-    } catch {}
-  }
+  const socialLinks = person.socialLinks ?? {};
 
   const frontmatter = formatFrontmatter({
     type: "person",
@@ -334,12 +329,7 @@ ${description}
 }
 
 export function projectToMarkdown(project: Project): string {
-  let links: Record<string, string> = {};
-  if (project.links) {
-    try {
-      links = JSON.parse(project.links);
-    } catch {}
-  }
+  const links = project.links ?? {};
 
   const frontmatter = formatFrontmatter({
     type: "project",

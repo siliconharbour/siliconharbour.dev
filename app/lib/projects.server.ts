@@ -1,3 +1,5 @@
+import { compactLinks, type ProjectLinks, type LinkPatch } from "./links";
+import { patchLinks } from "./link-patch.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import {
@@ -11,10 +13,6 @@ import { eq, asc, count, inArray, isNotNull } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
-
-// =============================================================================
-// Slug generation
-// =============================================================================
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: projects.slug }).from(projects);
@@ -39,15 +37,17 @@ export async function generateProjectSlug(name: string, excludeId?: number): Pro
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
-// =============================================================================
-// Project CRUD
-// =============================================================================
-
-export async function createProject(project: Omit<NewProject, "slug">): Promise<Project> {
+export async function createProject(
+  project: Omit<NewProject, "slug" | "links"> & { links?: LinkPatch<ProjectLinks> },
+): Promise<Project> {
   const slug = await generateProjectSlug(project.name);
   const [newProject] = await db
     .insert(projects)
-    .values({ ...project, slug })
+    .values({
+      ...project,
+      slug,
+      links: project.links === undefined ? undefined : compactLinks<ProjectLinks>(project.links),
+    })
     .returning();
 
   await syncReferences("project", newProject.id, newProject.description);
@@ -57,13 +57,15 @@ export async function createProject(project: Omit<NewProject, "slug">): Promise<
 
 export async function updateProject(
   id: number,
-  project: Partial<Omit<NewProject, "slug">>,
+  project: Partial<Omit<NewProject, "slug" | "links">> & { links?: LinkPatch<ProjectLinks> },
 ): Promise<Project | null> {
-  let updateData: Partial<NewProject> = { ...project, updatedAt: new Date() };
-
-  if (project.name) {
-    updateData.slug = await generateProjectSlug(project.name, id);
-  }
+  const { links, ...fields } = project;
+  const updateData = {
+    ...fields,
+    updatedAt: new Date(),
+    slug: project.name ? await generateProjectSlug(project.name, id) : undefined,
+    ...(links !== undefined && { links: patchLinks(projects.links, links) }),
+  };
 
   const [updated] = await db
     .update(projects)
@@ -111,17 +113,14 @@ export async function getAllProjects(): Promise<Project[]> {
  * The same seed will always return the same projects in the same order.
  */
 export async function getRandomProjects(count: number, seed?: number): Promise<Project[]> {
-  // Default seed is today's date as YYYYMMDD
   const dateSeed = seed ?? parseInt(new Date().toISOString().slice(0, 10).replace(/-/g, ""), 10);
 
-  // Get all projects with logos
   const allProjects = await db.select().from(projects).where(isNotNull(projects.logo));
 
   if (allProjects.length <= count) {
     return allProjects;
   }
 
-  // Use a simple seeded shuffle: hash each id with the seed and sort by that
   // Knuth multiplicative hash for good distribution
   const shuffled = allProjects
     .map((p) => ({
@@ -134,10 +133,6 @@ export async function getRandomProjects(count: number, seed?: number): Promise<P
 
   return shuffled;
 }
-
-// =============================================================================
-// Project Images (Gallery)
-// =============================================================================
 
 export async function getProjectImages(projectId: number): Promise<ProjectImage[]> {
   return db
@@ -153,7 +148,6 @@ export async function addProjectImage(
   caption?: string | null,
   sortOrder?: number,
 ): Promise<ProjectImage> {
-  // If no sort order specified, put at the end
   if (sortOrder === undefined) {
     const existing = await getProjectImages(projectId);
     sortOrder = existing.length > 0 ? Math.max(...existing.map((i) => i.sortOrder)) + 1 : 0;
@@ -194,15 +188,10 @@ export async function removeProjectImage(imageId: number): Promise<boolean> {
 }
 
 export async function reorderProjectImages(projectId: number, imageIds: number[]): Promise<void> {
-  // Update each image's sort order based on its position in the array
   for (let i = 0; i < imageIds.length; i++) {
     await db.update(projectImages).set({ sortOrder: i }).where(eq(projectImages.id, imageIds[i]));
   }
 }
-
-// =============================================================================
-// Project with images helper
-// =============================================================================
 
 export type ProjectWithImages = Project & { images: ProjectImage[] };
 
@@ -222,10 +211,6 @@ export async function getProjectBySlugWithImages(slug: string): Promise<ProjectW
   return { ...project, images };
 }
 
-// =============================================================================
-// Paginated queries with search
-// =============================================================================
-
 export interface PaginatedProjects {
   items: Project[];
   total: number;
@@ -236,7 +221,6 @@ export async function getPaginatedProjects(
   offset: number,
   searchQuery?: string,
 ): Promise<PaginatedProjects> {
-  // If searching, use FTS5
   if (searchQuery && searchQuery.trim()) {
     const matchingIds = searchContentIds("project", searchQuery);
 
@@ -255,7 +239,6 @@ export async function getPaginatedProjects(
     return { items, total: matchingIds.length };
   }
 
-  // No search - get total count and paginated items
   const [{ total }] = await db.select({ total: count() }).from(projects);
 
   const items = await db
@@ -267,6 +250,3 @@ export async function getPaginatedProjects(
 
   return { items, total };
 }
-
-// Re-export from shared module
-export { parseProjectLinks, stringifyProjectLinks, type ProjectLinks } from "./project-links";

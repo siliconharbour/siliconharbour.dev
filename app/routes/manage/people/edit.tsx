@@ -25,14 +25,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Person not found", { status: 404 });
   }
 
-  let socialLinks: Record<string, string> = {};
-  if (person.socialLinks) {
-    try {
-      socialLinks = JSON.parse(person.socialLinks);
-    } catch {
-      // ignore
-    }
-  }
+  const socialLinks = person.socialLinks ?? {};
 
   return { person, socialLinks };
 }
@@ -140,7 +133,7 @@ export default function EditPerson() {
                 id="github"
                 name="github"
                 placeholder="https://github.com/username"
-                defaultValue={person.github || socialLinks.github || ""}
+                defaultValue={person.github || ""}
                 className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
               />
             </div>

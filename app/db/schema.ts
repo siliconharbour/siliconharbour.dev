@@ -1,3 +1,4 @@
+import type { SocialLinks, ProjectLinks } from "~/lib/links";
 import { importJobStatuses } from "~/lib/entity-types";
 import {
   contentTypes,
@@ -317,8 +318,7 @@ export const people = sqliteTable("people", {
   website: text("website"),
   github: text("github"), // GitHub profile URL
   avatar: text("avatar"), // image filename
-  // Social links stored as JSON string
-  socialLinks: text("social_links"), // JSON: { twitter?, linkedin?, etc. }
+  socialLinks: text("social_links", { mode: "json" }).$type<SocialLinks>(),
   // Visibility - false means only visible in manage UI, not public
   visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
@@ -456,8 +456,7 @@ export const projects = sqliteTable("projects", {
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   description: text("description").notNull(), // markdown
-  // Links as JSON: { github?, itchio?, website?, demo?, npm?, pypi?, steam?, etc. }
-  links: text("links"), // JSON string
+  links: text("links", { mode: "json" }).$type<ProjectLinks>(),
   type: text("type", { enum: projectTypes }).notNull().default("other"),
   status: text("status", { enum: projectStatuses }).notNull().default("active"),
   logo: text("logo"), // icon/avatar image

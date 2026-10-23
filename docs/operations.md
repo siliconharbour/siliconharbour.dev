@@ -25,11 +25,12 @@ Every operation enforces access itself. Admin sessions receive read/write scopes
 - Events created remotely default to `pending_review`. Admin creation explicitly selects public visibility. Only null or `published` import status is public; approving an imported event does not publish it.
 - Supplying event dates clears recurrence fields. Supplying a recurrence rule clears dates. Do not supply both. All-day dates anchor to noon in `America/St_Johns`. Stored occurrence overrides survive schedule changes and are ignored while the event is one-time.
 - News publication sets a missing `publishedAt` from the operation clock. Hiding preserves it; an explicit date or null wins. Link submission fetches metadata and publishes immediately.
+- Person social links and project links are objects or null in every response. Updates merge supplied keys atomically: omit a key to keep it, set it to null to remove it, or set the whole object to null to clear all links. Admin forms send null for cleared inputs and leave fields absent from the form unchanged.
 - Imported jobs reject field edits because syncs overwrite those fields. Approval, hiding, technical classification, requeueing, and deactivation remain available.
 - Job review follows the site's existing guidance: technical roles in St. John's/NL or remote in Canada can be approved; other relevant local/remote roles can be approved as nontechnical; unrelated postings should be hidden.
 - Replacing, clearing, or deleting images removes files only when unreferenced. Imported event covers come from the stored URL, never a form-supplied URL. A failed cover download does not prevent approval.
 - Rejection blocks the stored normalized import identity before deletion. Importers and blocklist operations use the same keys.
-- Newsletter operations preserve list ownership, draft-only editing, rollout flags, pilot eligibility, and send confirmation. Subscriber confirmation requests are external operations because they send email.
+- Newsletter operations preserve list ownership, draft-only editing, rollout flags, pilot eligibility, and send confirmation. Live sends require the exact campaign subject as confirmationSubject. Subscriber confirmation requests are external operations because they send email.
 - Discord undo preserves the existing admin behavior: remove tracking and requeue items without deleting actual Discord messages. Use batch undo for an entire fan-out.
 - Undo-reject remains a private admin operation because it accepts a saved browser record. It is not exposed through MCP. Recreate a record and remove its block through the normal operations when needed.
 
