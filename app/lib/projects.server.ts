@@ -1,3 +1,4 @@
+import { NotFoundError, InvalidOperationError } from "~/operations/errors";
 import { compactLinks, type ProjectLinks, type LinkPatch } from "./links";
 import { patchLinks } from "./link-patch.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
@@ -167,13 +168,14 @@ export async function addProjectImage(
 }
 
 export async function updateProjectImage(
+  projectId: number,
   imageId: number,
-  data: { caption?: string | null; sortOrder?: number },
+  data: { caption: string | null },
 ): Promise<ProjectImage | null> {
   const [updated] = await db
     .update(projectImages)
     .set(data)
-    .where(eq(projectImages.id, imageId))
+    .where(and(eq(projectImages.id, imageId), eq(projectImages.projectId, projectId)))
     .returning();
 
   return updated ?? null;
@@ -190,10 +192,30 @@ export async function removeProjectImage(projectId: number, imageId: number): Pr
   return true;
 }
 
-export async function reorderProjectImages(projectId: number, imageIds: number[]): Promise<void> {
-  for (let i = 0; i < imageIds.length; i++) {
-    await db.update(projectImages).set({ sortOrder: i }).where(eq(projectImages.id, imageIds[i]));
-  }
+export function reorderProjectImages(projectId: number, imageIds: number[]): ProjectImage[] {
+  return db.transaction(() => {
+    if (!db.select({ id: projects.id }).from(projects).where(eq(projects.id, projectId)).get())
+      throw new NotFoundError("Project not found");
+    const images = db
+      .select()
+      .from(projectImages)
+      .where(eq(projectImages.projectId, projectId))
+      .all();
+    const byId = new Map(images.map((image) => [image.id, image]));
+    if (
+      imageIds.length !== images.length ||
+      new Set(imageIds).size !== imageIds.length ||
+      imageIds.some((id) => !byId.has(id))
+    )
+      throw new InvalidOperationError("Supply every image in this project's gallery exactly once");
+    return imageIds.map((imageId, sortOrder) => {
+      db.update(projectImages)
+        .set({ sortOrder })
+        .where(and(eq(projectImages.id, imageId), eq(projectImages.projectId, projectId)))
+        .run();
+      return { ...byId.get(imageId)!, sortOrder };
+    });
+  });
 }
 
 export type ProjectWithImages = Project & { images: ProjectImage[] };

@@ -49,6 +49,7 @@ export async function createJob(job: {
   workplaceType?: "remote" | "onsite" | "hybrid" | null;
   salaryRange?: string | null;
   isTechnical?: boolean;
+  postedAt?: Date | null;
   url: string; // apply link
 }): Promise<Job> {
   const slug = await generateJobSlug(job.title);
@@ -69,7 +70,7 @@ export async function createJob(job: {
       isTechnical: job.isTechnical ?? true,
       sourceType: "manual",
       status: "active",
-      postedAt: now,
+      postedAt: job.postedAt === undefined ? now : job.postedAt,
       firstSeenAt: now,
       lastSeenAt: now,
       createdAt: now,
@@ -98,6 +99,7 @@ export async function updateJob(
     workplaceType: "remote" | "onsite" | "hybrid" | null;
     salaryRange: string | null;
     isTechnical: boolean;
+    postedAt: Date | null;
     url: string;
     status: "active" | "removed" | "filled" | "expired" | "hidden";
   }>,

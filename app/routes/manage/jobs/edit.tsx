@@ -1,3 +1,4 @@
+import { formatInTimezone } from "~/lib/timezone";
 import {
   loadAllAdminItems,
   loadAdminOperation,
@@ -45,7 +46,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const form = await request.formData();
   const result = await runAdminOperation(request, operationCatalog.jobUpdate, {
     id: Number(params.id),
-    ...jobFormInput(form),
+    ...jobFormInput(form, true),
   });
   if (!result.ok) return actionError(result.error);
   return redirect("/manage/jobs");
@@ -69,6 +70,25 @@ export default function EditJob() {
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-gap-6">
+          <ManageField
+            label="Posted (Newfoundland time)"
+            htmlFor="postedAt"
+            hint="Leave blank to clear the date."
+          >
+            <input
+              id="postedAt"
+              name="postedAt"
+              type="datetime-local"
+              step="1"
+              defaultValue={
+                job.postedAt
+                  ? formatInTimezone(new Date(job.postedAt), "yyyy-MM-dd'T'HH:mm:ss")
+                  : ""
+              }
+              className="border border-line bg-surface px-pad-3 py-pad-2"
+            />
+          </ManageField>
+
           <ManageField label="Job Title *" htmlFor="title">
             <input
               type="text"

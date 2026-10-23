@@ -366,6 +366,8 @@ export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> =
     projectId: {
       mapped: {
         projectGalleryAdd: "id",
+        projectGalleryUpdate: "id",
+        projectGalleryReorder: "id",
       },
     },
     image: {
@@ -376,10 +378,11 @@ export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> =
     caption: {
       mapped: {
         projectGalleryAdd: "caption",
+        projectGalleryUpdate: "caption",
       },
     },
     sortOrder: {
-      excluded: "Appended after the existing project gallery images",
+      mapped: { projectGalleryReorder: "imageIds[]" },
     },
     createdAt: {
       excluded: "Creation timestamp",

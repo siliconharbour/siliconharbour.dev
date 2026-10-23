@@ -53,6 +53,20 @@ export default function NewJob() {
         {actionData?.error && <ManageErrorAlert error={actionData.error} />}
 
         <Form method="post" className="flex flex-col gap-gap-6">
+          <ManageField
+            label="Posted (Newfoundland time)"
+            htmlFor="postedAt"
+            hint="Leave blank to use the current time."
+          >
+            <input
+              id="postedAt"
+              name="postedAt"
+              type="datetime-local"
+              step="1"
+              className="border border-line bg-surface px-pad-3 py-pad-2"
+            />
+          </ManageField>
+
           <ManageField label="Job Title *" htmlFor="title">
             <input
               type="text"

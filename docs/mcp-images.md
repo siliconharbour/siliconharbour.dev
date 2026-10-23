@@ -80,3 +80,5 @@ Images must be static JPEG, PNG, WebP, GIF, or AVIF, at most 5 MiB and 16 megapi
 Images are prepared before entity fields are saved. Failed saves clean up newly prepared, unreferenced files. Replaced files are deleted only after the new reference is stored and the reference checker finds no remaining use.
 
 Upload bytes and hashed tokens live under `DATA_DIR/mcp-uploads`, outside public images, with restricted permissions. A process reserves at most 32 slots, bounding reserved image bytes to 160 MiB. Cleanup runs on startup, every minute, and before new reservations.
+
+Edit gallery captions with `projectGalleryUpdate({id, imageId, caption})`; null clears a caption. To reorder, read `projectGet` and pass all gallery image IDs once, in order, to `projectGalleryReorder({id, imageIds})`. Reordering preserves files and captions and rejects foreign, missing or duplicate IDs.

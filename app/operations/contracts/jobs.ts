@@ -73,6 +73,13 @@ export const jobFields = {
   workplaceType: z.enum(workplaceTypes).nullable().optional(),
   salaryRange: nullableText().optional(),
   isTechnical: z.boolean().optional(),
+  postedAt: z.iso
+    .datetime({ offset: true })
+    .nullable()
+    .optional()
+    .describe(
+      "Publication instant for a manual job. Omit on create for the current time; null clears it.",
+    ),
 };
 export const jobCreateInput = z.object(jobFields).strict().safeExtend(createOptions);
 export const jobUpdateInput = updateContract(

@@ -71,7 +71,7 @@ export const jobsNewsCoverage: Record<string, Record<string, ColumnCoverage>> = 
       },
     },
     postedAt: {
-      excluded: "Importer-owned field; manual creation sets source and posting defaults",
+      mapped: { jobCreate: "postedAt", jobUpdate: "postedAt" },
     },
     externalUpdatedAt: {
       excluded: "Importer-owned field; manual creation sets source and posting defaults",

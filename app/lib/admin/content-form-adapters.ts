@@ -1,6 +1,8 @@
+import { fromZonedTime } from "date-fns-tz";
+import { SITE_TIMEZONE } from "~/lib/timezone";
 import { parseKeywords } from "~/lib/keywords";
 import { checkbox, imageFromForm } from "./form-adapters";
-export function jobFormInput(form: FormData) {
+export function jobFormInput(form: FormData, editing = false) {
   const input: Record<string, unknown> = {};
   for (const key of ["title", "description", "url", "location", "department", "salaryRange"])
     input[key] = form.get(key) ?? null;
@@ -8,6 +10,13 @@ export function jobFormInput(form: FormData) {
   input.workplaceType = form.get("workplaceType") || null;
   if (form.has("isTechnicalPresent") || form.has("isTechnical"))
     input.isTechnical = checkbox(form, "isTechnical");
+  if (form.has("postedAt")) {
+    const local = String(form.get("postedAt") ?? "");
+    if (local) {
+      const date = fromZonedTime(local, SITE_TIMEZONE);
+      input.postedAt = Number.isNaN(date.getTime()) ? local : date.toISOString();
+    } else if (editing) input.postedAt = null;
+  }
   return input;
 }
 export function newsFormInput(form: FormData, editing: boolean) {

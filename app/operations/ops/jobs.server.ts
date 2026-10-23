@@ -78,7 +78,7 @@ export const jobOperations = {
     access: "admin",
     summary: "Create a manual job.",
     description:
-      "Create an active manual posting, derive its slug, and synchronize references. Resolve optional companyName when companyId is omitted. isTechnical defaults to true. Set ifNotExists to return an existing record by canonical application URL. Existing records are unchanged and return created:false; new records return created:true.",
+      "Create an active manual posting, derive its slug, and synchronize references. Resolve optional companyName when companyId is omitted. isTechnical defaults to true. postedAt defaults to the current time; supply an ISO timestamp to backdate a manual posting, or null to leave it unset. Set ifNotExists to return an existing record by canonical application URL. Existing records are unchanged and return created:false; new records return created:true.",
     input: jobCreateInput,
     output: jobOutput.extend({ created: z.boolean() }).strict(),
     examples: [
@@ -105,7 +105,13 @@ export const jobOperations = {
             companyId = company.id;
           }
           await validateCompany(companyId);
-          return toPlain(await createJob({ ...fields, companyId }));
+          return toPlain(
+            await createJob({
+              ...fields,
+              companyId,
+              postedAt: fields.postedAt == null ? fields.postedAt : new Date(fields.postedAt),
+            }),
+          );
         },
       ),
   }),
@@ -116,18 +122,23 @@ export const jobOperations = {
     access: "admin",
     summary: "Update a manual job.",
     description:
-      "Patch supplied fields, regenerate the slug on title changes, and synchronize references. Imported jobs reject field edits because the next sync overwrites them; jobHide, jobMarkTechnical, jobMarkNonTechnical, jobApprove, and jobDeactivate still work.",
+      "Patch supplied fields, including an optional ISO postedAt (null clears it), regenerate the slug on title changes, and synchronize references. Imported jobs reject field edits because the next sync overwrites them; jobHide, jobMarkTechnical, jobMarkNonTechnical, jobApprove, and jobDeactivate still work.",
     input: jobUpdateInput,
     output: jobOutput,
     examples: [{ title: "Rename", input: { id: 1, title: "Senior Developer" } }],
     run: async (_ctx, { id, ...fields }) => {
       const job = await requireJob(id);
-      if (job.sourceType !== "manual")
+      if (job.sourceType !== "manual" || job.sourceId !== null)
         throw new ConflictError(
           "Cannot edit imported jobs; they are overwritten on the next sync. Use jobHide, jobApprove, jobMarkTechnical, jobMarkNonTechnical or jobDeactivate.",
         );
       await validateCompany(fields.companyId);
-      return toPlain((await updateJob(id, fields))!);
+      return toPlain(
+        (await updateJob(id, {
+          ...fields,
+          postedAt: fields.postedAt == null ? fields.postedAt : new Date(fields.postedAt),
+        }))!,
+      );
     },
   }),
   jobDelete: defineOperation({
