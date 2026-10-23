@@ -1,3 +1,4 @@
+import { InvalidOperationError } from "~/operations/errors";
 import { db } from "~/db";
 import {
   events,
@@ -12,7 +13,7 @@ import {
   type EventTag,
 } from "~/db/schema";
 import { eq, gte, and, lte, lt, asc, desc, isNull, or, inArray } from "drizzle-orm";
-import { deleteImage } from "./images.server";
+import { deleteUnreferencedImages } from "./entity-images.server";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences, syncOrganizerReferences } from "./references.server";
 import { searchContentIds } from "./search.server";
@@ -141,7 +142,7 @@ export async function createEvent(
   const timeMode = event.timeMode ?? "scheduled";
   const normalizedDates = normalizeEventDates(timeMode, dates);
   const validationError = validatePeriodDates(timeMode, normalizedDates);
-  if (validationError) throw new Error(validationError);
+  if (validationError) throw new InvalidOperationError(validationError);
   await assertValidEventStructure({
     nextTimeMode: timeMode,
     parentEventId: event.parentEventId ?? null,
@@ -191,7 +192,7 @@ export async function updateEvent(
   );
   const shouldReplaceDates = dates !== undefined || nextTimeMode !== current.timeMode;
   const validationError = validatePeriodDates(nextTimeMode, nextDates);
-  if (validationError) throw new Error(validationError);
+  if (validationError) throw new InvalidOperationError(validationError);
   const nextParentEventId =
     event.parentEventId === undefined ? current.parentEventId : event.parentEventId;
   await assertValidEventStructure({
@@ -249,15 +250,8 @@ export async function deleteEvent(id: number): Promise<boolean> {
   const event = await getEventById(id);
   if (!event) return false;
 
-  // Delete associated images
-  if (event.coverImage) {
-    await deleteImage(event.coverImage);
-  }
-  if (event.iconImage) {
-    await deleteImage(event.iconImage);
-  }
-
   await db.delete(events).where(eq(events.id, id));
+  await deleteUnreferencedImages([event.coverImage, event.iconImage]);
   return true;
 }
 

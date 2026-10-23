@@ -1,13 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import { formatTimedRangeEnd } from "~/lib/event-display";
 import type { Route } from "./+types/occurrences";
 import { Link, Form, useLoaderData, useActionData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getEventById,
-  getEventWithOccurrences,
-  upsertOccurrenceOverride,
-  deleteOccurrenceOverride,
-} from "~/lib/events.server";
+import { getEventById, getEventWithOccurrences } from "~/lib/events.server";
 import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.server";
 import { formatInTimezone } from "~/lib/timezone";
 
@@ -45,53 +43,47 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid event ID" };
-  }
-
-  const formData = await request.formData();
-  const actionType = formData.get("_action") as string;
-
-  if (actionType === "cancel") {
-    const dateStr = formData.get("date") as string;
-    const date = new Date(dateStr);
-    await upsertOccurrenceOverride(id, date, { cancelled: true });
-    return { success: "Occurrence cancelled" };
-  }
-
-  if (actionType === "uncancel") {
-    const dateStr = formData.get("date") as string;
-    const date = new Date(dateStr);
-    await upsertOccurrenceOverride(id, date, { cancelled: false });
-    return { success: "Occurrence restored" };
-  }
-
-  if (actionType === "update") {
-    const dateStr = formData.get("date") as string;
-    const date = new Date(dateStr);
-    const location = (formData.get("location") as string) || null;
-    const startTime = (formData.get("startTime") as string) || null;
-    const endTime = (formData.get("endTime") as string) || null;
-
-    await upsertOccurrenceOverride(id, date, {
-      location,
-      startTime,
-      endTime,
-    });
-    return { success: "Occurrence updated" };
-  }
-
-  if (actionType === "clearOverride") {
-    const overrideId = parseInt(formData.get("overrideId") as string, 10);
-    if (!isNaN(overrideId)) {
-      await deleteOccurrenceOverride(overrideId);
-      return { success: "Override cleared" };
-    }
-  }
-
-  return { error: "Unknown action" };
+  const form = await request.formData();
+  const id = Number(params.id);
+  const date = form.get("date");
+  const intent = form.get("_action");
+  const operations = {
+    cancel: operationCatalog.eventOccurrenceCancel,
+    uncancel: operationCatalog.eventOccurrenceUncancel,
+    update: operationCatalog.eventOccurrenceUpdate,
+    clearOverride: operationCatalog.eventOccurrenceClearOverride,
+  };
+  if (typeof intent !== "string" || !Object.hasOwn(operations, intent))
+    return { error: "Unknown action" };
+  const input =
+    intent === "clearOverride"
+      ? { id, overrideId: Number(form.get("overrideId")) }
+      : intent === "update"
+        ? {
+            id,
+            date,
+            location: form.get("location"),
+            startTime: form.get("startTime") || null,
+            endTime: form.get("endTime") || null,
+          }
+        : { id, date };
+  const result = await runAdminOperation(
+    request,
+    operations[intent as keyof typeof operations],
+    input,
+  );
+  return result.ok
+    ? {
+        success:
+          intent === "cancel"
+            ? "Occurrence cancelled"
+            : intent === "uncancel"
+              ? "Occurrence restored"
+              : intent === "clearOverride"
+                ? "Override cleared"
+                : "Occurrence updated",
+      }
+    : { error: result.error };
 }
 
 export default function ManageOccurrences() {

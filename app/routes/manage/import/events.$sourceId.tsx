@@ -1,15 +1,10 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/events.$sourceId";
 import { Link, redirect, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getEventImportSourceWithStats,
-  deleteEventImportSource,
-  updateEventImportSource,
-  syncEvents,
-  hideImportedEvent,
-  unhideImportedEvent,
-  approveImportedEventWithCover,
-} from "~/lib/event-importers/sync.server";
+import { getEventImportSourceWithStats } from "~/lib/event-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { isPast } from "date-fns";
 import { formatInTimezone } from "~/lib/timezone";
@@ -43,57 +38,44 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
   const sourceId = Number(params.sourceId);
-  if (!sourceId) throw new Response("Not Found", { status: 404 });
-
-  const formData = await request.formData();
-  const intent = formData.get("intent") as string;
-
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "sync") {
-    const result = await syncEvents(sourceId);
-    return { intent: "sync", ...result };
+    const result = await runAdminOperation(request, operationCatalog.eventSourceSync, {
+      id: sourceId,
+      confirm: true,
+    });
+    return result.ok ? { intent: "sync", ...result.data } : { error: result.error };
   }
-
-  if (intent === "approve") {
-    const eventId = Number(formData.get("eventId"));
-    if (!eventId) return { error: "Event ID required" };
-
-    await approveImportedEventWithCover(eventId);
-    return redirect(`/manage/events/${eventId}`);
+  if (intent === "approve" || intent === "hide" || intent === "unhide") {
+    const eventId = Number(form.get("eventId"));
+    const operation =
+      intent === "approve"
+        ? operationCatalog.eventImportApprove
+        : intent === "hide"
+          ? operationCatalog.eventImportHide
+          : operationCatalog.eventImportUnhide;
+    const result = await runAdminOperation(request, operation, { id: eventId });
+    if (!result.ok) return { error: result.error };
+    return intent === "approve" ? redirect(`/manage/events/${eventId}`) : { intent, success: true };
   }
-
-  if (intent === "hide") {
-    const eventId = Number(formData.get("eventId"));
-    if (!eventId) return { error: "Event ID required" };
-    await hideImportedEvent(eventId);
-    return { intent: "hide", success: true };
-  }
-
-  if (intent === "unhide") {
-    const eventId = Number(formData.get("eventId"));
-    if (!eventId) return { error: "Event ID required" };
-    await unhideImportedEvent(eventId);
-    return { intent: "unhide", success: true };
-  }
-
   if (intent === "edit-source") {
-    const name = (formData.get("name") as string)?.trim();
-    const organizer = (formData.get("organizer") as string)?.trim() || null;
-    const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
-    const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
-
-    if (!name) return { intent: "edit-source", error: "Name is required" };
-    if (!sourceIdentifier) return { intent: "edit-source", error: "Identifier is required" };
-    if (!sourceUrl) return { intent: "edit-source", error: "Source URL is required" };
-
-    await updateEventImportSource(sourceId, { name, organizer, sourceIdentifier, sourceUrl });
-    return { intent: "edit-source", success: true };
+    const result = await runAdminOperation(request, operationCatalog.eventSourceUpdate, {
+      id: sourceId,
+      name: form.get("name"),
+      organizer: form.get("organizer") ?? null,
+      sourceIdentifier: form.get("sourceIdentifier"),
+      sourceUrl: form.get("sourceUrl"),
+    });
+    return result.ok ? { intent, success: true } : { intent, error: result.error };
   }
-
   if (intent === "delete-source") {
-    await deleteEventImportSource(sourceId);
-    return redirect("/manage/import/events");
+    const result = await runAdminOperation(request, operationCatalog.eventSourceDelete, {
+      id: sourceId,
+      confirm: true,
+    });
+    return result.ok ? redirect("/manage/import/events") : { error: result.error };
   }
-
   return { error: "Unknown intent" };
 }
 

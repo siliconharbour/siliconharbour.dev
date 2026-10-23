@@ -1,11 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/events.new";
 import { useState } from "react";
 import { Link, redirect, useActionData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  createEventImportSource,
-  validateEventImportSourceConfig,
-} from "~/lib/event-importers/sync.server";
+
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { EntityPicker } from "~/components/EntityPicker";
 
@@ -20,41 +20,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-
-  const name = (formData.get("name") as string)?.trim();
-  const sourceType = formData.get("sourceType") as string;
-  const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim();
-  const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
-  const organizer = (formData.get("organizer") as string)?.trim() || null;
-
-  if (!name || !sourceType || !sourceIdentifier || !sourceUrl) {
-    return { error: "All fields are required." };
-  }
-
-  try {
-    const validation = await validateEventImportSourceConfig({
-      organizer,
-      sourceType,
-      sourceIdentifier,
-      sourceUrl,
-    });
-    if (!validation.valid) {
-      return { error: validation.error ?? "Source validation failed." };
-    }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Unknown error during validation." };
-  }
-
-  const source = await createEventImportSource({
-    name,
-    organizer,
-    sourceType,
-    sourceIdentifier,
-    sourceUrl,
+  const form = await request.formData();
+  const result = await runAdminOperation(request, operationCatalog.eventSourceCreate, {
+    name: form.get("name"),
+    sourceType: form.get("sourceType"),
+    sourceIdentifier: form.get("sourceIdentifier"),
+    sourceUrl: form.get("sourceUrl"),
+    organizer: form.get("organizer") ?? null,
+    confirm: true,
   });
-
-  return redirect(`/manage/import/events/${source.id}`);
+  if (!result.ok) return { error: result.error };
+  return redirect(`/manage/import/events/${result.data.id}`);
 }
 
 const SOURCE_TYPES = [

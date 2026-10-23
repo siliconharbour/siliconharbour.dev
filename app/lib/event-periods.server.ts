@@ -1,3 +1,4 @@
+import { InvalidOperationError } from "~/operations/errors";
 import { asc, eq } from "drizzle-orm";
 import { db } from "~/db";
 import { events, type Event, type EventTimeMode } from "~/db/schema";
@@ -15,16 +16,17 @@ export async function assertValidEventStructure({
   nextTimeMode,
   parentEventId,
 }: EventStructure): Promise<void> {
-  if (parentEventId === eventId) throw new Error("An event cannot be part of itself.");
+  if (parentEventId === eventId)
+    throw new InvalidOperationError("An event cannot be part of itself.");
   if (nextTimeMode === "period" && parentEventId) {
-    throw new Error("A time period cannot be part of another event.");
+    throw new InvalidOperationError("A time period cannot be part of another event.");
   }
 
   if (parentEventId) {
     const parent = await db.select().from(events).where(eq(events.id, parentEventId)).get();
-    if (!parent) throw new Error("The selected time period does not exist.");
+    if (!parent) throw new InvalidOperationError("The selected time period does not exist.");
     if (parent.timeMode !== "period") {
-      throw new Error("An event can only be part of a time period.");
+      throw new InvalidOperationError("An event can only be part of a time period.");
     }
   }
 
@@ -35,7 +37,8 @@ export async function assertValidEventStructure({
       .where(eq(events.parentEventId, eventId))
       .limit(1)
       .get();
-    if (child) throw new Error("Move the linked events before changing this time period.");
+    if (child)
+      throw new InvalidOperationError("Move the linked events before changing this time period.");
   }
 }
 
