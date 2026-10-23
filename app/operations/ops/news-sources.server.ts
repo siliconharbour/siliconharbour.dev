@@ -1,3 +1,4 @@
+import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
@@ -39,10 +40,17 @@ export const newsSourceOperations = {
     summary: "List news import sources.",
     description:
       "Return RSS/custom source URLs, filtering options, enabled state, and last-sync results.",
-    input: emptyInput,
-    output: z.array(newsSourceOutput),
+    input: listInput(["createdAt", "name"]),
+    output: page(newsSourceOutput),
     examples: [{ title: "All sources", input: {} }],
-    run: async () => toPlain(await getAllNewsImportSources()),
+    run: async (_ctx, input) =>
+      toPlain(
+        collectionPage(await getAllNewsImportSources(), input, {
+          createdAt: (row) => row.createdAt,
+          name: (row) => row.name,
+          sourceUrl: (row) => row.sourceUrl,
+        }),
+      ),
   }),
   newsSourceCreate: defineOperation({
     name: "newsSourceCreate",

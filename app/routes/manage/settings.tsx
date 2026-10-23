@@ -92,18 +92,27 @@ export async function action({ request }: Route.ActionArgs) {
       : ({ success: false, discordTest: { valid: false, error: result.error } } as const);
   }
   if (intent === "load-guilds") {
-    const result = await runAdminOperation(request, operationCatalog.discordGuildsList, {});
+    const result = await runAdminOperation(request, operationCatalog.discordGuildsList, {
+      limit: 200,
+      order: "asc",
+    });
     return result.ok
-      ? ({ intent: "load-guilds", guilds: result.data } as const)
+      ? ({ intent: "load-guilds", guilds: result.data.items } as const)
       : ({ intent: "load-guilds", error: result.error } as const);
   }
   if (intent === "load-channels") {
     const guildId = form.get("guildId");
     const result = await runAdminOperation(request, operationCatalog.discordChannelsList, {
       guildId,
+      limit: 200,
+      order: "asc",
     });
     return result.ok
-      ? ({ intent: "load-channels", guildId: String(guildId), channels: result.data } as const)
+      ? ({
+          intent: "load-channels",
+          guildId: String(guildId),
+          channels: result.data.items,
+        } as const)
       : ({ intent: "load-channels", error: result.error } as const);
   }
   if (intent === "add-destination") {

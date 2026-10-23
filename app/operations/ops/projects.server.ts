@@ -1,3 +1,6 @@
+import { directoryListInputs } from "../contracts/directory-lists";
+import { page } from "../listing";
+import { listProjects } from "~/lib/directory-lists.server";
 import { validateTechnologyIds } from "./directory-technologies.server";
 import { technologyAssignmentOutput, projectImageOutput } from "../contracts/directory-relations";
 import { z } from "zod";
@@ -27,20 +30,10 @@ export const projectOperations = {
     summary: "List projects for administration.",
     description:
       "Return a bounded page including hidden records. Filter by query or visibility. Use projectGet for one record.",
-    input: adminListInput,
-    output: z.array(projectOutput),
+    input: directoryListInputs.project,
+    output: page(projectOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_context, input) => {
-      const records = await getAllProjects();
-      return toPlain(
-        records
-          .filter(
-            (record) =>
-              !input.query || record.name.toLowerCase().includes(input.query.toLowerCase()),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      );
-    },
+    run: async (_ctx, input) => toPlain(listProjects(input)),
   }),
   projectGet: defineOperation({
     name: "projectGet",

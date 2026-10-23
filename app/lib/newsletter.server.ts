@@ -266,3 +266,49 @@ export async function sendNewsletterLive(id: number, listId: number) {
     body: JSON.stringify({ confirm: true }),
   });
 }
+
+async function providerPage<T>(
+  path: string,
+  input: { limit: number; offset: number },
+  params: Record<string, string>,
+) {
+  const fetchPage = (limit: number, offset: number) =>
+    listsRequest<T[]>(
+      `${path}?${new URLSearchParams({ ...params, limit: String(limit), offset: String(offset) })}`,
+    );
+  const rows = await fetchPage(Math.min(input.limit + 1, 200), input.offset);
+  const more =
+    rows.length > input.limit ||
+    (input.limit === 200 &&
+      rows.length === 200 &&
+      (await fetchPage(1, input.offset + 200)).length > 0);
+  return {
+    items: rows.slice(0, input.limit),
+    total: null,
+    nextOffset: more ? input.offset + input.limit : null,
+  };
+}
+export function listNewsletterSubscribers(
+  listId: number,
+  input: { limit: number; offset: number; query?: string },
+) {
+  return providerPage<Subscriber>("/subscribers", input, {
+    listId: String(listId),
+    ...(input.query ? { search: input.query } : {}),
+  });
+}
+export async function listNewsletterCampaigns(
+  listId: number,
+  input: { limit: number; offset: number; query?: string },
+) {
+  const result = await providerPage<Campaign>("/campaigns", input, {});
+  return {
+    ...result,
+    items: result.items.filter(
+      (campaign) =>
+        campaign.audienceType === "list" &&
+        campaign.audienceId === listId &&
+        (!input.query || campaign.subject.toLowerCase().includes(input.query.toLowerCase())),
+    ),
+  };
+}

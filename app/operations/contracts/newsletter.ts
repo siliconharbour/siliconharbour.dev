@@ -1,3 +1,4 @@
+import { listInput } from "../listing";
 import { email } from "../fields";
 import { z } from "zod";
 import { text, nullableText, id, confirm, pagination } from "../fields";
@@ -62,8 +63,11 @@ export const campaignGetOutput = z
     sends: z.array(campaignSendOutput),
   })
   .strict();
-export const subscriberListInput = z
-  .object({ ...pagination, search: z.string().max(255).default("") })
+export const subscriberListInput = listInput(["createdAt"])
+  .extend({
+    query: z.string().trim().max(255).optional(),
+    order: z.literal("desc").default("desc"),
+  })
   .strict();
 export const subscriberCreateInput = z
   .object({

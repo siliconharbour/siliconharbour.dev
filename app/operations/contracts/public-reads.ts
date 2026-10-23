@@ -1,16 +1,11 @@
+import { listInput } from "../listing";
 import { z } from "zod";
 import { id, workplaceTypes, dateTime } from "../fields";
-export const publicListInput = z
-  .object({
-    limit: z.number().int().min(1).max(200).default(20),
-    offset: z.number().int().min(0).default(0),
-    query: z.string().trim().max(500).optional(),
-  })
+export const publicListInput = listInput(["createdAt", "updatedAt", "name"]);
+export const publicEventListInput = listInput(["startDate"])
+  .extend({ order: z.literal("asc").default("asc"), upcoming: z.boolean().default(true) })
   .strict();
-export const publicEventListInput = publicListInput
-  .extend({ upcoming: z.boolean().default(true) })
-  .strict();
-export const publicJobListInput = publicListInput
+export const publicJobListInput = listInput(["createdAt", "postedAt", "title", "lastSeenAt"])
   .extend({
     companyId: id().optional(),
     sourceId: id().optional(),
@@ -24,3 +19,4 @@ export const publicJobListInput = publicListInput
     lastSeenAfter: dateTime.optional(),
   })
   .strict();
+export const newsPublicListInput = listInput(["createdAt", "updatedAt", "title", "publishedAt"]);

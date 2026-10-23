@@ -1,10 +1,11 @@
+import { listInput } from "../listing";
 import { z } from "zod";
 
 export const blocklistItemOutput = z
   .object({
     id: z.number(),
     source: z.string(),
-    externalId: z.string(),
+    key: z.string(),
     name: z.string(),
     reason: z.string().nullable(),
     blockedAt: z.iso.datetime(),
@@ -12,8 +13,8 @@ export const blocklistItemOutput = z
   .strict();
 import { text, nullableText, confirm, pagination } from "../fields";
 export const blocklistSource = z.enum(["github", "technl", "genesis", "bounce"]);
-export const blocklistListInput = z
-  .object({ ...pagination, source: blocklistSource.optional() })
+export const blocklistListInput = listInput(["blockedAt", "name", "key"])
+  .extend({ source: blocklistSource.optional() })
   .strict();
 export const blocklistAddInput = z
   .object({

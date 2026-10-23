@@ -1,3 +1,7 @@
+import { page } from "../listing";
+import { eventOutput } from "./events";
+import { jobOutput } from "./jobs";
+import { newsOutput } from "./news";
 import { z } from "zod";
 export const dashboardOutput = z
   .object({
@@ -33,49 +37,10 @@ export const dashboardOutput = z
     ),
   })
   .strict();
-export const reviewQueueOutput = z
-  .object({
-    events: z.array(
-      z
-        .object({
-          id: z.number(),
-          title: z.string(),
-          organizer: z.string().nullable(),
-          location: z.string().nullable(),
-          link: z.string(),
-          coverImageUrl: z.string().nullable(),
-          sourceId: z.number().nullable(),
-          sourceName: z.string().nullable(),
-          startDate: z.string().nullable(),
-        })
-        .strict(),
-    ),
-    news: z.array(
-      z
-        .object({
-          id: z.number(),
-          title: z.string(),
-          externalUrl: z.string().nullable(),
-          sourceName: z.string().nullable(),
-          excerpt: z.string().nullable(),
-          publishedAt: z.string().nullable(),
-          sourceType: z.string().nullable(),
-        })
-        .strict(),
-    ),
-    jobs: z.array(
-      z
-        .object({
-          id: z.number(),
-          title: z.string(),
-          location: z.string().nullable(),
-          workplaceType: z.string().nullable(),
-          url: z.string().nullable(),
-          companyName: z.string().nullable(),
-          sourceType: z.string().nullable(),
-          postedAt: z.string().nullable(),
-        })
-        .strict(),
-    ),
-  })
-  .strict();
+export const reviewQueueOutput = page(
+  z.discriminatedUnion("type", [
+    z.object({ type: z.literal("event"), record: eventOutput }).strict(),
+    z.object({ type: z.literal("job"), record: jobOutput }).strict(),
+    z.object({ type: z.literal("news"), record: newsOutput }).strict(),
+  ]),
+);

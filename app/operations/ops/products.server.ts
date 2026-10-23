@@ -1,3 +1,6 @@
+import { directoryListInputs } from "../contracts/directory-lists";
+import { page } from "../listing";
+import { listProducts } from "~/lib/directory-lists.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -24,20 +27,10 @@ export const productOperations = {
     summary: "List products for administration.",
     description:
       "Return a bounded page including hidden records. Filter by query or visibility. Use productGet for one record.",
-    input: adminListInput,
-    output: z.array(productOutput),
+    input: directoryListInputs.product,
+    output: page(productOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_context, input) => {
-      const records = await getAllProducts();
-      return toPlain(
-        records
-          .filter(
-            (record) =>
-              !input.query || record.name.toLowerCase().includes(input.query.toLowerCase()),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      );
-    },
+    run: async (_ctx, input) => toPlain(listProducts(input)),
   }),
   productGet: defineOperation({
     name: "productGet",

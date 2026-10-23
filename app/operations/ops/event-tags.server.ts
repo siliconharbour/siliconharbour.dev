@@ -1,3 +1,4 @@
+import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
@@ -20,10 +21,16 @@ export const eventTagOperations = {
     summary: "List event tags and usage counts.",
     description:
       "Return available tag names, slugs, palette colors, and the number of assigned events.",
-    input: emptyInput,
-    output: z.array(eventTagOutput.extend({ eventCount: z.number() }).strict()),
+    input: listInput(["createdAt", "name"]),
+    output: page(eventTagOutput.extend({ eventCount: z.number() }).strict()),
     examples: [{ title: "All tags", input: {} }],
-    run: async () => toPlain(await getEventTagsWithUsage()),
+    run: async (_ctx, input) =>
+      toPlain(
+        collectionPage(await getEventTagsWithUsage(), input, {
+          createdAt: (row) => row.createdAt,
+          name: (row) => row.name,
+        }),
+      ),
   }),
   eventTagSave: defineOperation({
     name: "eventTagSave",

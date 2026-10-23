@@ -1,3 +1,5 @@
+import { page } from "../listing";
+import { listInput } from "../listing";
 import { technologyProvenanceSourceKeys } from "../fields";
 import { z } from "zod";
 import {
@@ -33,6 +35,15 @@ export const jobOutput = z
     isTechnical: z.boolean(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
+  })
+  .strict();
+export const jobListItemOutput = jobOutput
+  .extend({
+    companyName: z.string().nullable(),
+    companyLogo: z.string().nullable(),
+    importSourceType: z.string().nullable(),
+    importSourceIdentifier: z.string().nullable(),
+    importSourceUrl: z.string().nullable(),
   })
   .strict();
 export const jobSourceOutput = z
@@ -75,10 +86,8 @@ export const jobCreateInput = z.object(jobFields).strict();
 export const jobUpdateInput = updateContract(
   z.object(jobFields).omit({ companyName: true }).partial().shape,
 );
-export const jobListInput = z
-  .object({
-    ...pagination,
-    query: z.string().max(500).optional(),
+export const jobListInput = listInput(["createdAt", "postedAt", "title", "lastSeenAt"])
+  .extend({
     status: z.union([z.enum(jobStatuses), z.literal("all")]).optional(),
     sourceId: id().nullable().optional(),
     companyId: id().optional(),
@@ -286,6 +295,4 @@ export const techNLJobOutput = z
       .strict(),
   })
   .strict();
-export const techNLListOutput = z
-  .object({ jobs: z.array(techNLJobOutput), fetchedAt: z.string() })
-  .strict();
+export const techNLListOutput = page(techNLJobOutput).extend({ fetchedAt: z.string() }).strict();

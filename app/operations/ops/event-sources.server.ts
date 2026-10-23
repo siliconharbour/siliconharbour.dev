@@ -1,3 +1,4 @@
+import { listInput, page, collectionPage } from "../listing";
 import { asyncSyncOutput as asyncResult } from "../contracts/importers";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -38,12 +39,19 @@ export const eventSourceOperations = {
     access: "admin",
     summary: "List event import sources.",
     description: "Return source configuration, fetch status, and pending/published event counts.",
-    input: emptyInput,
-    output: z.array(
+    input: listInput(["createdAt", "name"]),
+    output: page(
       eventSourceOutput.extend({ pendingCount: z.number(), publishedCount: z.number() }).strict(),
     ),
     examples: [{ title: "All sources", input: {} }],
-    run: async () => toPlain(await getAllEventImportSources()),
+    run: async (_ctx, input) =>
+      toPlain(
+        collectionPage(await getAllEventImportSources(), input, {
+          createdAt: (row) => row.createdAt,
+          name: (row) => row.name,
+          sourceUrl: (row) => row.sourceUrl,
+        }),
+      ),
   }),
   eventSourceCreate: defineOperation({
     name: "eventSourceCreate",

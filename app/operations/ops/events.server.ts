@@ -1,3 +1,5 @@
+import { page } from "../listing";
+import { listEvents } from "~/lib/content-lists.server";
 import { getEventTagIdsBySlugs } from "~/lib/event-tags.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -82,19 +84,9 @@ export const eventOperations = {
     description:
       "Filter by title, import status, or source and return a bounded page with dates and tags. Use eventGet for recurrence overrides.",
     input: eventListInput,
-    output: z.array(eventOutput),
+    output: page(eventOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) =>
-      toPlain(
-        (await getAllEvents())
-          .filter(
-            (e) =>
-              (!input.query || e.title.toLowerCase().includes(input.query.toLowerCase())) &&
-              (input.importStatus === undefined || e.importStatus === input.importStatus) &&
-              (input.sourceId === undefined || e.importSourceId === input.sourceId),
-          )
-          .slice(input.offset, input.offset + input.limit),
-      ),
+    run: async (_ctx, input) => toPlain(await listEvents(input)),
   }),
   eventGet: defineOperation({
     name: "eventGet",

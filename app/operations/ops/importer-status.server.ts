@@ -1,3 +1,5 @@
+import { listInput, page, collectionPage } from "../listing";
+import { toPlain } from "../plain";
 import { importSyncAll } from "~/lib/import-sync.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -55,10 +57,16 @@ export const importerStatusOperations = {
     summary: "List recent asynchronous sync runs.",
     description:
       "Return process-local sync runs newest first. These include operational error details and are administrator-only.",
-    input: emptyInput,
-    output: z.array(asyncSyncOutput),
+    input: listInput(["startedAt", "status"]),
+    output: page(asyncSyncOutput),
     examples: [{ title: "Recent runs", input: {} }],
-    run: () => listAsyncSyncs(),
+    run: async (_ctx, input) =>
+      toPlain(
+        collectionPage(await listAsyncSyncs(), input, {
+          startedAt: (row) => row.startedAt,
+          status: (row) => row.status,
+        }),
+      ),
   }),
   importerTypeList: defineOperation({
     name: "importerTypeList",
@@ -68,8 +76,8 @@ export const importerStatusOperations = {
     summary: "List supported job importers.",
     description:
       "Return ATS type identifiers with approach, reliability, and operational notes. No live source requests run.",
-    input: emptyInput,
-    output: z.array(
+    input: listInput(["name"]),
+    output: page(
       z
         .object({
           sourceType: z.string(),
@@ -82,6 +90,11 @@ export const importerStatusOperations = {
         .strict(),
     ),
     examples: [{ title: "Importer types", input: {} }],
-    run: () => getAllImporterMeta(),
+    run: async (_ctx, input) =>
+      toPlain(
+        collectionPage(await getAllImporterMeta(), input, {
+          name: (row) => `${row.name} ${row.sourceType} ${row.quirks ?? ""}`,
+        }),
+      ),
   }),
 };

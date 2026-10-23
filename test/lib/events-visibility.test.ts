@@ -125,11 +125,11 @@ describe("event date filtering", () => {
       startDate: new Date("2099-06-01T18:00:00Z"),
     });
 
-    const result = (await buildReadFunctions().eventPublicList({ limit: 100 })) as Array<{
-      slug: string;
-    }>;
+    const result = (await buildReadFunctions().eventPublicList({ limit: 100 })) as {
+      items: Array<{ slug: string }>;
+    };
 
-    expect(result.map((event) => event.slug)).not.toContain("private-mcp-draft");
+    expect(result.items.map((event) => event.slug)).not.toContain("private-mcp-draft");
   });
 
   it("does not reveal an unpublished parent through a published child", async () => {

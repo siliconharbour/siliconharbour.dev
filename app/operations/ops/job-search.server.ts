@@ -1,3 +1,5 @@
+import { getTechNLJobsPage } from "~/lib/technl-jobs.server";
+import { listInput, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
@@ -81,10 +83,10 @@ export const jobSearchOperations = {
     summary: "Read the live TechNL job board.",
     description:
       "Fetch the fixed TechNL feed and enrich postings with directory and existing-job matches. This read does not save jobs.",
-    input: emptyInput,
+    input: listInput(["postedAt", "title"]),
     output: techNLListOutput,
     examples: [{ title: "TechNL jobs", input: {} }],
-    run: () => fetchTechNLJobsWithMatches(),
+    run: (_ctx, input) => getTechNLJobsPage(input),
   }),
   jobTechNLGet: defineOperation({
     name: "jobTechNLGet",
@@ -111,9 +113,9 @@ export const jobSearchOperations = {
     summary: "Refresh the live TechNL job board.",
     description:
       "Re-fetch the fixed feed and recompute directory/duplicate matches without saving it. Requires confirm: true.",
-    input: z.object({ confirm }).strict(),
+    input: listInput(["postedAt", "title"]).extend({ confirm }).strict(),
     output: techNLListOutput,
     examples: [{ title: "Refresh", input: { confirm: true } }],
-    run: () => fetchTechNLJobsWithMatches(),
+    run: (_ctx, input) => getTechNLJobsPage(input),
   }),
 };

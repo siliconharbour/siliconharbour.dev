@@ -1,3 +1,4 @@
+import { Pagination } from "~/components/manage/Pagination";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
@@ -11,13 +12,26 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
+  const page = Math.max(1, Math.floor(Number(new URL(request.url).searchParams.get("page")) || 1));
   try {
-    const result = await runAdminOperation(request, operationCatalog.jobTechNLList, {});
-    if (!result.ok) return { jobs: [], fetchedAt: new Date().toISOString(), error: result.error };
-    return { ...result.data, error: null as string | null };
+    const result = await runAdminOperation(request, operationCatalog.jobTechNLList, {
+      limit: 50,
+      offset: (page - 1) * 50,
+    });
+    if (!result.ok)
+      return { jobs: [], fetchedAt: new Date().toISOString(), error: result.error, total: 0, page };
+    return {
+      jobs: result.data.items,
+      total: result.data.total ?? 0,
+      page,
+      fetchedAt: result.data.fetchedAt,
+      error: null as string | null,
+    };
   } catch (err) {
     return {
       jobs: [],
+      total: 0,
+      page,
       fetchedAt: new Date().toISOString(),
       error: err instanceof Error ? err.message : String(err),
     };
@@ -30,6 +44,10 @@ export async function action({ request }: Route.ActionArgs) {
   if (form.get("intent") !== "refresh") return { success: false, error: "Unknown action" } as const;
   const result = await runAdminOperation(request, operationCatalog.jobTechNLRefresh, {
     confirm: true,
+    limit: 50,
+    offset:
+      (Math.max(1, Math.floor(Number(new URL(request.url).searchParams.get("page")) || 1)) - 1) *
+      50,
   });
   return result.ok
     ? ({ intent: "refresh", success: true, ...result.data } as const)
@@ -89,9 +107,10 @@ export default function TechNLJobBoardImport() {
       ? fetcher.data
       : null;
 
-  const jobs = refreshed?.success ? refreshed.jobs : loaderData.jobs;
+  const jobs = refreshed?.success ? refreshed.items : loaderData.jobs;
   const fetchedAt = refreshed?.success ? refreshed.fetchedAt : loaderData.fetchedAt;
   const error = refreshed && !refreshed.success ? refreshed.error : loaderData.error;
+  const total = refreshed?.success ? (refreshed.total ?? 0) : loaderData.total;
   const isLoading = fetcher.state !== "idle";
 
   // Group by company for a clearer overview
@@ -285,6 +304,7 @@ export default function TechNLJobBoardImport() {
           );
         })}
       </div>
+      <Pagination currentPage={loaderData.page} totalPages={Math.ceil(total / 50)} total={total} />
     </div>
   );
 }

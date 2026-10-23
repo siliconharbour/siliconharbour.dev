@@ -1,3 +1,4 @@
+import { pageResult, type ListInput } from "~/operations/listing";
 import { db } from "~/db";
 import {
   discordPosts,
@@ -9,7 +10,7 @@ import {
   type DiscordChannelType,
 } from "~/db/schema";
 import { siteDayBounds } from "~/lib/event-timing";
-import { eq, and, isNull, gte, or, sql, desc } from "drizzle-orm";
+import { eq, and, isNull, gte, or, sql, desc, asc, inArray } from "drizzle-orm";
 import { publiclyVisibleEvent } from "~/lib/event-visibility";
 
 // ============================================================================
@@ -272,17 +273,46 @@ export interface DiscordPostBatch {
  *
  * Skipped posts (batch_id = null) appear as singleton batches.
  */
+const historyBatchKey = sql<string>`coalesce(${discordPosts.batchId}, '__single_' || ${discordPosts.id})`;
+function historyWhere(type: DiscordChannelType, query?: string) {
+  return and(
+    eq(discordPosts.channelType, type),
+    query
+      ? sql`instr(lower(coalesce(${discordPosts.introText}, '')), ${query.toLowerCase()}) > 0`
+      : undefined,
+  );
+}
 export async function getPostHistory(
   channelType: DiscordChannelType,
   limit = 10,
+  options: { offset?: number; query?: string; order?: "asc" | "desc" } = {},
 ): Promise<DiscordPostBatch[]> {
-  // Pull a larger window than `limit` because batches collapse multiple rows.
+  const keys = db
+    .select({ key: historyBatchKey })
+    .from(discordPosts)
+    .where(historyWhere(channelType, options.query))
+    .groupBy(historyBatchKey)
+    .orderBy(
+      (options.order === "asc" ? asc : desc)(sql`min(${discordPosts.postedAt})`),
+      historyBatchKey,
+    )
+    .limit(limit)
+    .offset(options.offset ?? 0)
+    .all();
+  if (!keys.length) return [];
   const posts = await db
     .select()
     .from(discordPosts)
-    .where(eq(discordPosts.channelType, channelType))
-    .orderBy(desc(discordPosts.postedAt))
-    .limit(limit * 4);
+    .where(
+      and(
+        eq(discordPosts.channelType, channelType),
+        inArray(
+          historyBatchKey,
+          keys.map((row) => row.key),
+        ),
+      ),
+    )
+    .orderBy(desc(discordPosts.postedAt));
 
   // Group by batchId; null batchId is its own singleton group keyed by post.id.
   const groups = new Map<string, typeof posts>();
@@ -329,6 +359,17 @@ export async function getPostHistory(
     });
   }
 
-  batches.sort((a, b) => b.postedAt.getTime() - a.postedAt.getTime());
-  return batches.slice(0, limit);
+  batches.sort(
+    (a, b) => (b.postedAt.getTime() - a.postedAt.getTime()) * (options.order === "asc" ? -1 : 1),
+  );
+  return batches;
+}
+
+export async function getPostHistoryPage(type: DiscordChannelType, input: ListInput) {
+  const total = db
+    .select({ total: sql<number>`count(DISTINCT ${historyBatchKey})` })
+    .from(discordPosts)
+    .where(historyWhere(type, input.query))
+    .get()!.total;
+  return pageResult(input, await getPostHistory(type, input.limit, input), total);
 }

@@ -19,9 +19,9 @@ it("excludes hidden companies and their attached records from public product res
     companyId: company.id,
   });
   const companies = await operations.companyPublicList.execute(publicContext(), {});
-  expect(companies.some((row) => row.id === company.id)).toBe(false);
+  expect(companies.items.some((row) => row.id === company.id)).toBe(false);
   const products = await operations.productPublicList.execute(publicContext(), {});
-  const result = products.find((row) => row.id === product.id);
+  const result = products.items.find((row) => row.id === product.id);
   expect(result).toBeDefined();
   expect(result).not.toHaveProperty("company");
   expect(JSON.stringify(products)).not.toContain("private@example.com");
@@ -51,18 +51,40 @@ it("keeps source configuration private while preserving operator job discovery",
   });
   await db.update(jobs).set({ sourceId: source.id, status: "active" }).where(eq(jobs.id, job.id));
   const publicRows = await operations.jobPublicList.execute(publicContext(), {});
-  const publicJob = publicRows.find((row) => row.id === job.id);
+  const publicJob = publicRows.items.find((row) => row.id === job.id);
   expect(publicJob).toBeDefined();
   expect(publicJob).not.toHaveProperty("importSourceIdentifier");
   expect(publicJob).not.toHaveProperty("importSourceUrl");
   expect(operations.jobPublicList.output.safeParse(publicRows).success).toBe(true);
   const operatorRows = await operations.jobList.execute(admin, { status: "all" });
-  expect(operatorRows.find((row) => row.id === job.id)).toMatchObject({
+  expect(operatorRows.items.find((row) => row.id === job.id)).toMatchObject({
     importSourceIdentifier: "private-board",
     importSourceUrl: "https://example.com/private-feed",
   });
   await operations.jobHide.execute(admin, { id: job.id });
   expect(
-    (await operations.jobPublicList.execute(publicContext(), {})).some((row) => row.id === job.id),
+    (await operations.jobPublicList.execute(publicContext(), {})).items.some(
+      (row) => row.id === job.id,
+    ),
   ).toBe(false);
+});
+
+it("excludes hidden groups while preserving administrator visibility filters", async () => {
+  const admin = adminContext(1);
+  const visible = await operations.groupCreate.execute(admin, {
+    name: "Public group",
+    description: "Description",
+    visible: true,
+  });
+  const hidden = await operations.groupCreate.execute(admin, {
+    name: "Hidden group",
+    description: "Private description",
+    visible: false,
+  });
+  const page = await operations.groupPublicList.execute(publicContext(), {});
+  expect(page.items.map((row) => row.id)).toEqual([visible.id]);
+  expect(page).toMatchObject({ total: 1, nextOffset: null });
+  const hiddenPage = await operations.groupList.execute(admin, { visible: false });
+  expect(hiddenPage.items.map((row) => row.id)).toEqual([hidden.id]);
+  expect(hiddenPage.total).toBe(1);
 });
