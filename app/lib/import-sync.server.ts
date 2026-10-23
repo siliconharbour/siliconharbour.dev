@@ -1,7 +1,7 @@
 import type { OperationContext } from "~/operations/context";
 import { getAllEventImportSources, syncEvents } from "./event-importers/sync.server";
 import { orderEventSourcesForSync } from "./event-importers/source-order";
-import { getAllImportSources, syncJobs } from "./job-importers/sync.server";
+import { getAllImportSourcesWithStats, syncJobs } from "./job-importers/sync.server";
 import { getAllNewsImportSources, syncNewsSource } from "./news-importers/sync.server";
 import { startAsyncSync, type AsyncSyncTask, type AsyncSyncTaskType } from "./async-syncs.server";
 
@@ -19,7 +19,7 @@ export async function importSyncAll(
         run: () => syncEvents(source.id),
       });
   if (types.includes("job"))
-    for (const source of await getAllImportSources())
+    for (const source of await getAllImportSourcesWithStats())
       tasks.push({
         type: "job",
         sourceId: source.id,

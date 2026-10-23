@@ -42,7 +42,10 @@ export type Campaign = {
   deliveryCounts?: Record<string, number>;
 };
 
-type ProviderCampaign = Omit<Campaign, "audienceData"> & { audienceData: string | null };
+type ProviderCampaign = Omit<Campaign, "audienceData"> & {
+  audienceData: string | null;
+  templateSlug: string;
+};
 function parseCampaign(campaign: ProviderCampaign): Campaign {
   return {
     id: campaign.id,
@@ -159,6 +162,7 @@ async function listsRequest<T>(path: string, init: RequestInit = {}): Promise<T>
   if (!baseUrl || !token) throw new InvalidOperationError("Lists is not configured");
   const response = await fetch(new URL(`/api/v1${path}`, baseUrl), {
     ...init,
+    signal: init.signal ?? AbortSignal.timeout(20_000),
     headers: {
       Authorization: `Bearer ${token}`,
       ...(init.body ? { "Content-Type": "application/json" } : {}),
@@ -339,4 +343,45 @@ export async function listNewsletterCampaigns(
           (!input.query || campaign.subject.toLowerCase().includes(input.query.toLowerCase())),
       ),
   };
+}
+
+export async function findNewsletterCampaignForCreate(subject: string, bodyMarkdown: string) {
+  const list = await getNewsletterList();
+  const sender = newsletterSender();
+  let offset = 0;
+  for (let page = 0; page < 10; page++) {
+    const result = await providerPage<ProviderCampaign>("/campaigns", { limit: 200, offset }, {});
+    const existing = result.items.find(
+      (campaign) =>
+        campaign.audienceType === "list" &&
+        campaign.audienceId === list.id &&
+        campaign.templateSlug === "newsletter" &&
+        campaign.fromAddress === sender.fromAddress &&
+        campaign.fromName === sender.fromName &&
+        campaign.subject === subject &&
+        campaign.bodyMarkdown === bodyMarkdown,
+    );
+    if (existing) return parseCampaign(existing);
+    if (result.nextOffset === null) return null;
+    offset = result.nextOffset;
+  }
+  throw new InvalidOperationError(
+    "Too many campaigns to check safely; use an existing campaign ID or create without ifNotExists",
+  );
+}
+export async function findNewsletterSubscriberForCreate(email: string) {
+  const list = await getNewsletterList();
+  let offset = 0;
+  for (let page = 0; page < 10; page++) {
+    const result = await listNewsletterSubscribers(list.id, { limit: 200, offset, query: email });
+    const existing = result.items.find(
+      (subscriber) => subscriber.email.toLowerCase() === email.toLowerCase(),
+    );
+    if (existing) return { id: existing.id, email: existing.email };
+    if (result.nextOffset === null) return null;
+    offset = result.nextOffset;
+  }
+  throw new InvalidOperationError(
+    "Too many subscribers to check safely; use an existing subscriber ID or create without ifNotExists",
+  );
 }

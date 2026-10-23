@@ -1,3 +1,7 @@
+import { createIfAbsent, identityKey } from "../creation.server";
+import { findNewsletterSubscriberForCreate } from "~/lib/newsletter.server";
+import { findNewsletterCampaignForCreate } from "~/lib/newsletter.server";
+import { campaignCreateInput } from "../contracts/newsletter";
 import { listNewsletterSubscribers, listNewsletterCampaigns } from "~/lib/newsletter.server";
 import { listInput, page } from "../listing";
 import { z } from "zod";
@@ -7,7 +11,6 @@ import { emptyInput, id, confirm, deleteInput } from "../fields";
 import {
   newsletterFlags,
   campaignOutput,
-  campaignInput,
   campaignSaveInput,
   campaignGetInput,
   campaignGetOutput,
@@ -93,13 +96,24 @@ export const newsletterOperations = {
     access: "admin",
     summary: "Create a newsletter draft.",
     description:
-      "Create a campaign for the configured list using the site's sender defaults. Does not send email.",
-    input: campaignInput,
-    output: campaignOutput,
+      "Create a campaign for the configured list using the site's sender defaults. Does not send email. Set ifNotExists to return an existing record by exact subject and Markdown body within the configured list. Existing records are unchanged and return created:false; new records return created:true.",
+    input: campaignCreateInput,
+    output: campaignOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       { title: "Draft", input: { subject: "Harbour news", bodyMarkdown: "Community updates" } },
     ],
-    run: async (_ctx, input) => saveNewsletterCampaign((await getNewsletterList()).id, input),
+    run: (_ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "newsletter-campaign",
+        ifNotExists,
+        {
+          key: identityKey(input.subject, input.bodyMarkdown),
+          find: () => findNewsletterCampaignForCreate(input.subject, input.bodyMarkdown),
+        },
+        async () => {
+          return saveNewsletterCampaign((await getNewsletterList()).id, input);
+        },
+      ),
   }),
   newsletterCampaignSave: defineOperation({
     name: "newsletterCampaignSave",
@@ -192,20 +206,30 @@ export const newsletterOperations = {
     area: "newsletter",
     risk: "external",
     access: "admin",
-    summary: "Add a subscriber and request confirmation.",
+    summary: "Add or resubscribe a newsletter member.",
     description:
-      "Respect the production signup rollout: when disabled, only configured pilot addresses may be added. Send a subscription confirmation email. Requires confirm: true.",
+      "Respect the production signup rollout: when disabled, only configured pilot addresses may be added. Send a subscription confirmation email. Requires confirm: true. Set ifNotExists to return an existing record by email within the configured list; an existing member is not resubscribed or sent another confirmation. Existing records are unchanged and return created:false; new records return created:true.",
     input: subscriberCreateInput,
-    output: z.object({ id: z.number(), email: z.string() }).strict(),
+    output: z
+      .object({ id: z.number(), email: z.string() })
+      .strict()
+      .extend({ created: z.boolean() })
+      .strict(),
     examples: [{ title: "Add subscriber", input: { email: "reader@example.com", confirm: true } }],
-    run: async (_ctx, input) => {
-      await assertSignupAllowed(input.email);
-      return subscribeToNewsletter(
-        input.email,
-        input.firstName ?? undefined,
-        input.lastName ?? undefined,
-      );
-    },
+    run: (_ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "newsletter-subscriber",
+        ifNotExists,
+        { key: input.email, find: () => findNewsletterSubscriberForCreate(input.email) },
+        async () => {
+          await assertSignupAllowed(input.email);
+          return subscribeToNewsletter(
+            input.email,
+            input.firstName ?? undefined,
+            input.lastName ?? undefined,
+          );
+        },
+      ),
   }),
   newsletterSubscriberResendConfirmation: defineOperation({
     name: "newsletterSubscriberResendConfirmation",

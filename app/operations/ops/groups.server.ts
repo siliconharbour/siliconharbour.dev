@@ -1,3 +1,5 @@
+import { normalizeDirectoryIdentity } from "../creation.server";
+import { createIfAbsent, urlIdentity } from "../creation.server";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listGroups } from "~/lib/directory-lists.server";
@@ -5,7 +7,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { lookupInput, deleteInput, adminListInput } from "../fields";
+import { lookupInput, deleteInput } from "../fields";
 import { groupCreateInput, groupUpdateInput } from "../contracts/groups";
 import { groupOutput } from "../contracts/groups";
 import {
@@ -62,28 +64,38 @@ export const groupOperations = {
     access: "admin",
     summary: "Create a group.",
     description:
-      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved.",
+      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved. Set ifNotExists to return an existing record by canonical website. Existing records are unchanged and return created:false; new records return created:true.",
     input: groupCreateInput,
-    output: groupOutput,
+    output: groupOutput.extend({ created: z.boolean() }).strict(),
     examples: [{ title: "Create", input: { name: "Group", description: "Description" } }],
-    run: async (_context, input) => {
-      const { logo, coverImage, ...fields } = input;
+    run: (_context, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "group",
+        ifNotExists,
+        urlIdentity(
+          input.website,
+          () => getAllGroups(true),
+          (row) => row.website,
+          normalizeDirectoryIdentity,
+        ),
+        async () => {
+          const { logo, coverImage, ...fields } = input;
+          const result = await withEntityImages(
+            { type: "group" },
+            { icon: logo, cover: coverImage },
+            async (images) => {
+              const record = await createGroup({
+                ...fields,
+                visible: fields.visible ?? false,
+                ...images,
+              });
 
-      const result = await withEntityImages(
-        { type: "group" },
-        { icon: logo, cover: coverImage },
-        async (images) => {
-          const record = await createGroup({
-            ...fields,
-            visible: fields.visible ?? false,
-            ...images,
-          });
-
-          return record;
+              return record;
+            },
+          );
+          return toPlain(result);
         },
-      );
-      return toPlain(result);
-    },
+      ),
   }),
   groupUpdate: defineOperation({
     name: "groupUpdate",

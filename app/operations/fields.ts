@@ -20,6 +20,14 @@ export const nullableText = (max = 100_000) =>
     .nullable();
 export const url = () => z.string().trim().url().max(4096);
 export const confirm = z.literal(true);
+export const createOptions = {
+  ifNotExists: z
+    .boolean()
+    .optional()
+    .describe(
+      "Return an existing record for this operation's stable identity without changing it. Requires the identity fields documented by the operation.",
+    ),
+};
 export const pagination = {
   limit: z.number().int().min(1).max(200).default(50),
   offset: z.number().int().min(0).default(0),

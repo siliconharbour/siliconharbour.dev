@@ -1,3 +1,4 @@
+import { createIfAbsent, urlIdentity, recordIdentity, identityKey } from "../creation.server";
 import { page } from "../listing";
 import { listNews } from "~/lib/content-lists.server";
 import { z } from "zod";
@@ -19,6 +20,15 @@ export async function requireNews(id: number) {
   const news = await getNewsById(id);
   if (!news) throw new NotFoundError("News item not found");
   return news;
+}
+function articleCreationIdentity(input: z.output<typeof newsArticleCreateInput>) {
+  if (input.externalUrl)
+    return urlIdentity(input.externalUrl, getAllNews, (row) => row.externalUrl);
+  return recordIdentity(
+    identityKey(input.type, input.title, input.content),
+    getAllNews,
+    (row) => row.type === input.type && row.title === input.title && row.content === input.content,
+  );
 }
 export const newsOperations = {
   newsList: defineOperation({
@@ -63,32 +73,35 @@ export const newsOperations = {
     access: "admin",
     summary: "Create a news article or a manually entered link.",
     description:
-      "Save supplied content without fetching its URL. Defaults to a draft article. Published records receive publishedAt from the operation clock unless explicitly supplied. Use newsLinkSubmit to fetch link metadata. Synchronize references and prepare cover images before writing.",
+      "Save supplied content without fetching its URL. Defaults to a draft article. Published records receive publishedAt from the operation clock unless explicitly supplied. Use newsLinkSubmit to fetch link metadata. Synchronize references and prepare cover images before writing. Set ifNotExists to return an existing record by canonical external URL, or exact article type, title and content. Existing records are unchanged and return created:false; new records return created:true.",
     input: newsArticleCreateInput,
-    output: newsOutput,
+    output: newsOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       {
         title: "Draft article",
         input: { title: "Community update", content: "News from the harbour" },
       },
     ],
-    run: async (ctx, { coverImage, publishedAt, ...fields }) =>
-      toPlain(
-        await withEntityImages({ type: "news" }, { cover: coverImage }, (images) =>
-          createNews({
-            ...fields,
-            ...images,
-            publishedAt:
-              publishedAt !== undefined
-                ? publishedAt
-                  ? new Date(publishedAt)
-                  : null
-                : fields.status === "published"
-                  ? ctx.now()
-                  : null,
-          }),
-        ),
-      ),
+    run: (ctx, { ifNotExists, ...input }) =>
+      createIfAbsent("news", ifNotExists, articleCreationIdentity(input), async () => {
+        const { coverImage, publishedAt, ...fields } = input;
+        return toPlain(
+          await withEntityImages({ type: "news" }, { cover: coverImage }, (images) =>
+            createNews({
+              ...fields,
+              ...images,
+              publishedAt:
+                publishedAt !== undefined
+                  ? publishedAt
+                    ? new Date(publishedAt)
+                    : null
+                  : fields.status === "published"
+                    ? ctx.now()
+                    : null,
+            }),
+          ),
+        );
+      }),
   }),
   newsUpdate: defineOperation({
     name: "newsUpdate",
@@ -131,26 +144,32 @@ export const newsOperations = {
     access: "admin",
     summary: "Fetch and publish a news link.",
     description:
-      "Fetch HTML through the public-address guard, extract title and description, and publish immediately with publishedAt from the operation clock. Optional title, excerpt, and sourceName override metadata. Requires confirm: true.",
+      "Fetch HTML through the public-address guard, extract title and description, and publish immediately with publishedAt from the operation clock. Optional title, excerpt, and sourceName override metadata. Requires confirm: true. Set ifNotExists to return an existing record by canonical submitted URL. Existing records are unchanged and return created:false; new records return created:true.",
     input: newsLinkSubmitInput,
-    output: newsOutput,
+    output: newsOutput.extend({ created: z.boolean() }).strict(),
     examples: [{ title: "Submit link", input: { url: "https://example.com/news", confirm: true } }],
-    run: async (ctx, input) => {
-      const metadata = await fetchNewsLinkMetadata(input.url);
-      const excerpt = input.excerpt === undefined ? metadata.excerpt : input.excerpt;
-      return toPlain(
-        await createNews({
-          type: "link",
-          title: input.title ?? metadata.title,
-          content: excerpt ?? "",
-          excerpt,
-          externalUrl: input.url,
-          sourceName: input.sourceName === undefined ? metadata.sourceName : input.sourceName,
-          status: "published",
-          publishedAt: ctx.now(),
-        }),
-      );
-    },
+    run: (ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "news",
+        ifNotExists,
+        urlIdentity(input.url, getAllNews, (row) => row.externalUrl),
+        async () => {
+          const metadata = await fetchNewsLinkMetadata(input.url);
+          const excerpt = input.excerpt === undefined ? metadata.excerpt : input.excerpt;
+          return toPlain(
+            await createNews({
+              type: "link",
+              title: input.title ?? metadata.title,
+              content: excerpt ?? "",
+              excerpt,
+              externalUrl: input.url,
+              sourceName: input.sourceName === undefined ? metadata.sourceName : input.sourceName,
+              status: "published",
+              publishedAt: ctx.now(),
+            }),
+          );
+        },
+      ),
   }),
   newsDelete: defineOperation({
     name: "newsDelete",

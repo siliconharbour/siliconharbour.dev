@@ -1,3 +1,5 @@
+import { createIfAbsent, recordIdentity, identityKey } from "../creation.server";
+import { getAllImportSources } from "~/lib/job-importers/sync.server";
 import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -14,7 +16,7 @@ import {
   jobSyncAllOutput,
 } from "../contracts/jobs";
 import {
-  getAllImportSources,
+  getAllImportSourcesWithStats,
   getSourceById,
   createImportSource,
   updateImportSource,
@@ -57,7 +59,7 @@ export const jobSourceOperations = {
     examples: [{ title: "All sources", input: {} }],
     run: async (ctx, input) =>
       toPlain(
-        collectionPage(await getAllImportSources(), input, {
+        collectionPage(await getAllImportSourcesWithStats(), input, {
           createdAt: (row) => row.createdAt,
           name: (row) => `${row.companyName ?? ""} ${row.sourceIdentifier}`,
           sourceUrl: (row) => row.sourceUrl,
@@ -71,9 +73,9 @@ export const jobSourceOperations = {
     access: "admin",
     summary: "Validate and create a job import source.",
     description:
-      "Validate ATS configuration using a live fetch unless skipValidation is true. The company must exist. No sync runs after creation. Requires confirm: true.",
+      "Validate ATS configuration using a live fetch unless skipValidation is true. The company must exist. No sync runs after creation. Requires confirm: true. Set ifNotExists to return an existing record by company ID, source type and provider identifier. Existing records are unchanged and return created:false; new records return created:true.",
     input: jobSourceCreateInput,
-    output: jobSourceOutput,
+    output: jobSourceOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       {
         title: "Add ATS source",
@@ -85,23 +87,37 @@ export const jobSourceOperations = {
         },
       },
     ],
-    run: async (ctx, input) => {
-      if (!(await getCompanyById(input.companyId))) throw new NotFoundError("Company not found");
-      const config = {
-        companyId: input.companyId,
-        sourceType: input.sourceType,
-        sourceIdentifier: input.sourceIdentifier,
-        sourceUrl: input.sourceUrl,
-      };
-      const importer = getImporter(input.sourceType);
-      if (!input.skipValidation) {
-        const result = await importer.validateConfig(config);
-        if (!result.valid)
-          throw new InvalidOperationError(result.error ?? "Invalid source configuration");
-      }
-      const id = await createImportSource(config);
-      return toPlain(await requireJobSource(id));
-    },
+    run: (ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "job-source",
+        ifNotExists,
+        recordIdentity(
+          identityKey(input.companyId, input.sourceType, input.sourceIdentifier),
+          getAllImportSources,
+          (row) =>
+            row.companyId === input.companyId &&
+            row.sourceType === input.sourceType &&
+            row.sourceIdentifier === input.sourceIdentifier,
+        ),
+        async () => {
+          if (!(await getCompanyById(input.companyId)))
+            throw new NotFoundError("Company not found");
+          const config = {
+            companyId: input.companyId,
+            sourceType: input.sourceType,
+            sourceIdentifier: input.sourceIdentifier,
+            sourceUrl: input.sourceUrl,
+          };
+          const importer = getImporter(input.sourceType);
+          if (!input.skipValidation) {
+            const result = await importer.validateConfig(config);
+            if (!result.valid)
+              throw new InvalidOperationError(result.error ?? "Invalid source configuration");
+          }
+          const id = await createImportSource(config);
+          return toPlain(await requireJobSource(id));
+        },
+      ),
   }),
   jobSourceUpdate: defineOperation({
     name: "jobSourceUpdate",
@@ -179,7 +195,7 @@ export const jobSourceOperations = {
     run: async (ctx, input) =>
       input.async
         ? startAsyncSync(
-            (await getAllImportSources()).map((source) => ({
+            (await getAllImportSourcesWithStats()).map((source) => ({
               type: "job" as const,
               sourceId: source.id,
               name: source.sourceIdentifier,

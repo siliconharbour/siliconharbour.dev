@@ -1,3 +1,5 @@
+import { normalizeDirectoryIdentity, normalizeGithubIdentity } from "../creation.server";
+import { createIfAbsent, urlIdentity } from "../creation.server";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listCompanies } from "~/lib/directory-lists.server";
@@ -11,7 +13,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { lookupInput, adminListInput } from "../fields";
+import { lookupInput } from "../fields";
 import { companyCreateInput, companyUpdateInput } from "../contracts/companies";
 import { companyOutput } from "../contracts/companies";
 import {
@@ -70,29 +72,39 @@ export const companyOperations = {
     access: "admin",
     summary: "Create a company.",
     description:
-      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved.",
+      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved. Set ifNotExists to return an existing record by canonical website, or GitHub organization profile. Existing records are unchanged and return created:false; new records return created:true.",
     input: companyCreateInput,
-    output: companyOutput,
+    output: companyOutput.extend({ created: z.boolean() }).strict(),
     examples: [{ title: "Create", input: { name: "Company", description: "Description" } }],
-    run: async (_context, input) => {
-      const { logo, coverImage, technologyIds, evidenceGroups, ...fields } = input;
-
-      await validateCompanyTechnologyChanges(undefined, technologyIds, evidenceGroups);
-      const result = await withEntityImages(
-        { type: "company" },
-        { icon: logo, cover: coverImage },
-        async (images) => {
-          const record = await createCompany({
-            ...fields,
-            visible: fields.visible ?? false,
-            ...images,
-          });
-          await applyCompanyTechnologyChanges(record.id, technologyIds, evidenceGroups);
-          return record;
+    run: (_context, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "company",
+        ifNotExists,
+        urlIdentity(
+          input.website ?? input.github,
+          () => getAllCompanies(true),
+          (row) => (input.website ? row.website : row.github),
+          input.website ? normalizeDirectoryIdentity : normalizeGithubIdentity,
+        ),
+        async () => {
+          const { logo, coverImage, technologyIds, evidenceGroups, ...fields } = input;
+          await validateCompanyTechnologyChanges(undefined, technologyIds, evidenceGroups);
+          const result = await withEntityImages(
+            { type: "company" },
+            { icon: logo, cover: coverImage },
+            async (images) => {
+              const record = await createCompany({
+                ...fields,
+                visible: fields.visible ?? false,
+                ...images,
+              });
+              await applyCompanyTechnologyChanges(record.id, technologyIds, evidenceGroups);
+              return record;
+            },
+          );
+          return toPlain(result);
         },
-      );
-      return toPlain(result);
-    },
+      ),
   }),
   companyUpdate: defineOperation({
     name: "companyUpdate",

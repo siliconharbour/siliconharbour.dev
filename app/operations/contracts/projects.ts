@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { projectLinksOutput } from "~/lib/links";
 import { z } from "zod";
 import {
@@ -28,7 +29,8 @@ export const projectCreateInput = z
     type: projectFields.type.default("other"),
     status: projectFields.status.default("active"),
   })
-  .strict();
+  .strict()
+  .safeExtend(createOptions);
 export const projectUpdateInput = updateContract(z.object(projectFields).partial().shape);
 export const projectGalleryAddInput = z
   .object({ id: id(), image: imageFileInput, caption: nullableText(2000).default(null) })

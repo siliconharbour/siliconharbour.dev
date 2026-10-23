@@ -1,3 +1,4 @@
+import { createIfAbsent, urlIdentity } from "../creation.server";
 import { page, pageResult } from "../listing";
 import { jobListItemOutput } from "../contracts/jobs";
 import { getPaginatedJobs } from "~/lib/jobs.server";
@@ -76,9 +77,9 @@ export const jobOperations = {
     access: "admin",
     summary: "Create a manual job.",
     description:
-      "Create an active manual posting, derive its slug, and synchronize references. Resolve optional companyName when companyId is omitted. isTechnical defaults to true.",
+      "Create an active manual posting, derive its slug, and synchronize references. Resolve optional companyName when companyId is omitted. isTechnical defaults to true. Set ifNotExists to return an existing record by canonical application URL. Existing records are unchanged and return created:false; new records return created:true.",
     input: jobCreateInput,
-    output: jobOutput,
+    output: jobOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       {
         title: "Create job",
@@ -89,16 +90,23 @@ export const jobOperations = {
         },
       },
     ],
-    run: async (_ctx, { companyName, ...fields }) => {
-      let companyId = fields.companyId;
-      if (companyId === undefined && companyName) {
-        const company = await getCompanyByName(companyName);
-        if (!company) throw new NotFoundError("Company not found");
-        companyId = company.id;
-      }
-      await validateCompany(companyId);
-      return toPlain(await createJob({ ...fields, companyId }));
-    },
+    run: (_ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "job",
+        ifNotExists,
+        urlIdentity(input.url, getAllJobs, (row) => row.url),
+        async () => {
+          const { companyName, ...fields } = input;
+          let companyId = fields.companyId;
+          if (companyId === undefined && companyName) {
+            const company = await getCompanyByName(companyName);
+            if (!company) throw new NotFoundError("Company not found");
+            companyId = company.id;
+          }
+          await validateCompany(companyId);
+          return toPlain(await createJob({ ...fields, companyId }));
+        },
+      ),
   }),
   jobUpdate: defineOperation({
     name: "jobUpdate",

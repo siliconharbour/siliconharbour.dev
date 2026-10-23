@@ -1,5 +1,5 @@
 import { references as contentReferences } from "~/db/schema";
-import { notRejected } from "./directory-active.server";
+import { notRejected, assertDirectoryIdentityAvailable } from "./directory-active.server";
 import { githubLogin } from "./url-fields";
 import { compactLinks, type SocialLinks, type LinkPatch } from "./links";
 import { patchLinks } from "./link-patch.server";
@@ -35,6 +35,7 @@ export async function generatePersonSlug(name: string, excludeId?: number): Prom
 export async function createPerson(
   person: Omit<NewPerson, "slug" | "socialLinks"> & { socialLinks?: LinkPatch<SocialLinks> },
 ): Promise<Person> {
+  assertDirectoryIdentityAvailable("person", person);
   const slug = await generatePersonSlug(person.name);
   const [newPerson] = await db
     .insert(people)

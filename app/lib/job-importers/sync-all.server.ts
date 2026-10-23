@@ -1,6 +1,6 @@
-import { getAllImportSources, syncJobs } from "./sync.server";
+import { getAllImportSourcesWithStats, syncJobs } from "./sync.server";
 export async function syncAllJobSources() {
-  const sources = await getAllImportSources();
+  const sources = await getAllImportSourcesWithStats();
   const results = [];
   for (const source of sources)
     results.push({ sourceId: source.id, ...(await syncJobs(source.id)) });

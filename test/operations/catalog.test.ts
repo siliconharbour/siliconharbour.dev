@@ -111,3 +111,17 @@ it("labels examples that clear nullable settings in destructive or replacement o
     }
   }
 });
+
+it("advertises conditional creation and an explicit created result", () => {
+  for (const operation of Object.values(operationCatalog)) {
+    if (
+      !operation.name.endsWith("Create") &&
+      !["newsLinkSubmit", "jobSearchImport"].includes(operation.name)
+    )
+      continue;
+    const input = z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" });
+    const output = z.toJSONSchema(operation.output, { unrepresentable: "any" });
+    expect(input.properties, operation.name).toHaveProperty("ifNotExists");
+    expect(output.properties, operation.name).toHaveProperty("created.type", "boolean");
+  }
+});

@@ -1,3 +1,10 @@
+import { normalizeEventDates } from "~/lib/event-timing";
+import {
+  createIfAbsent,
+  recordIdentity,
+  identityKey,
+  normalizeIdentityUrl,
+} from "../creation.server";
 import { page } from "../listing";
 import { listEvents } from "~/lib/content-lists.server";
 import { getEventTagIdsBySlugs } from "~/lib/event-tags.server";
@@ -74,6 +81,49 @@ async function requireEvent(id: number) {
   return event;
 }
 export { requireEvent };
+type IdentitySchedule = {
+  timeMode?: string;
+  recurrenceRule?: string | null;
+  recurrenceStart?: Date | null;
+  recurrenceEnd?: Date | null;
+  defaultStartTime?: string | null;
+  defaultEndTime?: string | null;
+};
+function scheduleIdentity(
+  fields: IdentitySchedule,
+  dates: Array<{ startDate: Date; endDate?: Date | null; isAllDay?: boolean }>,
+) {
+  const timestamp = (date: Date | null | undefined) =>
+    date ? Math.floor(date.getTime() / 1000) : null;
+  const entries = dates
+    .map((date) => [timestamp(date.startDate), timestamp(date.endDate), date.isAllDay ?? false])
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  return identityKey(
+    fields.timeMode ?? "scheduled",
+    fields.recurrenceRule,
+    timestamp(fields.recurrenceStart),
+    timestamp(fields.recurrenceEnd),
+    fields.defaultStartTime,
+    fields.defaultEndTime,
+    JSON.stringify(entries),
+  );
+}
+function eventCreationIdentity(input: z.output<typeof eventCreateInput>) {
+  const prepared = schedule(input);
+  const link = normalizeIdentityUrl(input.link);
+  const key = scheduleIdentity(
+    prepared.fields,
+    normalizeEventDates(prepared.fields.timeMode ?? "scheduled", prepared.dates ?? []),
+  );
+  return recordIdentity(
+    link ? identityKey(link, input.parentEventId, key) : null,
+    getAllEvents,
+    (row) =>
+      normalizeIdentityUrl(row.link) === link &&
+      row.parentEventId === (input.parentEventId ?? null) &&
+      scheduleIdentity(row, row.dates) === key,
+  );
+}
 export const eventOperations = {
   eventList: defineOperation({
     name: "eventList",
@@ -118,9 +168,9 @@ export const eventOperations = {
     access: "admin",
     summary: "Create an event with dates or recurrence.",
     description:
-      "Supply explicit dates or a recurrence rule with defaultStartTime. All-day dates anchor to noon in America/St_Johns. Defaults to pending_review; importStatus null or published makes it public. Images are prepared before saving, and references and tags are synchronized.",
+      "Supply explicit dates or a recurrence rule with defaultStartTime. All-day dates anchor to noon in America/St_Johns. Defaults to pending_review; importStatus null or published makes it public. Images are prepared before saving, and references and tags are synchronized. Set ifNotExists to return an existing record by canonical link, parent event and normalized schedule. Existing records are unchanged and return created:false; new records return created:true.",
     input: eventCreateInput,
-    output: eventOutput,
+    output: eventOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       {
         title: "One-time event",
@@ -132,32 +182,33 @@ export const eventOperations = {
         },
       },
     ],
-    run: async (_ctx, input) => {
-      const { iconImage, coverImage, tagIds, eventTags, ...rest } = input;
-      const prepared = schedule(rest);
-      const resolvedTags =
-        eventTags === undefined ? tagIds : await getEventTagIdsBySlugs(eventTags);
-      return toPlain(
-        await withEntityImages(
-          { type: "event" },
-          { icon: iconImage, cover: coverImage },
-          (images) =>
-            createEvent(
-              {
-                ...prepared.fields,
-                title: input.title,
-                description: input.description,
-                link: input.link,
-                importStatus:
-                  input.importStatus === undefined ? "pending_review" : input.importStatus,
-                ...images,
-              },
-              prepared.dates ?? [],
-              resolvedTags,
-            ),
-        ),
-      );
-    },
+    run: (_ctx, { ifNotExists, ...input }) =>
+      createIfAbsent("event", ifNotExists, eventCreationIdentity(input), async () => {
+        const { iconImage, coverImage, tagIds, eventTags, ...rest } = input;
+        const prepared = schedule(rest);
+        const resolvedTags =
+          eventTags === undefined ? tagIds : await getEventTagIdsBySlugs(eventTags);
+        return toPlain(
+          await withEntityImages(
+            { type: "event" },
+            { icon: iconImage, cover: coverImage },
+            (images) =>
+              createEvent(
+                {
+                  ...prepared.fields,
+                  title: input.title,
+                  description: input.description,
+                  link: input.link,
+                  importStatus:
+                    input.importStatus === undefined ? "pending_review" : input.importStatus,
+                  ...images,
+                },
+                prepared.dates ?? [],
+                resolvedTags,
+              ),
+          ),
+        );
+      }),
   }),
   eventUpdate: defineOperation({
     name: "eventUpdate",

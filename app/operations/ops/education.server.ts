@@ -1,3 +1,5 @@
+import { normalizeDirectoryIdentity } from "../creation.server";
+import { createIfAbsent, urlIdentity } from "../creation.server";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listEducation } from "~/lib/directory-lists.server";
@@ -5,7 +7,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { lookupInput, deleteInput, adminListInput } from "../fields";
+import { lookupInput, deleteInput } from "../fields";
 import { educationCreateInput, educationUpdateInput } from "../contracts/education";
 import { educationOutput } from "../contracts/education";
 import {
@@ -62,28 +64,38 @@ export const educationOperations = {
     access: "admin",
     summary: "Create a education.",
     description:
-      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved.",
+      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved. Set ifNotExists to return an existing record by canonical website. Existing records are unchanged and return created:false; new records return created:true.",
     input: educationCreateInput,
-    output: educationOutput,
+    output: educationOutput.extend({ created: z.boolean() }).strict(),
     examples: [{ title: "Create", input: { name: "Education", description: "Description" } }],
-    run: async (_context, input) => {
-      const { logo, coverImage, ...fields } = input;
+    run: (_context, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "education",
+        ifNotExists,
+        urlIdentity(
+          input.website,
+          () => getAllEducation(true),
+          (row) => row.website,
+          normalizeDirectoryIdentity,
+        ),
+        async () => {
+          const { logo, coverImage, ...fields } = input;
+          const result = await withEntityImages(
+            { type: "education" },
+            { icon: logo, cover: coverImage },
+            async (images) => {
+              const record = await createEducation({
+                ...fields,
+                visible: fields.visible ?? false,
+                ...images,
+              });
 
-      const result = await withEntityImages(
-        { type: "education" },
-        { icon: logo, cover: coverImage },
-        async (images) => {
-          const record = await createEducation({
-            ...fields,
-            visible: fields.visible ?? false,
-            ...images,
-          });
-
-          return record;
+              return record;
+            },
+          );
+          return toPlain(result);
         },
-      );
-      return toPlain(result);
-    },
+      ),
   }),
   educationUpdate: defineOperation({
     name: "educationUpdate",

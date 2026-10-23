@@ -1,3 +1,5 @@
+import { createIfAbsent, urlIdentity } from "../creation.server";
+import { getAllJobs } from "~/lib/jobs.server";
 import { getTechNLJobsPage } from "~/lib/technl-jobs.server";
 import { listInput } from "../listing";
 import { z } from "zod";
@@ -56,24 +58,31 @@ export const jobSearchOperations = {
     access: "admin",
     summary: "Import a reviewed search result as a manual job.",
     description:
-      "Match companyName against the directory when supplied. Use title as description when omitted, and save a manual active job with normal slug and reference handling. This makes no network request.",
+      "Match companyName against the directory when supplied. Use title as description when omitted, and save a manual active job with normal slug and reference handling. This makes no network request. Set ifNotExists to return an existing record by canonical application URL. Existing records are unchanged and return created:false; new records return created:true. Directory names are never used as identities.",
     input: jobSearchImportInput,
-    output: jobOutput,
+    output: jobOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       { title: "Import result", input: { title: "Developer", url: "https://example.com/jobs" } },
     ],
-    run: async (_ctx, { companyName, description, salary, isRemote, ...fields }) => {
-      const company = companyName ? await getCompanyByName(companyName) : null;
-      return toPlain(
-        await createJob({
-          ...fields,
-          description: description ?? fields.title,
-          companyId: company?.id ?? null,
-          salaryRange: salary,
-          workplaceType: isRemote ? "remote" : null,
-        }),
-      );
-    },
+    run: (_ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "job",
+        ifNotExists,
+        urlIdentity(input.url, getAllJobs, (row) => row.url),
+        async () => {
+          const { companyName, description, salary, isRemote, ...fields } = input;
+          const company = companyName ? await getCompanyByName(companyName) : null;
+          return toPlain(
+            await createJob({
+              ...fields,
+              description: description ?? fields.title,
+              companyId: company?.id ?? null,
+              salaryRange: salary,
+              workplaceType: isRemote ? "remote" : null,
+            }),
+          );
+        },
+      ),
   }),
   jobTechNLList: defineOperation({
     name: "jobTechNLList",

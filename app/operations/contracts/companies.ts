@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { email } from "../fields";
 import { nullableGithubProfile } from "../fields";
 import { technologyProvenanceSourceKeys } from "../fields";
@@ -52,7 +53,7 @@ export const companyFields = {
   logo: imageInput.optional(),
   coverImage: imageInput.optional(),
 };
-export const companyCreateInput = z.object(companyFields).strict();
+export const companyCreateInput = z.object(companyFields).strict().safeExtend(createOptions);
 export const companyUpdateInput = updateContract(z.object(companyFields).partial().shape);
 export const companyDeleteInput = z
   .object({

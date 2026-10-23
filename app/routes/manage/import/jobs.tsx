@@ -4,7 +4,7 @@ import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/jobs";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllImportSources, getAllPendingJobs } from "~/lib/job-importers/sync.server";
+import { getAllImportSourcesWithStats, getAllPendingJobs } from "~/lib/job-importers/sync.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
@@ -16,7 +16,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
   const [sources, companies, pendingJobs] = await Promise.all([
-    getAllImportSources(),
+    getAllImportSourcesWithStats(),
     getAllCompanies(true),
     getAllPendingJobs(),
   ]);

@@ -1,3 +1,5 @@
+import { createIfAbsent, recordIdentity } from "../creation.server";
+import { generateSlug } from "~/lib/slug";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listTechnologies } from "~/lib/directory-lists.server";
@@ -5,7 +7,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { lookupInput, deleteInput, adminListInput } from "../fields";
+import { lookupInput, deleteInput } from "../fields";
 import { technologyCreateInput, technologyUpdateInput } from "../contracts/technologies";
 import { technologyOutput } from "../contracts/technologies";
 import {
@@ -62,33 +64,42 @@ export const technologyOperations = {
     access: "admin",
     summary: "Create a technology.",
     description:
-      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved.",
+      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved. Set ifNotExists to return an existing record by the catalog slug derived from the technology name. Existing records are unchanged and return created:false; new records return created:true.",
     input: technologyCreateInput,
-    output: technologyOutput,
+    output: technologyOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       {
         title: "Create",
         input: { name: "Technology", description: "Description", category: "language" },
       },
     ],
-    run: async (_context, input) => {
-      const { icon, ...fields } = input;
+    run: (_context, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "technology",
+        ifNotExists,
+        recordIdentity(
+          generateSlug(input.name),
+          () => getAllTechnologies(true),
+          (row) => row.slug === generateSlug(input.name),
+        ),
+        async () => {
+          const { icon, ...fields } = input;
+          const result = await withEntityImages(
+            { type: "technology" },
+            { icon: icon },
+            async (images) => {
+              const record = await createTechnology({
+                ...fields,
+                visible: fields.visible ?? false,
+                ...images,
+              });
 
-      const result = await withEntityImages(
-        { type: "technology" },
-        { icon: icon },
-        async (images) => {
-          const record = await createTechnology({
-            ...fields,
-            visible: fields.visible ?? false,
-            ...images,
-          });
-
-          return record;
+              return record;
+            },
+          );
+          return toPlain(result);
         },
-      );
-      return toPlain(result);
-    },
+      ),
   }),
   technologyUpdate: defineOperation({
     name: "technologyUpdate",

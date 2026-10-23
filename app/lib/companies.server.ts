@@ -1,5 +1,5 @@
 import { references as contentReferences, technologyAssignments } from "~/db/schema";
-import { notRejected } from "./directory-active.server";
+import { notRejected, assertDirectoryIdentityAvailable } from "./directory-active.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { companies, type Company, type NewCompany } from "~/db/schema";
@@ -37,6 +37,7 @@ export async function generateCompanySlug(name: string, excludeId?: number): Pro
 }
 
 export async function createCompany(company: Omit<NewCompany, "slug">): Promise<Company> {
+  assertDirectoryIdentityAvailable("company", company);
   const slug = await generateCompanySlug(company.name);
   const [newCompany] = await db
     .insert(companies)

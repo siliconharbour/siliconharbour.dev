@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { z } from "zod";
 import {
   text,
@@ -15,7 +16,7 @@ export const technologyFields = {
   icon: imageInput.optional(),
   visible: z.boolean().optional(),
 };
-export const technologyCreateInput = z.object(technologyFields).strict();
+export const technologyCreateInput = z.object(technologyFields).strict().safeExtend(createOptions);
 export const technologyUpdateInput = updateContract(z.object(technologyFields).partial().shape);
 
 export const technologyOutput = z

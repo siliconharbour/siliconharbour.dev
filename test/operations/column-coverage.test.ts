@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { is, getTableColumns, getTableName } from "drizzle-orm";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
 import * as schema from "~/db/schema";
-import { columnCoverage } from "~/operations/coverage";
+import { columnCoverage, operationControlFields } from "~/operations/coverage";
 import { operationCatalog } from "~/operations/catalog";
 import { z } from "zod";
 
@@ -62,7 +62,12 @@ it("maps every directory create/update field to a real column", () => {
       const operation = operationCatalog[key as keyof typeof operationCatalog];
       const json = z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" });
       for (const field of Object.keys(json.properties ?? {})) {
-        if (field === "id") continue;
+        if (Object.hasOwn(operationControlFields, field)) {
+          expect(
+            operationControlFields[field as keyof typeof operationControlFields].length,
+          ).toBeGreaterThan(0);
+          continue;
+        }
         const mapped = Object.values(columnCoverage).some((columns) =>
           Object.values(columns).some(
             (entry) => "mapped" in entry && entry.mapped[key]?.split(/[.[]/)[0] === field,
