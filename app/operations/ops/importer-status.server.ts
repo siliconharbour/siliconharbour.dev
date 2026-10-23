@@ -1,11 +1,35 @@
+import { importSyncAll } from "~/lib/import-sync.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
-import { emptyInput, text } from "../fields";
+import { emptyInput, text, confirm } from "../fields";
 import { asyncSyncOutput } from "../contracts/importers";
 import { getAsyncSync, listAsyncSyncs } from "~/lib/async-syncs.server";
 import { getAllImporterMeta } from "~/lib/job-importers";
 import { NotFoundError } from "../errors";
 export const importerStatusOperations = {
+  importSyncAll: defineOperation({
+    name: "importSyncAll",
+    area: "importers",
+    risk: "external",
+    access: "admin",
+    summary: "Queue an asynchronous sync across import source types.",
+    description:
+      "Queue each selected source once, in event, job, then news order. Event sources use the shared ordering and Luma request queue. Defaults to all types. Returns one process-local run; poll with asyncSyncGet. Avoid overlapping scheduled runs. Requires confirm: true.",
+    input: z
+      .object({
+        types: z
+          .array(z.enum(["event", "job", "news"]))
+          .min(1)
+          .max(3)
+          .transform((values) => [...new Set(values)])
+          .default(["event", "job", "news"]),
+        confirm,
+      })
+      .strict(),
+    output: asyncSyncOutput,
+    examples: [{ title: "Sync all source types", input: { confirm: true } }],
+    run: (_ctx, input) => importSyncAll(input.types),
+  }),
   asyncSyncGet: defineOperation({
     name: "asyncSyncGet",
     area: "importers",

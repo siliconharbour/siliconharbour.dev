@@ -34,7 +34,7 @@ Every operation enforces access itself. Admin sessions receive read/write scopes
 - Discord undo preserves the existing admin behavior: remove tracking and requeue items without deleting actual Discord messages. Use batch undo for an entire fan-out.
 - Undo-reject remains a private admin operation because it accepts a saved browser record. It is not exposed through MCP. Recreate a record and remove its block through the normal operations when needed.
 
-`siteExport` returns a private, single-use download URL that expires after five minutes. Asynchronous source syncs accept `async: true` and `confirm: true`; poll their IDs with `asyncSyncGet`. Runs are process-local and old completed runs can be evicted.
+`siteExport` returns a private, single-use download URL that expires after five minutes. For a single cross-type run, call `importSyncAll({ confirm: true })` and poll with `asyncSyncGet({ id })`. The external daily scheduler must use these names. Asynchronous source syncs accept `async: true` and `confirm: true`; poll their IDs with `asyncSyncGet`. Runs are process-local and old completed runs can be evicted.
 
 ## Network boundaries
 

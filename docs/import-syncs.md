@@ -1,9 +1,14 @@
 # Import syncs
 
 The daily trigger lives outside this repository. Configure it to call MCP
-`asyncSyncAllSources` once per day; do not schedule overlapping runs or more
+`importSyncAll({ confirm: true })` once per day; do not schedule overlapping runs or more
 frequent Luma syncs. The operator should identify the caller of the current daily
-12:31 UTC run before changing that schedule.
+12:31 UTC run before changing that schedule. Poll the returned run ID with
+`asyncSyncGet({ id })`. The external caller must use these current operation names.
+
+```js
+return await tools.siliconharbour.importSyncAll({ confirm: true });
+```
 
 Luma imports request upcoming events only. Calendar imports use the public page,
 falling back to the calendar API for missing or paginated data. A rate-limited
