@@ -510,13 +510,13 @@ export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> =
       excluded: "Derived from the operation target and content type",
     },
     source: {
-      excluded: "Legacy importer provenance; current evidence edits use technology_evidence",
+      excluded: "Importer-owned provenance; evidence edits use technology_evidence",
     },
     sourceUrl: {
-      excluded: "Legacy importer provenance; current evidence edits use technology_evidence",
+      excluded: "Importer-owned provenance; evidence edits use technology_evidence",
     },
     lastVerified: {
-      excluded: "Legacy importer provenance; current evidence edits use technology_evidence",
+      excluded: "Importer-owned provenance; evidence edits use technology_evidence",
     },
     createdAt: {
       excluded: "Creation timestamp",
