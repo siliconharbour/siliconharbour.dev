@@ -50,3 +50,5 @@ Discord and GitHub SDK calls use their fixed provider endpoints. The newsletter 
 4. Map writable columns in `app/operations/coverage`, or exclude them with an ownership/derivation reason. New columns without a decision fail the coverage check. Keep migrated route exceptions empty.
 5. Adapt the corresponding admin form and call `runAdminOperation`. Adapters translate shape only: checkboxes, repeated IDs, JSON, and image commands. Preserve redirects and field errors. Register any new route in `app/routes.ts`.
 6. Test meaningful state and boundary behavior, including a representative admin/MCP parity case. Mock outbound I/O. Run typecheck, lint, formatting, tests, and build.
+
+Blocklist identities are stored in canonical form with a unique source/key index. Migration 0059 normalizes existing rows and merges duplicates before creating the index. Run `pnpm db:migrate`; the migration runner registers the shared normalizer for this data migration and commits data plus schema changes atomically. Production migration remains operator-run, before deploying code that relies on canonical indexed keys.

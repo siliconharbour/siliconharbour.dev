@@ -1,3 +1,4 @@
+import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { toPlain } from "../plain";
@@ -54,13 +55,13 @@ export const blocklistOperations = {
     access: "admin",
     summary: "Remove an import block.",
     description:
-      "Normalize the key, remove matching old or normalized block rows, and allow later imports. Does not recreate a deleted record.",
+      "Normalize the key, remove its matching block, and allow later imports. Does not recreate a deleted record.",
     input: blocklistRemoveInput,
-    output: z.object({ removed: z.literal(true) }).strict(),
+    output: z.object({ removed: z.boolean(), key: z.string() }).strict(),
     examples: [{ title: "Unblock", input: { source: "github", externalId: "example" } }],
     run: async (_ctx, input) => {
-      await unblockItem(input.source, input.externalId);
-      return { removed: true as const };
+      const removed = await unblockItem(input.source, input.externalId);
+      return { removed, key: normalizeBlockKey(input.source, input.externalId) };
     },
   }),
 };

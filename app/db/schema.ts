@@ -664,7 +664,7 @@ export const importBlocklist = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     source: text("source").notNull(), // "github", "technl", etc.
-    externalId: text("external_id").notNull(), // GitHub URL, TechNL ID, etc.
+    externalId: text("external_id").notNull(), // Canonical source identity
     name: text("name").notNull(), // Display name for UI
     reason: text("reason"), // Optional reason for blocking
     blockedAt: integer("blocked_at", { mode: "timestamp" })
@@ -672,7 +672,10 @@ export const importBlocklist = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => ({
-    sourceExternalIdx: index("blocklist_source_external_idx").on(table.source, table.externalId),
+    sourceExternalIdx: uniqueIndex("blocklist_source_external_idx").on(
+      table.source,
+      table.externalId,
+    ),
   }),
 );
 

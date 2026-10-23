@@ -13,7 +13,7 @@
     "fmt:check": "oxfmt --check",
     "typecheck": "react-router typegen && tsc",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "tsx scripts/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "create-user": "tsx scripts/create-user.ts",
