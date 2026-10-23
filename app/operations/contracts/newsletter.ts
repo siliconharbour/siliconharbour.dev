@@ -5,7 +5,6 @@ import { text, nullableText, id, confirm } from "../fields";
 export const newsletterFlags = z
   .object({ publicSignup: z.boolean(), liveSend: z.boolean() })
   .strict();
-export const newsletterSettingsInput = newsletterFlags.extend({ confirm }).strict();
 export const campaignAudience = z
   .union([z.object({ testSubscriberIds: z.array(id()) }).strict(), z.array(id())])
   .nullable();

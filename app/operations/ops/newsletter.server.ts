@@ -6,7 +6,6 @@ import { ConflictError, InvalidOperationError } from "../errors";
 import { emptyInput, id, confirm, deleteInput } from "../fields";
 import {
   newsletterFlags,
-  newsletterSettingsInput,
   campaignOutput,
   campaignInput,
   campaignSaveInput,
@@ -21,7 +20,6 @@ import {
   getNewsletterFlags,
   setNewsletterFlags,
   getNewsletterList,
-  getNewsletterCampaigns,
   getNewsletterCampaign,
   getNewsletterPreview,
   getNewsletterSends,
@@ -295,17 +293,17 @@ export const newsletterOperations = {
   newsletterSettingsSet: defineOperation({
     name: "newsletterSettingsSet",
     area: "newsletter",
-    risk: "destructive",
+    risk: "write",
     access: "admin",
     summary: "Change newsletter signup and live-send flags.",
     description:
-      "Replace both rollout flags. Production public signup requires configured Turnstile keys. Enabling liveSend permits later full-list sends, but this operation sends no email. Requires confirm: true.",
-    input: newsletterSettingsInput,
+      "Replace both rollout flags. Production public signup requires configured Turnstile keys. Enabling liveSend permits later full-list sends, but this operation sends no email.",
+    input: newsletterFlags,
     output: newsletterFlags,
     examples: [
       {
         title: "Disable live sends",
-        input: { publicSignup: false, liveSend: false, confirm: true },
+        input: { publicSignup: false, liveSend: false },
       },
     ],
     run: async (_ctx, { publicSignup, liveSend }) => {

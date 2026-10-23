@@ -1,3 +1,4 @@
+import { NotFoundError } from "~/operations/errors";
 import { z } from "zod";
 import { rawDb } from "~/db";
 import { fetchPublicImage } from "./public-image-fetch.server";
@@ -36,14 +37,14 @@ function targetRow(input: ImageTarget) {
       .prepare("SELECT 1 FROM rejected_records WHERE type = ? AND entity_id = ?")
       .get(input.type, input.id)
   )
-    throw new ImageInputError("Entity not found.", 404);
+    throw new NotFoundError("Entity not found");
   const target = targets[input.type];
   const column = target[input.role];
   if (!column) throw new ImageInputError(`${input.type} does not support ${input.role} images.`);
   const row = rawDb
     .prepare(`SELECT \`${column}\` AS filename FROM \`${target.table}\` WHERE id = ?`)
     .get(input.id) as { filename: string | null } | undefined;
-  if (!row) throw new ImageInputError("Entity not found.", 404);
+  if (!row) throw new NotFoundError("Entity not found");
   return { table: target.table, column, filename: row.filename };
 }
 async function attachBytes(input: ImageTarget, bytes: Buffer) {

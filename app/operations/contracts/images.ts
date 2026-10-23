@@ -18,8 +18,8 @@ export const imageTargetInput = z
     role: z.enum(["cover", "icon"]),
   })
   .strict();
-export const imageSetInput = imageTargetInput.extend({ url: url() }).strict();
-export const imageAttachInput = imageTargetInput.extend({ uploadId: identifier }).strict();
+export const imageSetInput = imageTargetInput.extend({ url: url(), confirm }).strict();
+export const imageAttachInput = imageTargetInput.extend({ uploadId: identifier, confirm }).strict();
 export const imageClearInput = imageTargetInput.extend({ confirm }).strict();
 export const imageUploadInput = z
   .object({
@@ -43,7 +43,7 @@ export const imageUploadOutput = z
     uploadUrl: z.string(),
     method: z.string(),
     headers: z.object({ Authorization: z.string(), "Content-Type": z.string() }).strict(),
-    expiresAt: z.string(),
+    expiresAt: z.iso.datetime(),
   })
   .strict();
 export const orphanListInput = listInput(["stagedAt", "filename", "sizeBytes"]);

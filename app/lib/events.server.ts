@@ -812,9 +812,13 @@ export async function upsertOccurrenceOverride(
 /**
  * Delete an occurrence override
  */
-export async function deleteOccurrenceOverride(id: number): Promise<boolean> {
-  await db.delete(eventOccurrences).where(eq(eventOccurrences.id, id));
-  return true;
+export async function deleteOccurrenceOverride(id: number, eventId: number): Promise<boolean> {
+  return (
+    db
+      .delete(eventOccurrences)
+      .where(and(eq(eventOccurrences.id, id), eq(eventOccurrences.eventId, eventId)))
+      .run().changes > 0
+  );
 }
 
 /**

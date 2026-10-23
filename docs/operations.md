@@ -68,3 +68,13 @@ News-source and global keywords are arrays of strings. Admin text fields adapt c
 `siteConfigSave` patches supplied fields atomically. Omitted flags, keywords and credentials keep their values. Use `newsGlobalKeywords: null` or `[]` to clear keywords, and `botToken: null` to clear the credential. The example hides only jobs; it preserves every other setting. Prefer the granular visibility or keyword operations when changing one setting.
 
 The rejected-record migration must be applied by the operator before deploying this layer. Expiry ends the restore window; permanent cleanup is explicit, so records are never silently destroyed by a read.
+
+## Risk and missing targets
+
+Risk describes the action, not whether it uses HTTP. Reads from fixed, configured providers remain reads. Normal edits and provider CRUD are writes. Explicit deletion, file replacement, bulk removal and overwriting a credential that cannot be read back are destructive. Live importer requests, arbitrary URL previews and outgoing messages are external. Destructive and external operations require `confirm: true`.
+
+Embedded image commands also require `confirm: true` for writes, so entity updates and standalone image operations have the same confirmation rule. Both paths use the same image processor and unreferenced-file cleanup. `siteConfigSave` stays destructive because it can overwrite the masked Discord token; reversible section/comment flags and keywords use write operations.
+
+An ID-addressed delete or removal fails with NotFound when its target is missing. Key-addressed `blocklistRemove` returns the actual `removed` boolean. Repeating a status change on an existing record remains valid. `discordUndo` and `discordUndoBatch` delete local tracking, require confirmation and make no Discord request.
+
+Use `eventImportHide` to unpublish either a manual or imported event. TechNL refresh revalidates `jobTechNLList`; there is no second refresh operation. `siteExport` requires write scope because its URL grants access to private export data.

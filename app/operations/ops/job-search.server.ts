@@ -1,10 +1,10 @@
 import { getTechNLJobsPage } from "~/lib/technl-jobs.server";
-import { listInput, collectionPage } from "../listing";
+import { listInput } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { emptyInput, confirm, url } from "../fields";
+import { confirm, url } from "../fields";
 import {
   jobSearchInput,
   jobSearchImportInput,
@@ -104,18 +104,5 @@ export const jobSearchOperations = {
       if (!job) throw new NotFoundError("TechNL job not found");
       return job;
     },
-  }),
-  jobTechNLRefresh: defineOperation({
-    name: "jobTechNLRefresh",
-    area: "jobs",
-    risk: "external",
-    access: "admin",
-    summary: "Refresh the live TechNL job board.",
-    description:
-      "Re-fetch the fixed feed and recompute directory/duplicate matches without saving it. Requires confirm: true.",
-    input: listInput(["postedAt", "title"]).extend({ confirm }).strict(),
-    output: techNLListOutput,
-    examples: [{ title: "Refresh", input: { confirm: true } }],
-    run: (_ctx, input) => getTechNLJobsPage(input),
   }),
 };

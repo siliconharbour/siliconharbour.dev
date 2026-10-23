@@ -2,7 +2,7 @@ import { getPostHistoryPage } from "~/lib/discord-posts.server";
 import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
-import { ConflictError, InvalidOperationError } from "../errors";
+import { ConflictError, InvalidOperationError, NotFoundError } from "../errors";
 import { emptyInput, confirm, text, deleteInput } from "../fields";
 import { toPlain } from "../plain";
 import {
@@ -31,7 +31,6 @@ import { verifyBotToken, listGuilds, listPostableChannels } from "~/lib/discord.
 import {
   getUnpostedEvents,
   getUnpostedJobs,
-  getPostHistory,
   undoDiscordPost,
   undoDiscordBatch,
 } from "~/lib/discord-posts.server";
@@ -161,7 +160,7 @@ export const discordOperations = {
     output: z.object({ removed: z.literal(true) }).strict(),
     examples: [{ title: "Remove destination", input: { id: 1, confirm: true } }],
     run: async (_ctx, { id }) => {
-      await removeDestination(id);
+      if (!(await removeDestination(id))) throw new NotFoundError("Discord destination not found");
       return { removed: true as const };
     },
   }),
@@ -230,7 +229,7 @@ export const discordOperations = {
   discordUndo: defineOperation({
     name: "discordUndo",
     area: "discord",
-    risk: "external",
+    risk: "destructive",
     access: "admin",
     summary: "Undo tracking for one Discord post.",
     description:
@@ -239,14 +238,14 @@ export const discordOperations = {
     output: z.object({ undone: z.literal(true) }).strict(),
     examples: [{ title: "Undo post tracking", input: { id: 1, confirm: true } }],
     run: async (_ctx, { id }) => {
-      await undoDiscordPost(id);
+      if (!(await undoDiscordPost(id)).changes) throw new NotFoundError("Discord post not found");
       return { undone: true as const };
     },
   }),
   discordUndoBatch: defineOperation({
     name: "discordUndoBatch",
     area: "discord",
-    risk: "external",
+    risk: "destructive",
     access: "admin",
     summary: "Undo tracking for an entire Discord batch.",
     description:
@@ -255,7 +254,8 @@ export const discordOperations = {
     output: z.object({ undone: z.literal(true) }).strict(),
     examples: [{ title: "Undo batch", input: { batchId: "example", confirm: true } }],
     run: async (_ctx, { batchId }) => {
-      await undoDiscordBatch(batchId);
+      if (!(await undoDiscordBatch(batchId)).changes)
+        throw new NotFoundError("Discord batch not found");
       return { undone: true as const };
     },
   }),

@@ -4,11 +4,7 @@ import { ConflictError, NotFoundError } from "../errors";
 import { toPlain } from "../plain";
 import { id } from "../fields";
 import { occurrenceInput, occurrenceUpdateInput, eventOccurrenceOutput } from "../contracts/events";
-import {
-  upsertOccurrenceOverride,
-  deleteOccurrenceOverride,
-  getEventOccurrenceOverrides,
-} from "~/lib/events.server";
+import { upsertOccurrenceOverride, deleteOccurrenceOverride } from "~/lib/events.server";
 import { parseAsTimezone } from "~/lib/timezone";
 import { requireEvent } from "./events.server";
 async function requireRecurring(id: number) {
@@ -86,9 +82,8 @@ export const eventOccurrenceOperations = {
     examples: [{ title: "Clear override", input: { id: 1, overrideId: 1 } }],
     run: async (_ctx, input) => {
       await requireEvent(input.id);
-      if (!(await getEventOccurrenceOverrides(input.id)).some((row) => row.id === input.overrideId))
+      if (!(await deleteOccurrenceOverride(input.overrideId, input.id)))
         throw new NotFoundError("Occurrence override not found");
-      await deleteOccurrenceOverride(input.overrideId);
       return { cleared: true as const };
     },
   }),
