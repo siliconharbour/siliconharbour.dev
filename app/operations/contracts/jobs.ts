@@ -60,16 +60,7 @@ export const jobSourceOutput = z
     updatedAt: z.iso.datetime(),
   })
   .strict();
-import {
-  text,
-  nullableText,
-  nullableUrl,
-  url,
-  id,
-  confirm,
-  updateContract,
-  pagination,
-} from "../fields";
+import { text, nullableText, nullableUrl, url, id, confirm, updateContract } from "../fields";
 export const jobFields = {
   title: text("title", 500),
   description: text("description"),
@@ -116,7 +107,27 @@ export const jobSourceUpdateInput = updateContract(
 export const jobManualSyncInput = z
   .object({
     id: id(),
-    json: text("json", 5_000_000).describe("Verafin job JSON captured in the browser."),
+    jobs: z
+      .array(
+        z
+          .object({
+            externalId: text("externalId", 500),
+            title: text("title", 1000),
+            url: z.url(),
+            location: z.string().max(1000).optional(),
+            department: z.string().max(1000).optional(),
+            descriptionHtml: z.string().max(1_000_000).optional(),
+            descriptionText: z.string().max(1_000_000).optional(),
+            salaryRange: z.string().max(1000).optional(),
+            workplaceType: z.enum(workplaceTypes).optional(),
+            postedAt: z.iso.datetime().optional(),
+            updatedAt: z.iso.datetime().optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(1000)
+      .describe("Jobs captured by the Verafin browser script. Every row must be valid."),
   })
   .strict();
 export const jobTechnologyApplyInput = z
@@ -280,7 +291,7 @@ export const techNLJobOutput = z
     salary: z.string().nullable(),
     descriptionHtml: z.string(),
     descriptionText: z.string(),
-    postedAt: z.string().nullable(),
+    postedAt: z.iso.datetime().nullable(),
     match: z
       .object({
         companyId: z.number().nullable(),
@@ -295,4 +306,6 @@ export const techNLJobOutput = z
       .strict(),
   })
   .strict();
-export const techNLListOutput = page(techNLJobOutput).extend({ fetchedAt: z.string() }).strict();
+export const techNLListOutput = page(techNLJobOutput)
+  .extend({ fetchedAt: z.iso.datetime() })
+  .strict();

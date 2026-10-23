@@ -1,11 +1,14 @@
 import { listInput } from "../listing";
 import { email } from "../fields";
 import { z } from "zod";
-import { text, nullableText, id, confirm, pagination } from "../fields";
+import { text, nullableText, id, confirm } from "../fields";
 export const newsletterFlags = z
   .object({ publicSignup: z.boolean(), liveSend: z.boolean() })
   .strict();
 export const newsletterSettingsInput = newsletterFlags.extend({ confirm }).strict();
+export const campaignAudience = z
+  .union([z.object({ testSubscriberIds: z.array(id()) }).strict(), z.array(id())])
+  .nullable();
 export const campaignOutput = z
   .object({
     id: z.number(),
@@ -15,10 +18,10 @@ export const campaignOutput = z
     fromName: z.string().nullable(),
     audienceType: z.enum(["list", "tag", "all", "subscribers"]),
     audienceId: z.number().nullable(),
-    audienceData: z.string().nullable(),
+    audienceData: campaignAudience,
     status: z.enum(["draft", "scheduled", "sending", "sent", "failed"]),
-    createdAt: z.string(),
-    sentAt: z.string().nullable(),
+    createdAt: z.iso.datetime(),
+    sentAt: z.iso.datetime().nullable(),
     lastError: z.string().nullable(),
     deliveryCounts: z.record(z.string(), z.number()).optional(),
   })
@@ -27,6 +30,7 @@ export const subscriberOutput = z
   .object({
     id: z.number(),
     email: z.string(),
+    createdAt: z.iso.datetime(),
     firstName: z.string().nullable(),
     lastName: z.string().nullable(),
     status: z.enum(["active", "blocklisted"]),
@@ -40,8 +44,8 @@ export const campaignSendOutput = z
     email: z.string().nullable(),
     status: z.string(),
     attemptCount: z.number(),
-    acceptedAt: z.string().nullable(),
-    deliveredAt: z.string().nullable(),
+    acceptedAt: z.iso.datetime().nullable(),
+    deliveredAt: z.iso.datetime().nullable(),
     lastError: z.string().nullable(),
   })
   .strict();

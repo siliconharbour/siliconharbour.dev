@@ -154,7 +154,7 @@ it("passes feed previews through the public fetch guard before parsing", async (
   });
   const result = await operations.newsSourceTestFeed.execute(context, {
     sourceUrl: "https://example.com/feed.xml",
-    keywords: "tech",
+    keywords: ["tech"],
     confirm: true,
   });
   expect(fetch).toHaveBeenCalledWith(

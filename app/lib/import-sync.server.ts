@@ -1,10 +1,14 @@
+import type { OperationContext } from "~/operations/context";
 import { getAllEventImportSources, syncEvents } from "./event-importers/sync.server";
 import { orderEventSourcesForSync } from "./event-importers/source-order";
 import { getAllImportSources, syncJobs } from "./job-importers/sync.server";
 import { getAllNewsImportSources, syncNewsSource } from "./news-importers/sync.server";
 import { startAsyncSync, type AsyncSyncTask, type AsyncSyncTaskType } from "./async-syncs.server";
 
-export async function importSyncAll(types: readonly AsyncSyncTaskType[]) {
+export async function importSyncAll(
+  types: readonly AsyncSyncTaskType[],
+  actor: OperationContext["actor"],
+) {
   const tasks: AsyncSyncTask[] = [];
   if (types.includes("event"))
     for (const source of orderEventSourcesForSync(await getAllEventImportSources()))
@@ -30,5 +34,5 @@ export async function importSyncAll(types: readonly AsyncSyncTaskType[]) {
         name: source.name,
         run: () => syncNewsSource(source.id),
       });
-  return startAsyncSync(tasks);
+  return startAsyncSync(tasks, actor);
 }

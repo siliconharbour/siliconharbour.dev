@@ -13,7 +13,7 @@ import {
 import { requireJobSource } from "./job-sources.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { syncJobsFromFetched } from "~/lib/job-importers/sync.server";
-import { parseManualJobsJson, isVerafinManualSource } from "~/lib/job-importers/manual";
+import { isVerafinManualSource } from "~/lib/job-importers/manual";
 import {
   extractTechnologiesForSource,
   getTechnologyPreviewForSource,
@@ -29,7 +29,7 @@ export const jobTechnologyOperations = {
     access: "admin",
     summary: "Ingest captured Verafin job JSON.",
     description:
-      "Accept the browser-captured JSON array or object with jobs. Only the configured Verafin manual source supports this flow. Reconcile jobs using the same importer lifecycle rules without a network fetch.",
+      "Accept typed jobs captured in the browser. Only the configured Verafin manual source supports this flow. Reconcile jobs using the same importer lifecycle rules without a network fetch.",
     input: jobManualSyncInput,
     output: jobSyncOutput.extend({ parsedCount: z.number() }).strict(),
     examples: [
@@ -37,7 +37,7 @@ export const jobTechnologyOperations = {
         title: "Captured job",
         input: {
           id: 3,
-          json: '[{"externalId":"123","title":"Developer","url":"https://example.com/job"}]',
+          jobs: [{ externalId: "123", title: "Developer", url: "https://example.com/job" }],
         },
       },
     ],
@@ -45,11 +45,14 @@ export const jobTechnologyOperations = {
       const source = await requireJobSource(input.id);
       if (!isVerafinManualSource(source))
         throw new ConflictError("Manual ingestion is not enabled for this source.");
-      const parsed = parseManualJobsJson(input.json);
-      if (!parsed.jobs) throw new InvalidOperationError(parsed.error ?? "Invalid manual JSON");
+      const jobs = input.jobs.map((job) => ({
+        ...job,
+        postedAt: job.postedAt ? new Date(job.postedAt) : undefined,
+        updatedAt: job.updatedAt ? new Date(job.updatedAt) : undefined,
+      }));
       return {
-        parsedCount: parsed.jobs.length,
-        ...(await syncJobsFromFetched(input.id, parsed.jobs)),
+        parsedCount: jobs.length,
+        ...(await syncJobsFromFetched(input.id, jobs)),
       };
     },
   }),

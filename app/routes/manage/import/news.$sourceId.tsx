@@ -297,7 +297,7 @@ export default function NewsImportSourceDetail() {
                 id="keywords"
                 name="keywords"
                 type="text"
-                defaultValue={source.keywords ?? ""}
+                defaultValue={source.keywords?.join(", ") ?? ""}
                 placeholder="Comma-separated, leave empty for all"
                 className="w-full mt-1 px-pad-2 py-pad-1 text-sm border border-line focus:outline-none focus:border-harbour-400"
               />

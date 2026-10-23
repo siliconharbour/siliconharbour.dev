@@ -1,3 +1,4 @@
+import { parseKeywords } from "~/lib/keywords";
 import { adminContext } from "~/operations/context";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -143,7 +144,7 @@ export async function action({ request }: Route.ActionArgs) {
   const result = await runAdminOperation(request, operationCatalog.siteConfigSave, {
     sections,
     comments,
-    newsGlobalKeywords: form.get("news_global_keywords") ?? null,
+    newsGlobalKeywords: parseKeywords(String(form.get("news_global_keywords") ?? "")),
     ...(form.get("discord_bot_token") || form.get("clearDiscordToken")
       ? { botToken: form.get("clearDiscordToken") ? null : form.get("discord_bot_token") }
       : {}),
@@ -514,7 +515,7 @@ export default function Settings() {
                 type="text"
                 id="news_global_keywords"
                 name="news_global_keywords"
-                defaultValue={newsGlobalKeywords}
+                defaultValue={newsGlobalKeywords.join(", ")}
                 placeholder="tech, startup, innovation, AI, software, digital, venture, funding, TechNL, Genesis, Bounce"
                 className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500 text-sm"
               />

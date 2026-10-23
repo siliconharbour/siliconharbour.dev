@@ -1,22 +1,11 @@
-export function newsletterAudience(campaign: {
-  audienceType: string;
-  audienceData: string | null;
-}) {
-  if (campaign.audienceType !== "list" || !campaign.audienceData)
+import type { Campaign } from "./newsletter.server";
+
+export function newsletterAudience(campaign: Pick<Campaign, "audienceType" | "audienceData">) {
+  if (campaign.audienceType === "list" && campaign.audienceData === null)
     return { label: "Full list", testCount: null };
-  try {
-    const value: unknown = JSON.parse(campaign.audienceData);
-    if (
-      typeof value === "object" &&
-      value !== null &&
-      "testSubscriberIds" in value &&
-      Array.isArray(value.testSubscriberIds)
-    ) {
-      const testCount = value.testSubscriberIds.length;
-      return { label: `Pilot test · ${testCount} selected`, testCount };
-    }
-  } catch {
-    return { label: "Unknown audience", testCount: null };
+  if (campaign.audienceData && !Array.isArray(campaign.audienceData)) {
+    const testCount = campaign.audienceData.testSubscriberIds.length;
+    return { label: `Pilot test · ${testCount} selected`, testCount };
   }
-  return { label: "Unknown audience", testCount: null };
+  return { label: "Selected subscribers", testCount: null };
 }

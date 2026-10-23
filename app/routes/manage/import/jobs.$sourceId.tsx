@@ -1,3 +1,4 @@
+import { jsonFromForm } from "~/lib/admin/import-form-adapters";
 import { VERAFIN_BROWSER_SCRIPT } from "~/lib/job-importers/verafin-browser-script";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -58,7 +59,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (intent === "manual-sync") {
     const result = await runAdminOperation(request, operationCatalog.jobSourceManualSync, {
       id,
-      json: form.get("manualJobsJson"),
+      jobs: jsonFromForm(form, "manualJobsJson"),
     });
     return result.ok
       ? ({ intent: "manual-sync" as const, ...result.data } as const)

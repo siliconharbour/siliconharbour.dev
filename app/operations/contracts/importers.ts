@@ -1,11 +1,17 @@
+import { eventSyncOutput } from "./events";
+import { jobSyncOutput } from "./jobs";
+import { newsSyncOutput } from "./news";
 import { z } from "zod";
 export const asyncSyncOutput = z
   .object({
     id: z.string(),
     status: z.enum(["running", "completed", "failed"]),
-    startedAt: z.string(),
-    finishedAt: z.string().optional(),
+    startedAt: z.iso.datetime(),
+    finishedAt: z.iso.datetime().optional(),
     durationMs: z.number().optional(),
+    startedBy: z.number().int().positive().nullable(),
+    via: z.enum(["mcp", "admin-ui"]).nullable(),
+    error: z.string().optional(),
     steps: z.array(
       z
         .object({
@@ -13,10 +19,10 @@ export const asyncSyncOutput = z
           sourceId: z.number(),
           name: z.string(),
           status: z.enum(["running", "completed", "failed"]),
-          startedAt: z.string(),
-          finishedAt: z.string().optional(),
+          startedAt: z.iso.datetime(),
+          finishedAt: z.iso.datetime().optional(),
           durationMs: z.number().optional(),
-          result: z.unknown().optional(),
+          result: z.union([eventSyncOutput, jobSyncOutput, newsSyncOutput]).optional(),
           error: z.string().optional(),
         })
         .strict(),

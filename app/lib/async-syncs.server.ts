@@ -1,5 +1,15 @@
+import type { OperationContext } from "~/operations/context";
+import type { z } from "zod";
+import type { eventSyncOutput } from "~/operations/contracts/events";
+import type { jobSyncOutput } from "~/operations/contracts/jobs";
+import type { newsSyncOutput } from "~/operations/contracts/news";
 import { randomUUID } from "node:crypto";
 import { formatError } from "~/mcp/errors";
+
+type SyncResult =
+  | z.output<typeof eventSyncOutput>
+  | z.output<typeof jobSyncOutput>
+  | z.output<typeof newsSyncOutput>;
 
 type AsyncSyncStatus = "running" | "completed" | "failed";
 
@@ -9,7 +19,7 @@ export type AsyncSyncTask = {
   type: AsyncSyncTaskType;
   sourceId: number;
   name: string;
-  run: () => Promise<unknown>;
+  run: () => Promise<SyncResult>;
 };
 
 type AsyncSyncStep = {
@@ -20,7 +30,7 @@ type AsyncSyncStep = {
   startedAt: string;
   finishedAt?: string;
   durationMs?: number;
-  result?: unknown;
+  result?: SyncResult;
   error?: string;
 };
 
@@ -35,6 +45,9 @@ type AsyncSync = {
   failed: number;
   current?: { type: AsyncSyncTaskType; sourceId: number; name: string };
   steps: AsyncSyncStep[];
+  startedBy: number | null;
+  via: "mcp" | "admin-ui" | null;
+  error?: string;
 };
 
 const asyncSyncs = new Map<string, AsyncSync>();
@@ -72,8 +85,14 @@ async function runTasks(run: AsyncSync, tasks: AsyncSyncTask[]) {
 
     try {
       step.result = await task.run();
-      step.status = "completed";
-      run.completed += 1;
+      if (step.result.success) {
+        step.status = "completed";
+        run.completed += 1;
+      } else {
+        step.status = "failed";
+        step.error = step.result.error ?? "Source sync failed";
+        run.failed += 1;
+      }
     } catch (error) {
       step.status = "failed";
       step.error = formatError(error);
@@ -91,7 +110,7 @@ async function runTasks(run: AsyncSync, tasks: AsyncSyncTask[]) {
   trimStoredRuns();
 }
 
-export function startAsyncSync(tasks: AsyncSyncTask[]) {
+export function startAsyncSync(tasks: AsyncSyncTask[], actor: OperationContext["actor"] = null) {
   const id = randomUUID();
   const run: AsyncSync = {
     id,
@@ -101,6 +120,8 @@ export function startAsyncSync(tasks: AsyncSyncTask[]) {
     completed: 0,
     failed: 0,
     steps: [],
+    startedBy: actor?.userId ?? null,
+    via: actor?.via ?? null,
   };
   asyncSyncs.set(id, run);
 
@@ -110,16 +131,7 @@ export function startAsyncSync(tasks: AsyncSyncTask[]) {
     run.finishedAt = nowIso();
     run.durationMs = Date.parse(run.finishedAt) - Date.parse(run.startedAt);
     run.failed += Math.max(1, run.total - run.completed - run.failed);
-    run.steps.push({
-      type: "job",
-      sourceId: 0,
-      name: "async sync",
-      status: "failed",
-      startedAt: run.startedAt,
-      finishedAt: run.finishedAt,
-      durationMs: run.durationMs,
-      error: formatError(error),
-    });
+    run.error = formatError(error);
     trimStoredRuns();
   });
 
@@ -140,6 +152,9 @@ export function listAsyncSyncs() {
 export function summarizeAsyncSync(run: AsyncSync) {
   return {
     id: run.id,
+    startedBy: run.startedBy,
+    via: run.via,
+    error: run.error,
     status: run.status,
     startedAt: run.startedAt,
     finishedAt: run.finishedAt,

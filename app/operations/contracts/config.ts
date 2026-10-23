@@ -1,3 +1,4 @@
+import { keywordList } from "~/lib/keywords";
 import { z } from "zod";
 import { sectionKeys, commentableKeys, confirm, nullableText } from "../fields";
 const sectionFields = {
@@ -51,7 +52,7 @@ export const siteConfigOutput = z
   .object({
     sections: sectionVisibility,
     comments: commentVisibility,
-    newsGlobalKeywords: z.string(),
+    newsGlobalKeywords: keywordList,
     discord: discordConfigOutput,
   })
   .strict();
@@ -59,7 +60,7 @@ export const siteConfigSaveInput = z
   .object({
     sections: sectionVisibility,
     comments: commentVisibility,
-    newsGlobalKeywords: nullableText(10000),
+    newsGlobalKeywords: keywordList.nullable(),
     botToken: nullableText(500).optional(),
     confirm,
   })

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError, InvalidOperationError } from "../errors";
 import { toPlain } from "../plain";
-import { emptyInput, deleteInput } from "../fields";
+import { deleteInput } from "../fields";
 import { eventSyncInput, eventSyncAllInput } from "../contracts/events";
 import { asyncSyncOutput } from "../contracts/importers";
 import {
@@ -55,7 +55,7 @@ export const jobSourceOperations = {
         .strict(),
     ),
     examples: [{ title: "All sources", input: {} }],
-    run: async (_ctx, input) =>
+    run: async (ctx, input) =>
       toPlain(
         collectionPage(await getAllImportSources(), input, {
           createdAt: (row) => row.createdAt,
@@ -85,7 +85,7 @@ export const jobSourceOperations = {
         },
       },
     ],
-    run: async (_ctx, input) => {
+    run: async (ctx, input) => {
       if (!(await getCompanyById(input.companyId))) throw new NotFoundError("Company not found");
       const config = {
         companyId: input.companyId,
@@ -148,17 +148,20 @@ export const jobSourceOperations = {
     input: eventSyncInput,
     output: z.union([jobSyncOutput, asyncSyncOutput]),
     examples: [{ title: "Sync source", input: { id: 1, confirm: true } }],
-    run: async (_ctx, input) => {
+    run: async (ctx, input) => {
       const source = await requireJobSource(input.id);
       return input.async
-        ? startAsyncSync([
-            {
-              type: "job",
-              sourceId: source.id,
-              name: source.sourceIdentifier,
-              run: () => syncJobs(source.id),
-            },
-          ])
+        ? startAsyncSync(
+            [
+              {
+                type: "job",
+                sourceId: source.id,
+                name: source.sourceIdentifier,
+                run: () => syncJobs(source.id),
+              },
+            ],
+            ctx.actor,
+          )
         : syncJobs(source.id);
     },
   }),
@@ -173,7 +176,7 @@ export const jobSourceOperations = {
     input: eventSyncAllInput,
     output: z.union([jobSyncAllOutput, asyncSyncOutput]),
     examples: [{ title: "Sync all", input: { confirm: true } }],
-    run: async (_ctx, input) =>
+    run: async (ctx, input) =>
       input.async
         ? startAsyncSync(
             (await getAllImportSources()).map((source) => ({
@@ -182,6 +185,7 @@ export const jobSourceOperations = {
               name: source.sourceIdentifier,
               run: () => syncJobs(source.id),
             })),
+            ctx.actor,
           )
         : syncAllJobSources(),
   }),

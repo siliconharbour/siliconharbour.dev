@@ -3,7 +3,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { emptyInput, deleteInput } from "../fields";
+import { deleteInput } from "../fields";
 import { eventSyncInput, eventSyncAllInput } from "../contracts/events";
 import { asyncSyncOutput } from "../contracts/importers";
 import {
@@ -43,7 +43,7 @@ export const newsSourceOperations = {
     input: listInput(["createdAt", "name"]),
     output: page(newsSourceOutput),
     examples: [{ title: "All sources", input: {} }],
-    run: async (_ctx, input) =>
+    run: async (ctx, input) =>
       toPlain(
         collectionPage(await getAllNewsImportSources(), input, {
           createdAt: (row) => row.createdAt,
@@ -68,7 +68,7 @@ export const newsSourceOperations = {
         input: { name: "News", sourceType: "rss", sourceUrl: "https://example.com/feed.xml" },
       },
     ],
-    run: async (_ctx, input) => toPlain(await createNewsImportSource(input)),
+    run: async (ctx, input) => toPlain(await createNewsImportSource(input)),
   }),
   newsSourceUpdate: defineOperation({
     name: "newsSourceUpdate",
@@ -120,7 +120,7 @@ export const newsSourceOperations = {
         input: { sourceUrl: "https://example.com/feed.xml", confirm: true },
       },
     ],
-    run: async (_ctx, input) => {
+    run: async (ctx, input) => {
       const source = input.id ? await requireSource(input.id) : null;
       return previewNewsFeed(
         input.sourceUrl ?? source!.sourceUrl,
@@ -140,17 +140,20 @@ export const newsSourceOperations = {
     input: eventSyncInput,
     output: z.union([newsSyncOutput, asyncSyncOutput]),
     examples: [{ title: "Sync source", input: { id: 1, confirm: true } }],
-    run: async (_ctx, input) => {
+    run: async (ctx, input) => {
       const source = await requireSource(input.id);
       return input.async
-        ? startAsyncSync([
-            {
-              type: "news",
-              sourceId: source.id,
-              name: source.name,
-              run: () => syncNewsSource(source.id),
-            },
-          ])
+        ? startAsyncSync(
+            [
+              {
+                type: "news",
+                sourceId: source.id,
+                name: source.name,
+                run: () => syncNewsSource(source.id),
+              },
+            ],
+            ctx.actor,
+          )
         : syncNewsSource(source.id);
     },
   }),
@@ -165,7 +168,7 @@ export const newsSourceOperations = {
     input: eventSyncAllInput,
     output: z.union([newsSyncAllOutput, asyncSyncOutput]),
     examples: [{ title: "Sync all", input: { confirm: true } }],
-    run: async (_ctx, input) =>
+    run: async (ctx, input) =>
       input.async
         ? startAsyncSync(
             (await getAllNewsImportSources())
@@ -176,6 +179,7 @@ export const newsSourceOperations = {
                 name: source.name,
                 run: () => syncNewsSource(source.id),
               })),
+            ctx.actor,
           )
         : syncAllNewsSources(),
   }),

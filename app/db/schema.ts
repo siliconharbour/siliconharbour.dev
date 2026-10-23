@@ -1,3 +1,4 @@
+import { parseKeywords } from "~/lib/keywords";
 import type { SocialLinks, ProjectLinks } from "~/lib/links";
 import { importJobStatuses } from "~/lib/entity-types";
 import {
@@ -60,6 +61,7 @@ import {
   integer,
   index,
   uniqueIndex,
+  customType,
   type AnySQLiteColumn,
 } from "drizzle-orm/sqlite-core";
 
@@ -113,7 +115,9 @@ export const events = sqliteTable(
       (): AnySQLiteColumn => eventImportSources.id,
     ),
     externalId: text("external_id"),
-    importStatus: text("import_status"),
+    importStatus: text("import_status", {
+      enum: ["pending_review", "approved", "published", "hidden", "removed"],
+    }),
     firstSeenAt: integer("first_seen_at", { mode: "timestamp" }),
     lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
   },
@@ -339,13 +343,18 @@ export type NewsSourceType = (typeof newsSourceTypes)[number];
 
 export type ExcerptMode = (typeof excerptModes)[number];
 
+const keywordColumn = customType<{ data: string[]; driverData: string }>({
+  dataType: () => "text",
+  fromDriver: parseKeywords,
+  toDriver: (values) => values.join(","),
+});
 export const newsImportSources = sqliteTable("news_import_sources", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   sourceType: text("source_type", { enum: newsSourceTypes }).notNull(),
   sourceUrl: text("source_url").notNull(),
   sourceIdentifier: text("source_identifier"),
-  keywords: text("keywords"),
+  keywords: keywordColumn("keywords"),
   useGlobalKeywords: integer("use_global_keywords", { mode: "boolean" }).notNull().default(false),
   useCompanyNameFilter: integer("use_company_name_filter", { mode: "boolean" })
     .notNull()

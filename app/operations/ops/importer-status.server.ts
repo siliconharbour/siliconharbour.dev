@@ -3,7 +3,7 @@ import { toPlain } from "../plain";
 import { importSyncAll } from "~/lib/import-sync.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
-import { emptyInput, text, confirm } from "../fields";
+import { text, confirm } from "../fields";
 import { asyncSyncOutput } from "../contracts/importers";
 import { getAsyncSync, listAsyncSyncs } from "~/lib/async-syncs.server";
 import { getAllImporterMeta } from "~/lib/job-importers";
@@ -30,7 +30,7 @@ export const importerStatusOperations = {
       .strict(),
     output: asyncSyncOutput,
     examples: [{ title: "Sync all source types", input: { confirm: true } }],
-    run: (_ctx, input) => importSyncAll(input.types),
+    run: (ctx, input) => importSyncAll(input.types, ctx.actor),
   }),
   asyncSyncGet: defineOperation({
     name: "asyncSyncGet",

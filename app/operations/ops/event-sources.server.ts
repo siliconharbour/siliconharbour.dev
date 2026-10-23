@@ -4,7 +4,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError, InvalidOperationError } from "../errors";
 import { toPlain } from "../plain";
-import { emptyInput, deleteInput } from "../fields";
+import { deleteInput } from "../fields";
 import {
   eventSourceCreateInput,
   eventSourceUpdateInput,
@@ -44,7 +44,7 @@ export const eventSourceOperations = {
       eventSourceOutput.extend({ pendingCount: z.number(), publishedCount: z.number() }).strict(),
     ),
     examples: [{ title: "All sources", input: {} }],
-    run: async (_ctx, input) =>
+    run: async (ctx, input) =>
       toPlain(
         collectionPage(await getAllEventImportSources(), input, {
           createdAt: (row) => row.createdAt,
@@ -75,7 +75,7 @@ export const eventSourceOperations = {
         },
       },
     ],
-    run: async (_ctx, input) => {
+    run: async (ctx, input) => {
       const { name, organizer, sourceType, sourceIdentifier, sourceUrl } = input;
       const config = {
         name,
@@ -135,17 +135,20 @@ export const eventSourceOperations = {
     input: eventSyncInput,
     output: z.union([eventSyncOutput, asyncResult]),
     examples: [{ title: "Sync source", input: { id: 1, confirm: true } }],
-    run: async (_ctx, input) => {
+    run: async (ctx, input) => {
       const source = await requireSource(input.id);
       return input.async
-        ? startAsyncSync([
-            {
-              type: "event",
-              sourceId: source.id,
-              name: source.name,
-              run: () => syncEvents(source.id),
-            },
-          ])
+        ? startAsyncSync(
+            [
+              {
+                type: "event",
+                sourceId: source.id,
+                name: source.name,
+                run: () => syncEvents(source.id),
+              },
+            ],
+            ctx.actor,
+          )
         : syncEvents(source.id);
     },
   }),
@@ -163,7 +166,7 @@ export const eventSourceOperations = {
       asyncResult,
     ]),
     examples: [{ title: "Sync all", input: { confirm: true } }],
-    run: async (_ctx, input) =>
+    run: async (ctx, input) =>
       input.async
         ? startAsyncSync(
             orderEventSourcesForSync(await getAllEventImportSources()).map((source) => ({
@@ -172,6 +175,7 @@ export const eventSourceOperations = {
               name: source.name,
               run: () => syncEvents(source.id),
             })),
+            ctx.actor,
           )
         : syncAllEventSources(),
   }),

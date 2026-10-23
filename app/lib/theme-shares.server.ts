@@ -158,8 +158,8 @@ export interface ThemeShareSummary {
   name: string;
   logoBytes: number;
   revision: number;
-  createdAt: number;
-  updatedAt: number;
+  createdAt: string;
+  updatedAt: string;
   createdIp: string;
   updatedIp: string;
 }
@@ -178,11 +178,20 @@ export function listThemeShares(
     .prepare(
       `SELECT id,name,logo_bytes AS logoBytes,revision,created_at AS createdAt,updated_at AS updatedAt,created_ip AS createdIp,updated_ip AS updatedIp FROM theme_shares WHERE ${where} ORDER BY ${column} ${order === "asc" ? "ASC" : "DESC"}, id LIMIT ? OFFSET ?`,
     )
-    .all(...params, Math.min(200, Math.max(1, limit)), Math.max(0, offset)) as ThemeShareSummary[];
+    .all(...params, Math.min(200, Math.max(1, limit)), Math.max(0, offset)) as Array<
+    Omit<ThemeShareSummary, "createdAt" | "updatedAt"> & { createdAt: number; updatedAt: number }
+  >;
   const { count: total } = rawDb
     .prepare(`SELECT COUNT(*) AS count FROM theme_shares WHERE ${where}`)
     .get(...params) as { count: number };
-  return { items, total };
+  return {
+    items: items.map((row) => ({
+      ...row,
+      createdAt: new Date(row.createdAt).toISOString(),
+      updatedAt: new Date(row.updatedAt).toISOString(),
+    })),
+    total,
+  };
 }
 
 export function deleteThemeShare(id: string) {

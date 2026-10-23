@@ -36,6 +36,9 @@ it("queues selected source types once in shared event ordering, then jobs and ne
     .values({ name: "News", sourceType: "rss", sourceUrl: "https://example.com/feed" });
   const start = vi.spyOn(asyncSyncs, "startAsyncSync").mockReturnValue({
     id: "run",
+    startedBy: 1,
+    via: "admin-ui",
+    error: undefined,
     status: "running",
     finishedAt: undefined,
     durationMs: undefined,

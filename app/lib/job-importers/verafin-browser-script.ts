@@ -60,7 +60,7 @@ export const VERAFIN_BROWSER_SCRIPT = String.raw`(async () => {
         descriptionHtml: typeof info.jobDescription === "string" ? info.jobDescription : undefined,
         descriptionText: undefined,
         url: String(info.externalUrl || defaultJob.url).trim(),
-        postedAt: typeof info.startDate === "string" ? info.startDate : undefined,
+        postedAt: typeof info.startDate === "string" ? new Date(info.startDate).toISOString() : undefined,
       });
     } catch {
       jobs.push(defaultJob);
