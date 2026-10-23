@@ -41,7 +41,7 @@ interface NextDataEvent {
 }
 
 // ---------------------------------------------------------------------------
-// JSON-LD types (legacy fallback)
+// JSON-LD types
 // ---------------------------------------------------------------------------
 
 interface SchemaOrgEvent {
@@ -174,7 +174,7 @@ function parseNextDataEvents(html: string): FetchedEvent[] {
 }
 
 // ---------------------------------------------------------------------------
-// JSON-LD parser (legacy fallback)
+// JSON-LD parser
 // ---------------------------------------------------------------------------
 
 function parseJsonLdEvents(html: string): FetchedEvent[] {
@@ -258,7 +258,7 @@ async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]
   const events = parseNextDataEvents(html);
   if (events.length > 0) return events;
 
-  // Fall back to JSON-LD (legacy format)
+  // Fall back to JSON-LD
   return parseJsonLdEvents(html);
 }
 

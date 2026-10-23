@@ -3,7 +3,7 @@
  *
  * Baseline (s-fa1b): 13.0% lines, 10.4% functions covered.
  * Targets the load-bearing path used by the manage UI, the MCP
- * createEntity({ type:'event' }) dispatch, and the public event detail
+ * event operations, and the public event detail
  * page. Recurrence/occurrence orchestration is deliberately out of
  * scope here — separate concern, separate ticket if/when needed.
  */
@@ -374,7 +374,7 @@ describe("getPublicEventBySlug", () => {
     expect((await getPublicEventBySlug(created.slug))?.id).toBe(created.id);
   });
 
-  it("hides events with importStatus = 'pending_review' (the createEntity default)", async () => {
+  it("hides events with importStatus = 'pending_review' (the remote creation default)", async () => {
     const created = await createEvent(
       baseEvent({ title: "Pending Event", importStatus: "pending_review" }),
       [{ startDate: dateAt(1), endDate: null }],

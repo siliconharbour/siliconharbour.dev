@@ -167,7 +167,7 @@ describe("Silicon Harbour MCP stateless transport", () => {
         params: {
           name: "execute",
           arguments: {
-            code: "return await tools.siliconharbour.createEntity({ type: 'company', name: 'Nope' })",
+            code: "return await tools.siliconharbour.companyCreate({ name: 'Nope', description: 'Description' })",
           },
         },
       }),
