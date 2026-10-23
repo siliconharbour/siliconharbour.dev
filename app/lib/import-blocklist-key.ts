@@ -8,9 +8,5 @@ export function normalizeBlockKey(source: string, value: string): string {
       .replace(/^@/, "")
       .replace(/\/+$/, "")
       .toLowerCase();
-  const candidate =
-    /^[^\s/:]+\.[^\s/]+/.test(trimmed) && !/^[a-z][a-z0-9+.-]*:/i.test(trimmed)
-      ? `https://${trimmed}`
-      : trimmed;
-  return normalizeUrl(candidate);
+  return normalizeUrl(trimmed);
 }

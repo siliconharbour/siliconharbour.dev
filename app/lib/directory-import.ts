@@ -24,17 +24,22 @@ export interface DirectoryImportLoaderData {
 
 export function normalizeUrl(url: string): string {
   try {
-    const parsed = new URL(url);
+    const trimmed = url.trim();
+    const candidate =
+      /^[^\s/:]+\.[^\s/]+/.test(trimmed) && !/^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+        ? `https://${trimmed}`
+        : trimmed;
+    const parsed = new URL(candidate);
     return (
       parsed.hostname.replace(/^www\./, "").toLowerCase() +
       parsed.pathname.replace(/\/$/, "").toLowerCase()
     );
   } catch {
-    return url.toLowerCase();
+    return url.trim().toLowerCase();
   }
 }
 
 /** Derive a stable external ID for a scraped company */
 export function getExternalId(company: ScrapedCompany): string {
-  return company.website ? normalizeUrl(company.website) : company.name.toLowerCase();
+  return normalizeUrl(company.website || company.name);
 }

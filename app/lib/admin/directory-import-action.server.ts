@@ -61,7 +61,7 @@ export async function runDirectoryImportAction(
     return result.ok
       ? ({
           intent: "block",
-          blocked: { externalId: String(form.get("externalId")), name: String(form.get("name")) },
+          blocked: { externalId: result.data.key, name: String(form.get("name")) },
         } as const)
       : ({ intent: "block", error: result.error } as const);
   }
@@ -71,7 +71,7 @@ export async function runDirectoryImportAction(
       externalId: form.get("externalId"),
     });
     return result.ok
-      ? ({ intent: "unblock", unblocked: String(form.get("externalId")) } as const)
+      ? ({ intent: "unblock", unblocked: result.data.key } as const)
       : ({ intent: "unblock", error: result.error } as const);
   }
   return null;

@@ -139,3 +139,28 @@ it("uses one normalized directory key for bare domains, full URLs and padded nam
     expect(normalizeBlockKey(source, "  Garrison Guitars ")).toBe("garrison guitars");
   }
 });
+
+it("uses the server's canonical key for directory cards and GitHub badges", async () => {
+  const { getExternalId } = await import("~/lib/directory-import");
+  for (const company of [
+    { name: "  Garrison Guitars ", website: null },
+    { name: "Example", website: "www.Example.com/Path/" },
+  ]) {
+    const cardKey = getExternalId({
+      ...company,
+      description: null,
+      email: null,
+      logoUrl: null,
+      categories: [],
+      sourceUrl: "",
+      sourceId: "",
+    });
+    await blockItem("bounce", company.website || company.name, company.name);
+    expect((await getBlockedExternalIds("bounce")).has(cardKey)).toBe(true);
+  }
+  const user = { login: "MixedCase", html_url: "https://github.com/MixedCase" };
+  await blockItem("github", user.html_url, user.login);
+  expect(
+    (await getBlockedExternalIds("github")).has(normalizeBlockKey("github", user.html_url)),
+  ).toBe(true);
+});
