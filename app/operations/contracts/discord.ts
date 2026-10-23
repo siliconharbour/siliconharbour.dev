@@ -70,7 +70,7 @@ const discordHistoryItem = z
     batchId: z.string().nullable(),
     channelType: z.string(),
     introText: z.string().nullable(),
-    postedAt: z.string(),
+    postedAt: z.iso.datetime(),
     itemCount: z.number(),
     skippedCount: z.number(),
     destinations: z.array(

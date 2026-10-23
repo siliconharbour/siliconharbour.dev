@@ -1,3 +1,4 @@
+import { parseKeywords } from "~/lib/keywords";
 import { newsSourceFormInput } from "~/lib/admin/content-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -32,7 +33,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (form.get("intent") === "test-feed") {
     const result = await runAdminOperation(request, operationCatalog.newsSourceTestFeed, {
       sourceUrl: form.get("sourceUrl"),
-      keywords: form.get("keywords") ?? null,
+      keywords: parseKeywords(String(form.get("keywords") ?? "")),
       excerptMode: form.get("excerptMode") || "description",
       confirm: true,
     });

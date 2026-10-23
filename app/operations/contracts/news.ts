@@ -1,3 +1,4 @@
+import { keywordList } from "~/lib/keywords";
 import { listInput } from "../listing";
 import { z } from "zod";
 import { newsTypes, newsStatuses, newsSourceTypes, excerptModes } from "../fields";
@@ -28,7 +29,7 @@ export const newsSourceOutput = z
     sourceType: z.enum(newsSourceTypes),
     sourceUrl: z.string(),
     sourceIdentifier: z.string().nullable(),
-    keywords: z.string().nullable(),
+    keywords: keywordList.nullable(),
     useGlobalKeywords: z.boolean(),
     useCompanyNameFilter: z.boolean(),
     excerptMode: z.enum(excerptModes),
@@ -51,7 +52,6 @@ import {
   imageInput,
   dateTime,
   updateContract,
-  pagination,
 } from "../fields";
 export const newsFields = {
   title: text("title", 500),
@@ -99,7 +99,7 @@ export const newsSourceFields = {
   sourceType: z.enum(newsSourceTypes),
   sourceUrl: url(),
   sourceIdentifier: nullableText(1000).optional(),
-  keywords: nullableText(10000).optional(),
+  keywords: keywordList.nullable().optional(),
   useGlobalKeywords: z.boolean().optional(),
   useCompanyNameFilter: z.boolean().optional(),
   excerptMode: z.enum(excerptModes).optional(),
@@ -112,7 +112,7 @@ export const newsFeedTestInput = z
   .object({
     id: id().optional(),
     sourceUrl: url().optional(),
-    keywords: nullableText(10000).optional(),
+    keywords: keywordList.nullable().optional(),
     excerptMode: z.enum(excerptModes).optional(),
     confirm,
   })
@@ -129,7 +129,7 @@ export const newsFeedPreviewOutput = z
           title: z.string(),
           url: z.string(),
           excerpt: z.string().nullable(),
-          publishedAt: z.string().nullable(),
+          publishedAt: z.iso.datetime().nullable(),
           matched: z.boolean(),
         })
         .strict(),

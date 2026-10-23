@@ -4,13 +4,10 @@ import type { ExcerptMode } from "./types";
 export async function previewNewsFeed(
   url: string,
   excerptMode: ExcerptMode,
-  keywords: string | null,
+  keywords: string[] | null,
 ) {
   const allItems = parseRssItems(await fetchPublicFeed(url), excerptMode);
-  const terms = (keywords ?? "")
-    .split(",")
-    .map((term) => term.trim().toLowerCase())
-    .filter(Boolean);
+  const terms = (keywords ?? []).map((term) => term.toLowerCase());
   const items = allItems.map((item) => ({
     title: item.title,
     url: item.url,

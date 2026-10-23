@@ -37,7 +37,7 @@ export async function createNewsImportSource(data: {
   sourceType: NewsSourceType;
   sourceUrl: string;
   sourceIdentifier?: string | null;
-  keywords?: string | null;
+  keywords?: string[] | null;
   useGlobalKeywords?: boolean;
   useCompanyNameFilter?: boolean;
   excerptMode?: ExcerptMode;
@@ -64,7 +64,7 @@ export async function updateNewsImportSource(
     sourceType: NewsSourceType;
     sourceUrl: string;
     sourceIdentifier: string | null;
-    keywords: string | null;
+    keywords: string[] | null;
     useGlobalKeywords: boolean;
     useCompanyNameFilter: boolean;
     excerptMode: ExcerptMode;
@@ -139,29 +139,11 @@ async function getNewsFilterCompanyNames(): Promise<string[]> {
 }
 
 /**
- * Merge keyword lists into a single comma-separated string.
- */
-function mergeKeywords(...lists: (string | null | undefined)[]): string | null {
-  const all = lists.flatMap((list) =>
-    list
-      ? list
-          .split(",")
-          .map((k) => k.trim())
-          .filter(Boolean)
-      : [],
-  );
-  return all.length > 0 ? all.join(", ") : null;
-}
-
-/**
  * Check if a news item matches any of the configured keywords.
  * Checks title and excerpt (case-insensitive substring match).
  */
-function matchesKeywords(item: FetchedNewsItem, keywords: string): boolean {
-  const keywordList = keywords
-    .split(",")
-    .map((k) => k.trim().toLowerCase())
-    .filter(Boolean);
+function matchesKeywords(item: FetchedNewsItem, keywords: string[]): boolean {
+  const keywordList = keywords.map((keyword) => keyword.toLowerCase());
   if (keywordList.length === 0) return true;
 
   const searchText = `${item.title} ${item.excerpt || ""}`.toLowerCase();
@@ -225,19 +207,19 @@ export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> 
     let effectiveKeywords = source.keywords;
     if (source.useGlobalKeywords) {
       const globalKeywords = await getNewsGlobalKeywords();
-      effectiveKeywords = globalKeywords || null;
+      effectiveKeywords = globalKeywords;
     }
 
     // Merge flagged company names when the source opts in
     if (source.useCompanyNameFilter) {
       const companyNames = await getNewsFilterCompanyNames();
-      effectiveKeywords = mergeKeywords(effectiveKeywords, companyNames.join(", "));
+      effectiveKeywords = [...new Set([...(effectiveKeywords ?? []), ...companyNames])];
     }
 
     // Apply keyword filtering
     let filtered = 0;
     let itemsToProcess: FetchedNewsItem[];
-    if (effectiveKeywords) {
+    if (effectiveKeywords?.length) {
       itemsToProcess = fetchedItems.filter((item) => {
         if (matchesKeywords(item, effectiveKeywords!)) return true;
         filtered++;

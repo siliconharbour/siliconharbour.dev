@@ -35,7 +35,11 @@ async function seedSource(overrides?: Partial<Parameters<typeof createEventImpor
 }
 
 /** Insert a minimal imported event linked to a source */
-async function seedEvent(sourceId: number, importStatus: string, externalId?: string) {
+async function seedEvent(
+  sourceId: number,
+  importStatus: NonNullable<typeof events.$inferSelect.importStatus>,
+  externalId?: string,
+) {
   const now = new Date();
   const slug = `test-event-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   const [event] = await db

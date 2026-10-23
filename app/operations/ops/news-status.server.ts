@@ -1,7 +1,8 @@
+import { keywordList } from "~/lib/keywords";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { toPlain } from "../plain";
-import { idInput, confirm, emptyInput, nullableText } from "../fields";
+import { idInput, confirm, emptyInput } from "../fields";
 import { newsOutput } from "../contracts/news";
 import { requireNews } from "./news.server";
 import { updateNews } from "~/lib/news.server";
@@ -81,10 +82,9 @@ export const newsStatusOperations = {
     risk: "read",
     access: "admin",
     summary: "Get global news import keywords.",
-    description:
-      "Return the comma-separated keywords used by news sources that enable global filtering.",
+    description: "Return the keyword array used by news sources that enable global filtering.",
     input: emptyInput,
-    output: z.string(),
+    output: keywordList,
     examples: [{ title: "Get keywords", input: {} }],
     run: () => getNewsGlobalKeywords(),
   }),
@@ -95,12 +95,12 @@ export const newsStatusOperations = {
     access: "admin",
     summary: "Set global news import keywords.",
     description:
-      "Replace the comma-separated keyword list; null or blank clears it. Source-specific keywords remain unchanged.",
-    input: z.object({ keywords: nullableText(10000) }).strict(),
+      "Replace the keyword array; null or an empty array clears it. Source-specific keywords remain unchanged.",
+    input: z.object({ keywords: keywordList.nullable() }).strict(),
     output: z.object({ saved: z.literal(true) }).strict(),
-    examples: [{ title: "Set keywords", input: { keywords: "Newfoundland,technology" } }],
+    examples: [{ title: "Set keywords", input: { keywords: ["Newfoundland", "technology"] } }],
     run: async (_ctx, { keywords }) => {
-      await setNewsGlobalKeywords(keywords ?? "");
+      await setNewsGlobalKeywords(keywords ?? []);
       return { saved: true as const };
     },
   }),

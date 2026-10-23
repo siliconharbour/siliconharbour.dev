@@ -1,3 +1,4 @@
+import { parseKeywords } from "~/lib/keywords";
 import { checkbox, imageFromForm } from "./form-adapters";
 export function jobFormInput(form: FormData) {
   const input: Record<string, unknown> = {};
@@ -32,7 +33,8 @@ export function newsSourceFormInput(form: FormData, editing: boolean) {
     "excerptMode",
     "entityUrl",
   ])
-    if (form.has(key)) input[key] = form.get(key);
+    if (form.has(key))
+      input[key] = key === "keywords" ? parseKeywords(String(form.get(key) ?? "")) : form.get(key);
   if (!editing) input.sourceType = form.get("sourceType");
   for (const key of ["useGlobalKeywords", "useCompanyNameFilter", "enabled"])
     input[key] = checkbox(form, key);

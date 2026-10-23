@@ -9,7 +9,7 @@ import { listTechnologies } from "~/lib/directory-lists.server";
 import { listEducation } from "~/lib/directory-lists.server";
 import { listCompanies } from "~/lib/directory-lists.server";
 import { listPeople } from "~/lib/directory-lists.server";
-import { z } from "zod";
+
 import { defineOperation } from "../define";
 import { toPlain } from "../plain";
 import {
@@ -18,7 +18,7 @@ import {
   publicJobListInput,
 } from "../contracts/public-reads";
 import { eventOutput } from "../contracts/events";
-import { jobOutput } from "../contracts/jobs";
+
 import { newsOutput } from "../contracts/news";
 import { companyOutput } from "../contracts/companies";
 import { groupOutput } from "../contracts/groups";
@@ -29,14 +29,7 @@ import { productOutput } from "../contracts/products";
 import { projectOutput } from "../contracts/projects";
 import { getPaginatedEvents } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
-import { getPaginatedNews } from "~/lib/news.server";
-import { getPaginatedCompanies } from "~/lib/companies.server";
-import { getPaginatedGroups } from "~/lib/groups.server";
-import { getPaginatedPeople } from "~/lib/people.server";
-import { getPaginatedEducation } from "~/lib/education.server";
-import { getAllTechnologies } from "~/lib/technologies.server";
-import { getPaginatedProducts } from "~/lib/products.server";
-import { getPaginatedProjects } from "~/lib/projects.server";
+
 export const publicReadOperations = {
   eventPublicList: defineOperation({
     name: "eventPublicList",

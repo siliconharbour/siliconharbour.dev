@@ -55,7 +55,13 @@ export function defineOperation<I extends z.ZodType, O extends z.ZodType>(
         (typeof raw !== "object" || raw === null || !("confirm" in raw) || raw.confirm !== true)
       )
         throw new ConfirmationRequiredError("confirm: true is required");
-      return run(context, definition.input.parse(raw));
+      const result = await run(context, definition.input.parse(raw));
+      if (process.env.NODE_ENV !== "production") {
+        const checked = definition.output.safeParse(result);
+        if (!checked.success)
+          throw new Error(`${definition.name} returned invalid output: ${checked.error.message}`);
+      }
+      return result;
     },
   };
 }

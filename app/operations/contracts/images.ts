@@ -56,7 +56,7 @@ export const orphanStageInput = z
   .strict();
 export const orphanDeleteInput = z.object({ path: z.string().min(1).max(4096), confirm }).strict();
 const cursorOutput = z
-  .object({ nextOffset: z.number(), totalImagesLastRun: z.number(), updatedAt: z.string() })
+  .object({ nextOffset: z.number(), totalImagesLastRun: z.number(), updatedAt: z.iso.datetime() })
   .strict();
 export const orphanListOutput = z
   .object({
@@ -66,7 +66,7 @@ export const orphanListOutput = z
           path: z.string(),
           filename: z.string(),
           sizeBytes: z.number(),
-          stagedAt: z.string(),
+          stagedAt: z.iso.datetime(),
           reason: z.string(),
         })
         .strict(),

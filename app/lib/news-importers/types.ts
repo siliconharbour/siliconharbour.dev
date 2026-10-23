@@ -69,7 +69,7 @@ export interface NewsImportSourceConfig {
   sourceType: NewsSourceType;
   sourceUrl: string;
   sourceIdentifier?: string | null;
-  keywords?: string | null;
+  keywords?: string[] | null;
   excerptMode?: ExcerptMode;
 }
 

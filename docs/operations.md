@@ -17,7 +17,7 @@ Search by task (`cancel occurrence`, `blocklist`, `newsletter`) or by an exact o
 
 Public reads have explicit names such as `eventPublicList`, `jobPublicList`, and `companyPublicList`. Administrative reads such as `eventList`, `newsletterSubscriberList`, and `themeShareList` require an admin actor and the read scope, even though they do not mutate data. Anonymous callers never receive hidden records, subscriber details, moderation IPs, or configuration secrets.
 
-Every operation enforces access itself. Admin sessions receive read/write scopes; MCP contexts use the authenticated actor and granted scopes. Every destructive or external operation requires `confirm: true`. JSON Schemas describe inputs and outputs; input validation runs on every call, while output contracts are checked in tests rather than introducing production output-validation failures.
+Every operation enforces access itself. Admin sessions receive read/write scopes; MCP contexts use the authenticated actor and granted scopes. Every destructive or external operation requires `confirm: true`. JSON Schemas describe inputs and outputs; input validation runs on every call, while output contracts are asserted in development and tests. Production does not parse outputs.
 
 ## Behavior to preserve
 
@@ -56,3 +56,9 @@ Blocklist identities are stored in canonical form with a unique source/key index
 Inside code mode, `Object.keys(tools.siliconharbour)` lists callable names; `typeof` does not prove that a name exists. Unknown calls suggest nearby visible names, including when caught by the program. A write name used through query explains execute/scope requirements. Use `operationDescribe({name})` for permitted input/output schemas and examples inside a program. MCP search also indexes example titles and output fields. The server version includes a hash of the catalog contracts so schema changes are identifiable.
 
 All list operations use limit/offset, query, an explicit supported sort and order, and return `{items, total, nextOffset}`. Local database totals count the filtered result before paging. Source/tag/importer collections are small snapshots and use the same page shape. Public event pages retain recurrence-aware chronological ordering; their sort is startDate with ascending order. Newsletter providers do not expose counts, so their total is null. Follow nextOffset until null, including empty filtered campaign pages; do not infer completion from a short page. Campaign offsets track provider rows to avoid rescanning or fabricating filtered totals. These are current contracts, with no alternate array or page/perPage forms.
+
+## Structured values
+
+News-source and global keywords are arrays of strings. Admin text fields adapt comma-separated input; the existing TEXT columns retain their storage format. Campaign `audienceData` is a parsed subscriber-ID array, a `{testSubscriberIds}` object, or null. Timestamps, including campaign and theme-share dates, use ISO 8601 strings.
+
+`jobSourceManualSync` accepts `{id, jobs}` with typed job records, not JSON text. The admin form parses the browser script's array before calling it. Invalid rows fail validation instead of disappearing. Async sync results expose typed importer counts and errors, the initiating administrator and transport, and mark `success:false` responses as failed steps.

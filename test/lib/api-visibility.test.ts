@@ -371,7 +371,7 @@ describe("GET /api/events — visibility", () => {
   async function seedEvent(opts: {
     slug: string;
     title: string;
-    importStatus: string | null;
+    importStatus: typeof events.$inferSelect.importStatus;
     withDate?: boolean;
   }) {
     const [evt] = await db

@@ -1,6 +1,7 @@
 import { listInput } from "../listing";
 import { z } from "zod";
 import { eventTimeModes, eventTagColors, eventSourceTypes, fetchStatuses } from "../fields";
+export const eventStatus = z.enum(["pending_review", "approved", "published", "hidden", "removed"]);
 export const eventRowOutput = z
   .object({
     id: z.number(),
@@ -25,7 +26,7 @@ export const eventRowOutput = z
     updatedAt: z.iso.datetime(),
     importSourceId: z.number().nullable(),
     externalId: z.string().nullable(),
-    importStatus: z.string().nullable(),
+    importStatus: eventStatus.nullable(),
     firstSeenAt: z.iso.datetime().nullable(),
     lastSeenAt: z.iso.datetime().nullable(),
   })
@@ -90,9 +91,7 @@ import {
   updateContract,
   id,
   confirm,
-  pagination,
 } from "../fields";
-export const eventStatus = z.enum(["pending_review", "approved", "published", "hidden", "removed"]);
 const calendarDate = z.union([z.iso.date(), z.iso.datetime({ offset: true })]);
 const clockTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use HH:mm");
 export const eventDateInput = z

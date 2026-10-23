@@ -1,3 +1,4 @@
+import { parseKeywords } from "./keywords";
 import { db } from "~/db";
 import {
   siteConfig,
@@ -153,25 +154,25 @@ const NEWS_KEYWORDS_KEY = "news_global_keywords";
 /**
  * Get the global keywords used for filtering news import sources.
  */
-export async function getNewsGlobalKeywords(): Promise<string> {
+export async function getNewsGlobalKeywords(): Promise<string[]> {
   const result = await db
     .select()
     .from(siteConfig)
     .where(eq(siteConfig.key, NEWS_KEYWORDS_KEY))
     .get();
-  return result?.value ?? "";
+  return parseKeywords(result?.value);
 }
 
 /**
  * Set the global keywords for news import filtering.
  */
-export async function setNewsGlobalKeywords(keywords: string): Promise<void> {
+export async function setNewsGlobalKeywords(keywords: string[]): Promise<void> {
   await db
     .insert(siteConfig)
-    .values({ key: NEWS_KEYWORDS_KEY, value: keywords })
+    .values({ key: NEWS_KEYWORDS_KEY, value: keywords.join(",") })
     .onConflictDoUpdate({
       target: siteConfig.key,
-      set: { value: keywords, updatedAt: new Date() },
+      set: { value: keywords.join(","), updatedAt: new Date() },
     });
 }
 
@@ -217,7 +218,7 @@ export async function updateDiscordConfig(config: Partial<DiscordConfig>): Promi
 export function saveSiteConfig(input: {
   sections: SectionVisibility;
   comments: CommentVisibility;
-  newsGlobalKeywords: string | null;
+  newsGlobalKeywords: string[] | null;
   botToken?: string | null;
 }) {
   const entries: Array<[string, string]> = [
@@ -228,7 +229,7 @@ export function saveSiteConfig(input: {
       (key) =>
         [`${COMMENT_VISIBILITY_PREFIX}${key}`, String(input.comments[key])] as [string, string],
     ),
-    [NEWS_KEYWORDS_KEY, input.newsGlobalKeywords ?? ""],
+    [NEWS_KEYWORDS_KEY, input.newsGlobalKeywords?.join(",") ?? ""],
     ...(input.botToken !== undefined
       ? [[DISCORD_BOT_TOKEN_KEY, input.botToken ?? ""] as [string, string]]
       : []),

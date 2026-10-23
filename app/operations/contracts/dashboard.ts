@@ -30,7 +30,7 @@ export const dashboardOutput = z
           kind: z.enum(["event", "job", "news"]),
           name: z.string(),
           error: z.string().nullable(),
-          lastAttemptAt: z.string().nullable(),
+          lastAttemptAt: z.iso.datetime().nullable(),
           href: z.string(),
         })
         .strict(),

@@ -37,7 +37,7 @@ it("validates all settings before saving and never returns the bot token", async
   await operations.siteConfigSave.execute(context, {
     sections: { ...current.sections, jobs: false },
     comments: current.comments,
-    newsGlobalKeywords: "local",
+    newsGlobalKeywords: ["local"],
     confirm: true,
   });
   expect((await operations.siteConfigGet.execute(context, {})).sections.jobs).toBe(false);

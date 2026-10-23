@@ -1,3 +1,5 @@
+import { campaignAudience } from "~/operations/contracts/newsletter";
+import type { z } from "zod";
 import { InvalidOperationError } from "~/operations/errors";
 import { createHash } from "node:crypto";
 import { inArray } from "drizzle-orm";
@@ -17,6 +19,7 @@ export type MailingList = {
 export type Subscriber = {
   id: number;
   email: string;
+  createdAt: string;
   firstName: string | null;
   lastName: string | null;
   status: "active" | "blocklisted";
@@ -31,13 +34,34 @@ export type Campaign = {
   fromName: string | null;
   audienceType: "list" | "tag" | "all" | "subscribers";
   audienceId: number | null;
-  audienceData: string | null;
+  audienceData: z.infer<typeof campaignAudience>;
   status: "draft" | "scheduled" | "sending" | "sent" | "failed";
   createdAt: string;
   sentAt: string | null;
   lastError: string | null;
   deliveryCounts?: Record<string, number>;
 };
+
+type ProviderCampaign = Omit<Campaign, "audienceData"> & { audienceData: string | null };
+function parseCampaign(campaign: ProviderCampaign): Campaign {
+  return {
+    id: campaign.id,
+    subject: campaign.subject,
+    bodyMarkdown: campaign.bodyMarkdown,
+    fromAddress: campaign.fromAddress,
+    fromName: campaign.fromName,
+    audienceType: campaign.audienceType,
+    audienceId: campaign.audienceId,
+    status: campaign.status,
+    createdAt: campaign.createdAt,
+    sentAt: campaign.sentAt,
+    lastError: campaign.lastError,
+    ...(campaign.deliveryCounts !== undefined ? { deliveryCounts: campaign.deliveryCounts } : {}),
+    audienceData: campaignAudience.parse(
+      campaign.audienceData === null ? null : JSON.parse(campaign.audienceData),
+    ),
+  };
+}
 
 export type CampaignSend = {
   id: number;
@@ -198,14 +222,16 @@ export async function unsubscribeFromNewsletter(id: number, listId: number) {
 }
 
 export async function getNewsletterCampaigns(listId: number) {
-  const campaigns = await listsRequest<Campaign[]>("/campaigns?limit=200");
+  const campaigns = (await listsRequest<ProviderCampaign[]>("/campaigns?limit=200")).map(
+    parseCampaign,
+  );
   return campaigns.filter(
     (campaign) => campaign.audienceType === "list" && campaign.audienceId === listId,
   );
 }
 
 export async function getNewsletterCampaign(id: number, listId: number) {
-  const campaign = await listsRequest<Campaign>(`/campaigns/${id}`);
+  const campaign = parseCampaign(await listsRequest<ProviderCampaign>(`/campaigns/${id}`));
   if (campaign.audienceType !== "list" || campaign.audienceId !== listId)
     throw new InvalidOperationError("Campaign does not belong to the Silicon Harbour list");
   return campaign;
@@ -225,7 +251,7 @@ export async function saveNewsletterCampaign(
   values: { subject: string; bodyMarkdown: string },
   id?: number,
 ) {
-  return listsRequest<Campaign>(id ? `/campaigns/${id}` : "/campaigns", {
+  return listsRequest<ProviderCampaign>(id ? `/campaigns/${id}` : "/campaigns", {
     method: id ? "PUT" : "POST",
     body: JSON.stringify({
       ...values,
@@ -234,7 +260,7 @@ export async function saveNewsletterCampaign(
       audienceId: listId,
       templateSlug: "newsletter",
     }),
-  });
+  }).then(parseCampaign);
 }
 
 export async function getConfirmedPilotSubscriberIds(listId: number) {
@@ -253,18 +279,18 @@ export async function sendNewsletterTest(id: number, listId: number) {
   const subscriberIds = await getConfirmedPilotSubscriberIds(listId);
   if (subscriberIds.length === 0)
     throw new InvalidOperationError("No pilot addresses have confirmed their subscriptions yet");
-  return listsRequest<Campaign>(`/campaigns/${id}/test-send`, {
+  return listsRequest<ProviderCampaign>(`/campaigns/${id}/test-send`, {
     method: "POST",
     body: JSON.stringify({ subscriberIds, confirm: true }),
-  });
+  }).then(parseCampaign);
 }
 
 export async function sendNewsletterLive(id: number, listId: number) {
   await getNewsletterCampaign(id, listId);
-  return listsRequest<Campaign>(`/campaigns/${id}/send`, {
+  return listsRequest<ProviderCampaign>(`/campaigns/${id}/send`, {
     method: "POST",
     body: JSON.stringify({ confirm: true }),
-  });
+  }).then(parseCampaign);
 }
 
 async function providerPage<T>(
@@ -301,14 +327,16 @@ export async function listNewsletterCampaigns(
   listId: number,
   input: { limit: number; offset: number; query?: string },
 ) {
-  const result = await providerPage<Campaign>("/campaigns", input, {});
+  const result = await providerPage<ProviderCampaign>("/campaigns", input, {});
   return {
     ...result,
-    items: result.items.filter(
-      (campaign) =>
-        campaign.audienceType === "list" &&
-        campaign.audienceId === listId &&
-        (!input.query || campaign.subject.toLowerCase().includes(input.query.toLowerCase())),
-    ),
+    items: result.items
+      .map(parseCampaign)
+      .filter(
+        (campaign) =>
+          campaign.audienceType === "list" &&
+          campaign.audienceId === listId &&
+          (!input.query || campaign.subject.toLowerCase().includes(input.query.toLowerCase())),
+      ),
   };
 }
