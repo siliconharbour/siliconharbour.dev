@@ -223,59 +223,6 @@ export async function extractTechnologiesFromJob(
 }
 
 /**
- * Extract technologies from all jobs for a company
- */
-export async function extractTechnologiesForCompany(
-  companyId: number,
-): Promise<{ jobs: number; mentions: number }> {
-  const companyJobs = await db
-    .select({ id: jobs.id })
-    .from(jobs)
-    .where(and(eq(jobs.companyId, companyId), eq(jobs.status, "active")));
-
-  let totalMentions = 0;
-  for (const job of companyJobs) {
-    const result = await extractTechnologiesFromJob(job.id);
-    totalMentions += result.inserted;
-  }
-
-  return { jobs: companyJobs.length, mentions: totalMentions };
-}
-
-/**
- * Extract technologies from all active jobs
- */
-export async function extractTechnologiesFromAllJobs(): Promise<{
-  jobs: number;
-  mentions: number;
-}> {
-  const allJobs = await db.select({ id: jobs.id }).from(jobs).where(eq(jobs.status, "active"));
-
-  let totalMentions = 0;
-  for (const job of allJobs) {
-    const result = await extractTechnologiesFromJob(job.id);
-    totalMentions += result.inserted;
-  }
-
-  return { jobs: allJobs.length, mentions: totalMentions };
-}
-
-/**
- * Get technology mentions for a job
- */
-export async function getTechMentionsForJob(jobId: number) {
-  return db
-    .select({
-      technology: technologies,
-      mention: jobTechnologyMentions,
-    })
-    .from(jobTechnologyMentions)
-    .innerJoin(technologies, eq(jobTechnologyMentions.technologyId, technologies.id))
-    .where(eq(jobTechnologyMentions.jobId, jobId))
-    .orderBy(jobTechnologyMentions.confidence);
-}
-
-/**
  * Clear all technology mentions for a job (for re-extraction)
  */
 export async function clearTechMentionsForJob(jobId: number) {

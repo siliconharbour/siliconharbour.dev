@@ -25,12 +25,5 @@ export function getNewsImporter(sourceType: NewsSourceType): NewsImporter {
   return importer;
 }
 
-/**
- * Check if a source type has an importer available
- */
-export function hasNewsImporter(sourceType: string): boolean {
-  return sourceType in importers;
-}
-
 // Re-export types for convenience
 export * from "./types";

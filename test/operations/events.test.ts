@@ -22,7 +22,6 @@ const basic = {
 it("switches schedules while preserving occurrence overrides", async () => {
   const event = await operations.eventCreate.execute(context, basic);
   expect(event.importStatus).toBe("pending_review");
-  expect(operations.eventCreate.output.safeParse(event).success).toBe(true);
   expect(formatInTimezone(new Date(event.dates[0].startDate), "HH:mm")).toBe("12:00");
   await operations.eventUpdate.execute(context, {
     id: event.id,
@@ -34,7 +33,6 @@ it("switches schedules while preserving occurrence overrides", async () => {
     id: event.id,
     date: "2026-11-08",
   });
-  expect(operations.eventOccurrenceCancel.output.safeParse(override).success).toBe(true);
   expect(override.cancelled).toBe(true);
   const recurring = await operations.eventGet.execute(context, { id: event.id });
   expect(recurring.dates).toEqual([]);

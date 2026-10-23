@@ -12,17 +12,12 @@ import {
   type Technology,
   type NewTechnology,
   type TechnologyAssignment,
-  type TechnologyCategory,
   type TechnologyEvidenceSourceType,
   type TechnologizedType,
 } from "~/db/schema";
-import { eq, asc, count, and, inArray, sql } from "drizzle-orm";
+import { eq, asc, count, and, inArray } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { normalizeTechnologyEvidenceSourceLabel } from "./technology-evidence";
-
-// =============================================================================
-// Technology CRUD
-// =============================================================================
 
 async function getExistingSlugs(): Promise<string[]> {
   const rows = await db.select({ slug: technologies.slug }).from(technologies);
@@ -92,15 +87,6 @@ export async function getTechnologyBySlug(slug: string): Promise<Technology | nu
   return db.select().from(technologies).where(eq(technologies.slug, slug)).get() ?? null;
 }
 
-export async function getTechnologyByName(name: string): Promise<Technology | null> {
-  const result = await db
-    .select()
-    .from(technologies)
-    .where(sql`LOWER(${technologies.name}) = LOWER(${name.trim()})`)
-    .limit(1);
-  return result[0] ?? null;
-}
-
 export async function getAllTechnologies(includeHidden: boolean = false): Promise<Technology[]> {
   if (includeHidden) {
     return db.select().from(technologies).orderBy(asc(technologies.name));
@@ -111,41 +97,6 @@ export async function getAllTechnologies(includeHidden: boolean = false): Promis
     .where(eq(technologies.visible, true))
     .orderBy(asc(technologies.name));
 }
-
-export async function getTechnologiesByCategory(
-  includeHidden: boolean = false,
-): Promise<Record<TechnologyCategory, Technology[]>> {
-  const allTechs = await getAllTechnologies(includeHidden);
-
-  const byCategory: Record<TechnologyCategory, Technology[]> = {
-    language: [],
-    frontend: [],
-    backend: [],
-    cloud: [],
-    database: [],
-    "games-and-graphics": [],
-    mobile: [],
-    "data-science": [],
-    llm: [],
-    platform: [],
-    specialized: [],
-  };
-
-  for (const tech of allTechs) {
-    byCategory[tech.category].push(tech);
-  }
-
-  return byCategory;
-}
-
-export async function getTechnologiesCount(): Promise<number> {
-  const [{ total }] = await db.select({ total: count() }).from(technologies);
-  return total;
-}
-
-// =============================================================================
-// Technology Assignments
-// =============================================================================
 
 export async function assignTechnology(
   technologyId: number,
@@ -276,47 +227,6 @@ export interface ApplyJobMentionTechInput {
   sourceType: TechnologyEvidenceSourceType;
   sourceUrl: string | null;
   lastVerified: string | null;
-}
-
-export async function setTechnologyProvenanceForContent(
-  contentType: TechnologizedType,
-  contentId: number,
-  updates: TechnologyProvenanceUpdate[],
-): Promise<void> {
-  for (const update of updates) {
-    const existing = await db
-      .select()
-      .from(technologyAssignments)
-      .where(
-        and(
-          eq(technologyAssignments.technologyId, update.technologyId),
-          eq(technologyAssignments.contentType, contentType),
-          eq(technologyAssignments.contentId, contentId),
-        ),
-      )
-      .get();
-
-    if (existing) {
-      await db
-        .update(technologyAssignments)
-        .set({
-          source: update.source,
-          sourceUrl: update.sourceUrl,
-          lastVerified: update.lastVerified,
-        })
-        .where(eq(technologyAssignments.id, existing.id));
-      continue;
-    }
-
-    await db.insert(technologyAssignments).values({
-      technologyId: update.technologyId,
-      contentType,
-      contentId,
-      source: update.source,
-      sourceUrl: update.sourceUrl,
-      lastVerified: update.lastVerified,
-    });
-  }
 }
 
 export async function setTechnologyEvidenceForCompany(
@@ -661,10 +571,6 @@ export async function getTechnologiesForContent(
 
   return result.sort((a, b) => a.technology.name.localeCompare(b.technology.name));
 }
-
-// =============================================================================
-// Queries for directory pages
-// =============================================================================
 
 export interface TechnologyWithUsage extends Technology {
   companyCount: number;

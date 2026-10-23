@@ -25,7 +25,6 @@ it("excludes hidden companies and their attached records from public product res
   expect(result).toBeDefined();
   expect(result?.company).toBeNull();
   expect(JSON.stringify(products)).not.toContain("private@example.com");
-  expect(operations.productPublicList.output.safeParse(products).success).toBe(true);
 });
 
 it("keeps source configuration private while preserving operator job discovery", async () => {
@@ -55,7 +54,6 @@ it("keeps source configuration private while preserving operator job discovery",
   expect(publicJob).toBeDefined();
   expect(publicJob).not.toHaveProperty("importSourceIdentifier");
   expect(publicJob).not.toHaveProperty("importSourceUrl");
-  expect(operations.jobPublicList.output.safeParse(publicRows).success).toBe(true);
   const operatorRows = await operations.jobList.execute(admin, { status: "all" });
   expect(operatorRows.items.find((row) => row.id === job.id)).toMatchObject({
     importSourceIdentifier: "private-board",

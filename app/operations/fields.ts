@@ -28,10 +28,6 @@ export const createOptions = {
       "Return an existing record for this operation's stable identity without changing it. Requires the identity fields documented by the operation.",
     ),
 };
-export const pagination = {
-  limit: z.number().int().min(1).max(200).default(50),
-  offset: z.number().int().min(0).default(0),
-};
 export const identifier = z.string().regex(/^[a-f0-9]{32}$/);
 export const dateTime = z.iso.datetime({ offset: true });
 
@@ -112,13 +108,6 @@ export const nullableGithubProfile = () => nullableText(4096).pipe(githubProfile
 export { socialLinksPatch as socialLinks, projectLinksPatch as projectLinks } from "~/lib/links";
 export const idInput = z.object({ id: id() }).strict();
 export const deleteInput = z.object({ id: id(), confirm }).strict();
-export const adminListInput = z
-  .object({
-    ...pagination,
-    query: z.string().trim().max(500).optional(),
-    visible: z.boolean().optional(),
-  })
-  .strict();
 
 export const imageFileInput = z.discriminatedUnion("kind", [
   imageInput.options[2],

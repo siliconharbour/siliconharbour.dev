@@ -60,20 +60,6 @@ export function getImporter(sourceType: JobSourceType): JobImporter {
 }
 
 /**
- * Check if a source type has an importer available
- */
-export function hasImporter(sourceType: string): boolean {
-  return sourceType in importers;
-}
-
-/**
- * Get list of all available source types
- */
-export function getAvailableSourceTypes(): JobSourceType[] {
-  return Object.keys(importers) as JobSourceType[];
-}
-
-/**
  * Get metadata for all importers (for documentation/overview pages)
  */
 export function getAllImporterMeta() {

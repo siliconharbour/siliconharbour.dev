@@ -137,45 +137,6 @@ export function searchRankOrder(column: AnyColumn, rankedIds: number[]): SQL {
 }
 
 /**
- * Check if a query would match any results (for validation)
- */
-export function hasSearchResults(contentType: ContentType, query: string): boolean {
-  const ids = searchContentIds(contentType, query);
-  return ids.length > 0;
-}
-
-/**
- * Get highlighted snippets from FTS5 search results
- * Useful for showing search result previews
- */
-export function searchWithSnippets(
-  contentType: ContentType,
-  query: string,
-  snippetColumn: number = 1, // 0-indexed column to get snippet from
-): Array<{ rowid: number; snippet: string }> {
-  const ftsTable = ftsTableMap[contentType];
-  if (!ftsTable) return [];
-
-  const ftsQuery = buildFtsQuery(query);
-  if (!ftsQuery) return [];
-
-  try {
-    const stmt = rawDb.prepare(`
-      SELECT rowid, snippet(${ftsTable}, ${snippetColumn}, '<mark>', '</mark>', '...', 32) as snippet
-      FROM ${ftsTable}
-      WHERE ${ftsTable} MATCH ?
-      ORDER BY rank
-      LIMIT 100
-    `);
-    const result = stmt.all(ftsQuery) as Array<{ rowid: number; snippet: string }>;
-    return result;
-  } catch (error) {
-    console.error(`FTS5 snippet search error for ${contentType}:`, error);
-    return [];
-  }
-}
-
-/**
  * Rebuild FTS index for a content type (useful after bulk operations)
  */
 export function rebuildFtsIndex(contentType: ContentType): void {
