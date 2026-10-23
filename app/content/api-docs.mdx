@@ -91,19 +91,19 @@ Responses contain `ok`, `value` or `error`, `toolCalls`, and optional `logs`, `w
 
 ```js
 // Upcoming events
-return await tools.siliconharbour.events({ upcoming: true, limit: 5 });
+return await tools.siliconharbour.eventPublicList({ upcoming: true, limit: 5 });
 ```
 
 ```js
 // Jobs filtered by keyword
-return await tools.siliconharbour.jobs({ query: "developer", limit: 10 });
+return await tools.siliconharbour.jobPublicList({ query: "developer", limit: 10 });
 ```
 
 ```js
 // Cross-entity query
 const [upcoming, cos, grps] = await Promise.all([
-  tools.siliconharbour.events({ upcoming: true }),
-  tools.siliconharbour.companies({ limit: 5 }),
+  tools.siliconharbour.eventPublicList({ upcoming: true }),
+  tools.siliconharbour.companyPublicList({ limit: 5 }),
   tools.siliconharbour.groups({ limit: 5 }),
 ]);
 return {
