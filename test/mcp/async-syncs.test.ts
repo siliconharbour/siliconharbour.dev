@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getAsyncSync, startAsyncSync } from "~/mcp/async-syncs";
+import { getAsyncSync, startAsyncSync } from "~/lib/async-syncs.server";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
