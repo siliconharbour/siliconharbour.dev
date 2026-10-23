@@ -20,7 +20,10 @@ vi.mock("~/lib/session.server", () => ({
 afterEach(() => vi.restoreAllMocks());
 const context = adminContext(1);
 it("validates all settings before saving and never returns the bot token", async () => {
-  await operations.discordConfigSet.execute(context, { botToken: "private-bot-token" });
+  await operations.discordConfigSet.execute(context, {
+    botToken: "private-bot-token",
+    confirm: true,
+  });
   const current = await operations.siteConfigGet.execute(context, {});
   expect(JSON.stringify(current)).not.toContain("private-bot-token");
   expect(current.discord).toMatchObject({ botTokenConfigured: true, botTokenMasked: "••••oken" });
@@ -102,7 +105,7 @@ it("issues expiring single-use export capabilities", async () => {
   ).toBe(false);
 });
 it("rejects unavailable Discord items before posting externally", async () => {
-  await operations.discordConfigSet.execute(context, { botToken: "test-token" });
+  await operations.discordConfigSet.execute(context, { botToken: "test-token", confirm: true });
   await operations.discordDestinationAdd.execute(context, {
     type: "jobs",
     guildId: "123",
@@ -178,7 +181,7 @@ it("imports guarded directory logos without exposing arbitrary server fetches", 
 
 it("masks the entire value of unusually short configured tokens", async () => {
   for (const token of ["abc", "12345678"]) {
-    await operations.discordConfigSet.execute(context, { botToken: token });
+    await operations.discordConfigSet.execute(context, { botToken: token, confirm: true });
     expect(await operations.discordConfigGet.execute(context, {})).toEqual({
       botTokenConfigured: true,
       botTokenMasked: "Configured",

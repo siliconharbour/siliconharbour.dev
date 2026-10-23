@@ -1,3 +1,4 @@
+import { NotFoundError } from "../errors";
 import { pageResult } from "../listing";
 import { defineOperation } from "../define";
 import { listThemeShares, deleteThemeShare } from "~/lib/theme-shares.server";
@@ -42,6 +43,10 @@ export const themeShareOperations = {
     input: themeShareDeleteInput,
     output: themeShareDeleteOutput,
     examples: [{ title: "Delete a share", input: { id: "a".repeat(32), confirm: true } }],
-    run: (_context, input) => deleteThemeShare(input.id),
+    run: (_context, input) => {
+      const result = deleteThemeShare(input.id);
+      if (!result.deleted) throw new NotFoundError("Theme share not found");
+      return result;
+    },
   }),
 };

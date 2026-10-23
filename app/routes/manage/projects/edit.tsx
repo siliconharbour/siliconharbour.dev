@@ -46,7 +46,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (form.get("intent") === "addGalleryImage") {
     const result = await runAdminOperation(request, operationCatalog.projectGalleryAdd, {
       id: Number(params.id),
-      image: { kind: "dataUrl", dataUrl: form.get("galleryImageData") },
+      image: { kind: "dataUrl", confirm: true, dataUrl: form.get("galleryImageData") },
       caption: form.get("caption") || null,
     });
     return result.ok ? { success: true } : { error: result.error };

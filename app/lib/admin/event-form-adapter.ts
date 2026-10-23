@@ -14,9 +14,11 @@ export function eventFormInput(form: FormData, editing: boolean) {
     coverImage: imageFromForm(form, "coverImage", editing),
   };
   const icon = form.get("iconImageData");
-  if (icon) input.iconImage = { kind: "dataUrl", dataUrl: icon };
+  if (icon) input.iconImage = { kind: "dataUrl", confirm: true, dataUrl: icon };
   else if (editing && form.has("existingIconImage"))
-    input.iconImage = { kind: form.get("existingIconImage") ? "keep" : "clear" };
+    input.iconImage = form.get("existingIconImage")
+      ? { kind: "keep" }
+      : { kind: "clear", confirm: true };
   if (recurring) {
     for (const field of [
       "recurrenceRule",

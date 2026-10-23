@@ -3,12 +3,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { projectGalleryAddInput, projectGalleryRemoveInput } from "../contracts/projects";
-import {
-  getProjectById,
-  getProjectImages,
-  addProjectImage,
-  removeProjectImage,
-} from "~/lib/projects.server";
+import { getProjectById, addProjectImage, removeProjectImage } from "~/lib/projects.server";
 import { withImageBytes, deleteUnreferencedImages } from "~/lib/entity-images.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
 import { toPlain } from "../plain";
@@ -27,7 +22,10 @@ export const projectGalleryOperations = {
     examples: [
       {
         title: "Add image",
-        input: { id: 1, image: { kind: "url", url: "https://example.com/image.png" } },
+        input: {
+          id: 1,
+          image: { kind: "url", confirm: true, url: "https://example.com/image.png" },
+        },
       },
     ],
     run: async (_ctx, input) => {
@@ -55,9 +53,8 @@ export const projectGalleryOperations = {
     output: z.object({ deleted: z.literal(true) }).strict(),
     examples: [{ title: "Remove image", input: { id: 1, imageId: 1, confirm: true } }],
     run: async (_ctx, input) => {
-      if (!(await getProjectImages(input.id)).some((image) => image.id === input.imageId))
+      if (!(await removeProjectImage(input.id, input.imageId)))
         throw new NotFoundError("Project image not found");
-      await removeProjectImage(input.imageId);
       return { deleted: true as const };
     },
   }),

@@ -9,7 +9,7 @@ import {
   type NewProject,
   type ProjectImage,
 } from "~/db/schema";
-import { eq, asc, count, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, asc, count, inArray, isNotNull } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
@@ -179,10 +179,13 @@ export async function updateProjectImage(
   return updated ?? null;
 }
 
-export async function removeProjectImage(imageId: number): Promise<boolean> {
-  const image = await db.select().from(projectImages).where(eq(projectImages.id, imageId)).get();
+export async function removeProjectImage(projectId: number, imageId: number): Promise<boolean> {
+  const image = db
+    .delete(projectImages)
+    .where(and(eq(projectImages.id, imageId), eq(projectImages.projectId, projectId)))
+    .returning()
+    .get();
   if (!image) return false;
-  await db.delete(projectImages).where(eq(projectImages.id, imageId));
   await deleteUnreferencedImages([image.image]);
   return true;
 }

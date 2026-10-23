@@ -120,7 +120,7 @@ it("keeps approval distinct from public publication", async () => {
   expect((await operations.eventGet.execute(context, { id: event.id })).importStatus).toBe(
     "published",
   );
-  await operations.eventUnpublish.execute(context, { id: event.id });
+  await operations.eventImportHide.execute(context, { id: event.id });
   expect((await operations.eventGet.execute(context, { id: event.id })).importStatus).toBe(
     "hidden",
   );

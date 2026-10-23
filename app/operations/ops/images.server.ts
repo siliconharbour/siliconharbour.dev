@@ -28,17 +28,23 @@ export const imageOperations = {
   imageSetFromUrl: defineOperation({
     name: "imageSetFromUrl",
     area: "images",
-    risk: "write",
+    risk: "destructive",
     access: "admin",
     summary: "Set an entity image from a public URL.",
     description:
-      "Fetch a public HTTPS image through the address guard, validate its bytes and dimensions, and save WebP. Clean up the previous file when unreferenced. Review/visibility status does not change.",
+      "Fetch a public HTTPS image through the address guard, validate its bytes and dimensions, and save WebP. Clean up the previous file when unreferenced. Review/visibility status does not change. Requires confirm: true.",
     input: imageSetInput,
     output: imageAttachedOutput,
     examples: [
       {
         title: "Set cover",
-        input: { type: "event", id: 1, role: "cover", url: "https://example.com/cover.png" },
+        input: {
+          type: "event",
+          id: 1,
+          role: "cover",
+          confirm: true,
+          url: "https://example.com/cover.png",
+        },
       },
     ],
     run: (_ctx, input) => setEntityImage(input),
@@ -50,7 +56,7 @@ export const imageOperations = {
     access: "admin",
     summary: "Prepare a single-use image upload.",
     description:
-      "Reserve a 10-minute upload slot for a static image of at most 5 MiB and 16 megapixels. PUT raw bytes to uploadUrl using its returned upload-only headers outside the sandbox, then call imageAttach. Do not log the returned upload token.",
+      'Reserve a 10-minute upload slot for a static image of at most 5 MiB and 16 megapixels. Outside the sandbox: curl --request PUT --header "Authorization: Bearer <returned token>" --header "Content-Type: <returned content type>" --data-binary @image.png "<uploadUrl>". Use the returned upload-only headers exactly, then call imageAttach with confirm: true. A {kind:"dataUrl",dataUrl,confirm:true} image field is the in-sandbox alternative. Do not log upload tokens.',
     input: imageUploadInput,
     output: imageUploadOutput,
     examples: [{ title: "Prepare PNG", input: { contentType: "image/png", size: 1024 } }],
@@ -59,17 +65,17 @@ export const imageOperations = {
   imageAttach: defineOperation({
     name: "imageAttach",
     area: "images",
-    risk: "write",
+    risk: "destructive",
     access: "admin",
     summary: "Attach a prepared image upload.",
     description:
-      "Consume a ready, single-use upload and replace the entity image. Failed attachments preserve the upload for retry; replaced files are removed only when unreferenced.",
+      "Consume a ready, single-use upload and replace the entity image. Failed attachments preserve the upload for retry; replaced files are removed only when unreferenced. Requires confirm: true.",
     input: imageAttachInput,
     output: imageAttachedOutput,
     examples: [
       {
         title: "Attach cover",
-        input: { type: "event", id: 1, role: "cover", uploadId: "a".repeat(32) },
+        input: { type: "event", id: 1, role: "cover", confirm: true, uploadId: "a".repeat(32) },
       },
     ],
     run: (_ctx, input) => attachImage(input),

@@ -39,11 +39,11 @@ export function updateContract<S extends z.ZodRawShape>(shape: S) {
 
 export const imageInput = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("keep") }).strict(),
-  z.object({ kind: z.literal("clear") }).strict(),
-  z.object({ kind: z.literal("url"), url: url() }).strict(),
-  z.object({ kind: z.literal("upload"), uploadId: identifier }).strict(),
-  z.object({ kind: z.literal("dataUrl"), dataUrl: z.string().max(7_000_000) }).strict(),
-  z.object({ kind: z.literal("generateFromIcon") }).strict(),
+  z.object({ kind: z.literal("clear"), confirm }).strict(),
+  z.object({ kind: z.literal("url"), confirm, url: url() }).strict(),
+  z.object({ kind: z.literal("upload"), confirm, uploadId: identifier }).strict(),
+  z.object({ kind: z.literal("dataUrl"), confirm, dataUrl: z.string().max(7_000_000) }).strict(),
+  z.object({ kind: z.literal("generateFromIcon"), confirm }).strict(),
 ]);
 
 export function formatValidationError(

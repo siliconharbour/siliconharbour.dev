@@ -31,11 +31,14 @@ export function checkbox(form: FormData, name: string): boolean {
 export function imageFromForm(form: FormData, field: keyof typeof imageFields, editing: boolean) {
   const [upload, existing] = imageFields[field];
   const data = form.get(upload);
-  if (typeof data === "string" && data) return { kind: "dataUrl" as const, dataUrl: data };
+  if (typeof data === "string" && data)
+    return { kind: "dataUrl" as const, confirm: true, dataUrl: data };
   if (field === "coverImage" && checkbox(form, "generateCoverFromIcon"))
-    return { kind: "generateFromIcon" as const };
+    return { kind: "generateFromIcon" as const, confirm: true };
   if (editing && form.has(existing))
-    return { kind: form.get(existing) ? ("keep" as const) : ("clear" as const) };
+    return form.get(existing)
+      ? { kind: "keep" as const }
+      : { kind: "clear" as const, confirm: true };
   return undefined;
 }
 

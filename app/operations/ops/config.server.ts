@@ -78,14 +78,14 @@ export const configOperations = {
   siteSectionVisibilitySet: defineOperation({
     name: "siteSectionVisibilitySet",
     area: "config",
-    risk: "destructive",
+    risk: "write",
     access: "admin",
     summary: "Change public section visibility.",
     description:
-      "Patch supplied section flags. False hides that section's public content without deleting it. Requires confirm: true.",
+      "Patch supplied section flags. False hides that section's public content without deleting it.",
     input: sectionVisibilityInput,
     output: sectionVisibility,
-    examples: [{ title: "Hide jobs", input: { values: { jobs: false }, confirm: true } }],
+    examples: [{ title: "Hide jobs", input: { values: { jobs: false } } }],
     run: async (_ctx, { values }) => {
       await updateSectionVisibility(values);
       return getSectionVisibility();
@@ -94,15 +94,13 @@ export const configOperations = {
   siteCommentVisibilitySet: defineOperation({
     name: "siteCommentVisibilitySet",
     area: "config",
-    risk: "destructive",
+    risk: "write",
     access: "admin",
     summary: "Change comment visibility by content type.",
-    description: "Patch supplied comment flags without deleting comments. Requires confirm: true.",
+    description: "Patch supplied comment flags without deleting comments.",
     input: commentVisibilityInput,
     output: commentVisibility,
-    examples: [
-      { title: "Hide company comments", input: { values: { companies: false }, confirm: true } },
-    ],
+    examples: [{ title: "Hide company comments", input: { values: { companies: false } } }],
     run: async (_ctx, { values }) => {
       await updateCommentVisibility(values);
       return getCommentVisibility();
@@ -124,14 +122,14 @@ export const configOperations = {
   discordConfigSet: defineOperation({
     name: "discordConfigSet",
     area: "discord",
-    risk: "write",
+    risk: "destructive",
     access: "admin",
     summary: "Replace the Discord bot token.",
     description:
-      "Store the supplied token, or clear it with null. Return only masked configuration. Does not contact Discord.",
+      "Store the supplied token, or clear it with null. Return only masked configuration. Does not contact Discord. Requires confirm: true because the old token cannot be read back.",
     input: discordConfigSetInput,
     output: discordConfigOutput,
-    examples: [{ title: "Clear token", input: { botToken: null } }],
+    examples: [{ title: "Clear token", input: { confirm: true, botToken: null } }],
     run: async (_ctx, { botToken }) => {
       await updateDiscordConfig({ botToken: botToken ?? "" });
       return maskedDiscordConfig();

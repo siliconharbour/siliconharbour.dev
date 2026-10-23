@@ -67,6 +67,6 @@ export async function addDestination(params: {
 /**
  * Remove a destination by id.
  */
-export async function removeDestination(id: number): Promise<void> {
-  await db.delete(discordDestinations).where(eq(discordDestinations.id, id));
+export async function removeDestination(id: number): Promise<boolean> {
+  return db.delete(discordDestinations).where(eq(discordDestinations.id, id)).run().changes > 0;
 }

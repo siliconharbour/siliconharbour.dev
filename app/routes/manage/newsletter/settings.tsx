@@ -25,7 +25,6 @@ export async function action({ request }: Route.ActionArgs) {
   const result = await runAdminOperation(request, operationCatalog.newsletterSettingsSet, {
     publicSignup: form.get("publicSignup") === "on",
     liveSend: form.get("liveSend") === "on",
-    confirm: true,
   });
   return result.ok ? ({ success: true } as const) : ({ error: result.error } as const);
 }

@@ -27,7 +27,6 @@ export const sectionVisibilityInput = z
     values: sectionVisibility
       .partial()
       .refine((values) => Object.keys(values).length > 0, "No fields to update"),
-    confirm,
   })
   .strict();
 export const commentVisibilityInput = z
@@ -35,7 +34,6 @@ export const commentVisibilityInput = z
     values: commentVisibility
       .partial()
       .refine((values) => Object.keys(values).length > 0, "No fields to update"),
-    confirm,
   })
   .strict();
 export const discordConfigOutput = z
@@ -43,6 +41,7 @@ export const discordConfigOutput = z
   .strict();
 export const discordConfigSetInput = z
   .object({
+    confirm,
     botToken: nullableText(500).describe(
       "New bot token, or null to clear it. Reads return a mask only.",
     ),

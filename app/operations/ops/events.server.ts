@@ -220,23 +220,6 @@ export const eventOperations = {
       return toPlain(await requireEvent(id));
     },
   }),
-  eventUnpublish: defineOperation({
-    name: "eventUnpublish",
-    area: "events",
-    risk: "write",
-    access: "admin",
-    summary: "Unpublish an event.",
-    description:
-      "Set importStatus to hidden, preserving its dates, recurrence, images, and overrides.",
-    input: idInput,
-    output: eventOutput,
-    examples: [{ title: "Unpublish", input: { id: 1 } }],
-    run: async (_ctx, { id }) => {
-      await requireEvent(id);
-      await hideImportedEvent(id);
-      return toPlain(await requireEvent(id));
-    },
-  }),
   eventImportApprove: defineOperation({
     name: "eventImportApprove",
     area: "events",
@@ -259,9 +242,9 @@ export const eventOperations = {
     area: "events",
     risk: "write",
     access: "admin",
-    summary: "Hide an imported event.",
+    summary: "Hide an event.",
     description:
-      "Set importStatus to hidden without deleting the record. Use eventImportUnhide to return it to review.",
+      "Unpublish a public or imported event by setting importStatus to hidden, preserving dates, recurrence, images and overrides. Use eventImportUnhide to return it to review, or eventPublish to publish.",
     input: idInput,
     output: eventOutput,
     examples: [{ title: "Hide", input: { id: 1 } }],

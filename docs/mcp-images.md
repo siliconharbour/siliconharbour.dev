@@ -10,12 +10,12 @@ const event = await tools.siliconharbour.eventCreate({
   description: "An evening of building together.",
   link: "https://example.com/workshop",
   dates: [{ startDate: "2026-11-20", startTime: "18:00" }],
-  coverImage: { kind: "url", url: "https://example.com/cover.png" },
+  coverImage: { kind: "url", confirm: true, url: "https://example.com/cover.png" },
 });
 return { id: event.id, importStatus: event.importStatus };
 ```
 
-For an existing record, call `imageSetFromUrl({ type, id, role, url })`, or pass an image command to its update operation. Images do not change visibility or publish a record.
+For an existing record, call `imageSetFromUrl({ type, id, role, url, confirm: true })`, or pass an image command to its update operation. Images do not change visibility or publish a record.
 
 URLs must use HTTPS on port 443 without credentials. Every connection checks all DNS answers and connects using those same answers, preserving TLS hostname verification. Private, loopback, link-local, metadata, reserved, and IPv6 transition addresses are rejected. Redirects receive the same checks; at most three are allowed. Image downloads have a 20-second deadline, and declared/streamed sizes, content types, and file signatures are checked. Image content encoding must be absent or identity.
 
@@ -33,6 +33,13 @@ URLs must use HTTPS on port 443 without credentials. Every connection checks all
 
 2. Outside the sandbox, PUT the exact raw bytes to the returned `uploadUrl`, using its `method` and `headers`. Do not send JSON, multipart data, or base64. The sandbox has no `fetch`. The returned Authorization header grants upload access only; keep it out of logs and URLs. No OAuth header is needed for this PUT.
 
+   ```sh
+   curl --request PUT \
+     --header 'Authorization: Bearer <returned token>' \
+     --header 'Content-Type: image/png' \
+     --data-binary @cover.png '<uploadUrl>'
+   ```
+
 3. Attach the ready upload:
 
    ```js
@@ -41,6 +48,7 @@ URLs must use HTTPS on port 443 without credentials. Every connection checks all
      id: 123,
      role: "cover",
      uploadId: "<returned uploadId>",
+     confirm: true,
    });
    ```
 
@@ -48,14 +56,14 @@ Uploads expire after ten minutes and can be attached once. Concurrent attempts c
 
 ## Image commands and clearing
 
-Entity create/update contracts accept strict image commands:
+Entity create/update contracts accept strict image commands. Every command that writes an image requires confirm: true; keep is read-only:
 
 - `{ kind: "keep" }`: preserve the current image.
-- `{ kind: "clear" }`: remove the reference and delete an unreferenced file.
-- `{ kind: "url", url }`: download a guarded public image.
-- `{ kind: "upload", uploadId }`: consume a ready local upload.
-- `{ kind: "dataUrl", dataUrl }`: accept cropped image data from an admin form.
-- `{ kind: "generateFromIcon" }`: generate a cover using the entity's icon.
+- `{ kind: "clear", confirm: true }`: remove the reference and delete an unreferenced file.
+- `{ kind: "url", confirm: true, url }`: download a guarded public image.
+- `{ kind: "upload", confirm: true, uploadId }`: consume a ready local upload.
+- `{ kind: "dataUrl", confirm: true, dataUrl }`: accept cropped image data from an admin form.
+- `{ kind: "generateFromIcon", confirm: true }`: generate a cover using the entity's icon.
 
 For a separate clear action, call `imageClear({ type, id, role, confirm: true })`. Clearing or replacing an event cover also clears its pending imported cover URL.
 

@@ -3,7 +3,7 @@ import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/jobs.technl";
-import { Link, useLoaderData, useFetcher } from "react-router";
+import { Link, useLoaderData, useRevalidator } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -36,22 +36,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       error: err instanceof Error ? err.message : String(err),
     };
   }
-}
-
-export async function action({ request }: Route.ActionArgs) {
-  await requireAdmin(request);
-  const form = await request.formData();
-  if (form.get("intent") !== "refresh") return { success: false, error: "Unknown action" } as const;
-  const result = await runAdminOperation(request, operationCatalog.jobTechNLRefresh, {
-    confirm: true,
-    limit: 50,
-    offset:
-      (Math.max(1, Math.floor(Number(new URL(request.url).searchParams.get("page")) || 1)) - 1) *
-      50,
-  });
-  return result.ok
-    ? ({ intent: "refresh", success: true, ...result.data } as const)
-    : ({ intent: "refresh", success: false, error: result.error } as const);
 }
 
 function formatDate(iso: string | null): string {
@@ -100,18 +84,9 @@ function MatchBadge({
 
 export default function TechNLJobBoardImport() {
   const loaderData = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
-
-  const refreshed =
-    fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "refresh"
-      ? fetcher.data
-      : null;
-
-  const jobs = refreshed?.success ? refreshed.items : loaderData.jobs;
-  const fetchedAt = refreshed?.success ? refreshed.fetchedAt : loaderData.fetchedAt;
-  const error = refreshed && !refreshed.success ? refreshed.error : loaderData.error;
-  const total = refreshed?.success ? (refreshed.total ?? 0) : loaderData.total;
-  const isLoading = fetcher.state !== "idle";
+  const revalidator = useRevalidator();
+  const { jobs, fetchedAt, error, total } = loaderData;
+  const isLoading = revalidator.state !== "idle";
 
   // Group by company for a clearer overview
   const byCompany = new Map<string, typeof jobs>();
@@ -140,16 +115,14 @@ export default function TechNLJobBoardImport() {
             >
               TechNL Board
             </a>
-            <fetcher.Form method="post">
-              <input type="hidden" name="intent" value="refresh" />
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="px-pad-4 py-pad-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
-              >
-                {isLoading ? "Refreshing..." : "Refresh"}
-              </button>
-            </fetcher.Form>
+            <button
+              type="button"
+              onClick={() => revalidator.revalidate()}
+              disabled={isLoading}
+              className="px-pad-4 py-pad-2 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-medium transition-colors"
+            >
+              {isLoading ? "Refreshing..." : "Refresh"}
+            </button>
           </div>
         </div>
 

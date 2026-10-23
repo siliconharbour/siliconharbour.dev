@@ -199,7 +199,10 @@ it("clears and deletes an unreferenced avatar", async () => {
   const person = await operations.personCreate.execute(context, { name: "Person", bio: "Bio" });
   await db.update(people).set({ avatar: "old.webp" }).where(eq(people.id, person.id));
   const remove = vi.spyOn(images, "deleteImage").mockResolvedValue();
-  await operations.personUpdate.execute(context, { id: person.id, avatar: { kind: "clear" } });
+  await operations.personUpdate.execute(context, {
+    id: person.id,
+    avatar: { kind: "clear", confirm: true },
+  });
   expect(remove).toHaveBeenCalledWith("old.webp");
   expect((await operations.personGet.execute(context, { id: person.id })).avatar).toBeNull();
 });
@@ -213,7 +216,7 @@ it("adds and removes gallery images within their owning project", async () => {
   const remove = vi.spyOn(images, "deleteImage").mockResolvedValue();
   const added = await operations.projectGalleryAdd.execute(context, {
     id: project.id,
-    image: { kind: "url", url: "https://example.com/gallery.png" },
+    image: { kind: "url", confirm: true, url: "https://example.com/gallery.png" },
   });
   expect(operations.projectGalleryAdd.output.safeParse(added).success).toBe(true);
   expect((await operations.projectGet.execute(context, { id: project.id })).images).toHaveLength(1);
@@ -235,7 +238,7 @@ it("leaves fields unchanged when an image fetch fails", async () => {
     operations.personUpdate.execute(context, {
       id: person.id,
       bio: "Changed",
-      avatar: { kind: "url", url: "https://example.com/image.png" },
+      avatar: { kind: "url", confirm: true, url: "https://example.com/image.png" },
     }),
   ).rejects.toThrow("Image unavailable");
   expect((await operations.personGet.execute(context, { id: person.id })).bio).toBe("Original");
