@@ -14,7 +14,7 @@ import type {
   ExcerptMode,
 } from "./types";
 import { getNewsImporter } from "./index";
-import { generateNewsSlug } from "~/lib/news.server";
+import { deleteNews, generateNewsSlug } from "~/lib/news.server";
 import { getNewsGlobalKeywords } from "~/lib/config.server";
 
 // ---- Source CRUD ----
@@ -79,8 +79,8 @@ export async function updateNewsImportSource(
 }
 
 export async function deleteNewsImportSource(sourceId: number) {
-  // Delete associated news items first, then the source
-  await db.delete(news).where(eq(news.sourceId, sourceId));
+  const items = await db.select({ id: news.id }).from(news).where(eq(news.sourceId, sourceId));
+  for (const item of items) await deleteNews(item.id);
   await db.delete(newsImportSources).where(eq(newsImportSources.id, sourceId));
 }
 

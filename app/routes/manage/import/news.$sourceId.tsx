@@ -1,18 +1,13 @@
+import { newsSourceFormInput } from "~/lib/admin/content-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/news.$sourceId";
 import { Link, redirect, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getNewsSourceWithItems,
-  deleteNewsImportSource,
-  updateNewsImportSource,
-  syncNewsSource,
-  approveNewsItem,
-  hideNewsItem,
-  unhideNewsItem,
-} from "~/lib/news-importers/sync.server";
+import { getNewsSourceWithItems } from "~/lib/news-importers/sync.server";
 import { sourceTypeLabels, excerptModes, excerptModeLabels } from "~/lib/news-importers/types";
-import type { ExcerptMode } from "~/lib/news-importers/types";
-import { parseRssItems } from "~/lib/news-importers/rss.server";
+
 import { format } from "date-fns";
 
 function NewsItemRow({
@@ -97,123 +92,55 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-  const sourceId = Number(params.sourceId);
-  if (!sourceId) throw new Response("Not Found", { status: 404 });
-
-  const formData = await request.formData();
-  const intent = formData.get("intent") as string;
-
+  const form = await request.formData();
+  const id = Number(params.sourceId);
+  const intent = form.get("intent");
   if (intent === "sync") {
-    const result = await syncNewsSource(sourceId);
-    return { intent: "sync" as const, ...result };
-  }
-
-  if (intent === "approve") {
-    const newsId = Number(formData.get("newsId"));
-    if (!newsId) return { error: "News ID required" };
-    await approveNewsItem(newsId);
-    return { intent: "approve" as const, success: true };
-  }
-
-  if (intent === "hide") {
-    const newsId = Number(formData.get("newsId"));
-    if (!newsId) return { error: "News ID required" };
-    await hideNewsItem(newsId);
-    return { intent: "hide" as const, success: true };
-  }
-
-  if (intent === "unhide") {
-    const newsId = Number(formData.get("newsId"));
-    if (!newsId) return { error: "News ID required" };
-    await unhideNewsItem(newsId);
-    return { intent: "unhide" as const, success: true };
-  }
-
-  if (intent === "edit-source") {
-    const name = (formData.get("name") as string)?.trim();
-    const sourceUrl = (formData.get("sourceUrl") as string)?.trim();
-    const sourceIdentifier = (formData.get("sourceIdentifier") as string)?.trim() || null;
-    const keywords = (formData.get("keywords") as string)?.trim() || null;
-    const useGlobalKeywords = formData.has("useGlobalKeywords");
-    const useCompanyNameFilter = formData.has("useCompanyNameFilter");
-    const excerptMode = (formData.get("excerptMode") as ExcerptMode) || "description";
-    const entityUrl = (formData.get("entityUrl") as string)?.trim() || null;
-    const enabled = formData.has("enabled");
-
-    if (!name) return { intent: "edit-source" as const, error: "Name is required" };
-    if (!sourceUrl) return { intent: "edit-source" as const, error: "Source URL is required" };
-
-    await updateNewsImportSource(sourceId, {
-      name,
-      sourceUrl,
-      sourceIdentifier,
-      keywords,
-      useGlobalKeywords,
-      useCompanyNameFilter,
-      excerptMode,
-      entityUrl,
-      enabled,
+    const result = await runAdminOperation(request, operationCatalog.newsSourceSync, {
+      id,
+      confirm: true,
     });
-    return { intent: "edit-source" as const, success: true };
+    return result.ok
+      ? ({ intent: "sync" as const, ...result.data } as const)
+      : ({ error: result.error } as const);
   }
-
+  if (intent === "approve" || intent === "hide" || intent === "unhide") {
+    const operation =
+      intent === "approve"
+        ? operationCatalog.newsApprove
+        : intent === "hide"
+          ? operationCatalog.newsHide
+          : operationCatalog.newsUnhide;
+    const result = await runAdminOperation(request, operation, { id: Number(form.get("newsId")) });
+    return result.ok ? ({ intent, success: true } as const) : ({ error: result.error } as const);
+  }
+  if (intent === "edit-source") {
+    const result = await runAdminOperation(request, operationCatalog.newsSourceUpdate, {
+      id,
+      ...newsSourceFormInput(form, true),
+    });
+    return result.ok
+      ? ({ intent, success: true } as const)
+      : ({ intent, error: result.error } as const);
+  }
   if (intent === "test-feed") {
-    const source = await getNewsSourceWithItems(sourceId);
-    if (!source) return { intent: "test-feed" as const, error: "Source not found" };
-
-    const excerptMode =
-      (formData.get("excerptMode") as ExcerptMode) || source.excerptMode || "description";
-
-    try {
-      const response = await fetch(source.sourceUrl, {
-        headers: {
-          "User-Agent": "siliconharbour.dev news aggregator",
-          Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
-        },
-      });
-
-      if (!response.ok) {
-        return {
-          intent: "test-feed" as const,
-          error: `Feed returned ${response.status} ${response.statusText}`,
-        };
-      }
-
-      const xml = await response.text();
-      const allItems = parseRssItems(xml, excerptMode);
-
-      const items = allItems.map((item) => ({
-        title: item.title,
-        url: item.url,
-        excerpt: item.excerpt?.slice(0, 200) || null,
-        publishedAt: item.publishedAt?.toISOString() || null,
-        matched: source.keywords
-          ? `${item.title} ${item.excerpt || ""}`
-              .toLowerCase()
-              .split(" ")
-              .some(() => {
-                const kws = source
-                  .keywords!.split(",")
-                  .map((k: string) => k.trim().toLowerCase())
-                  .filter(Boolean);
-                const text = `${item.title} ${item.excerpt || ""}`.toLowerCase();
-                return kws.some((kw: string) => text.includes(kw));
-              })
-          : true,
-      }));
-
-      return { intent: "test-feed" as const, success: true, items, totalCount: allItems.length };
-    } catch (e) {
-      return { intent: "test-feed" as const, error: e instanceof Error ? e.message : String(e) };
-    }
+    const result = await runAdminOperation(request, operationCatalog.newsSourceTestFeed, {
+      id,
+      ...(form.get("excerptMode") && { excerptMode: form.get("excerptMode") }),
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "test-feed" as const, success: true, ...result.data } as const)
+      : ({ intent: "test-feed" as const, error: result.error } as const);
   }
-
   if (intent === "delete-source") {
-    await deleteNewsImportSource(sourceId);
-    return redirect("/manage/import/news");
+    const result = await runAdminOperation(request, operationCatalog.newsSourceDelete, {
+      id,
+      confirm: true,
+    });
+    return result.ok ? redirect("/manage/import/news") : ({ error: result.error } as const);
   }
-
-  return { error: "Unknown intent" };
+  return { error: "Unknown intent" } as const;
 }
 
 export default function NewsImportSourceDetail() {
@@ -464,18 +391,10 @@ export default function NewsImportSourceDetail() {
             </div>
           )}
 
-          {testResult && "success" in testResult && testResult.items && (
+          {testResult && "items" in testResult && (
             <div className="flex flex-col gap-gap-1">
               <p className="text-sm text-green-700">Found {testResult.totalCount} items in feed</p>
-              {(
-                testResult.items as {
-                  title: string;
-                  url: string;
-                  excerpt: string | null;
-                  publishedAt: string | null;
-                  matched: boolean;
-                }[]
-              ).map((item, i) => (
+              {testResult.items.map((item, i) => (
                 <div
                   key={i}
                   className={`p-pad-2 border border-harbour-100 text-sm ${!item.matched ? "opacity-40" : ""}`}

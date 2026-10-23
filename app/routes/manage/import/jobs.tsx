@@ -1,15 +1,10 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/jobs";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getAllImportSources,
-  syncJobs,
-  getAllPendingJobs,
-  hideAllPendingJobs,
-  approveJob,
-  approveJobAsNonTechnical,
-  hideImportedJob,
-} from "~/lib/job-importers/sync.server";
+import { getAllImportSources, getAllPendingJobs } from "~/lib/job-importers/sync.server";
 import { getAllCompanies } from "~/lib/companies.server";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
@@ -40,80 +35,50 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "sync") {
-    const sourceId = Number(formData.get("sourceId"));
-    if (!sourceId) {
-      return { success: false, error: "Source ID required" };
-    }
-
-    const result = await syncJobs(sourceId);
-    return { intent: "sync" as const, ...result };
+    const result = await runAdminOperation(request, operationCatalog.jobSourceSync, {
+      id: Number(form.get("sourceId")),
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "sync" as const, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
   if (intent === "sync-all") {
-    const sources = await getAllImportSources();
-    const results: Array<{
-      sourceId: number;
-      success: boolean;
-      added?: number;
-      updated?: number;
-      removed?: number;
-      reactivated?: number;
-      totalActive?: number;
-      error?: string;
-    }> = [];
-
-    for (const source of sources) {
-      const result = await syncJobs(source.id);
-      results.push({ sourceId: source.id, ...result });
-    }
-
-    const succeeded = results.filter((r) => r.success);
-    const failed = results.filter((r) => !r.success);
-    const totalAdded = succeeded.reduce((s, r) => s + (r.added || 0), 0);
-    const totalUpdated = succeeded.reduce((s, r) => s + (r.updated || 0), 0);
-    const totalRemoved = succeeded.reduce((s, r) => s + (r.removed || 0), 0);
-    const totalReactivated = succeeded.reduce((s, r) => s + (r.reactivated || 0), 0);
-
-    return {
-      intent: "sync-all" as const,
-      success: failed.length === 0,
-      sourcesTotal: sources.length,
-      sourcesSucceeded: succeeded.length,
-      sourcesFailed: failed.length,
-      added: totalAdded,
-      updated: totalUpdated,
-      removed: totalRemoved,
-      reactivated: totalReactivated,
-      errors: failed.map((f) => f.error).filter(Boolean),
-    };
+    const result = await runAdminOperation(request, operationCatalog.jobSourceSyncAll, {
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "sync-all" as const, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
   if (intent === "review-job") {
-    const jobId = Number(formData.get("jobId"));
-    const reviewAction = formData.get("action") as string;
-    if (!jobId) return { success: false, error: "Job ID required" };
-
-    if (reviewAction === "approve") {
-      await approveJob(jobId);
-    } else if (reviewAction === "approve-non-technical") {
-      await approveJobAsNonTechnical(jobId);
-    } else if (reviewAction === "hide") {
-      await hideImportedJob(jobId);
-    }
-    return { intent: "review-job" as const, success: true };
+    const review = form.get("action");
+    const operation =
+      review === "approve"
+        ? operationCatalog.jobApprove
+        : review === "hide"
+          ? operationCatalog.jobHide
+          : review === "approve-non-technical"
+            ? operationCatalog.jobApproveNonTechnical
+            : null;
+    if (!operation) return { success: false, error: "Unknown review action" } as const;
+    const result = await runAdminOperation(request, operation, { id: Number(form.get("jobId")) });
+    return result.ok
+      ? ({ intent: "review-job" as const, success: true } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
   if (intent === "hide-all-pending") {
-    const count = await hideAllPendingJobs();
-    return { intent: "hide-all-pending" as const, success: true, hidden: count };
+    const result = await runAdminOperation(request, operationCatalog.jobHideAllPending, {
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "hide-all-pending" as const, success: true, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
-  return { success: false, error: "Unknown action" };
+  return { success: false, error: "Unknown action" } as const;
 }
 
 function formatDate(date: Date | null | undefined): string {
@@ -241,7 +206,10 @@ export default function ManageImportJobs() {
       ? fetcher.data
       : null;
   const syncAllResult =
-    fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync-all"
+    fetcher.data &&
+    "intent" in fetcher.data &&
+    fetcher.data.intent === "sync-all" &&
+    "sourcesTotal" in fetcher.data
       ? fetcher.data
       : null;
 

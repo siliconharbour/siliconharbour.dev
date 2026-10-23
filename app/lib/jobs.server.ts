@@ -5,10 +5,11 @@ import {
   jobImportSources,
   type Job,
   type JobStatus,
+  type JobSourceType,
   type NewJob,
   type WorkplaceType,
 } from "~/db/schema";
-import { eq, desc, and, count, inArray, isNotNull, like, gte } from "drizzle-orm";
+import { eq, desc, and, count, inArray, isNotNull, isNull, like, gte } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
@@ -47,6 +48,7 @@ export async function createJob(job: {
   department?: string | null;
   workplaceType?: "remote" | "onsite" | "hybrid" | null;
   salaryRange?: string | null;
+  isTechnical?: boolean;
   url: string; // apply link
 }): Promise<Job> {
   const slug = await generateJobSlug(job.title);
@@ -64,6 +66,7 @@ export async function createJob(job: {
       workplaceType: job.workplaceType,
       salaryRange: job.salaryRange,
       url: job.url,
+      isTechnical: job.isTechnical ?? true,
       sourceType: "manual",
       status: "active",
       postedAt: now,
@@ -94,6 +97,7 @@ export async function updateJob(
     department: string | null;
     workplaceType: "remote" | "onsite" | "hybrid" | null;
     salaryRange: string | null;
+    isTechnical: boolean;
     url: string;
     status: "active" | "removed" | "filled" | "expired" | "hidden";
   }>,
@@ -242,7 +246,8 @@ export async function getPaginatedJobs(
   options?: {
     includeNonTechnical?: boolean;
     companyId?: number;
-    sourceId?: number;
+    sourceId?: number | null;
+    sourceType?: JobSourceType;
     status?: JobStatus | "all";
     isTechnical?: boolean;
     workplaceType?: WorkplaceType;
@@ -266,8 +271,12 @@ export async function getPaginatedJobs(
     baseConditions.push(eq(jobs.companyId, options.companyId));
   }
   if (options?.sourceId !== undefined) {
-    baseConditions.push(eq(jobs.sourceId, options.sourceId));
+    baseConditions.push(
+      options.sourceId === null ? isNull(jobs.sourceId) : eq(jobs.sourceId, options.sourceId),
+    );
   }
+  if (options?.sourceType !== undefined)
+    baseConditions.push(eq(jobs.sourceType, options.sourceType));
   if (options?.workplaceType !== undefined) {
     baseConditions.push(eq(jobs.workplaceType, options.workplaceType));
   }
@@ -501,4 +510,17 @@ export async function getJobBySlugWithCompany(slug: string): Promise<JobWithComp
   }
 
   return { ...job, company };
+}
+
+export async function deactivateJob(id: number, reason: "removed" | "filled" | "expired") {
+  const now = new Date();
+  return (
+    (
+      await db
+        .update(jobs)
+        .set({ status: reason, removedAt: now, updatedAt: now })
+        .where(eq(jobs.id, id))
+        .returning()
+    )[0] ?? null
+  );
 }

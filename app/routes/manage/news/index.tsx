@@ -1,8 +1,10 @@
-import { fetchPublicPage } from "~/lib/public-fetch.server";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/index";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllNews, createNews } from "~/lib/news.server";
+import { getAllNews } from "~/lib/news.server";
 import { SearchInput } from "~/components/SearchInput";
 import { format } from "date-fns";
 import { ManagePage } from "~/components/manage/ManagePage";
@@ -36,68 +38,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  if (intent === "submit-url") {
-    const rawUrl = (formData.get("url") as string)?.trim();
-    if (!rawUrl) {
-      return { error: "URL is required" };
-    }
-
-    let url: URL;
-    try {
-      url = new URL(rawUrl);
-    } catch {
-      return { error: "Invalid URL" };
-    }
-
-    // Fetch the URL to extract title + meta description
-    let title = url.hostname;
-    let excerpt: string | null = null;
-    try {
-      const html = await fetchPublicPage(rawUrl);
-
-      // Extract <title>
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      if (titleMatch) {
-        title = titleMatch[1].trim();
-      }
-
-      // Extract meta description
-      const descMatch = html.match(
-        /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i,
-      );
-      if (!descMatch) {
-        const descMatch2 = html.match(
-          /<meta[^>]*content=["']([^"']+)["'][^>]*name=["']description["']/i,
-        );
-        if (descMatch2) excerpt = descMatch2[1].trim();
-      } else {
-        excerpt = descMatch[1].trim();
-      }
-    } catch (error) {
-      return { error: error instanceof Error ? error.message : "Could not load page" };
-    }
-
-    const sourceName = url.hostname.replace(/^www\./, "");
-
-    await createNews({
-      type: "link",
-      status: "published",
-      title,
-      externalUrl: rawUrl,
-      sourceName,
-      content: excerpt || "",
-      excerpt,
-      publishedAt: new Date(),
-    });
-
-    return { success: true };
-  }
-
-  return { error: "Unknown action" };
+  const form = await request.formData();
+  if (form.get("intent") !== "submit-url") return { error: "Unknown intent" };
+  const result = await runAdminOperation(request, operationCatalog.newsLinkSubmit, {
+    url: form.get("url"),
+    confirm: true,
+  });
+  return result.ok ? { success: true } : { error: result.error };
 }
 
 const typeLabels: Record<NewsType, string> = {

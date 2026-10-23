@@ -12,7 +12,6 @@ import {
   getDiscordConfig,
   updateDiscordConfig,
   getNewsGlobalKeywords,
-  setNewsGlobalKeywords,
   type SectionVisibility,
   type CommentVisibility,
 } from "~/lib/config.server";
@@ -196,14 +195,17 @@ export async function action({ request }: Route.ActionArgs) {
   if (typeof botToken === "string") discordUpdates.botToken = botToken;
 
   const newsKeywords = formData.get("news_global_keywords");
+  if (typeof newsKeywords === "string") {
+    const result = await runAdminOperation(request, operationCatalog.newsGlobalKeywordsSet, {
+      keywords: newsKeywords,
+    });
+    if (!result.ok) return { error: result.error };
+  }
 
   await Promise.all([
     updateSectionVisibility(sectionUpdates),
     updateCommentVisibility(commentUpdates),
     updateDiscordConfig(discordUpdates),
-    typeof newsKeywords === "string"
-      ? setNewsGlobalKeywords(newsKeywords.trim())
-      : Promise.resolve(),
   ]);
   return { success: true };
 }

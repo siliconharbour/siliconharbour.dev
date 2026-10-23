@@ -1,3 +1,11 @@
+import { jobTechnologyOperations } from "./ops/job-technology.server";
+import { jobSearchOperations } from "./ops/job-search.server";
+import { jobSourceOperations } from "./ops/job-sources.server";
+import { newsSourceOperations } from "./ops/news-sources.server";
+import { jobStatusOperations } from "./ops/job-status.server";
+import { newsStatusOperations } from "./ops/news-status.server";
+import { jobOperations } from "./ops/jobs.server";
+import { newsOperations } from "./ops/news.server";
 import { eventSourceOperations } from "./ops/event-sources.server";
 import { eventTagOperations } from "./ops/event-tags.server";
 import { eventOccurrenceOperations } from "./ops/event-occurrences.server";
@@ -15,6 +23,14 @@ import { personOperations } from "./ops/people.server";
 import { themeShareOperations } from "./ops/theme-shares.server";
 
 export const operationCatalog = {
+  ...jobTechnologyOperations,
+  ...jobSearchOperations,
+  ...jobSourceOperations,
+  ...newsSourceOperations,
+  ...jobStatusOperations,
+  ...newsStatusOperations,
+  ...jobOperations,
+  ...newsOperations,
   ...eventOperations,
   ...eventOccurrenceOperations,
   ...eventTagOperations,

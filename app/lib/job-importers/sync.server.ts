@@ -367,6 +367,8 @@ export async function getAllImportSources() {
       status: jobs.status,
     })
     .from(jobs);
+  const companyRows = await db.select({ id: companies.id, name: companies.name }).from(companies);
+  const companyNames = new Map(companyRows.map((company) => [company.id, company.name]));
   const countsBySource = new Map<number, Record<string, number>>();
   for (const row of jobRows) {
     if (row.sourceId) {
@@ -380,6 +382,7 @@ export async function getAllImportSources() {
     const counts = countsBySource.get(source.id) ?? {};
     return {
       ...source,
+      companyName: companyNames.get(source.companyId) ?? null,
       activeJobCount: counts.active ?? 0,
       pendingReviewCount: counts.pending_review ?? 0,
       hiddenJobCount: counts.hidden ?? 0,

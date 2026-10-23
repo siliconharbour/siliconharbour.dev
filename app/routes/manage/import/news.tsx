@@ -1,15 +1,10 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/news";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getAllNewsImportSources,
-  syncNewsSource,
-  syncAllNewsSources,
-  getAllPendingNews,
-  approveNewsItem,
-  hideNewsItem,
-  hideAllPendingNews,
-} from "~/lib/news-importers/sync.server";
+import { getAllNewsImportSources, getAllPendingNews } from "~/lib/news-importers/sync.server";
 import { sourceTypeLabels } from "~/lib/news-importers/types";
 
 export function meta({}: Route.MetaArgs) {
@@ -29,44 +24,48 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "sync") {
-    const sourceId = Number(formData.get("sourceId"));
-    if (!sourceId) {
-      return { success: false, error: "Source ID required" };
-    }
-
-    const result = await syncNewsSource(sourceId);
-    return { intent: "sync" as const, ...result };
+    const result = await runAdminOperation(request, operationCatalog.newsSourceSync, {
+      id: Number(form.get("sourceId")),
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "sync" as const, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
   if (intent === "sync-all") {
-    const result = await syncAllNewsSources();
-    return { intent: "sync-all" as const, ...result };
+    const result = await runAdminOperation(request, operationCatalog.newsSourceSyncAll, {
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "sync-all" as const, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
   if (intent === "review-news") {
-    const newsId = Number(formData.get("newsId"));
-    const reviewAction = formData.get("action") as string;
-    if (!newsId) return { success: false, error: "News ID required" };
-
-    if (reviewAction === "approve") {
-      await approveNewsItem(newsId);
-    } else if (reviewAction === "hide") {
-      await hideNewsItem(newsId);
-    }
-    return { intent: "review-news" as const, success: true };
+    const review = form.get("action");
+    const operation =
+      review === "approve"
+        ? operationCatalog.newsApprove
+        : review === "hide"
+          ? operationCatalog.newsHide
+          : null;
+    if (!operation) return { success: false, error: "Unknown review action" } as const;
+    const result = await runAdminOperation(request, operation, { id: Number(form.get("newsId")) });
+    return result.ok
+      ? ({ intent: "review-news" as const, success: true } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
   if (intent === "hide-all-pending") {
-    const count = await hideAllPendingNews();
-    return { intent: "hide-all-pending" as const, success: true, hidden: count };
+    const result = await runAdminOperation(request, operationCatalog.newsHideAllPending, {
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "hide-all-pending" as const, success: true, ...result.data } as const)
+      : ({ success: false, error: result.error } as const);
   }
-
-  return { success: false, error: "Unknown action" };
+  return { success: false, error: "Unknown action" } as const;
 }
 
 function formatDate(date: Date | null | undefined): string {
@@ -180,7 +179,10 @@ export default function ManageImportNews() {
       ? fetcher.data
       : null;
   const syncAllResult =
-    fetcher.data && "intent" in fetcher.data && fetcher.data.intent === "sync-all"
+    fetcher.data &&
+    "intent" in fetcher.data &&
+    fetcher.data.intent === "sync-all" &&
+    "sourcesTotal" in fetcher.data
       ? fetcher.data
       : null;
 
