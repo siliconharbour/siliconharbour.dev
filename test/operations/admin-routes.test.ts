@@ -18,6 +18,7 @@ it("keeps migrated route mutations behind operations", () => {
   for (const path of routes) {
     const source = readFileSync(path, "utf8");
     if (pendingAdminRoutes[path]) continue;
+    expect(source, path).not.toMatch(/from\s*["']~\/operations\/ops\//);
     expect(source, path).not.toMatch(
       /\b(?:db|rawDb)\s*\.\s*(?:insert|update|delete|transaction|exec)\s*\(/,
     );

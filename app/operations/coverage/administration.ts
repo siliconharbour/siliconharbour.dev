@@ -1,5 +1,16 @@
 import type { ColumnCoverage } from "../coverage";
 export const administrationCoverage: Record<string, Record<string, ColumnCoverage>> = {
+  rejected_records: {
+    id: { mapped: { rejectedRecordRestore: "id", rejectedRecordDelete: "id" } },
+    type: { excluded: "Derived from the reviewed entity" },
+    entityId: { excluded: "Retained entity identity; never supplied by restore clients" },
+    name: { excluded: "Copied from the stored entity for rejected-record searches" },
+    wasVisible: { excluded: "Original visibility retained by rejection" },
+    blockSource: { excluded: "Derived from stored import provenance" },
+    blockKey: { excluded: "Canonical key derived from the stored entity" },
+    rejectedAt: { excluded: "Set from the operation clock" },
+    expiresAt: { excluded: "Seven-day retention deadline" },
+  },
   comments: {
     id: {
       excluded: "Generated identifier",

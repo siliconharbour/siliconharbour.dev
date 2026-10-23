@@ -1,4 +1,5 @@
-import { and, eq, exists, not, type SQL } from "drizzle-orm";
+import { notRejected } from "./directory-active.server";
+import { and, eq, exists, not } from "drizzle-orm";
 import {
   companies,
   education,
@@ -20,7 +21,10 @@ export function listPeople(input: VisibilityInput) {
     input,
     [people.name, people.slug, people.bio, people.website, people.github],
     { name: people.name, createdAt: people.createdAt, updatedAt: people.updatedAt },
-    input.visible === undefined ? undefined : eq(people.visible, input.visible),
+    and(
+      notRejected("person", people.id),
+      input.visible === undefined ? undefined : eq(people.visible, input.visible),
+    ),
   );
 }
 export function listCompanies(input: VisibilityInput & { hasJobSource?: boolean }) {
@@ -36,6 +40,7 @@ export function listCompanies(input: VisibilityInput & { hasJobSource?: boolean 
     [companies.name, companies.slug, companies.description, companies.website, companies.github],
     { name: companies.name, createdAt: companies.createdAt, updatedAt: companies.updatedAt },
     and(
+      notRejected("company", companies.id),
       input.visible === undefined ? undefined : eq(companies.visible, input.visible),
       input.hasJobSource === undefined
         ? undefined

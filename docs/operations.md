@@ -32,7 +32,7 @@ Every operation enforces access itself. Admin sessions receive read/write scopes
 - Rejection blocks the stored normalized import identity before deletion. Importers and blocklist operations use the same keys.
 - Newsletter operations preserve list ownership, draft-only editing, rollout flags, pilot eligibility, and send confirmation. Live sends require the exact campaign subject as confirmationSubject. Subscriber confirmation requests are external operations because they send email.
 - Discord undo preserves the existing admin behavior: remove tracking and requeue items without deleting actual Discord messages. Use batch undo for an entire fan-out.
-- Undo-reject remains a private admin operation because it accepts a saved browser record. It is not exposed through MCP. Recreate a record and remove its block through the normal operations when needed.
+- Rejecting a person or company retains its ID, slug, images and relationships outside normal directory and review reads. Use `rejectedRecordList` and `rejectedRecordRestore({id, confirm:true})` to undo within seven days. `/manage/rejected-records` provides the same controls. Expired entries remain available for permanent cleanup through `rejectedRecordDelete`; import blocks remain after permanent deletion. No browser-held record payload is accepted.
 
 `siteExport` returns a private, single-use download URL that expires after five minutes. For a single cross-type run, call `importSyncAll({ confirm: true })` and poll with `asyncSyncGet({ id })`. The external daily scheduler must use these names. Asynchronous source syncs accept `async: true` and `confirm: true`; poll their IDs with `asyncSyncGet`. Runs are process-local and old completed runs can be evicted.
 
@@ -66,3 +66,5 @@ News-source and global keywords are arrays of strings. Admin text fields adapt c
 ## Settings changes
 
 `siteConfigSave` patches supplied fields atomically. Omitted flags, keywords and credentials keep their values. Use `newsGlobalKeywords: null` or `[]` to clear keywords, and `botToken: null` to clear the credential. The example hides only jobs; it preserves every other setting. Prefer the granular visibility or keyword operations when changing one setting.
+
+The rejected-record migration must be applied by the operator before deploying this layer. Expiry ends the restore window; permanent cleanup is explicit, so records are never silently destroyed by a read.

@@ -1,14 +1,20 @@
+import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import Database from "better-sqlite3";
 import { expect, it } from "vitest";
 import { migrateDatabase } from "~/db/migrate.server";
 
 it("normalizes and deduplicates stored blocks before enforcing indexed uniqueness", () => {
   const sqlite = new Database(":memory:");
+  const beforeMigration = mkdtempSync(join(tmpdir(), "blocklist-migration-"));
+  cpSync("drizzle", beforeMigration, { recursive: true });
+  const journalPath = join(beforeMigration, "meta/_journal.json");
+  const journal = JSON.parse(readFileSync(journalPath, "utf8"));
+  journal.entries = journal.entries.filter((entry: { idx: number }) => entry.idx < 59);
+  writeFileSync(journalPath, JSON.stringify(journal));
   try {
-    migrateDatabase(sqlite);
-    sqlite.exec(
-      "DROP INDEX `blocklist_source_external_idx`; CREATE INDEX `blocklist_source_external_idx` ON `import_blocklist` (`source`, `external_id`); DELETE FROM `__drizzle_migrations` WHERE `created_at` = 1768743000000;",
-    );
+    migrateDatabase(sqlite, beforeMigration);
     const insert = sqlite.prepare(
       "INSERT INTO `import_blocklist` (`source`, `external_id`, `name`, `reason`, `blocked_at`) VALUES (?, ?, ?, ?, ?)",
     );
@@ -42,5 +48,6 @@ it("normalizes and deduplicates stored blocks before enforcing indexed uniquenes
     expect(JSON.stringify(plan)).toContain("blocklist_source_external_idx");
   } finally {
     sqlite.close();
+    rmSync(beforeMigration, { recursive: true, force: true });
   }
 });

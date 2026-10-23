@@ -58,7 +58,7 @@ export const blocklistOperations = {
     output: z.object({ removed: z.boolean(), key: z.string() }).strict(),
     examples: [{ title: "Unblock", input: { source: "github", externalId: "example" } }],
     run: async (_ctx, input) => {
-      const removed = await unblockItem(input.source, input.externalId);
+      const removed = unblockItem(input.source, input.externalId);
       return { removed, key: normalizeBlockKey(input.source, input.externalId) };
     },
   }),

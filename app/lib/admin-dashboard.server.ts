@@ -1,4 +1,5 @@
-import { and, count, eq } from "drizzle-orm";
+import { notRejected } from "./directory-active.server";
+import { and, count, eq, type SQL } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { db } from "~/db";
 import {
@@ -18,8 +19,8 @@ import {
   technologies,
 } from "~/db/schema";
 
-async function tableCount(table: SQLiteTable) {
-  const [result] = await db.select({ total: count() }).from(table);
+async function tableCount(table: SQLiteTable, where?: SQL) {
+  const [result] = await db.select({ total: count() }).from(table).where(where);
   return result.total;
 }
 
@@ -104,10 +105,10 @@ export async function getAdminDashboardCounts() {
     importFailures,
   ] = await Promise.all([
     tableCount(events),
-    tableCount(companies),
+    tableCount(companies, notRejected("company", companies.id)),
     tableCount(groups),
     tableCount(education),
-    tableCount(people),
+    tableCount(people, notRejected("person", people.id)),
     tableCount(news),
     tableCount(jobs),
     tableCount(projects),
