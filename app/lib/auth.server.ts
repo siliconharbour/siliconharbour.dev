@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
 
-const SESSION_EXPIRY_DAYS = 30;
+const SESSION_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -16,8 +16,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 export async function createSession(userId: number): Promise<string> {
   const sessionId = randomBytes(32).toString("hex");
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + SESSION_EXPIRY_DAYS);
+  const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS);
 
   await db.insert(sessions).values({
     id: sessionId,

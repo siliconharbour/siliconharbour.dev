@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import { db } from "~/db";
 import { users, sessions } from "~/db/schema";
 import { eq } from "drizzle-orm";
@@ -60,21 +60,30 @@ describe("createSession", () => {
     expect(row!.userId).toBe(user.id);
   });
 
-  it("sets expiry approximately 30 days from now", async () => {
-    const { user } = await seedUser();
-    const before = Date.now();
-    const sessionId = await createSession(user.id);
-    const after = Date.now();
-
-    const row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
-
-    const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
-    const expiresMs = row!.expiresAt.getTime();
-
-    // Expiry should be ~30 days from the time range [before, after]
-    expect(expiresMs).toBeGreaterThanOrEqual(before + thirtyDaysMs - 1000);
-    expect(expiresMs).toBeLessThanOrEqual(after + thirtyDaysMs + 1000);
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
+
+  it.each(["UTC", "America/St_Johns"])(
+    "expires after exactly 30 days across DST in %s",
+    async (timezone) => {
+      const { user } = await seedUser();
+      vi.stubEnv("TZ", timezone);
+      vi.useFakeTimers({ toFake: ["Date"] });
+      const now = new Date("2026-10-15T12:00:00.000Z");
+      vi.setSystemTime(now);
+
+      const sessionId = await createSession(user.id);
+      const row = await db.select().from(sessions).where(eq(sessions.id, sessionId)).get();
+
+      expect(row!.expiresAt.getTime() - now.getTime()).toBe(30 * 24 * 60 * 60 * 1000);
+      if (timezone === "America/St_Johns") {
+        expect(now.getTimezoneOffset()).toBe(150);
+        expect(row!.expiresAt.getTimezoneOffset()).toBe(210);
+      }
+    },
+  );
 });
 
 // =============================================================================
