@@ -104,7 +104,7 @@ return await tools.siliconharbour.jobPublicList({ query: "developer", limit: 10 
 const [upcoming, cos, grps] = await Promise.all([
   tools.siliconharbour.eventPublicList({ upcoming: true }),
   tools.siliconharbour.companyPublicList({ limit: 5 }),
-  tools.siliconharbour.groups({ limit: 5 }),
+  tools.siliconharbour.groupPublicList({ limit: 5 }),
 ]);
 return {
   upcoming: upcoming.length,
