@@ -1,3 +1,55 @@
+import {
+  contentTypes,
+  eventTimeModes,
+  eventTagColors,
+  fetchStatuses,
+  eventSourceTypes,
+  newsTypes,
+  newsStatuses,
+  newsSourceTypes,
+  excerptModes,
+  jobSourceTypes,
+  jobStatuses,
+  workplaceTypes,
+  projectTypes,
+  projectStatuses,
+  productTypes,
+  sectionKeys,
+  commentableKeys,
+  technologyCategories,
+  technologizedTypes,
+  technologyEvidenceSourceTypes,
+  atsSourceTypes,
+  discordChannelTypes,
+  discordPostItemTypes,
+  educationTypes,
+} from "~/lib/entity-types";
+export {
+  contentTypes,
+  eventTimeModes,
+  eventTagColors,
+  fetchStatuses,
+  eventSourceTypes,
+  newsTypes,
+  newsStatuses,
+  newsSourceTypes,
+  excerptModes,
+  jobSourceTypes,
+  jobStatuses,
+  workplaceTypes,
+  projectTypes,
+  projectStatuses,
+  productTypes,
+  sectionKeys,
+  commentableKeys,
+  technologyCategories,
+  technologizedTypes,
+  technologyEvidenceSourceTypes,
+  atsSourceTypes,
+  discordChannelTypes,
+  discordPostItemTypes,
+  educationTypes,
+} from "~/lib/entity-types";
 import { sql } from "drizzle-orm";
 import {
   sqliteTable,
@@ -17,22 +69,11 @@ export * from "./auth-schema";
 // =============================================================================
 
 // Content type enum for the references table
-export const contentTypes = [
-  "event",
-  "company",
-  "group",
-  "education",
-  "person",
-  "news",
-  "job",
-  "project",
-  "product",
-] as const;
+
 export type ContentType = (typeof contentTypes)[number];
 
-export const eventTimeModes = ["scheduled", "period"] as const;
 export type EventTimeMode = (typeof eventTimeModes)[number];
-export const eventTagColors = ["harbour", "green", "amber", "red", "purple"] as const;
+
 export type EventTagColor = (typeof eventTagColors)[number];
 
 // Events - tech meetups, conferences, workshops, and participation periods
@@ -213,18 +254,8 @@ export const groups = sqliteTable("groups", {
 // Event Import Sources - Track external sources for importing events
 // =============================================================================
 
-export const fetchStatuses = ["pending", "success", "error", "rate_limited"] as const;
 export type FetchStatus = (typeof fetchStatuses)[number];
 
-export const eventSourceTypes = [
-  "luma-user",
-  "luma-calendar",
-  "technl",
-  "netbenefit",
-  "eventbrite",
-  "bevy",
-  "meetup",
-] as const;
 export type EventSourceType = (typeof eventSourceTypes)[number];
 
 export const eventImportSources = sqliteTable("event_import_sources", {
@@ -256,7 +287,7 @@ export const education = sqliteTable("education", {
   description: text("description").notNull(), // markdown
   website: text("website"), // external link
   type: text("type", {
-    enum: ["university", "college", "bootcamp", "online", "other"],
+    enum: educationTypes,
   })
     .notNull()
     .default("other"),
@@ -298,16 +329,13 @@ export const people = sqliteTable("people", {
 });
 
 // News - link posts and original articles
-export const newsTypes = ["link", "article"] as const;
+
 export type NewsType = (typeof newsTypes)[number];
 
-export const newsStatuses = ["draft", "pending_review", "published", "hidden"] as const;
 export type NewsStatus = (typeof newsStatuses)[number];
 
-export const newsSourceTypes = ["rss", "custom"] as const;
 export type NewsSourceType = (typeof newsSourceTypes)[number];
 
-export const excerptModes = ["description", "content", "none"] as const;
 export type ExcerptMode = (typeof excerptModes)[number];
 
 export const newsImportSources = sqliteTable("news_import_sources", {
@@ -359,20 +387,11 @@ export const news = sqliteTable("news", {
 });
 
 // Jobs - unified table for both imported and manual job postings
-export const jobSourceTypes = ["manual", "imported"] as const;
+
 export type JobSourceType = (typeof jobSourceTypes)[number];
 
-export const jobStatuses = [
-  "active",
-  "pending_review",
-  "removed",
-  "filled",
-  "expired",
-  "hidden",
-] as const;
 export type JobStatus = (typeof jobStatuses)[number];
 
-export const workplaceTypes = ["remote", "onsite", "hybrid"] as const;
 export type WorkplaceType = (typeof workplaceTypes)[number];
 
 export const jobs = sqliteTable(
@@ -427,10 +446,8 @@ export const jobs = sqliteTable(
 // Projects - community projects, apps, games, tools
 // =============================================================================
 
-export const projectTypes = ["game", "webapp", "library", "tool", "hardware", "other"] as const;
 export type ProjectType = (typeof projectTypes)[number];
 
-export const projectStatuses = ["active", "completed", "archived", "on-hold"] as const;
 export type ProjectStatus = (typeof projectStatuses)[number];
 
 export const projects = sqliteTable("projects", {
@@ -476,7 +493,6 @@ export const projectImages = sqliteTable(
 // Products - commercial products/services from local companies
 // =============================================================================
 
-export const productTypes = ["saas", "mobile", "physical", "service", "other"] as const;
 export type ProductType = (typeof productTypes)[number];
 
 export const products = sqliteTable(
@@ -551,28 +567,11 @@ export type SiteConfig = typeof siteConfig.$inferSelect;
 export type NewSiteConfig = typeof siteConfig.$inferInsert;
 
 // Section visibility keys
-export const sectionKeys = [
-  "events",
-  "companies",
-  "groups",
-  "projects",
-  "products",
-  "education",
-  "people",
-  "news",
-  "jobs",
-] as const;
+
 export type SectionKey = (typeof sectionKeys)[number];
 
 // Commentable content keys - pages that can have comments enabled/disabled
-export const commentableKeys = [
-  "companies",
-  "groups",
-  "education",
-  "projects",
-  "products",
-  "news",
-] as const;
+
 export type CommentableKey = (typeof commentableKeys)[number];
 
 // =============================================================================
@@ -686,19 +685,6 @@ export type NewImportBlocklistItem = typeof importBlocklist.$inferInsert;
 // Technologies - languages, frameworks, tools used by companies/projects
 // =============================================================================
 
-export const technologyCategories = [
-  "language",
-  "frontend",
-  "backend",
-  "cloud",
-  "database",
-  "games-and-graphics",
-  "mobile",
-  "data-science",
-  "llm",
-  "platform",
-  "specialized",
-] as const;
 export type TechnologyCategory = (typeof technologyCategories)[number];
 
 export const technologies = sqliteTable("technologies", {
@@ -719,7 +705,7 @@ export const technologies = sqliteTable("technologies", {
 });
 
 // Which content types can have technologies assigned
-export const technologizedTypes = ["company", "project"] as const;
+
 export type TechnologizedType = (typeof technologizedTypes)[number];
 
 export const technologyAssignments = sqliteTable(
@@ -750,7 +736,6 @@ export const technologyAssignments = sqliteTable(
   }),
 );
 
-export const technologyEvidenceSourceTypes = ["job_posting", "survey", "manual"] as const;
 export type TechnologyEvidenceSourceType = (typeof technologyEvidenceSourceTypes)[number];
 
 export const technologyEvidence = sqliteTable(
@@ -781,26 +766,6 @@ export const technologyEvidence = sqliteTable(
 // Job Import Sources - Track ATS connections for importing jobs
 // =============================================================================
 
-export const atsSourceTypes = [
-  "greenhouse",
-  "ashby",
-  "workday",
-  "bamboohr",
-  "lever",
-  "collage",
-  "rippling",
-  "adp",
-  "careerbeacon",
-  "workable",
-  "icims",
-  "jibe",
-  "oracle-hcm",
-  "successfactors",
-  "dayforce",
-  "jazzhr",
-  "custom",
-  "kyrix",
-] as const;
 export type AtsSourceType = (typeof atsSourceTypes)[number];
 
 // Track job import sources per company
@@ -856,10 +821,8 @@ export const jobTechnologyMentions = sqliteTable(
 // Discord integration
 // =============================================================================
 
-export const discordChannelTypes = ["events", "jobs"] as const;
 export type DiscordChannelType = (typeof discordChannelTypes)[number];
 
-export const discordPostItemTypes = ["event", "job"] as const;
 export type DiscordPostItemType = (typeof discordPostItemTypes)[number];
 
 export const discordDestinations = sqliteTable(

@@ -1,26 +1,16 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getProjectWithImages,
-  updateProject,
-  addProjectImage,
-  removeProjectImage,
-} from "~/lib/projects.server";
-import { parseProjectLinks, stringifyProjectLinks } from "~/lib/project-links";
-import {
-  processAndSaveCoverImage,
-  processAndSaveIconImage,
-  deleteImage,
-} from "~/lib/images.server";
+import { getProjectWithImages } from "~/lib/projects.server";
+import { parseProjectLinks } from "~/lib/project-links";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
 import { projectTypes, projectStatuses, type ProjectImage } from "~/db/schema";
-import {
-  getAllTechnologies,
-  getTechnologiesForContent,
-  setTechnologiesForContent,
-} from "~/lib/technologies.server";
+import { getAllTechnologies, getTechnologiesForContent } from "~/lib/technologies.server";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.project?.name || "Project"} - siliconharbour.dev` }];
@@ -53,120 +43,28 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid project ID" };
+  const form = await request.formData();
+  if (form.get("intent") === "addGalleryImage") {
+    const result = await runAdminOperation(request, operationCatalog.projectGalleryAdd, {
+      id: Number(params.id),
+      image: { kind: "dataUrl", dataUrl: form.get("galleryImageData") },
+      caption: form.get("caption") || null,
+    });
+    return result.ok ? { success: true } : { error: result.error };
   }
-
-  const existingProject = await getProjectWithImages(id);
-  if (!existingProject) {
-    return { error: "Project not found" };
+  if (form.get("intent") === "removeGalleryImage") {
+    const result = await runAdminOperation(request, operationCatalog.projectGalleryRemove, {
+      id: Number(params.id),
+      imageId: Number(form.get("imageId")),
+      confirm: true,
+    });
+    return result.ok ? { success: true } : { error: result.error };
   }
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  // Handle gallery image actions
-  if (intent === "addGalleryImage") {
-    const galleryImageData = formData.get("galleryImageData") as string | null;
-    const caption = (formData.get("caption") as string) || null;
-
-    if (galleryImageData) {
-      const base64Data = galleryImageData.split(",")[1];
-      const buffer = Buffer.from(base64Data, "base64");
-      const imagePath = await processAndSaveCoverImage(buffer);
-      await addProjectImage(id, imagePath, caption);
-    }
-    return { success: true };
-  }
-
-  if (intent === "removeGalleryImage") {
-    const imageId = parseInt(formData.get("imageId") as string, 10);
-    if (!isNaN(imageId)) {
-      const image = existingProject.images.find((i) => i.id === imageId);
-      if (image) {
-        await deleteImage(image.image);
-        await removeProjectImage(imageId);
-      }
-    }
-    return { success: true };
-  }
-
-  // Main form submission
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const type = formData.get("type") as string;
-  const status = formData.get("status") as string;
-
-  // Links
-  const github = (formData.get("github") as string) || undefined;
-  const itchio = (formData.get("itchio") as string) || undefined;
-  const website = (formData.get("website") as string) || undefined;
-  const demo = (formData.get("demo") as string) || undefined;
-  const npm = (formData.get("npm") as string) || undefined;
-  const steam = (formData.get("steam") as string) || undefined;
-
-  const technologyIds = formData.getAll("technologies").map((id) => parseInt(id as string, 10));
-
-  if (!name || !description) {
-    return { error: "Name and description are required" };
-  }
-
-  // Process images
-  let logo: string | null | undefined = undefined;
-  let coverImage: string | null | undefined = undefined;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-  const existingLogo = formData.get("existingLogo") as string | null;
-  const existingCoverImage = formData.get("existingCoverImage") as string | null;
-
-  // Handle logo
-  if (logoData) {
-    if (existingProject.logo) {
-      await deleteImage(existingProject.logo);
-    }
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  } else if (existingLogo) {
-    logo = existingLogo;
-  } else if (existingProject.logo) {
-    await deleteImage(existingProject.logo);
-    logo = null;
-  }
-
-  // Handle cover image
-  if (coverImageData) {
-    if (existingProject.coverImage) {
-      await deleteImage(existingProject.coverImage);
-    }
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  } else if (existingCoverImage) {
-    coverImage = existingCoverImage;
-  } else if (existingProject.coverImage) {
-    await deleteImage(existingProject.coverImage);
-    coverImage = null;
-  }
-
-  const links = stringifyProjectLinks({ github, itchio, website, demo, npm, steam });
-
-  await updateProject(id, {
-    name,
-    description,
-    type: type as (typeof projectTypes)[number],
-    status: status as (typeof projectStatuses)[number],
-    links: links || null,
-    ...(logo !== undefined && { logo }),
-    ...(coverImage !== undefined && { coverImage }),
+  const result = await runAdminOperation(request, operationCatalog.projectUpdate, {
+    id: Number(params.id),
+    ...directoryFormInput("project", form, true),
   });
-
-  // Update technology assignments
-  await setTechnologiesForContent("project", id, technologyIds);
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/projects");
 }
 
@@ -340,6 +238,42 @@ export default function EditProject() {
                   name="npm"
                   defaultValue={links.npm || ""}
                   placeholder="https://npmjs.com/package/..."
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="pypi" className="text-sm text-body">
+                  PyPI
+                </label>
+                <input
+                  type="url"
+                  id="pypi"
+                  name="pypi"
+                  defaultValue={links.pypi || ""}
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="appstore" className="text-sm text-body">
+                  App Store
+                </label>
+                <input
+                  type="url"
+                  id="appstore"
+                  name="appstore"
+                  defaultValue={links.appstore || ""}
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-gap-1">
+                <label htmlFor="playstore" className="text-sm text-body">
+                  Google Play
+                </label>
+                <input
+                  type="url"
+                  id="playstore"
+                  name="playstore"
+                  defaultValue={links.playstore || ""}
                   className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                 />
               </div>

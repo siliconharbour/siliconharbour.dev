@@ -1,12 +1,12 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { createCompany } from "~/lib/companies.server";
-import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
-import { actionError } from "~/lib/admin/action-result";
-import { createImageFromFormData } from "~/lib/admin/image-fields";
-import { parseCompanyForm } from "~/lib/admin/manage-schemas";
+
 import { ManageErrorAlert } from "~/components/manage/ManageForm";
 
 export function meta({}: Route.MetaArgs) {
@@ -20,26 +20,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const formData = await request.formData();
-  const parsed = parseCompanyForm(formData);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const logo = await createImageFromFormData(formData, "logoData", processAndSaveIconImage);
-  const coverImage = await createImageFromFormData(
-    formData,
-    "coverImageData",
-    processAndSaveCoverImage,
-  );
-
-  await createCompany({
-    ...parsed.data,
-    logo,
-    coverImage,
+  const result = await runAdminOperation(request, operationCatalog.companyCreate, {
+    ...directoryFormInput("company", form, false),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/companies");
 }
 
@@ -86,6 +72,28 @@ export default function NewCompany() {
             />
           </div>
 
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="email" className="font-medium text-heading">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="careersUrl" className="font-medium text-heading">
+              Careers URL
+            </label>
+            <input
+              type="url"
+              id="careersUrl"
+              name="careersUrl"
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
           <div className="flex flex-col gap-gap-2">
             <label htmlFor="website" className="font-medium text-heading">
               Website
@@ -191,6 +199,10 @@ export default function NewCompany() {
               <label className="flex items-center gap-gap-2">
                 <input type="checkbox" name="genesis" className="border border-harbour-300" />
                 <span className="text-sm text-body">Genesis Centre</span>
+              </label>
+              <label className="flex items-center gap-gap-2">
+                <input type="checkbox" name="bounce" className="border border-harbour-300" />
+                <span className="text-sm text-body">Bounce</span>
               </label>
             </div>
           </div>

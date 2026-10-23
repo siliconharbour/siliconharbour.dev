@@ -1,8 +1,10 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { createEducation } from "~/lib/education.server";
-import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({}: Route.MetaArgs) {
@@ -16,49 +18,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const type = (formData.get("type") as string) || "other";
-  const technl = formData.get("technl") === "on";
-  const genesis = formData.get("genesis") === "on";
-
-  if (!name || !description) {
-    return { error: "Name and description are required" };
-  }
-
-  let logo: string | null = null;
-  let coverImage: string | null = null;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-
-  if (logoData) {
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  }
-
-  if (coverImageData) {
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  }
-
-  await createEducation({
-    name,
-    description,
-    website,
-    type: type as "university" | "college" | "bootcamp" | "online" | "other",
-    technl,
-    genesis,
-    logo,
-    coverImage,
+  const result = await runAdminOperation(request, operationCatalog.educationCreate, {
+    ...directoryFormInput("education", form, false),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/education");
 }
 
@@ -166,6 +131,10 @@ export default function NewEducation() {
               <label className="flex items-center gap-gap-2">
                 <input type="checkbox" name="genesis" className="border border-harbour-300" />
                 <span className="text-sm text-body">Genesis Centre</span>
+              </label>
+              <label className="flex items-center gap-gap-2">
+                <input type="checkbox" name="bounce" className="border border-harbour-300" />
+                <span className="text-sm text-body">Bounce</span>
               </label>
             </div>
           </div>

@@ -1,8 +1,10 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { createPerson } from "~/lib/people.server";
-import { processAndSaveIconImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({}: Route.MetaArgs) {
@@ -16,43 +18,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const bio = formData.get("bio") as string;
-  const website = (formData.get("website") as string) || null;
-  const github = (formData.get("github") as string) || null;
-  const twitter = (formData.get("twitter") as string) || null;
-  const linkedin = (formData.get("linkedin") as string) || null;
-
-  if (!name || !bio) {
-    return { error: "Name and bio are required" };
-  }
-
-  let avatar: string | null = null;
-  const avatarData = formData.get("avatarData") as string | null;
-
-  if (avatarData) {
-    const base64Data = avatarData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    avatar = await processAndSaveIconImage(buffer);
-  }
-
-  // Store twitter/linkedin in socialLinks, github is now first-class
-  const socialLinks: Record<string, string> = {};
-  if (twitter) socialLinks.twitter = twitter;
-  if (linkedin) socialLinks.linkedin = linkedin;
-
-  await createPerson({
-    name,
-    bio,
-    website,
-    github,
-    avatar,
-    socialLinks: Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null,
+  const result = await runAdminOperation(request, operationCatalog.personCreate, {
+    ...directoryFormInput("person", form, false),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/people");
 }
 

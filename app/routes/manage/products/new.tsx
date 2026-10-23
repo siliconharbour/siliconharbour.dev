@@ -1,15 +1,16 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { createProduct } from "~/lib/products.server";
+
 import { getAllCompanies } from "~/lib/companies.server";
-import { processAndSaveCoverImage, processAndSaveIconImageWithPadding } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { productTypes } from "~/db/schema";
-import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
-import { actionError } from "~/lib/admin/action-result";
-import { createImageFromFormData } from "~/lib/admin/image-fields";
+
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({}: Route.MetaArgs) {
@@ -24,41 +25,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const formData = await request.formData();
-  const schema = z.object({
-    name: zRequiredString("Name"),
-    description: zRequiredString("Description"),
-    website: zOptionalNullableString,
-    type: z.enum(productTypes),
-    companyId: zOptionalNullableString,
+  const result = await runAdminOperation(request, operationCatalog.productCreate, {
+    ...directoryFormInput("product", form, false),
   });
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const logo = await createImageFromFormData(
-    formData,
-    "logoData",
-    processAndSaveIconImageWithPadding,
-  );
-  const coverImage = await createImageFromFormData(
-    formData,
-    "coverImageData",
-    processAndSaveCoverImage,
-  );
-
-  await createProduct({
-    name: parsed.data.name,
-    description: parsed.data.description,
-    website: parsed.data.website,
-    type: parsed.data.type,
-    companyId: parsed.data.companyId ? Number.parseInt(parsed.data.companyId, 10) : null,
-    logo,
-    coverImage,
-  });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/products");
 }
 

@@ -1,10 +1,12 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPersonById, updatePerson, deletePerson } from "~/lib/people.server";
-import { processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import { getPersonById } from "~/lib/people.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
-import { blockItem } from "~/lib/import-blocklist.server";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.person?.name || "Person"} - siliconharbour.dev` }];
@@ -37,75 +39,20 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid ID" };
+  const form = await request.formData();
+  if (form.get("intent") === "import-block") {
+    const result = await runAdminOperation(request, operationCatalog.personDelete, {
+      id: Number(params.id),
+      confirm: true,
+      block: { source: "github" },
+    });
+    return result.ok ? redirect("/manage/people") : { error: result.error };
   }
-
-  const existing = await getPersonById(id);
-  if (!existing) {
-    return { error: "Person not found" };
-  }
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  // Handle import block action
-  if (intent === "import-block") {
-    if (!existing.github) {
-      return { error: "Cannot add to import block list without GitHub link" };
-    }
-
-    await blockItem("github", existing.github, existing.name, "Blocked from edit page");
-    await deletePerson(id);
-
-    return redirect("/manage/people");
-  }
-
-  const name = formData.get("name") as string;
-  const bio = formData.get("bio") as string;
-  const website = (formData.get("website") as string) || null;
-  const github = (formData.get("github") as string) || null;
-  const twitter = (formData.get("twitter") as string) || null;
-  const linkedin = (formData.get("linkedin") as string) || null;
-  const visible = formData.get("visible") === "true";
-
-  if (!name) {
-    return { error: "Name is required" };
-  }
-
-  let avatar: string | null | undefined = undefined;
-  const avatarData = formData.get("avatarData") as string | null;
-  const existingAvatar = formData.get("existingAvatar") as string | null;
-
-  if (avatarData) {
-    if (existing.avatar) await deleteImage(existing.avatar);
-    const base64Data = avatarData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    avatar = await processAndSaveIconImage(buffer);
-  } else if (existingAvatar) {
-    avatar = existingAvatar;
-  } else if (existing.avatar) {
-    await deleteImage(existing.avatar);
-    avatar = null;
-  }
-
-  // Store twitter/linkedin in socialLinks, github is now first-class
-  const socialLinks: Record<string, string> = {};
-  if (twitter) socialLinks.twitter = twitter;
-  if (linkedin) socialLinks.linkedin = linkedin;
-
-  await updatePerson(id, {
-    name,
-    bio,
-    website,
-    github,
-    visible,
-    socialLinks: Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null,
-    ...(avatar !== undefined && { avatar }),
+  const result = await runAdminOperation(request, operationCatalog.personUpdate, {
+    id: Number(params.id),
+    ...directoryFormInput("person", form, true),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/people");
 }
 

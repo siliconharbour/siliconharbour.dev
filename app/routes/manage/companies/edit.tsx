@@ -1,3 +1,6 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { useState } from "react";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
@@ -5,52 +8,19 @@ import { desc, eq } from "drizzle-orm";
 import { requireAdmin } from "~/lib/session.server";
 import { db } from "~/db";
 import { jobs, jobTechnologyMentions } from "~/db/schema";
-import { getCompanyById, updateCompany, deleteCompany } from "~/lib/companies.server";
-import { convertCompanyToEducation } from "~/lib/education.server";
-import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+import { getCompanyById } from "~/lib/companies.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
 import { BaseMultiSelect } from "~/components/BaseMultiSelect";
-import { blockItem } from "~/lib/import-blocklist.server";
-import { actionError } from "~/lib/admin/action-result";
-import { parseCompanyForm } from "~/lib/admin/manage-schemas";
-import { resolveUpdatedImage } from "~/lib/admin/image-fields";
-import {
-  getAllTechnologies,
-  getTechnologiesForContent,
-  setTechnologiesForContent,
-  setTechnologyEvidenceForCompany,
-} from "~/lib/technologies.server";
+
+import { getAllTechnologies, getTechnologiesForContent } from "~/lib/technologies.server";
 import {
   getTechnologyProvenanceSourceByKey,
   inferTechnologyProvenanceSourceKey,
   technologyProvenanceSourceOptions,
   type TechnologyProvenanceSourceKey,
 } from "~/lib/technology-evidence";
-
-function normalizeUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./, "").toLowerCase() + parsed.pathname.replace(/\/$/, "");
-  } catch {
-    return url.toLowerCase();
-  }
-}
-
-function normalizeNullableString(value: FormDataEntryValue | null): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function normalizeLastVerified(value: FormDataEntryValue | null): string | null {
-  const normalized = normalizeNullableString(value);
-  if (!normalized) return null;
-  if (/^\d{4}-\d{2}$/.test(normalized)) {
-    return `${normalized}-01`;
-  }
-  return normalized;
-}
 
 interface CompanyTechnologyProvenance {
   technologyId: number;
@@ -251,120 +221,28 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid company ID" };
+  const form = await request.formData();
+  if (form.get("intent") === "import-block") {
+    const result = await runAdminOperation(request, operationCatalog.companyDelete, {
+      id: Number(params.id),
+      confirm: true,
+      block: { source: form.get("source") || "technl" },
+    });
+    return result.ok ? redirect("/manage/companies") : { error: result.error };
   }
-
-  const existingCompany = await getCompanyById(id);
-  if (!existingCompany) {
-    return { error: "Company not found" };
+  if (form.get("intent") === "convertToEducation") {
+    const result = await runAdminOperation(request, operationCatalog.companyConvertToEducation, {
+      id: Number(params.id),
+      institutionType: form.get("institutionType") || "other",
+      confirm: true,
+    });
+    return result.ok ? redirect(`/manage/education/${result.data.id}`) : { error: result.error };
   }
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  // Handle import block action
-  if (intent === "import-block") {
-    const source = formData.get("source") as string;
-
-    if (!source) {
-      return { error: "No import source specified" };
-    }
-
-    // Use normalized website URL as external ID, or name if no website
-    // Must match the normalization used in the import page
-    const externalId = existingCompany.website
-      ? normalizeUrl(existingCompany.website)
-      : existingCompany.name.toLowerCase();
-
-    await blockItem(source, externalId, existingCompany.name, "Blocked from edit page");
-    await deleteCompany(id);
-
-    return redirect("/manage/companies");
-  }
-
-  // Handle convert to institution
-  if (intent === "convertToEducation") {
-    const institutionType = (formData.get("institutionType") as string) || "other";
-    try {
-      const institution = await convertCompanyToEducation(
-        id,
-        institutionType as "university" | "college" | "bootcamp" | "online" | "other",
-      );
-      return redirect(`/manage/education/${institution.id}`);
-    } catch (error) {
-      console.error("Failed to convert company to institution:", error);
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return { error: `Failed to convert company to institution: ${message}` };
-    }
-  }
-
-  const parsed = parseCompanyForm(formData);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-  const visible = formData.get("visible") === "true";
-  const technologyIds = formData.getAll("technologies").map((id) => parseInt(id as string, 10));
-  const provenanceGroupIds = formData
-    .getAll("provenanceGroupId")
-    .map((id) => String(id))
-    .filter((id) => id.length > 0);
-
-  const evidenceGroups = provenanceGroupIds.map((groupId) => {
-    const sourceKey = String(
-      formData.get(`provenanceSourceKey_${groupId}`) || "get_coding_reference",
-    );
-    const sourceDefinition = getTechnologyProvenanceSourceByKey(sourceKey);
-    const technologyIdsForGroup = formData
-      .getAll(`provenanceTech_${groupId}`)
-      .map((id) => parseInt(String(id), 10))
-      .filter((techId) => !isNaN(techId) && technologyIds.includes(techId));
-    const jobIds = formData
-      .getAll(`provenanceJobs_${groupId}`)
-      .map((id) => parseInt(String(id), 10))
-      .filter((jobId) => !isNaN(jobId));
-
-    return {
-      technologyIds: technologyIdsForGroup,
-      sourceType: sourceDefinition.sourceType,
-      sourceUrl:
-        sourceDefinition.sourceUrl ??
-        normalizeNullableString(formData.get(`provenanceSourceUrl_${groupId}`)),
-      lastVerified: normalizeLastVerified(formData.get(`provenanceLastVerified_${groupId}`)),
-      excerptText: normalizeNullableString(formData.get(`provenanceExcerpt_${groupId}`)),
-      jobIds,
-    } as const;
+  const result = await runAdminOperation(request, operationCatalog.companyUpdate, {
+    id: Number(params.id),
+    ...directoryFormInput("company", form, true),
   });
-
-  const logo = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "logoData",
-    existingImageField: "existingLogo",
-    currentImage: existingCompany.logo,
-    processor: processAndSaveIconImage,
-  });
-
-  const coverImage = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "coverImageData",
-    existingImageField: "existingCoverImage",
-    currentImage: existingCompany.coverImage,
-    processor: processAndSaveCoverImage,
-  });
-
-  await updateCompany(id, {
-    ...parsed.data,
-    visible,
-    ...(logo !== undefined && { logo }),
-    ...(coverImage !== undefined && { coverImage }),
-  });
-
-  // Update technology assignments
-  await setTechnologiesForContent("company", id, technologyIds);
-  await setTechnologyEvidenceForCompany(id, evidenceGroups);
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/companies");
 }
 
@@ -468,6 +346,30 @@ export default function EditCompany() {
             />
           </div>
 
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="email" className="font-medium text-heading">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              defaultValue={company.email || ""}
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex flex-col gap-gap-2">
+            <label htmlFor="careersUrl" className="font-medium text-heading">
+              Careers URL
+            </label>
+            <input
+              type="url"
+              id="careersUrl"
+              name="careersUrl"
+              defaultValue={company.careersUrl || ""}
+              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+            />
+          </div>
           <div className="flex flex-col gap-gap-2">
             <label htmlFor="website" className="font-medium text-heading">
               Website
@@ -593,6 +495,15 @@ export default function EditCompany() {
                   className="border border-harbour-300"
                 />
                 <span className="text-sm text-body">Genesis Centre</span>
+              </label>
+              <label className="flex items-center gap-gap-2">
+                <input
+                  type="checkbox"
+                  name="bounce"
+                  defaultChecked={company.bounce ?? false}
+                  className="border border-harbour-300"
+                />
+                <span className="text-sm text-body">Bounce</span>
               </label>
             </div>
           </div>

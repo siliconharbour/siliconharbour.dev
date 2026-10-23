@@ -1,9 +1,12 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { createTechnology } from "~/lib/technologies.server";
+
 import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
-import { processAndSaveIconImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({}: Route.MetaArgs) {
@@ -17,35 +20,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const category = formData.get("category") as string;
-  const description = (formData.get("description") as string) || null;
-  const website = (formData.get("website") as string) || null;
-
-  if (!name || !category) {
-    return { error: "Name and category are required" };
-  }
-
-  let icon: string | null = null;
-  const iconData = formData.get("iconData") as string | null;
-
-  if (iconData) {
-    const base64Data = iconData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    icon = await processAndSaveIconImage(buffer);
-  }
-
-  await createTechnology({
-    name,
-    category: category as any,
-    description,
-    website,
-    icon,
+  const result = await runAdminOperation(request, operationCatalog.technologyCreate, {
+    ...directoryFormInput("technology", form, false),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/technologies");
 }
 

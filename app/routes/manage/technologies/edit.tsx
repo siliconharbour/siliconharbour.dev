@@ -1,14 +1,16 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 import {
   getTechnologyById,
-  updateTechnology,
   getCompaniesUsingTechnology,
   getProjectsUsingTechnology,
 } from "~/lib/technologies.server";
 import { categoryLabels, technologyCategories } from "~/lib/technology-categories";
-import { processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -44,55 +46,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid technology ID" };
-  }
-
-  const existingTech = await getTechnologyById(id);
-  if (!existingTech) {
-    return { error: "Technology not found" };
-  }
-
-  const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const category = formData.get("category") as string;
-  const description = (formData.get("description") as string) || null;
-  const website = (formData.get("website") as string) || null;
-  const visible = formData.get("visible") === "true";
-
-  if (!name || !category) {
-    return { error: "Name and category are required" };
-  }
-
-  let icon: string | null | undefined = undefined;
-
-  const iconData = formData.get("iconData") as string | null;
-  const existingIcon = formData.get("existingIcon") as string | null;
-
-  if (iconData) {
-    if (existingTech.icon) await deleteImage(existingTech.icon);
-    const base64Data = iconData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    icon = await processAndSaveIconImage(buffer);
-  } else if (existingIcon) {
-    icon = existingIcon;
-  } else if (existingTech.icon) {
-    await deleteImage(existingTech.icon);
-    icon = null;
-  }
-
-  await updateTechnology(id, {
-    name,
-    category: category as any,
-    description,
-    website,
-    visible,
-    ...(icon !== undefined && { icon }),
+  const result = await runAdminOperation(request, operationCatalog.technologyUpdate, {
+    id: Number(params.id),
+    ...directoryFormInput("technology", form, true),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/technologies");
 }
 

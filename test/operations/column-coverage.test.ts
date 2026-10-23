@@ -6,7 +6,21 @@ import { columnCoverage } from "~/operations/coverage";
 import { operationCatalog } from "~/operations/catalog";
 import { z } from "zod";
 
-it("accounts for every column of each covered table", () => {
+type Node = {
+  properties?: Record<string, Node | boolean>;
+  items?: Node | boolean;
+  oneOf?: Node[];
+  anyOf?: Node[];
+};
+function hasPath(node: Node | boolean | undefined, path: string[]): boolean {
+  if (!node || typeof node !== "object") return false;
+  if (!path.length) return true;
+  const variants = node.oneOf ?? node.anyOf;
+  if (variants) return variants.some((variant) => hasPath(variant, path));
+  return hasPath(path[0] === "*" ? node.items : node.properties?.[path[0]], path.slice(1));
+}
+
+it("accounts for every column and checks each mapped contract field", () => {
   const tables = Object.values(schema).filter((value) => is(value, SQLiteTable));
   for (const [name, coverage] of Object.entries(columnCoverage)) {
     const table = tables.find((value) => getTableName(value) === name);
@@ -15,12 +29,35 @@ it("accounts for every column of each covered table", () => {
     for (const entry of Object.values(coverage)) {
       if ("excluded" in entry) expect(entry.excluded.trim().length).toBeGreaterThan(0);
       else if ("gap" in entry) expect(entry.gap).toMatch(new RegExp(`^${name}\\.`));
-      else {
-        const operation = operationCatalog[entry.operation as keyof typeof operationCatalog];
-        expect(operation, entry.operation).toBeDefined();
-        const json = z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" });
-        expect(json.properties).toHaveProperty(entry.field);
-      }
+      else
+        for (const [operationName, path] of Object.entries(entry.mapped)) {
+          const operation = operationCatalog[operationName as keyof typeof operationCatalog];
+          expect(operation, operationName).toBeDefined();
+          const json = z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" });
+          expect(
+            hasPath(json as Node, path.replaceAll("[]", ".*").split(".")),
+            `${operationName}.${path}`,
+          ).toBe(true);
+        }
     }
   }
+});
+
+it("maps every directory create/update field to a real column", () => {
+  const names = ["person", "company", "education", "group", "product", "project", "technology"];
+  for (const name of names)
+    for (const suffix of ["Create", "Update"]) {
+      const key = `${name}${suffix}`;
+      const operation = operationCatalog[key as keyof typeof operationCatalog];
+      const json = z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" });
+      for (const field of Object.keys(json.properties ?? {})) {
+        if (field === "id") continue;
+        const mapped = Object.values(columnCoverage).some((columns) =>
+          Object.values(columns).some(
+            (entry) => "mapped" in entry && entry.mapped[key]?.split(/[.[]/)[0] === field,
+          ),
+        );
+        expect(mapped, `${key}.${field}`).toBe(true);
+      }
+    }
 });

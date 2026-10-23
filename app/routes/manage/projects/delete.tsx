@@ -1,8 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getProjectById, deleteProject, getProjectImages } from "~/lib/projects.server";
-import { deleteImage } from "~/lib/images.server";
+import { getProjectById } from "~/lib/projects.server";
+
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
@@ -26,26 +29,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
 
-  const id = parseIdOrThrow(params.id, "project");
-
-  const project = await getProjectById(id);
-  if (project) {
-    // Delete associated images
-    if (project.logo) {
-      await deleteImage(project.logo);
-    }
-    if (project.coverImage) {
-      await deleteImage(project.coverImage);
-    }
-
-    // Delete gallery images
-    const galleryImages = await getProjectImages(id);
-    for (const img of galleryImages) {
-      await deleteImage(img.image);
-    }
-  }
-
-  await deleteProject(id);
+  const result = await runAdminOperation(request, operationCatalog.projectDelete, {
+    id: Number(params.id),
+    confirm: true,
+  });
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/projects");
 }
 

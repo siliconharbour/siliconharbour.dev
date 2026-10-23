@@ -1,31 +1,15 @@
-/**
- * Import Blocklist Service
- *
- * Manages a blocklist of entities that should be skipped during imports.
- * When you don't want to import certain GitHub users, TechNL companies, etc.,
- * add them to the blocklist and they'll be automatically skipped.
- */
+import { normalizeBlockKey } from "./import-blocklist-key";
 
 import { db } from "~/db";
 import { importBlocklist, type ImportBlocklistItem } from "~/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
-/**
- * Check if an entity is blocked from import
- */
 export async function isBlocked(source: string, externalId: string): Promise<boolean> {
-  const result = await db
-    .select({ id: importBlocklist.id })
-    .from(importBlocklist)
-    .where(and(eq(importBlocklist.source, source), eq(importBlocklist.externalId, externalId)))
-    .get();
-
-  return result !== undefined;
+  const key = normalizeBlockKey(source, externalId);
+  const items = await getBlockedItems(source);
+  return items.some((item) => normalizeBlockKey(source, item.externalId) === key);
 }
 
-/**
- * Get all blocked items for a source
- */
 export async function getBlockedItems(source: string): Promise<ImportBlocklistItem[]> {
   return db
     .select()
@@ -34,36 +18,28 @@ export async function getBlockedItems(source: string): Promise<ImportBlocklistIt
     .orderBy(importBlocklist.blockedAt);
 }
 
-/**
- * Get blocked external IDs for a source (efficient for checking many items)
- */
 export async function getBlockedExternalIds(source: string): Promise<Set<string>> {
   const items = await db
     .select({ externalId: importBlocklist.externalId })
     .from(importBlocklist)
     .where(eq(importBlocklist.source, source));
 
-  return new Set(items.map((i) => i.externalId.toLowerCase()));
+  return new Set(items.map((i) => normalizeBlockKey(source, i.externalId)));
 }
 
-/**
- * Block an entity from future imports
- */
 export async function blockItem(
   source: string,
   externalId: string,
   name: string,
   reason?: string,
 ): Promise<void> {
-  // Check if already blocked
-  const existing = await isBlocked(source, externalId);
+  externalId = normalizeBlockKey(source, externalId);
+  const existing = (await getBlockedItems(source)).find(
+    (item) => normalizeBlockKey(source, item.externalId) === externalId,
+  );
   if (existing) {
-    // Update reason if provided
     if (reason !== undefined) {
-      await db
-        .update(importBlocklist)
-        .set({ reason })
-        .where(and(eq(importBlocklist.source, source), eq(importBlocklist.externalId, externalId)));
+      await db.update(importBlocklist).set({ reason }).where(eq(importBlocklist.id, existing.id));
     }
     return;
   }
@@ -77,27 +53,23 @@ export async function blockItem(
   });
 }
 
-/**
- * Remove an entity from the blocklist (allow future imports)
- */
 export async function unblockItem(source: string, externalId: string): Promise<void> {
-  await db
-    .delete(importBlocklist)
-    .where(and(eq(importBlocklist.source, source), eq(importBlocklist.externalId, externalId)));
+  const items = await getBlockedItems(source);
+  const key = normalizeBlockKey(source, externalId);
+  for (const item of items) {
+    if (normalizeBlockKey(source, item.externalId) === key)
+      await db.delete(importBlocklist).where(eq(importBlocklist.id, item.id));
+  }
 }
 
-/**
- * Get a single blocked item by source and external ID
- */
 export async function getBlockedItem(
   source: string,
   externalId: string,
 ): Promise<ImportBlocklistItem | null> {
+  const key = normalizeBlockKey(source, externalId);
   return (
-    db
-      .select()
-      .from(importBlocklist)
-      .where(and(eq(importBlocklist.source, source), eq(importBlocklist.externalId, externalId)))
-      .get() ?? null
+    (await getBlockedItems(source)).find(
+      (item) => normalizeBlockKey(source, item.externalId) === key,
+    ) ?? null
   );
 }

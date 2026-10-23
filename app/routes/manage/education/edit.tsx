@@ -1,12 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getEducationById, updateEducation } from "~/lib/education.server";
-import {
-  processAndSaveCoverImage,
-  processAndSaveIconImage,
-  deleteImage,
-} from "~/lib/images.server";
+import { getEducationById } from "~/lib/education.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -31,75 +30,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const id = parseInt(params.id, 10);
-  if (isNaN(id)) {
-    return { error: "Invalid ID" };
-  }
-
-  const existing = await getEducationById(id);
-  if (!existing) {
-    return { error: "Institution not found" };
-  }
-
-  const formData = await request.formData();
-
-  const name = formData.get("name") as string;
-  const description = formData.get("description") as string;
-  const website = (formData.get("website") as string) || null;
-  const type = (formData.get("type") as string) || "other";
-  const technl = formData.get("technl") === "on";
-  const genesis = formData.get("genesis") === "on";
-  const visible = formData.get("visible") === "true";
-
-  if (!name) {
-    return { error: "Name is required" };
-  }
-
-  let logo: string | null | undefined = undefined;
-  let coverImage: string | null | undefined = undefined;
-
-  const logoData = formData.get("logoData") as string | null;
-  const coverImageData = formData.get("coverImageData") as string | null;
-  const existingLogo = formData.get("existingLogo") as string | null;
-  const existingCoverImage = formData.get("existingCoverImage") as string | null;
-
-  if (logoData) {
-    if (existing.logo) await deleteImage(existing.logo);
-    const base64Data = logoData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    logo = await processAndSaveIconImage(buffer);
-  } else if (existingLogo) {
-    logo = existingLogo;
-  } else if (existing.logo) {
-    await deleteImage(existing.logo);
-    logo = null;
-  }
-
-  if (coverImageData) {
-    if (existing.coverImage) await deleteImage(existing.coverImage);
-    const base64Data = coverImageData.split(",")[1];
-    const buffer = Buffer.from(base64Data, "base64");
-    coverImage = await processAndSaveCoverImage(buffer);
-  } else if (existingCoverImage) {
-    coverImage = existingCoverImage;
-  } else if (existing.coverImage) {
-    await deleteImage(existing.coverImage);
-    coverImage = null;
-  }
-
-  await updateEducation(id, {
-    name,
-    description,
-    website,
-    type: type as "university" | "college" | "bootcamp" | "online" | "other",
-    technl,
-    genesis,
-    visible,
-    ...(logo !== undefined && { logo }),
-    ...(coverImage !== undefined && { coverImage }),
+  const result = await runAdminOperation(request, operationCatalog.educationUpdate, {
+    id: Number(params.id),
+    ...directoryFormInput("education", form, true),
   });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/education");
 }
 
@@ -224,6 +161,15 @@ export default function EditEducation() {
                   className="border border-harbour-300"
                 />
                 <span className="text-sm text-body">Genesis Centre</span>
+              </label>
+              <label className="flex items-center gap-gap-2">
+                <input
+                  type="checkbox"
+                  name="bounce"
+                  defaultChecked={institution.bounce ?? false}
+                  className="border border-harbour-300"
+                />
+                <span className="text-sm text-body">Bounce</span>
               </label>
             </div>
           </div>

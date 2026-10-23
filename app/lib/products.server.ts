@@ -1,3 +1,4 @@
+import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { products, companies, type Product, type NewProduct, type Company } from "~/db/schema";
 import { eq, asc, count, inArray } from "drizzle-orm";
@@ -74,7 +75,11 @@ export async function updateProduct(
 }
 
 export async function deleteProduct(id: number): Promise<boolean> {
+  const record = await getProductById(id);
+  if (!record) return false;
+
   await db.delete(products).where(eq(products.id, id));
+  await deleteUnreferencedImages([record.logo, record.coverImage]);
   return true;
 }
 

@@ -1,16 +1,17 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { getProductById, updateProduct } from "~/lib/products.server";
+import { getProductById } from "~/lib/products.server";
 import { getAllCompanies } from "~/lib/companies.server";
-import { processAndSaveCoverImage, processAndSaveIconImageWithPadding } from "~/lib/images.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { productTypes } from "~/db/schema";
-import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
-import { parseFormData, zOptionalNullableString, zRequiredString } from "~/lib/admin/form";
-import { actionError } from "~/lib/admin/action-result";
-import { resolveUpdatedImage } from "~/lib/admin/image-fields";
+import { parseIdOrThrow } from "~/lib/admin/route";
+
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -34,55 +35,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const parsedId = parseIdOrError(params.id, "product");
-  if ("error" in parsedId) return parsedId;
-  const id = parsedId.id;
-
-  const existingProduct = await getProductById(id);
-  if (!existingProduct) {
-    return actionError("Product not found");
-  }
-
-  const formData = await request.formData();
-  const schema = z.object({
-    name: zRequiredString("Name"),
-    description: zRequiredString("Description"),
-    website: zOptionalNullableString,
-    type: z.enum(productTypes),
-    companyId: zOptionalNullableString,
+  const result = await runAdminOperation(request, operationCatalog.productUpdate, {
+    id: Number(params.id),
+    ...directoryFormInput("product", form, true),
   });
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const logo = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "logoData",
-    existingImageField: "existingLogo",
-    currentImage: existingProduct.logo,
-    processor: processAndSaveIconImageWithPadding,
-  });
-
-  const coverImage = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "coverImageData",
-    existingImageField: "existingCoverImage",
-    currentImage: existingProduct.coverImage,
-    processor: processAndSaveCoverImage,
-  });
-
-  await updateProduct(id, {
-    name: parsed.data.name,
-    description: parsed.data.description,
-    website: parsed.data.website,
-    type: parsed.data.type,
-    companyId: parsed.data.companyId ? Number.parseInt(parsed.data.companyId, 10) : null,
-    ...(logo !== undefined && { logo }),
-    ...(coverImage !== undefined && { coverImage }),
-  });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/products");
 }
 

@@ -1,19 +1,15 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import { getGroupById, updateGroup } from "~/lib/groups.server";
-import { processAndSaveCoverImage, processAndSaveIconImage } from "~/lib/images.server";
+import { getGroupById } from "~/lib/groups.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
-import { parseIdOrError, parseIdOrThrow } from "~/lib/admin/route";
-import {
-  parseFormData,
-  zOptionalNullableString,
-  zRequiredString,
-  zTrueBoolean,
-} from "~/lib/admin/form";
-import { actionError } from "~/lib/admin/action-result";
-import { resolveUpdatedImage } from "~/lib/admin/image-fields";
+import { parseIdOrThrow } from "~/lib/admin/route";
+
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
@@ -35,55 +31,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
 
-  const parsedId = parseIdOrError(params.id, "group");
-  if ("error" in parsedId) return parsedId;
-  const id = parsedId.id;
-
-  const existingGroup = await getGroupById(id);
-  if (!existingGroup) {
-    return actionError("Group not found");
-  }
-
-  const formData = await request.formData();
-  const schema = z.object({
-    name: zRequiredString("Name"),
-    description: zRequiredString("Description"),
-    website: zOptionalNullableString,
-    meetingFrequency: zOptionalNullableString,
-    visible: zTrueBoolean,
+  const result = await runAdminOperation(request, operationCatalog.groupUpdate, {
+    id: Number(params.id),
+    ...directoryFormInput("group", form, true),
   });
-  const parsed = parseFormData(formData, schema);
-  if (!parsed.success) {
-    return actionError(parsed.error);
-  }
-
-  const logo = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "logoData",
-    existingImageField: "existingLogo",
-    currentImage: existingGroup.logo,
-    processor: processAndSaveIconImage,
-  });
-
-  const coverImage = await resolveUpdatedImage({
-    formData,
-    uploadedImageField: "coverImageData",
-    existingImageField: "existingCoverImage",
-    currentImage: existingGroup.coverImage,
-    processor: processAndSaveCoverImage,
-  });
-
-  await updateGroup(id, {
-    name: parsed.data.name,
-    description: parsed.data.description,
-    website: parsed.data.website,
-    meetingFrequency: parsed.data.meetingFrequency,
-    visible: parsed.data.visible,
-    ...(logo !== undefined && { logo }),
-    ...(coverImage !== undefined && { coverImage }),
-  });
-
+  if (!result.ok) return { error: result.error };
   return redirect("/manage/groups");
 }
 

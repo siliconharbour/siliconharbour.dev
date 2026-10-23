@@ -1,32 +1,16 @@
+import { companyRestoreRejected } from "~/operations/ops/directory-restore.server";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useEffect, useState, useCallback } from "react";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getHiddenCompanies,
-  updateCompany,
-  deleteCompany,
-  createCompany,
-  getCompanyById,
-} from "~/lib/companies.server";
-import { blockItem, unblockItem } from "~/lib/import-blocklist.server";
-import {
-  processAndSaveCoverImage,
-  processAndSaveIconImage,
-  deleteImage,
-} from "~/lib/images.server";
+import { getHiddenCompanies } from "~/lib/companies.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { Toast } from "~/components/Toast";
 import type { Company } from "~/db/schema";
-
-function normalizeUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return parsed.hostname.replace(/^www\./, "").toLowerCase() + parsed.pathname.replace(/\/$/, "");
-  } catch {
-    return url.toLowerCase();
-  }
-}
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Review Companies - siliconharbour.dev" }];
@@ -40,189 +24,68 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
+  const form = await request.formData();
+  const id = Number(form.get("id"));
+  const intent = form.get("intent");
 
-  const formData = await request.formData();
-  const intent = formData.get("intent") as string;
-  const id = parseInt(formData.get("id") as string, 10);
-
-  if (isNaN(id) && intent !== "undo-reject") {
-    return { error: "Invalid company ID" };
+  if (intent === "undo-reject") {
+    let record: unknown;
+    try {
+      record = JSON.parse(String(form.get("companyData") || "null"));
+    } catch {
+      return { error: "Invalid undo data" };
+    }
+    const result = await runAdminOperation(request, companyRestoreRejected, {
+      record,
+      ...(form.get("source") ? { source: form.get("source") } : {}),
+    });
+    return result.ok ? { success: true, action: "undone" } : { error: result.error };
   }
-
-  // Get company data for undo support (before any modifications)
-  let companyData: Company | null = null;
-  if (intent === "approve" || intent === "reject") {
-    companyData = await getCompanyById(id);
+  if (intent === "approve") {
+    const result = await runAdminOperation(request, operationCatalog.companyApprove, { id });
+    return result.ok
+      ? { success: true, action: "approved", undoData: { id, previousVisible: false } }
+      : { error: result.error };
   }
-
-  switch (intent) {
-    case "approve": {
-      await updateCompany(id, { visible: true });
-      return {
-        success: true,
-        action: "approved",
-        undoData: companyData ? { id, previousVisible: false } : null,
-      };
-    }
-
-    case "reject": {
-      if (!companyData) {
-        return { error: "Company not found" };
-      }
-
-      // Determine source for blocklist based on directory flags
-      const source = companyData.technl ? "technl" : companyData.genesis ? "genesis" : null;
-
-      // Add to blocklist if it came from an import
-      if (source) {
-        const externalId = companyData.website
-          ? normalizeUrl(companyData.website)
-          : companyData.name.toLowerCase();
-        await blockItem(source, externalId, companyData.name, "Rejected during review");
-      }
-
-      // Delete the company
-      await deleteCompany(id);
-
-      return {
-        success: true,
-        action: "rejected",
-        undoData: {
-          ...companyData,
-          source,
-        },
-      };
-    }
-
-    case "undo-approve": {
-      await updateCompany(id, { visible: false });
-      return { success: true, action: "undone" };
-    }
-
-    case "undo-reject": {
-      // Recreate the company from the stored data
-      const companyJson = formData.get("companyData") as string;
-      const source = formData.get("source") as string | null;
-
-      if (!companyJson) {
-        return { error: "No company data for undo" };
-      }
-
-      const data = JSON.parse(companyJson) as Company;
-
-      // Remove from blocklist if it was blocked
-      if (source) {
-        const externalId = data.website ? normalizeUrl(data.website) : data.name.toLowerCase();
-        await unblockItem(source, externalId);
-      }
-
-      // Recreate the company (without id/slug - they'll be regenerated)
-      await createCompany({
-        name: data.name,
-        description: data.description,
-        website: data.website,
-        wikipedia: data.wikipedia,
-        linkedin: data.linkedin,
-        github: data.github,
-        email: data.email,
-        location: data.location,
-        founded: data.founded,
-        logo: data.logo,
-        coverImage: data.coverImage,
-        technl: data.technl,
-        genesis: data.genesis,
-        visible: false,
-      });
-
-      return { success: true, action: "undone" };
-    }
-
-    case "update": {
-      const existingCompany = await getCompanyById(id);
-      if (!existingCompany) {
-        return { error: "Company not found" };
-      }
-
-      const name = formData.get("name") as string;
-      const description = formData.get("description") as string;
-      const website = (formData.get("website") as string) || null;
-      const wikipedia = (formData.get("wikipedia") as string) || null;
-      const linkedin = (formData.get("linkedin") as string) || null;
-      const github = (formData.get("github") as string) || null;
-      const location = (formData.get("location") as string) || null;
-      const founded = (formData.get("founded") as string) || null;
-      const technl = formData.get("technl") === "on";
-      const genesis = formData.get("genesis") === "on";
-      const approveAfterSave = formData.get("approveAfterSave") === "on";
-
-      if (!name) {
-        return { error: "Name is required" };
-      }
-
-      // Process images
-      let logo: string | null | undefined = undefined;
-      let coverImage: string | null | undefined = undefined;
-
-      const logoData = formData.get("logoData") as string | null;
-      const coverImageData = formData.get("coverImageData") as string | null;
-      const existingLogo = formData.get("existingLogo") as string | null;
-      const existingCoverImage = formData.get("existingCoverImage") as string | null;
-
-      // Handle logo
-      if (logoData) {
-        if (existingCompany.logo) {
-          await deleteImage(existingCompany.logo);
+  if (intent === "reject") {
+    const result = await runAdminOperation(request, operationCatalog.companyReject, {
+      id,
+      confirm: true,
+    });
+    return result.ok
+      ? {
+          success: true,
+          action: "rejected",
+          undoData: { ...result.data.record, source: result.data.blockedSource },
         }
-        const base64Data = logoData.split(",")[1];
-        const buffer = Buffer.from(base64Data, "base64");
-        logo = await processAndSaveIconImage(buffer);
-      } else if (existingLogo) {
-        logo = existingLogo;
-      } else if (existingCompany.logo) {
-        await deleteImage(existingCompany.logo);
-        logo = null;
-      }
-
-      // Handle cover image
-      if (coverImageData) {
-        if (existingCompany.coverImage) {
-          await deleteImage(existingCompany.coverImage);
-        }
-        const base64Data = coverImageData.split(",")[1];
-        const buffer = Buffer.from(base64Data, "base64");
-        coverImage = await processAndSaveCoverImage(buffer);
-      } else if (existingCoverImage) {
-        coverImage = existingCoverImage;
-      } else if (existingCompany.coverImage) {
-        await deleteImage(existingCompany.coverImage);
-        coverImage = null;
-      }
-
-      await updateCompany(id, {
-        name,
-        description,
-        website,
-        wikipedia,
-        linkedin,
-        github,
-        location,
-        founded,
-        technl,
-        genesis,
-        visible: approveAfterSave,
-        ...(logo !== undefined && { logo }),
-        ...(coverImage !== undefined && { coverImage }),
-      });
-
-      return {
-        success: true,
-        action: approveAfterSave ? "approved" : "updated",
-      };
-    }
-
-    default:
-      return { error: "Unknown action" };
+      : { error: result.error };
   }
+  if (intent === "undo-approve") {
+    const result = await runAdminOperation(request, operationCatalog.companyUnapprove, { id });
+    return result.ok ? { success: true, action: "undone" } : { error: result.error };
+  }
+  if (intent === "update") {
+    const result = await runAdminOperation(request, operationCatalog.companyUpdate, {
+      id,
+      ...directoryFormInput("company", form, true, [
+        "name",
+        "description",
+        "website",
+        "wikipedia",
+        "linkedin",
+        "github",
+        "location",
+        "founded",
+        "technl",
+        "genesis",
+        "logo",
+        "coverImage",
+      ]),
+      ...(form.get("approveAfterSave") === "on" ? { visible: true } : {}),
+    });
+    return result.ok ? { success: true, action: "updated" } : { error: result.error };
+  }
+  return { error: "Unknown action" };
 }
 
 interface UndoAction {

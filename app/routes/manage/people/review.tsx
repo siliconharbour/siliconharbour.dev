@@ -1,16 +1,13 @@
+import { personRestoreRejected } from "~/operations/ops/directory-restore.server";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useEffect, useState, useCallback } from "react";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getHiddenPeople,
-  updatePerson,
-  deletePerson,
-  createPerson,
-  getPersonById,
-} from "~/lib/people.server";
-import { blockItem, unblockItem } from "~/lib/import-blocklist.server";
-import { processAndSaveIconImage, deleteImage } from "~/lib/images.server";
+import { getHiddenPeople } from "~/lib/people.server";
+
 import { ImageUpload } from "~/components/ImageUpload";
 import { Toast } from "~/components/Toast";
 import type { Person } from "~/db/schema";
@@ -46,192 +43,72 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent") as string;
-  const id = parseInt(formData.get("id") as string, 10);
-
-  if (isNaN(id) && intent !== "undo-reject" && intent !== "bulk-reject") {
-    return { error: "Invalid person ID" };
-  }
-
-  // Bulk reject by pattern match
+  const form = await request.formData();
+  const id = Number(form.get("id"));
+  const intent = form.get("intent");
   if (intent === "bulk-reject") {
-    const patternInput = (formData.get("pattern") as string)?.trim();
-    if (!patternInput) {
-      return { error: "Pattern is required" };
-    }
-
-    // Split by comma or space and filter empty strings
-    const patterns = patternInput
-      .toLowerCase()
-      .split(/[,\s]+/)
-      .filter((p) => p.length > 0);
-
-    if (patterns.length === 0) {
-      return { error: "Pattern is required" };
-    }
-
-    const allHidden = await getHiddenPeople();
-    const toReject = allHidden.filter((p) => {
-      // Search across all text fields
-      const searchText = `${p.name} ${p.bio || ""} ${p.socialLinks || ""}`.toLowerCase();
-      // Match if ALL patterns are found (so "Amsterdam, NL" requires both)
-      return patterns.every((pattern) => searchText.includes(pattern));
+    const result = await runAdminOperation(request, operationCatalog.personBulkReject, {
+      pattern: form.get("pattern"),
+      confirm: true,
     });
-
-    let rejectedCount = 0;
-    for (const person of toReject) {
-      if (person.github) {
-        await blockItem("github", person.github, person.name, `Bulk rejected: "${patternInput}"`);
-      }
-      await deletePerson(person.id);
-      rejectedCount++;
-    }
-
-    return {
-      success: true,
-      action: "bulk-rejected",
-      bulkRejectedCount: rejectedCount,
-      pattern: patternInput,
-    };
-  }
-
-  // Get person data for undo support (before any modifications)
-  let personData: Person | null = null;
-  if (intent === "approve" || intent === "reject") {
-    personData = await getPersonById(id);
-  }
-
-  switch (intent) {
-    case "approve": {
-      await updatePerson(id, { visible: true });
-      return {
-        success: true,
-        action: "approved",
-        undoData: personData ? { id, previousVisible: false } : null,
-      };
-    }
-
-    case "reject": {
-      if (!personData) {
-        return { error: "Person not found" };
-      }
-
-      // Add to blocklist if they have a GitHub profile
-      if (personData.github) {
-        await blockItem("github", personData.github, personData.name, "Rejected during review");
-      }
-
-      // Delete the person
-      await deletePerson(id);
-
-      return {
-        success: true,
-        action: "rejected",
-        undoData: {
-          ...personData,
-          hasGithub: !!personData.github,
-        },
-      };
-    }
-
-    case "undo-approve": {
-      await updatePerson(id, { visible: false });
-      return { success: true, action: "undone" };
-    }
-
-    case "undo-reject": {
-      // Recreate the person from the stored data
-      const personJson = formData.get("personData") as string;
-
-      if (!personJson) {
-        return { error: "No person data for undo" };
-      }
-
-      const data = JSON.parse(personJson) as Person & { hasGithub?: boolean };
-
-      // Remove from blocklist if they had a GitHub
-      if (data.github) {
-        await unblockItem("github", data.github);
-      }
-
-      // Recreate the person (without id/slug - they'll be regenerated)
-      await createPerson({
-        name: data.name,
-        bio: data.bio,
-        website: data.website,
-        github: data.github,
-        avatar: data.avatar,
-        socialLinks: data.socialLinks,
-        visible: false,
-      });
-
-      return { success: true, action: "undone" };
-    }
-
-    case "update": {
-      const existingPerson = await getPersonById(id);
-      if (!existingPerson) {
-        return { error: "Person not found" };
-      }
-
-      const name = formData.get("name") as string;
-      const bio = formData.get("bio") as string;
-      const websiteInput = (formData.get("website") as string)?.trim();
-      const website = websiteInput ? ensureProtocol(websiteInput) : null;
-      const github = (formData.get("github") as string) || null;
-      const twitter = (formData.get("twitter") as string) || null;
-      const linkedin = (formData.get("linkedin") as string) || null;
-      const approveAfterSave = formData.get("approveAfterSave") === "on";
-
-      if (!name) {
-        return { error: "Name is required" };
-      }
-
-      // Process avatar
-      let avatar: string | null | undefined = undefined;
-      const avatarData = formData.get("avatarData") as string | null;
-      const existingAvatar = formData.get("existingAvatar") as string | null;
-
-      if (avatarData) {
-        if (existingPerson.avatar) {
-          await deleteImage(existingPerson.avatar);
+    return result.ok
+      ? {
+          success: true,
+          action: "bulk-rejected",
+          bulkRejectedCount: result.data.count,
+          pattern: String(form.get("pattern")),
         }
-        const base64Data = avatarData.split(",")[1];
-        const buffer = Buffer.from(base64Data, "base64");
-        avatar = await processAndSaveIconImage(buffer);
-      } else if (existingAvatar) {
-        avatar = existingAvatar;
-      } else if (existingPerson.avatar) {
-        await deleteImage(existingPerson.avatar);
-        avatar = null;
-      }
-
-      // Store twitter/linkedin in socialLinks
-      const socialLinks: Record<string, string> = {};
-      if (twitter) socialLinks.twitter = twitter;
-      if (linkedin) socialLinks.linkedin = linkedin;
-
-      await updatePerson(id, {
-        name,
-        bio,
-        website,
-        github,
-        visible: approveAfterSave,
-        socialLinks: Object.keys(socialLinks).length > 0 ? JSON.stringify(socialLinks) : null,
-        ...(avatar !== undefined && { avatar }),
-      });
-
-      return {
-        success: true,
-        action: approveAfterSave ? "approved" : "updated",
-      };
-    }
-
-    default:
-      return { error: "Unknown action" };
+      : { error: result.error };
   }
+  if (intent === "undo-reject") {
+    let record: unknown;
+    try {
+      record = JSON.parse(String(form.get("personData") || "null"));
+    } catch {
+      return { error: "Invalid undo data" };
+    }
+    const result = await runAdminOperation(request, personRestoreRejected, { record });
+    return result.ok ? { success: true, action: "undone" } : { error: result.error };
+  }
+  if (intent === "approve") {
+    const result = await runAdminOperation(request, operationCatalog.personApprove, { id });
+    return result.ok
+      ? { success: true, action: "approved", undoData: { id, previousVisible: false } }
+      : { error: result.error };
+  }
+  if (intent === "reject") {
+    const result = await runAdminOperation(request, operationCatalog.personReject, {
+      id,
+      confirm: true,
+    });
+    return result.ok
+      ? {
+          success: true,
+          action: "rejected",
+          undoData: { ...result.data.record, hasGithub: Boolean(result.data.record.github) },
+        }
+      : { error: result.error };
+  }
+  if (intent === "undo-approve") {
+    const result = await runAdminOperation(request, operationCatalog.personUnapprove, { id });
+    return result.ok ? { success: true, action: "undone" } : { error: result.error };
+  }
+  if (intent === "update") {
+    const result = await runAdminOperation(request, operationCatalog.personUpdate, {
+      id,
+      ...directoryFormInput("person", form, true, [
+        "name",
+        "bio",
+        "website",
+        "github",
+        "socialLinks",
+        "avatar",
+      ]),
+      ...(form.get("approveAfterSave") === "on" ? { visible: true } : {}),
+    });
+    return result.ok ? { success: true, action: "updated" } : { error: result.error };
+  }
+  return { error: "Unknown action" };
 }
 
 interface UndoAction {
