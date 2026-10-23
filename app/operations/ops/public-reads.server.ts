@@ -1,6 +1,9 @@
+import * as output from "../contracts/public-outputs";
+import { publicProjection as project } from "../public-projection";
+import { publicEvent, publicCompanyReferences } from "~/lib/public-content.server";
 import { listNews } from "~/lib/content-lists.server";
 import { newsPublicListInput } from "../contracts/public-reads";
-import { jobListItemOutput } from "../contracts/jobs";
+
 import { page, pageResult } from "../listing";
 import { listProjects } from "~/lib/directory-lists.server";
 import { listProducts } from "~/lib/directory-lists.server";
@@ -17,19 +20,16 @@ import {
   publicEventListInput,
   publicJobListInput,
 } from "../contracts/public-reads";
-import { eventOutput } from "../contracts/events";
 
-import { newsOutput } from "../contracts/news";
-import { companyOutput } from "../contracts/companies";
-import { groupOutput } from "../contracts/groups";
-import { personOutput } from "../contracts/people";
-import { educationOutput } from "../contracts/education";
-import { technologyOutput } from "../contracts/technologies";
-import { productListItemOutput } from "../contracts/products";
-import { projectOutput } from "../contracts/projects";
 import { getPaginatedEvents } from "~/lib/events.server";
 import { getPaginatedJobs } from "~/lib/jobs.server";
 
+function projectPage<T, U>(
+  result: { items: T[]; total: number; nextOffset: number | null },
+  select: (row: T) => U,
+) {
+  return { ...result, items: result.items.map(select) };
+}
 export const publicReadOperations = {
   eventPublicList: defineOperation({
     name: "eventPublicList",
@@ -40,7 +40,7 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Only publicly visible events are returned. upcoming defaults to true; false includes past events. Administrators use eventList for moderation data.",
     input: publicEventListInput,
-    output: page(eventOutput),
+    output: page(output.eventPublicOutput),
     examples: [{ title: "First page", input: {} }],
     run: async (_ctx, input) => {
       const result = await getPaginatedEvents(
@@ -49,7 +49,11 @@ export const publicReadOperations = {
         input.query,
         input.upcoming ? "upcoming" : "all",
       );
-      return toPlain(pageResult(input, result.items, result.total));
+      return pageResult(
+        input,
+        result.items.map((row) => publicEvent(toPlain(row))),
+        result.total,
+      );
     },
   }),
   jobPublicList: defineOperation({
@@ -61,7 +65,7 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Only active jobs; no source credentials or private source URLs are returned. Administrators use jobList for moderation data.",
     input: publicJobListInput,
-    output: page(jobListItemOutput.omit({ importSourceIdentifier: true, importSourceUrl: true })),
+    output: page(output.jobPublicOutput),
     examples: [{ title: "First page", input: {} }],
     run: async (_ctx, input) => {
       const result = await getPaginatedJobs(input.limit, input.offset, input.query, {
@@ -76,12 +80,19 @@ export const publicReadOperations = {
         sort: input.sort,
         order: input.order,
       });
-      return toPlain(
-        pageResult(
-          input,
-          result.items.map(({ importSourceIdentifier: _id, importSourceUrl: _url, ...row }) => row),
-          result.total,
+      const companies = publicCompanyReferences(
+        result.items.flatMap((row) => (row.companyId === null ? [] : [row.companyId])),
+      );
+      return pageResult(
+        input,
+        result.items.map((row) =>
+          project(output.jobPublicOutput, {
+            ...toPlain(row),
+            description: row.description ?? row.descriptionText,
+            company: row.companyId === null ? null : (companies.get(row.companyId) ?? null),
+          }),
         ),
+        result.total,
       );
     },
   }),
@@ -94,9 +105,12 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Only published news is returned. Administrators use newsList for moderation data.",
     input: newsPublicListInput,
-    output: page(newsOutput),
+    output: page(output.newsPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listNews({ ...input, status: "published" })),
+    run: async (_ctx, input) =>
+      projectPage(listNews({ ...input, status: "published" }), (row) =>
+        project(output.newsPublicOutput, toPlain(row)),
+      ),
   }),
   companyPublicList: defineOperation({
     name: "companyPublicList",
@@ -107,9 +121,12 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Hidden records are excluded. Administrators use companyList for moderation data.",
     input: publicListInput,
-    output: page(companyOutput),
+    output: page(output.companyPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listCompanies({ ...input, visible: true })),
+    run: async (_ctx, input) =>
+      projectPage(listCompanies({ ...input, visible: true }), (row) =>
+        project(output.companyPublicOutput, toPlain(row)),
+      ),
   }),
   groupPublicList: defineOperation({
     name: "groupPublicList",
@@ -120,9 +137,12 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Follow the public directory visibility rules. Administrators use groupList for moderation data.",
     input: publicListInput,
-    output: page(groupOutput),
+    output: page(output.groupPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listGroups({ ...input, visible: true })),
+    run: async (_ctx, input) =>
+      projectPage(listGroups({ ...input, visible: true }), (row) =>
+        project(output.groupPublicOutput, toPlain(row)),
+      ),
   }),
   personPublicList: defineOperation({
     name: "personPublicList",
@@ -133,9 +153,12 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Hidden records are excluded. Administrators use personList for moderation data.",
     input: publicListInput,
-    output: page(personOutput),
+    output: page(output.personPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listPeople({ ...input, visible: true })),
+    run: async (_ctx, input) =>
+      projectPage(listPeople({ ...input, visible: true }), (row) =>
+        project(output.personPublicOutput, toPlain(row)),
+      ),
   }),
   educationPublicList: defineOperation({
     name: "educationPublicList",
@@ -146,9 +169,12 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Hidden records are excluded. Administrators use educationList for moderation data.",
     input: publicListInput,
-    output: page(educationOutput),
+    output: page(output.educationPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listEducation({ ...input, visible: true })),
+    run: async (_ctx, input) =>
+      projectPage(listEducation({ ...input, visible: true }), (row) =>
+        project(output.educationPublicOutput, toPlain(row)),
+      ),
   }),
   technologyPublicList: defineOperation({
     name: "technologyPublicList",
@@ -159,9 +185,12 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Hidden records are excluded. Administrators use technologyList for moderation data.",
     input: publicListInput,
-    output: page(technologyOutput),
+    output: page(output.technologyPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listTechnologies({ ...input, visible: true })),
+    run: async (_ctx, input) =>
+      projectPage(listTechnologies({ ...input, visible: true }), (row) =>
+        project(output.technologyPublicOutput, toPlain(row)),
+      ),
   }),
   productPublicList: defineOperation({
     name: "productPublicList",
@@ -172,9 +201,12 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Follow the public directory visibility rules. Administrators use productList for moderation data.",
     input: publicListInput,
-    output: page(productListItemOutput),
+    output: page(output.productPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listProducts({ ...input })),
+    run: async (_ctx, input) =>
+      projectPage(listProducts({ ...input }), (row) =>
+        project(output.productPublicOutput, toPlain(row)),
+      ),
   }),
   projectPublicList: defineOperation({
     name: "projectPublicList",
@@ -185,8 +217,11 @@ export const publicReadOperations = {
     description:
       "Return a bounded page with optional text search. Follow the public directory visibility rules. Administrators use projectList for moderation data.",
     input: publicListInput,
-    output: page(projectOutput),
+    output: page(output.projectPublicOutput),
     examples: [{ title: "First page", input: {} }],
-    run: async (_ctx, input) => toPlain(listProjects({ ...input })),
+    run: async (_ctx, input) =>
+      projectPage(listProjects({ ...input }), (row) =>
+        project(output.projectPublicOutput, toPlain(row)),
+      ),
   }),
 };

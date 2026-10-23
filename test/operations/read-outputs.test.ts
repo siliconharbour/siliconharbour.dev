@@ -33,10 +33,10 @@ it("executes every catalog read against persisted records or mocked provider bou
     .values({ id: 1, name: "Person", bio: "Bio", slug: "person", visible: true });
   await db
     .insert(education)
-    .values({ id: 1, name: "School", slug: "school", description: "Description" });
+    .values({ id: 1, name: "School", slug: "school", description: "Description", visible: true });
   await db
     .insert(groups)
-    .values({ id: 1, name: "Group", slug: "group", description: "Description" });
+    .values({ id: 1, name: "Group", slug: "group", description: "Description", visible: true });
   await db
     .insert(products)
     .values({ id: 1, name: "Product", slug: "product", description: "Description" });
@@ -45,7 +45,7 @@ it("executes every catalog read against persisted records or mocked provider bou
     .values({ id: 1, name: "Project", slug: "project", description: "Description" });
   await db
     .insert(technologies)
-    .values({ id: 1, name: "Technology", category: "language", slug: "technology" });
+    .values({ id: 1, name: "Technology", category: "language", slug: "technology", visible: true });
   await db.insert(events).values({
     id: 1,
     title: "Event",
@@ -62,9 +62,14 @@ it("executes every catalog read against persisted records or mocked provider bou
     description: "Description",
     url: "https://example.com/job",
   });
-  await db
-    .insert(news)
-    .values({ id: 1, title: "News", slug: "news", content: "Content", type: "article" });
+  await db.insert(news).values({
+    id: 1,
+    title: "News",
+    slug: "news",
+    content: "Content",
+    type: "article",
+    status: "published",
+  });
   await db
     .insert(jobImportSources)
     .values({ id: 1, companyId: 1, sourceType: "greenhouse", sourceIdentifier: "example" });
@@ -107,6 +112,7 @@ it("executes every catalog read against persisted records or mocked provider bou
   };
   const run = startAsyncSync([], adminContext(1).actor);
   const inputs: Record<string, unknown> = {
+    educationPublicGet: { slug: "school" },
     asyncSyncGet: { id: run.id },
     discordChannelsList: { guildId: "123" },
     jobTechNLGet: { link: posting.link },
