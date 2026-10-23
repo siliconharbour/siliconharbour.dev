@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 const USER_AGENT =
   "siliconharbour.dev/1.0 (Community Directory Import; +https://siliconharbour.dev)";
 
@@ -23,7 +24,7 @@ interface Transport {
 
 export function createLumaHttp(transport: Partial<Transport> = {}) {
   const {
-    fetch: request = (...args) => fetch(...args),
+    fetch: request = (...args) => publicFetch(...args),
     sleep = (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
     now = Date.now,
     random = Math.random,

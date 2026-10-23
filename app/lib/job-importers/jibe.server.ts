@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Jibe Job Importer
  * Fetches jobs from Jibe-powered career sites via their public JSON API
@@ -153,7 +154,7 @@ async function fetchAllJibeJobs(domain: string): Promise<JibeJob[]> {
   do {
     const url = `https://${domain}/api/jobs?limit=${PAGE_SIZE}&page=${page}`;
 
-    const response = await fetch(url, {
+    const response = await publicFetch(url, {
       headers: {
         Accept: "application/json",
         "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",

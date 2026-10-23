@@ -1,3 +1,4 @@
+import * as publicNetwork from "~/lib/public-network-fetch.server";
 import { db } from "~/db";
 import { events } from "~/db/schema";
 import { createEventImportSource, syncEvents } from "~/lib/event-importers/sync.server";
@@ -23,7 +24,10 @@ vi.mock("~/lib/event-importers/luma-http.server", async (importOriginal) => {
   };
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 const html = readFileSync("test/fixtures/luma/calendar.html", "utf8");
 const data = JSON.parse(html.match(/<script[^>]*>([\s\S]*?)<\/script>/)![1]);
 const entries = data.props.pageProps.initialData.data.upcoming.entries;
@@ -43,7 +47,7 @@ function mockRequests(responses: Array<string | object | number>) {
     if (typeof response === "number") return new Response("limited", { status: response });
     return new Response(typeof response === "string" ? response : JSON.stringify(response));
   });
-  vi.stubGlobal("fetch", request);
+  vi.spyOn(publicNetwork, "publicFetch").mockImplementation(request);
   return request;
 }
 

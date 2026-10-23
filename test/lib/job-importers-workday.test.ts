@@ -1,3 +1,4 @@
+import * as publicNetwork from "~/lib/public-network-fetch.server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { workdayImporter } from "../../app/lib/job-importers/workday.server";
 
@@ -15,17 +16,19 @@ describe("workday importer", () => {
       bulletFields: [id],
     });
 
-    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (_input, init) => {
-      if (init?.method !== "POST") {
-        return new Response("unavailable", { status: 503 });
-      }
+    const fetchMock = vi
+      .spyOn(publicNetwork, "publicFetch")
+      .mockImplementation(async (_input, init) => {
+        if (init?.method !== "POST") {
+          return new Response("unavailable", { status: 503 });
+        }
 
-      const body = JSON.parse(String(init.body)) as { limit: number; offset: number };
-      return Response.json({
-        total: 2,
-        jobPostings: body.offset === 0 ? [listing("R1")] : [listing("R2")],
+        const body = JSON.parse(String(init.body)) as { limit: number; offset: number };
+        return Response.json({
+          total: 2,
+          jobPostings: body.offset === 0 ? [listing("R1")] : [listing("R2")],
+        });
       });
-    });
 
     const jobs = await workdayImporter.fetchJobs({
       id: 1,

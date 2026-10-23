@@ -1,62 +1,65 @@
 # MCP entity images
 
-Image operations require the admin-only `mcp:write` scope and run through `execute` as `tools.siliconharbour.*`. Search for `image`, `setEntityImage`, `prepareImageUpload` or `attachImage` to discover them.
+Image operations require administrator access and `mcp:write`. Call them through `execute` as `tools.siliconharbour.*`. Search for `image`, `imageSetFromUrl`, `imageUploadPrepare`, or `imageAttach`.
 
 ## Public image URL
 
-Create an event and attach its cover in one execution:
-
 ```js
-const created = await tools.siliconharbour.createEntity({
-  type: "event",
+const event = await tools.siliconharbour.eventCreate({
   title: "Community workshop",
   description: "An evening of building together.",
   link: "https://example.com/workshop",
-  startDate: "2026-11-20",
-  startTime: "18:00",
+  dates: [{ startDate: "2026-11-20", startTime: "18:00" }],
+  coverImage: { kind: "url", url: "https://example.com/cover.png" },
 });
-return await tools.siliconharbour.setEntityImage({
-  type: "event",
-  id: created.entity.id,
-  role: "cover",
-  url: "https://example.com/workshop-cover.png",
-});
+return { id: event.id, importStatus: event.importStatus };
 ```
 
-Images must use HTTPS on port 443 without URL credentials. Every connection validates all DNS answers and uses those same answers to connect, preserving TLS hostname verification. Private, loopback, link-local, metadata, reserved and IPv6 transition addresses are rejected. Redirect targets receive the same checks; at most three redirects are allowed. The entire download has a 20-second deadline. Declared and streamed response sizes, MIME type and file signatures are checked. HTTP content encoding must be absent or identity.
+For an existing record, call `imageSetFromUrl({ type, id, role, url })`, or pass an image command to its update operation. Images do not change visibility or publish a record.
+
+URLs must use HTTPS on port 443 without credentials. Every connection checks all DNS answers and connects using those same answers, preserving TLS hostname verification. Private, loopback, link-local, metadata, reserved, and IPv6 transition addresses are rejected. Redirects receive the same checks; at most three are allowed. Image downloads have a 20-second deadline, and declared/streamed sizes, content types, and file signatures are checked. Image content encoding must be absent or identity.
 
 ## Local file
 
-1. Call `prepareImageUpload` inside `execute`:
+1. Inside `execute`, reserve a slot:
 
    ```js
-   return await tools.siliconharbour.prepareImageUpload({
+   return await tools.siliconharbour.imageUploadPrepare({
      filename: "cover.png",
      contentType: "image/png",
      size: 12345,
    });
    ```
 
-   The result contains `uploadId`, `uploadUrl`, `method: "PUT"`, `headers`, and an ISO `expiresAt` timestamp.
+2. Outside the sandbox, PUT the exact raw bytes to the returned `uploadUrl`, using its `method` and `headers`. Do not send JSON, multipart data, or base64. The sandbox has no `fetch`. The returned Authorization header grants upload access only; keep it out of logs and URLs. No OAuth header is needed for this PUT.
 
-2. Outside `execute`, use an HTTP client to PUT the exact raw file bytes to `uploadUrl`, with all returned headers. Do not send JSON, multipart data or base64. The sandbox has no `fetch`, so this request must be made by the outer client. The returned Authorization header is an upload-only capability token; it grants no MCP access. Keep it out of logs and URLs. No OAuth header is needed for this PUT.
-
-3. Call `attachImage` inside `execute`:
+3. Attach the ready upload:
 
    ```js
-   return await tools.siliconharbour.attachImage({
+   return await tools.siliconharbour.imageAttach({
      type: "event",
      id: 123,
      role: "cover",
-     uploadId: "<uploadId from prepareImageUpload>",
+     uploadId: "<returned uploadId>",
    });
    ```
 
-An upload expires ten minutes after preparation. Its token permits one successful PUT claim, and the uploaded file can be attached once. Invalid body data or a stalled claimed upload consumes the slot; prepare a new one to retry. Header/type/declared-length errors before claiming leave the slot available. PUT bodies have a 30-second deadline. Concurrent PUT/attach attempts cannot claim the same state twice. Invalid entity IDs or unsupported roles are checked before consuming an uploaded file.
+Uploads expire after ten minutes and can be attached once. Concurrent attempts cannot claim the same state. Invalid entity IDs or roles are checked before consumption. A failed attachment retains a ready upload for retry; a successful attachment removes its temporary data. Invalid body data or a stalled claimed PUT consumes the slot, so reserve a new one. Header/type/declared-length errors before claiming preserve it. PUT bodies have a 30-second deadline.
 
-## Supported targets
+## Image commands and clearing
 
-| Entity type                                           | Cover        | Icon field  |
+Entity create/update contracts accept strict image commands:
+
+- `{ kind: "keep" }`: preserve the current image.
+- `{ kind: "clear" }`: remove the reference and delete an unreferenced file.
+- `{ kind: "url", url }`: download a guarded public image.
+- `{ kind: "upload", uploadId }`: consume a ready local upload.
+- `{ kind: "dataUrl", dataUrl }`: accept cropped image data from an admin form.
+- `{ kind: "generateFromIcon" }`: generate a cover using the entity's icon.
+
+For a separate clear action, call `imageClear({ type, id, role, confirm: true })`. Clearing or replacing an event cover also clears its pending imported cover URL.
+
+| Entity                                                | Cover field  | Icon field  |
 | ----------------------------------------------------- | ------------ | ----------- |
 | `event`                                               | `coverImage` | `iconImage` |
 | `company`, `group`, `education`, `project`, `product` | `coverImage` | `logo`      |
@@ -64,8 +67,8 @@ An upload expires ten minutes after preparation. Its token permits one successfu
 | `technology`                                          | Unsupported  | `icon`      |
 | `news`                                                | `coverImage` | Unsupported |
 
-Both flows accept static JPEG, PNG, WebP, GIF or AVIF images up to 5 MiB and 16 megapixels. SVGs and animated images are rejected. Covers use the existing maximum 1200 × 630 WebP processor; icons use the existing 256 × 256 crop. Metadata is stripped by the existing processing pipeline.
+Images must be static JPEG, PNG, WebP, GIF, or AVIF, at most 5 MiB and 16 megapixels. SVGs and animations are rejected. Covers use the maximum 1200 × 630 WebP processor. Icons use a 256 × 256 crop, with padding for product icons. Metadata is stripped.
 
-Attaching an image updates its filename and the entity's update timestamp, without changing visibility, review status or publication dates. Event cover attachment clears the pending imported cover URL so approval will not replace it. The result contains `type`, `id`, `role`, `filename` and the relative `/images/:filename` URL. Replaced files are removed after the row update, provided the existing orphan-image reference checker finds no remaining reference. A failed row update removes the newly processed file instead.
+Images are prepared before entity fields are saved. Failed saves clean up newly prepared, unreferenced files. Replaced files are deleted only after the new reference is stored and the reference checker finds no remaining use.
 
-Temporary files and hashed upload tokens live in `DATA_DIR/mcp-uploads`, outside the public image directory, with restricted file permissions. The single Node server reserves at most 32 slots synchronously, bounding temporary image bytes to 160 MiB. Cleanup runs on startup, every minute, and before new reservations; expired slots, incomplete uploads and unused files are removed. Successful or failed attachments remove their temporary data immediately. No database migration or external storage is required.
+Upload bytes and hashed tokens live under `DATA_DIR/mcp-uploads`, outside public images, with restricted permissions. A process reserves at most 32 slots, bounding reserved image bytes to 160 MiB. Cleanup runs on startup, every minute, and before new reservations.

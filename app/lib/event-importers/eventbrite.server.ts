@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Eventbrite Organizer Event Importer
  *
@@ -245,7 +246,7 @@ function parseJsonLdEvents(html: string): FetchedEvent[] {
 
 async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]> {
   const url = `${EVENTBRITE_BASE}/o/${organizerId}`;
-  const res = await fetch(url, {
+  const res = await publicFetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",
       Accept: "text/html",
@@ -263,7 +264,7 @@ async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]
 }
 
 async function fetchEventPage(url: string): Promise<FetchedEvent[]> {
-  const res = await fetch(url, {
+  const res = await publicFetch(url, {
     headers: {
       "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",
       Accept: "text/html",

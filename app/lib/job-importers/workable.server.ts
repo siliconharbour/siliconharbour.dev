@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Workable Job Importer
  * Fetches jobs from Workable's public widget API
@@ -137,7 +138,7 @@ function buildDescriptionHtml(detail: WorkableJobDetail): string {
 async function fetchWorkableJobs(slug: string): Promise<WorkableListJob[]> {
   const url = `https://apply.workable.com/api/v1/widget/accounts/${encodeURIComponent(slug)}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
       "User-Agent": "siliconharbour.dev job importer",
@@ -169,7 +170,7 @@ async function fetchWorkableJobDetail(
 ): Promise<WorkableJobDetail | null> {
   const url = `https://apply.workable.com/api/v2/accounts/${encodeURIComponent(slug)}/jobs/${encodeURIComponent(shortcode)}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
       "User-Agent": "siliconharbour.dev job importer",

@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Carnegie Learning Canada custom scraper
  *
@@ -62,7 +63,7 @@ interface JobDetail {
  * Fetch the career page HTML and extract the sessionJWT from the embedded config.
  */
 async function getSessionJwt(): Promise<string> {
-  const res = await fetch(PORTAL_URL, {
+  const res = await publicFetch(PORTAL_URL, {
     headers: {
       Accept: "text/html",
       "User-Agent": USER_AGENT,
@@ -108,7 +109,7 @@ async function searchJobs(jwt: string): Promise<JobPreview[]> {
     },
   };
 
-  const res = await fetch(url, {
+  const res = await publicFetch(url, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -137,7 +138,7 @@ async function searchJobs(jwt: string): Promise<JobPreview[]> {
 async function fetchJobDetail(jwt: string, jobId: number): Promise<JobDetail | null> {
   const url = `${API_BASE}/api/ats/job-postings/${jobId}`;
 
-  const res = await fetch(url, {
+  const res = await publicFetch(url, {
     headers: {
       Accept: "application/json",
       "User-Agent": USER_AGENT,

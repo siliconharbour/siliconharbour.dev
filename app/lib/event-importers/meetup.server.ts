@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Meetup Event Importer
  *
@@ -69,7 +70,7 @@ async function fetchMeetupPage(
       ? `${MEETUP_BASE}/${groupUrlname}/events/`
       : `${MEETUP_BASE}/${groupUrlname}/events/?type=past`;
 
-  const res = await fetch(url, {
+  const res = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",

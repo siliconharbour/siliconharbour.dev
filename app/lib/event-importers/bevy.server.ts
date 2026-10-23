@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Bevy Community Event Importer
  *
@@ -89,7 +90,7 @@ async function fetchBevyEvents(
     `?page_size=50&status=${status}&include_cohosted_events=true` +
     `&order=${order}&fields=${fields}`;
 
-  const res = await fetch(url, {
+  const res = await publicFetch(url, {
     headers: {
       Accept: "application/json",
       "User-Agent": "Mozilla/5.0 (compatible; SiliconHarbour/1.0; +https://siliconharbour.dev)",

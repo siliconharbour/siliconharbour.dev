@@ -1,3 +1,4 @@
+import * as publicNetwork from "~/lib/public-network-fetch.server";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { __testables, careerbeaconImporter } from "../../app/lib/job-importers/careerbeacon.server";
 
@@ -55,7 +56,7 @@ describe("careerbeacon importer", () => {
       </body></html>
     `;
 
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+    vi.spyOn(publicNetwork, "publicFetch").mockResolvedValue({
       ok: true,
       status: 200,
       statusText: "OK",

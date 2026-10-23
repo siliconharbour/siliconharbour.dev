@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Ashby Job Importer
  * Extracts job data from Ashby's embedded __appData JSON
@@ -87,7 +88,7 @@ function convertWorkplaceType(ashbyType: string): WorkplaceType | undefined {
 async function fetchAshbyListingPage(orgSlug: string): Promise<AshbyAppData> {
   const url = `${ASHBY_BASE}/${orgSlug}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       "User-Agent": "siliconharbour.dev job importer",
@@ -111,7 +112,7 @@ async function fetchAshbyListingPage(orgSlug: string): Promise<AshbyAppData> {
 async function fetchAshbyJobDetail(orgSlug: string, jobId: string): Promise<AshbyJobDetailAppData> {
   const url = `${ASHBY_BASE}/${orgSlug}/${jobId}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       "User-Agent": "siliconharbour.dev job importer",

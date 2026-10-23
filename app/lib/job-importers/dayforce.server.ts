@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Dayforce Job Importer
  *
@@ -73,7 +74,7 @@ function parseIdentifier(sourceIdentifier: string): {
  * Returns the token and a cookie header string for subsequent requests.
  */
 async function getSession(): Promise<{ csrfToken: string; cookies: string }> {
-  const res = await fetch(`${BASE_URL}/api/auth/csrf`, {
+  const res = await publicFetch(`${BASE_URL}/api/auth/csrf`, {
     headers: {
       Accept: "application/json",
       "User-Agent": USER_AGENT,
@@ -116,7 +117,7 @@ async function fetchAllJobs(
       paginationStart: offset,
     };
 
-    const res = await fetch(url, {
+    const res = await publicFetch(url, {
       method: "POST",
       headers: {
         Accept: "application/json",

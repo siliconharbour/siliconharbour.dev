@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 import { fetchPublicImage } from "./public-image-fetch.server";
 /**
  * Scraper utilities for importing company data from external directories.
@@ -30,7 +31,7 @@ const TECHNL_DIRECTORY_URL = "https://members.technl.ca/memberdirectory/FindStar
  * Fetch and parse company data from TechNL member directory
  */
 export async function scrapeTechNL(): Promise<ScrapedCompany[]> {
-  const response = await fetch(TECHNL_DIRECTORY_URL, {
+  const response = await publicFetch(TECHNL_DIRECTORY_URL, {
     headers: {
       "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
     },
@@ -121,7 +122,7 @@ const GENESIS_PORTFOLIO_URL = "https://www.genesiscentre.ca/portfolio";
  * Fetch and parse company data from Genesis Centre portfolio
  */
 export async function scrapeGenesis(): Promise<ScrapedCompany[]> {
-  const response = await fetch(GENESIS_PORTFOLIO_URL, {
+  const response = await publicFetch(GENESIS_PORTFOLIO_URL, {
     headers: {
       "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
     },
@@ -210,7 +211,7 @@ const BOUNCE_COMPANIES_URL = "https://bounceinnovation.ca/companies/";
  * Fetch and parse company data from Bounce Health Innovation
  */
 export async function scrapeBounce(): Promise<ScrapedCompany[]> {
-  const response = await fetch(BOUNCE_COMPANIES_URL, {
+  const response = await publicFetch(BOUNCE_COMPANIES_URL, {
     headers: {
       "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
     },
@@ -255,7 +256,7 @@ async function parseBounceCompanyDetail(
   slug: string,
 ): Promise<ScrapedCompany | null> {
   try {
-    const response = await fetch(detailUrl, {
+    const response = await publicFetch(detailUrl, {
       headers: {
         "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
       },

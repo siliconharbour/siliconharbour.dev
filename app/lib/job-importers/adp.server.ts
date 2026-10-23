@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * ADP Job Importer
  *
@@ -137,7 +138,7 @@ function buildRequisitionDetailUrl(config: AdpConfig, itemId: string): string {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
       "X-Requested-With": "XMLHttpRequest",

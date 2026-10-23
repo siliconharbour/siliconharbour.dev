@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Workday Job Importer
  * Fetches jobs from Workday's public career site API
@@ -166,7 +167,7 @@ async function fetchWorkdayJobs(
   const url = `${baseUrl}/wday/cxs/${company}/${site}/jobs`;
 
   // Workday uses POST with a JSON body
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -199,7 +200,7 @@ async function fetchWorkdayJobs(
     let offset = data.jobPostings.length;
 
     while (offset < data.total) {
-      const pageResponse = await fetch(url, {
+      const pageResponse = await publicFetch(url, {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -242,7 +243,7 @@ async function fetchWorkdayJobDetail(
   // externalPath already includes the leading slash and full path
   const url = `${baseUrl}/wday/cxs/${company}/${site}${externalPath}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
       "User-Agent": BROWSER_USER_AGENT,

@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * iCIMS Job Importer
  *
@@ -36,7 +37,7 @@ const ICIMS_JOB_LINK_RE = /\/jobs\/(\d+)\/[^"'\s<>]+\/job/gi;
  * Fetch HTML from a URL with a standard browser-like User-Agent.
  */
 async function fetchHtml(url: string): Promise<string> {
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "text/html",
       "User-Agent": "siliconharbour.dev job importer",

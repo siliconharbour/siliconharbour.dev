@@ -1,3 +1,4 @@
+import { buildReadFunctions } from "~/mcp/bridge";
 import { describe, it, expect } from "vitest";
 import { db } from "~/db";
 import { events, eventDates, references } from "~/db/schema";
@@ -106,6 +107,29 @@ describe("event date filtering", () => {
 
     expect(publicResult.items.map((event) => event.slug)).not.toContain("private-draft");
     expect(adminResult.items.map((event) => event.slug)).toContain("private-draft");
+  });
+
+  it("keeps unpublished events out of the unauthenticated MCP query surface", async () => {
+    const [draft] = await db
+      .insert(events)
+      .values({
+        slug: "private-mcp-draft",
+        title: "Private MCP Draft",
+        description: "Not ready",
+        link: "https://example.com/mcp-draft",
+        importStatus: "pending_review",
+      })
+      .returning();
+    await db.insert(eventDates).values({
+      eventId: draft.id,
+      startDate: new Date("2099-06-01T18:00:00Z"),
+    });
+
+    const result = (await buildReadFunctions().eventPublicList({ limit: 100 })) as Array<{
+      slug: string;
+    }>;
+
+    expect(result.map((event) => event.slug)).not.toContain("private-mcp-draft");
   });
 
   it("does not reveal an unpublished parent through a published child", async () => {

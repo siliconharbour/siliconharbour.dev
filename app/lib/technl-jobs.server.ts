@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * TechNL job board aggregator
  *
@@ -93,7 +94,7 @@ export function findExistingTechNLJob(
  * Fetch the TechNL job feed and parse it into structured entries.
  */
 export async function fetchTechNLJobs(): Promise<TechNLJob[]> {
-  const response = await fetch(FEED_URL, {
+  const response = await publicFetch(FEED_URL, {
     headers: { Accept: "application/rss+xml, application/xml, text/xml" },
   });
   if (!response.ok) {

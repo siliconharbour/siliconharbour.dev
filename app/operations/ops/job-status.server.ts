@@ -42,7 +42,7 @@ export const jobStatusOperations = {
   jobApprove: statusOperation(
     "jobApprove",
     "Approve a job as technical.",
-    "Set status to active and isTechnical to true. Works for imported jobs without editing importer-owned fields.",
+    "Set status to active and isTechnical to true. Approve technical roles in St. John's/NL or remote in Canada; use jobApproveNonTechnical for other relevant local/remote roles and jobHide for unrelated postings. Imported fields remain unchanged.",
     approveJob,
   ),
   jobApproveNonTechnical: statusOperation(

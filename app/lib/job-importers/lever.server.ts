@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Lever Job Importer
  * Fetches jobs from Lever's public postings API
@@ -106,7 +107,7 @@ function formatLocation(categories: LeverCategories): string | undefined {
 async function fetchLeverPostings(company: string): Promise<LeverPosting[]> {
   const url = `https://api.lever.co/v0/postings/${encodeURIComponent(company)}`;
 
-  const response = await fetch(url, {
+  const response = await publicFetch(url, {
     headers: {
       Accept: "application/json",
     },
@@ -178,7 +179,7 @@ export const leverImporter: JobImporter = {
     try {
       // Lever's API can fetch individual postings
       const url = `https://api.lever.co/v0/postings/${encodeURIComponent(company)}/${jobId}`;
-      const response = await fetch(url, {
+      const response = await publicFetch(url, {
         headers: { Accept: "application/json" },
       });
 

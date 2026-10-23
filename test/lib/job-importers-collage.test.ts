@@ -1,3 +1,4 @@
+import * as publicNetwork from "~/lib/public-network-fetch.server";
 import { afterEach, expect, it, vi } from "vitest";
 import { collageImporter } from "../../app/lib/job-importers/collage.server";
 
@@ -17,7 +18,7 @@ it("reads locations separated by Collage's visual bullet elements", async () => 
       </a>
     </div>`;
   const detail = `<h1 class="ATS-position-title-main">Engineer</h1><div class="ATS-position-description"><p>Build systems.</p></div>`;
-  vi.spyOn(globalThis, "fetch").mockImplementation(
+  vi.spyOn(publicNetwork, "publicFetch").mockImplementation(
     async (url) =>
       ({
         ok: true,

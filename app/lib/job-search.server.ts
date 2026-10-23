@@ -1,3 +1,4 @@
+import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Job search aggregators for Indeed and LinkedIn.
  *
@@ -117,7 +118,7 @@ export async function searchIndeed(opts: {
     .replace("{cursor}", "")
     .replace("{filters}", filters);
 
-  const res = await fetch(INDEED_API, {
+  const res = await publicFetch(INDEED_API, {
     method: "POST",
     headers: INDEED_HEADERS,
     body: JSON.stringify({ query }),
@@ -214,7 +215,7 @@ export async function searchLinkedIn(opts: {
 
   const url = `${LINKEDIN_BASE}/jobs-guest/jobs/api/seeMoreJobPostings/search?${params}`;
 
-  const res = await fetch(url, { headers: LINKEDIN_HEADERS });
+  const res = await publicFetch(url, { headers: LINKEDIN_HEADERS });
   if (!res.ok) {
     if (res.status === 429) throw new Error("LinkedIn rate limited (429). Try again later.");
     throw new Error(`LinkedIn error: ${res.status}`);
