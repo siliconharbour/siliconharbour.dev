@@ -1,3 +1,4 @@
+import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 import type { z } from "zod";
@@ -92,6 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
       name: form.get("name"),
       reason: form.get("reason") ?? null,
       deleteExisting: true,
+      ...optionalBlockReason(form),
       confirm: true,
     });
     return result.ok
@@ -297,8 +299,10 @@ export default function ImportGitHub() {
 
   const handleBlock = (user: GitHubUser) => {
     const displayName = user.name || user.login;
+    const reason = window.prompt(`Reason for blocking ${displayName} (optional)`);
+    if (reason === null) return;
     fetcher.submit(
-      { intent: "block", externalId: user.html_url, name: displayName },
+      { intent: "block", externalId: user.html_url, name: displayName, reason },
       { method: "post" },
     );
   };
@@ -606,6 +610,8 @@ export default function ImportGitHub() {
               const existingStatus = isExisting(user);
               const blocked = isUserBlocked(user);
               const displayName = user.name || user.login;
+              const reason = window.prompt(`Reason for blocking ${displayName} (optional)`);
+              if (reason === null) return;
               return (
                 <div
                   key={user.login}

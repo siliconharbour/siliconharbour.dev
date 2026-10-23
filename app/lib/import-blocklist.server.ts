@@ -1,7 +1,7 @@
 import { normalizeBlockKey } from "./import-blocklist-key";
 import { db } from "~/db";
 import { importBlocklist, type ImportBlocklistItem } from "~/db/schema";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 function identity(source: string, externalId: string) {
   return and(
@@ -26,20 +26,25 @@ export async function getBlockedExternalIds(source: string): Promise<Set<string>
     .where(eq(importBlocklist.source, source));
   return new Set(items.map((item) => item.externalId));
 }
-export function blockItem(source: string, externalId: string, name: string, reason?: string): void {
-  db.insert(importBlocklist)
-    .values({
-      source,
-      externalId: normalizeBlockKey(source, externalId),
-      name: name.trim(),
-      reason,
-      blockedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: [importBlocklist.source, importBlocklist.externalId],
-      set: { reason: sql`coalesce(excluded.reason, ${importBlocklist.reason})` },
-    })
-    .run();
+export function blockItem(
+  source: string,
+  externalId: string,
+  name: string,
+  reason?: string | null,
+): boolean {
+  return (
+    db
+      .insert(importBlocklist)
+      .values({
+        source,
+        externalId: normalizeBlockKey(source, externalId),
+        name: name.trim(),
+        reason,
+        blockedAt: new Date(),
+      })
+      .onConflictDoNothing({ target: [importBlocklist.source, importBlocklist.externalId] })
+      .run().changes > 0
+  );
 }
 export function unblockItem(source: string, externalId: string): boolean {
   return db.delete(importBlocklist).where(identity(source, externalId)).run().changes > 0;
@@ -49,4 +54,11 @@ export async function getBlockedItem(
   externalId: string,
 ): Promise<ImportBlocklistItem | null> {
   return db.select().from(importBlocklist).where(identity(source, externalId)).get() ?? null;
+}
+
+export function updateBlockedItem(id: number, fields: { name?: string; reason?: string | null }) {
+  return (
+    db.update(importBlocklist).set(fields).where(eq(importBlocklist.id, id)).returning().get() ??
+    null
+  );
 }

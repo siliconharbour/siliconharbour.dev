@@ -11,7 +11,7 @@ export const blocklistItemOutput = z
     blockedAt: z.iso.datetime(),
   })
   .strict();
-import { text, nullableText, confirm } from "../fields";
+import { text, nullableText, confirm, updateContract } from "../fields";
 export const blocklistSource = z.enum(["github", "technl", "genesis", "bounce"]);
 export const blocklistListInput = listInput(["blockedAt", "name", "key"])
   .extend({ source: blocklistSource.optional() })
@@ -29,3 +29,11 @@ export const blocklistAddInput = z
 export const blocklistRemoveInput = z
   .object({ source: blocklistSource, externalId: text("externalId", 4096) })
   .strict();
+
+export const blocklistReason = nullableText(2000)
+  .describe("Reason for blocking this identity. Omit to use the review action's default.")
+  .optional();
+export const blocklistUpdateInput = updateContract({
+  name: text("name", 500).optional(),
+  reason: nullableText(2000).optional(),
+});

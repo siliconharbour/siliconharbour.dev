@@ -1,3 +1,5 @@
+import { BlockReasonField } from "~/components/manage/BlockReasonField";
+import { optionalBlockReason } from "~/lib/admin/form";
 import {
   loadAllAdminItems,
   loadAdminOperation,
@@ -157,7 +159,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const result = await runAdminOperation(request, operationCatalog.companyDelete, {
       id: Number(params.id),
       confirm: true,
-      block: { source: form.get("source") || "technl" },
+      block: { source: form.get("source") || "technl", ...optionalBlockReason(form) },
     });
     return result.ok ? redirect("/manage/companies") : { error: result.error };
   }
@@ -732,6 +734,7 @@ export default function EditCompany() {
               {company.technl && (
                 <Form method="post">
                   <input type="hidden" name="intent" value="import-block" />
+                  <BlockReasonField />
                   <input type="hidden" name="source" value="technl" />
                   <button
                     type="submit"
@@ -753,6 +756,7 @@ export default function EditCompany() {
               {company.genesis && (
                 <Form method="post">
                   <input type="hidden" name="intent" value="import-block" />
+                  <BlockReasonField />
                   <input type="hidden" name="source" value="genesis" />
                   <button
                     type="submit"

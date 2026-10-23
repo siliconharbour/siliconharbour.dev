@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { is, getTableColumns, getTableName } from "drizzle-orm";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
 import * as schema from "~/db/schema";
-import { columnCoverage, operationControlFields } from "~/operations/coverage";
+import { columnCoverage, operationControlFields, excludedTables } from "~/operations/coverage";
 import { operationCatalog } from "~/operations/catalog";
 import { z } from "zod";
 
@@ -22,6 +22,10 @@ function hasPath(node: Node | boolean | undefined, path: string[]): boolean {
 
 it("accounts for every column and checks each mapped contract field", () => {
   const tables = Object.values(schema).filter((value) => is(value, SQLiteTable));
+  expect([...Object.keys(columnCoverage), ...Object.keys(excludedTables)].sort()).toEqual(
+    tables.map(getTableName).sort(),
+  );
+  for (const reason of Object.values(excludedTables)) expect(reason.trim()).not.toBe("");
   for (const [name, coverage] of Object.entries(columnCoverage)) {
     const table = tables.find((value) => getTableName(value) === name);
     expect(table, name).toBeDefined();

@@ -10,7 +10,12 @@ import { deletePerson } from "./people.server";
 import { deleteCompany } from "./companies.server";
 
 const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-export function rejectDirectoryRecord(type: "person" | "company", id: number, now: Date) {
+export function rejectDirectoryRecord(
+  type: "person" | "company",
+  id: number,
+  now: Date,
+  reason?: string | null,
+) {
   return db.transaction(() => {
     const existing = db
       .select()
@@ -37,7 +42,15 @@ export function rejectDirectoryRecord(type: "person" | "company", id: number, no
             : null;
     const identity = person?.github || company?.website || company?.name;
     const key = source && identity ? normalizeBlockKey(source, identity) : null;
-    if (source && key) blockItem(source, key, record.name, "Rejected during review");
+    const createdBlock =
+      source && key
+        ? blockItem(
+            source,
+            key,
+            record.name,
+            reason === undefined ? "Rejected during review" : reason,
+          )
+        : false;
     if (type === "person") db.update(people).set({ visible: false }).where(eq(people.id, id)).run();
     else db.update(companies).set({ visible: false }).where(eq(companies.id, id)).run();
     return db
@@ -47,8 +60,8 @@ export function rejectDirectoryRecord(type: "person" | "company", id: number, no
         entityId: id,
         name: record.name,
         wasVisible: record.visible,
-        blockSource: source,
-        blockKey: key,
+        blockSource: createdBlock ? source : null,
+        blockKey: createdBlock ? key : null,
         rejectedAt: now,
         expiresAt: new Date(now.getTime() + RETENTION_MS),
       })

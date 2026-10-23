@@ -6,8 +6,8 @@ export const administrationCoverage: Record<string, Record<string, ColumnCoverag
     entityId: { excluded: "Retained entity identity; never supplied by restore clients" },
     name: { excluded: "Copied from the stored entity for rejected-record searches" },
     wasVisible: { excluded: "Original visibility retained by rejection" },
-    blockSource: { excluded: "Derived from stored import provenance" },
-    blockKey: { excluded: "Canonical key derived from the stored entity" },
+    blockSource: { excluded: "Tracks a block created by rejection for undo" },
+    blockKey: { excluded: "Canonical key of a block created by rejection for undo" },
     rejectedAt: { excluded: "Set from the operation clock" },
     expiresAt: { excluded: "Seven-day retention deadline" },
   },
@@ -96,11 +96,18 @@ export const administrationCoverage: Record<string, Record<string, ColumnCoverag
     name: {
       mapped: {
         blocklistAdd: "name",
+        blocklistUpdate: "name",
       },
     },
     reason: {
       mapped: {
         blocklistAdd: "reason",
+        blocklistUpdate: "reason",
+        personDelete: "block.reason",
+        companyDelete: "block.reason",
+        personReject: "reason",
+        companyReject: "reason",
+        personBulkReject: "reason",
       },
     },
     blockedAt: {

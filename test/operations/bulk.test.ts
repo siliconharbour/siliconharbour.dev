@@ -69,7 +69,7 @@ it.each([
     );
   },
 );
-it("normalizes bulk block keys and upserts duplicates without duplicating rows", async () => {
+it("normalizes bulk block keys and preserves the first block metadata", async () => {
   const result = await ops.blocklistAddMany.execute(ctx, {
     items: [
       { source: "github", externalId: "https://github.com/Example/", name: "Example" },
@@ -85,5 +85,5 @@ it("normalizes bulk block keys and upserts duplicates without duplicating rows",
     await db
       .select({ key: importBlocklist.externalId, reason: importBlocklist.reason })
       .from(importBlocklist),
-  ).toEqual([{ key: "example", reason: "Reviewed" }]);
+  ).toEqual([{ key: "example", reason: null }]);
 });
