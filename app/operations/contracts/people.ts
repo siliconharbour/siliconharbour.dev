@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { nullableGithubProfile } from "../fields";
 import { socialLinksOutput } from "~/lib/links";
 import { z } from "zod";
@@ -11,7 +12,7 @@ export const personFields = {
   avatar: imageInput.optional(),
   visible: z.boolean().optional(),
 };
-export const personCreateInput = z.object(personFields).strict();
+export const personCreateInput = z.object(personFields).strict().safeExtend(createOptions);
 export const personUpdateInput = updateContract(z.object(personFields).partial().shape);
 export const personDeleteInput = z
   .object({

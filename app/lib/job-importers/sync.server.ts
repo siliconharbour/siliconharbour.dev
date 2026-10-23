@@ -353,11 +353,11 @@ export async function getActiveJobsForCompany(companyId: number) {
     .orderBy(desc(jobs.postedAt));
 }
 
-/**
- * Get all import sources with stats
- */
 export async function getAllImportSources() {
-  const sources = await db.select().from(jobImportSources).orderBy(jobImportSources.updatedAt);
+  return db.select().from(jobImportSources).orderBy(jobImportSources.updatedAt);
+}
+export async function getAllImportSourcesWithStats() {
+  const sources = await getAllImportSources();
 
   // Get lifecycle counts for every source. Operator surfaces need to
   // distinguish a healthy source with hidden jobs from a zero-result scrape.

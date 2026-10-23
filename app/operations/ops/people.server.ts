@@ -1,3 +1,9 @@
+import {
+  createIfAbsent,
+  urlIdentity,
+  normalizeDirectoryIdentity,
+  normalizeGithubIdentity,
+} from "../creation.server";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listPeople } from "~/lib/directory-lists.server";
@@ -5,7 +11,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { lookupInput, adminListInput } from "../fields";
+import { lookupInput } from "../fields";
 import { personCreateInput, personUpdateInput } from "../contracts/people";
 import { personOutput } from "../contracts/people";
 import { createPerson, updatePerson, getPersonById, getAllPeople } from "~/lib/people.server";
@@ -56,23 +62,33 @@ export const personOperations = {
     access: "admin",
     summary: "Create a person.",
     description:
-      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved.",
+      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. New records default to hidden until approved. Set ifNotExists to return an existing record by GitHub profile, or website when no GitHub profile is supplied. Existing records are unchanged and return created:false; new records return created:true.",
     input: personCreateInput,
-    output: personOutput,
+    output: personOutput.extend({ created: z.boolean() }).strict(),
     examples: [{ title: "Create", input: { name: "Person", bio: "Description" } }],
-    run: async (_context, input) => {
-      const { avatar, socialLinks, ...fields } = input;
-
-      const result = await withEntityImages({ type: "person" }, { icon: avatar }, (images) =>
-        createPerson({
-          socialLinks,
-          ...fields,
-          visible: fields.visible ?? false,
-          ...images,
-        }),
-      );
-      return toPlain(result);
-    },
+    run: (_context, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "person",
+        ifNotExists,
+        urlIdentity(
+          input.github ?? input.website,
+          () => getAllPeople(true),
+          (row) => (input.github ? row.github : row.website),
+          input.github ? normalizeGithubIdentity : normalizeDirectoryIdentity,
+        ),
+        async () => {
+          const { avatar, socialLinks, ...fields } = input;
+          const result = await withEntityImages({ type: "person" }, { icon: avatar }, (images) =>
+            createPerson({
+              socialLinks,
+              ...fields,
+              visible: fields.visible ?? false,
+              ...images,
+            }),
+          );
+          return toPlain(result);
+        },
+      ),
   }),
   personUpdate: defineOperation({
     name: "personUpdate",

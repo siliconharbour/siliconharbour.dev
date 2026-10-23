@@ -5,7 +5,7 @@ import type { Route } from "./+types/jobs.new";
 import { Form, Link, useLoaderData, useActionData, useNavigation, redirect } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 import { getAllCompanies } from "~/lib/companies.server";
-import { getAllImportSources } from "~/lib/job-importers/sync.server";
+import { getAllImportSourcesWithStats } from "~/lib/job-importers/sync.server";
 import { getAvailableSourceTypes } from "~/lib/job-importers";
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
@@ -18,7 +18,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const [companies, existingSources] = await Promise.all([
     getAllCompanies(true),
-    getAllImportSources(),
+    getAllImportSourcesWithStats(),
   ]);
 
   // Get companies that don't already have an import source

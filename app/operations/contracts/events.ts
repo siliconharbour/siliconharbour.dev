@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { listInput } from "../listing";
 import { z } from "zod";
 import { eventTimeModes, eventTagColors, eventSourceTypes, fetchStatuses } from "../fields";
@@ -167,7 +168,8 @@ export const eventCreateInput = z
     validateSchedule(input, ctx);
     if (!input.dates && !input.recurrenceRule)
       ctx.addIssue({ code: "custom", message: "Supply dates or a recurrence rule" });
-  });
+  })
+  .safeExtend(createOptions);
 export const eventUpdateInput = updateContract(z.object(eventFields).partial().shape).superRefine(
   validateSchedule,
 );
@@ -203,7 +205,10 @@ export const eventSourceFields = {
   sourceIdentifier: text("sourceIdentifier", 1000),
   sourceUrl: nullableUrl().pipe(z.string()),
 };
-export const eventSourceCreateInput = z.object({ ...eventSourceFields, confirm }).strict();
+export const eventSourceCreateInput = z
+  .object({ ...eventSourceFields, confirm })
+  .strict()
+  .safeExtend(createOptions);
 export const eventSourceUpdateInput = updateContract(
   z.object(eventSourceFields).omit({ sourceType: true }).partial().shape,
 );

@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { z } from "zod";
 import { text, nullableUrl, imageInput, updateContract, id, productTypes } from "../fields";
 export const productFields = {
@@ -12,7 +13,8 @@ export const productFields = {
 export const productCreateInput = z
   .object(productFields)
   .extend({ type: productFields.type.default("other") })
-  .strict();
+  .strict()
+  .safeExtend(createOptions);
 export const productUpdateInput = updateContract(z.object(productFields).partial().shape);
 
 export const productOutput = z

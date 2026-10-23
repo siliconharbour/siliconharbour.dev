@@ -1,3 +1,5 @@
+import { getAllEventImportSources } from "~/lib/event-importers/sync.server";
+import { createIfAbsent, recordIdentity, identityKey } from "../creation.server";
 import { listInput, page, collectionPage } from "../listing";
 import { asyncSyncOutput as asyncResult } from "../contracts/importers";
 import { z } from "zod";
@@ -14,7 +16,7 @@ import {
   eventSourceOutput,
 } from "../contracts/events";
 import {
-  getAllEventImportSources,
+  getAllEventImportSourcesWithStats,
   getEventImportSourceById,
   createEventImportSource,
   updateEventImportSource,
@@ -46,7 +48,7 @@ export const eventSourceOperations = {
     examples: [{ title: "All sources", input: {} }],
     run: async (ctx, input) =>
       toPlain(
-        collectionPage(await getAllEventImportSources(), input, {
+        collectionPage(await getAllEventImportSourcesWithStats(), input, {
           createdAt: (row) => row.createdAt,
           name: (row) => row.name,
           sourceUrl: (row) => row.sourceUrl,
@@ -60,9 +62,9 @@ export const eventSourceOperations = {
     access: "admin",
     summary: "Validate and create an event import source.",
     description:
-      "Validate configuration using the selected importer, which may fetch the source. Store the source without importing events. Requires confirm: true. Use eventSourceSync to import.",
+      "Validate configuration using the selected importer, which may fetch the source. Store the source without importing events. Requires confirm: true. Use eventSourceSync to import. Set ifNotExists to return an existing record by source type and provider identifier. Existing records are unchanged and return created:false; new records return created:true.",
     input: eventSourceCreateInput,
-    output: eventSourceOutput,
+    output: eventSourceOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       {
         title: "Add source",
@@ -75,20 +77,31 @@ export const eventSourceOperations = {
         },
       },
     ],
-    run: async (ctx, input) => {
-      const { name, organizer, sourceType, sourceIdentifier, sourceUrl } = input;
-      const config = {
-        name,
-        sourceType,
-        sourceIdentifier,
-        sourceUrl,
-        organizer: organizer ?? null,
-      };
-      const result = await validateEventImportSourceConfig(config);
-      if (!result.valid)
-        throw new InvalidOperationError(result.error ?? "Invalid source configuration");
-      return toPlain(await createEventImportSource(config));
-    },
+    run: (ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "event-source",
+        ifNotExists,
+        recordIdentity(
+          identityKey(input.sourceType, input.sourceIdentifier),
+          getAllEventImportSources,
+          (row) =>
+            row.sourceType === input.sourceType && row.sourceIdentifier === input.sourceIdentifier,
+        ),
+        async () => {
+          const { name, organizer, sourceType, sourceIdentifier, sourceUrl } = input;
+          const config = {
+            name,
+            sourceType,
+            sourceIdentifier,
+            sourceUrl,
+            organizer: organizer ?? null,
+          };
+          const result = await validateEventImportSourceConfig(config);
+          if (!result.valid)
+            throw new InvalidOperationError(result.error ?? "Invalid source configuration");
+          return toPlain(await createEventImportSource(config));
+        },
+      ),
   }),
   eventSourceUpdate: defineOperation({
     name: "eventSourceUpdate",

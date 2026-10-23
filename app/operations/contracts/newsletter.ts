@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { listInput } from "../listing";
 import { email } from "../fields";
 import { z } from "zod";
@@ -51,6 +52,7 @@ export const campaignSendOutput = z
 export const campaignInput = z
   .object({ subject: text("subject", 255), bodyMarkdown: text("bodyMarkdown", 1_000_000) })
   .strict();
+export const campaignCreateInput = campaignInput.safeExtend(createOptions);
 export const campaignSaveInput = campaignInput.extend({ id: id() }).strict();
 export const campaignGetInput = z
   .object({ id: id(), offset: z.number().int().min(0).default(0) })
@@ -79,5 +81,6 @@ export const subscriberCreateInput = z
     lastName: nullableText(255).optional(),
     confirm,
   })
-  .strict();
+  .strict()
+  .safeExtend(createOptions);
 export const subscriberResendInput = z.object({ email: email(), confirm }).strict();

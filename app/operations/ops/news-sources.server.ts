@@ -1,3 +1,9 @@
+import {
+  createIfAbsent,
+  recordIdentity,
+  identityKey,
+  normalizeIdentityUrl,
+} from "../creation.server";
 import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -59,16 +65,30 @@ export const newsSourceOperations = {
     access: "admin",
     summary: "Create a news import source.",
     description:
-      "Store source and keyword configuration without fetching it. Use newsSourceTestFeed for an SSRF-guarded preview and newsSourceSync to import.",
+      "Store source and keyword configuration without fetching it. Use newsSourceTestFeed for an SSRF-guarded preview and newsSourceSync to import. Set ifNotExists to return an existing record by source type and canonical feed URL. Existing records are unchanged and return created:false; new records return created:true.",
     input: newsSourceCreateInput,
-    output: newsSourceOutput,
+    output: newsSourceOutput.extend({ created: z.boolean() }).strict(),
     examples: [
       {
         title: "Add feed",
         input: { name: "News", sourceType: "rss", sourceUrl: "https://example.com/feed.xml" },
       },
     ],
-    run: async (ctx, input) => toPlain(await createNewsImportSource(input)),
+    run: (ctx, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "news-source",
+        ifNotExists,
+        recordIdentity(
+          identityKey(input.sourceType, normalizeIdentityUrl(input.sourceUrl)),
+          getAllNewsImportSources,
+          (row) =>
+            row.sourceType === input.sourceType &&
+            normalizeIdentityUrl(row.sourceUrl) === normalizeIdentityUrl(input.sourceUrl),
+        ),
+        async () => {
+          return toPlain(await createNewsImportSource(input));
+        },
+      ),
   }),
   newsSourceUpdate: defineOperation({
     name: "newsSourceUpdate",

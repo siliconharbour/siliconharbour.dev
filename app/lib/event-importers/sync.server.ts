@@ -69,7 +69,10 @@ export function localDateTimeToUTC(
 // =============================================================================
 
 export async function getAllEventImportSources() {
-  const sources = await db.select().from(eventImportSources);
+  return db.select().from(eventImportSources);
+}
+export async function getAllEventImportSourcesWithStats() {
+  const sources = await getAllEventImportSources();
 
   // Enrich with pending/published counts
   return Promise.all(

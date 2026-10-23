@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { page } from "../listing";
 import { listInput } from "../listing";
 import { technologyProvenanceSourceKeys } from "../fields";
@@ -73,7 +74,7 @@ export const jobFields = {
   salaryRange: nullableText().optional(),
   isTechnical: z.boolean().optional(),
 };
-export const jobCreateInput = z.object(jobFields).strict();
+export const jobCreateInput = z.object(jobFields).strict().safeExtend(createOptions);
 export const jobUpdateInput = updateContract(
   z.object(jobFields).omit({ companyName: true }).partial().shape,
 );
@@ -100,7 +101,8 @@ export const jobSourceFields = {
 };
 export const jobSourceCreateInput = z
   .object({ ...jobSourceFields, skipValidation: z.boolean().default(false), confirm })
-  .strict();
+  .strict()
+  .safeExtend(createOptions);
 export const jobSourceUpdateInput = updateContract(
   z.object(jobSourceFields).omit({ companyId: true }).partial().shape,
 );
@@ -158,7 +160,8 @@ export const jobSearchImportInput = z
     salary: nullableText().optional(),
     isRemote: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .safeExtend(createOptions);
 export const jobSyncOutput = z
   .object({
     success: z.boolean(),

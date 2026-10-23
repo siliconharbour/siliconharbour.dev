@@ -1,3 +1,5 @@
+import { normalizeDirectoryIdentity } from "../creation.server";
+import { createIfAbsent, urlIdentity } from "../creation.server";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listProjects } from "~/lib/directory-lists.server";
@@ -7,7 +9,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { lookupInput, deleteInput, adminListInput } from "../fields";
+import { lookupInput, deleteInput } from "../fields";
 import { projectCreateInput, projectUpdateInput } from "../contracts/projects";
 import { projectOutput } from "../contracts/projects";
 import {
@@ -75,29 +77,40 @@ export const projectOperations = {
     access: "admin",
     summary: "Create a project.",
     description:
-      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. ",
+      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear.  Set ifNotExists to return an existing record by GitHub repository URL, or project website. Existing records are unchanged and return created:false; new records return created:true.",
     input: projectCreateInput,
-    output: projectOutput,
+    output: projectOutput.extend({ created: z.boolean() }).strict(),
     examples: [{ title: "Create", input: { name: "Project", description: "Description" } }],
-    run: async (_context, input) => {
-      const { logo, coverImage, links, technologyIds, ...fields } = input;
-      if (technologyIds !== undefined) await validateTechnologyIds(technologyIds);
-      const result = await withEntityImages(
-        { type: "project" },
-        { icon: logo, cover: coverImage },
-        async (images) => {
-          const record = await createProject({
-            links,
-            ...fields,
-            ...images,
-          });
-          if (technologyIds !== undefined)
-            await setTechnologiesForContent("project", record.id, technologyIds);
-          return record;
+    run: (_context, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "project",
+        ifNotExists,
+        urlIdentity(
+          input.links?.github ?? input.links?.website,
+          getAllProjects,
+          (row) => (input.links?.github ? row.links?.github : row.links?.website),
+          normalizeDirectoryIdentity,
+        ),
+        async () => {
+          const { logo, coverImage, links, technologyIds, ...fields } = input;
+          if (technologyIds !== undefined) await validateTechnologyIds(technologyIds);
+          const result = await withEntityImages(
+            { type: "project" },
+            { icon: logo, cover: coverImage },
+            async (images) => {
+              const record = await createProject({
+                links,
+                ...fields,
+                ...images,
+              });
+              if (technologyIds !== undefined)
+                await setTechnologiesForContent("project", record.id, technologyIds);
+              return record;
+            },
+          );
+          return toPlain(result);
         },
-      );
-      return toPlain(result);
-    },
+      ),
   }),
   projectUpdate: defineOperation({
     name: "projectUpdate",

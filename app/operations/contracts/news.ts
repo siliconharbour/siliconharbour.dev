@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { keywordList } from "~/lib/keywords";
 import { listInput } from "../listing";
 import { z } from "zod";
@@ -76,7 +77,8 @@ export const newsArticleCreateInput = z
       ctx.addIssue({ code: "custom", path: ["content"], message: "content is required" });
     if (input.type === "link" && !input.externalUrl)
       ctx.addIssue({ code: "custom", path: ["externalUrl"], message: "URL is required for links" });
-  });
+  })
+  .safeExtend(createOptions);
 export const newsUpdateInput = updateContract(z.object(newsFields).partial().shape);
 export const newsLinkSubmitInput = z
   .object({
@@ -86,7 +88,8 @@ export const newsLinkSubmitInput = z
     sourceName: nullableText(500).optional(),
     confirm,
   })
-  .strict();
+  .strict()
+  .safeExtend(createOptions);
 export const newsListInput = listInput(["createdAt", "updatedAt", "title", "publishedAt"])
   .extend({
     status: z.enum(newsStatuses).optional(),
@@ -106,7 +109,7 @@ export const newsSourceFields = {
   entityUrl: nullableUrl().optional(),
   enabled: z.boolean().optional(),
 };
-export const newsSourceCreateInput = z.object(newsSourceFields).strict();
+export const newsSourceCreateInput = z.object(newsSourceFields).strict().safeExtend(createOptions);
 export const newsSourceUpdateInput = updateContract(z.object(newsSourceFields).partial().shape);
 export const newsFeedTestInput = z
   .object({

@@ -1,3 +1,4 @@
+import { createOptions } from "../fields";
 import { z } from "zod";
 import { text, nullableText, nullableUrl, imageInput, updateContract } from "../fields";
 export const groupFields = {
@@ -9,7 +10,7 @@ export const groupFields = {
   logo: imageInput.optional(),
   coverImage: imageInput.optional(),
 };
-export const groupCreateInput = z.object(groupFields).strict();
+export const groupCreateInput = z.object(groupFields).strict().safeExtend(createOptions);
 export const groupUpdateInput = updateContract(z.object(groupFields).partial().shape);
 
 export const groupOutput = z

@@ -1,3 +1,5 @@
+import { normalizeDirectoryIdentity } from "../creation.server";
+import { createIfAbsent, urlIdentity } from "../creation.server";
 import { directoryListInputs } from "../contracts/directory-lists";
 import { page } from "../listing";
 import { listProducts } from "~/lib/directory-lists.server";
@@ -6,7 +8,7 @@ import { z } from "zod";
 import { defineOperation } from "../define";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
-import { lookupInput, deleteInput, adminListInput } from "../fields";
+import { lookupInput, deleteInput } from "../fields";
 import { productCreateInput, productUpdateInput } from "../contracts/products";
 import { productOutput } from "../contracts/products";
 import {
@@ -63,25 +65,36 @@ export const productOperations = {
     access: "admin",
     summary: "Create a product.",
     description:
-      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear. ",
+      "Create the record through the shared service, derive its slug, and synchronize references. Optional images support upload, public URL, data URL, keep, or clear.  Set ifNotExists to return an existing record by canonical website. Existing records are unchanged and return created:false; new records return created:true.",
     input: productCreateInput,
-    output: productOutput,
+    output: productOutput.extend({ created: z.boolean() }).strict(),
     examples: [{ title: "Create", input: { name: "Product", description: "Description" } }],
-    run: async (_context, input) => {
-      const { logo, coverImage, ...fields } = input;
-      if (fields.companyId && !(await getCompanyById(fields.companyId)))
-        throw new NotFoundError("Company not found");
-      const result = await withEntityImages(
-        { type: "product" },
-        { icon: logo, cover: coverImage },
-        async (images) => {
-          const record = await createProduct({ ...fields, ...images });
+    run: (_context, { ifNotExists, ...input }) =>
+      createIfAbsent(
+        "product",
+        ifNotExists,
+        urlIdentity(
+          input.website,
+          getAllProducts,
+          (row) => row.website,
+          normalizeDirectoryIdentity,
+        ),
+        async () => {
+          const { logo, coverImage, ...fields } = input;
+          if (fields.companyId && !(await getCompanyById(fields.companyId)))
+            throw new NotFoundError("Company not found");
+          const result = await withEntityImages(
+            { type: "product" },
+            { icon: logo, cover: coverImage },
+            async (images) => {
+              const record = await createProduct({ ...fields, ...images });
 
-          return record;
+              return record;
+            },
+          );
+          return toPlain(result);
         },
-      );
-      return toPlain(result);
-    },
+      ),
   }),
   productUpdate: defineOperation({
     name: "productUpdate",

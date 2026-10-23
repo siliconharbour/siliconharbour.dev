@@ -78,3 +78,13 @@ Embedded image commands also require `confirm: true` for writes, so entity updat
 An ID-addressed delete or removal fails with NotFound when its target is missing. Key-addressed `blocklistRemove` returns the actual `removed` boolean. Repeating a status change on an existing record remains valid. `discordUndo` and `discordUndoBatch` delete local tracking, require confirmation and make no Discord request.
 
 Use `eventImportHide` to unpublish either a manual or imported event. TechNL refresh revalidates `jobTechNLList`; there is no second refresh operation. `siteExport` requires write scope because its URL grants access to private export data.
+
+## Bulk moderation and conditional creation
+
+Use `jobBulkApprove` / `jobBulkHide`, `newsBulkApprove` / `newsBulkHide`, and `eventImportBulkApprove` / `eventImportBulkHide` for up to 200 IDs. Repeated IDs run once, in input order. Each result has `{id,ok,error?}`; one missing record does not stop the rest. Bulk hide requires confirmation. `blocklistAddMany` accepts up to 200 items and returns canonical keys, deletion IDs and per-item errors; it also requires confirmation. Invalid input or authorization fails before any item runs.
+
+Creates, `newsLinkSubmit` and `jobSearchImport` return `created`. Set `ifNotExists: true` to return a matching stored record unchanged. Matching happens before image consumption, source validation or outgoing confirmation. Concurrent matching creates in this application process run in order, and every waiter rechecks stored state. A failed attempt releases its slot.
+
+Directory matching requires a canonical URL or GitHub identity; names alone never match people or companies. Projects use a repository or website URL. Technology catalog entries use their catalog slug. Events match link, parent and normalized schedule; news articles without an external URL match their exact type, title and content. Source identities use provider identifiers or feed URLs. Missing identity fields fail instead of guessing. Rejected identities must be restored or permanently deleted first.
+
+Newsletter matching stays within the configured list. Campaign lookup also matches subject, body, template and sender. Existing memberships are returned without resubscribing or sending another confirmation; use ordinary `newsletterSubscriberCreate` to resubscribe. Provider lookups inspect at most 2,000 rows and fail if they cannot establish absence. The configured provider API does not expose campaign deletion. Matching uses current records.

@@ -12,3 +12,8 @@ export const columnCoverage = {
   ...jobsNewsCoverage,
   ...administrationCoverage,
 };
+
+export const operationControlFields = {
+  id: "Selects an existing record; generated on create",
+  ifNotExists: "Controls conditional creation without persisting a column",
+};
