@@ -414,6 +414,13 @@
       "when": 1768742000000,
       "tag": "0058_theme_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1768743000000,
+      "tag": "0059_normalize_import_blocklist",
+      "breakpoints": true
     }
   ]
 }

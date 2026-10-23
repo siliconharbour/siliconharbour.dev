@@ -1,3 +1,4 @@
+import { registerMigrationFunctions } from "../../app/db/migrate.server";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "../../app/db/schema";
@@ -32,6 +33,7 @@ export function createTestDb() {
   }
 
   const sqlite = new Database(":memory:");
+  registerMigrationFunctions(sqlite);
 
   for (const stmt of cachedStatements) {
     try {

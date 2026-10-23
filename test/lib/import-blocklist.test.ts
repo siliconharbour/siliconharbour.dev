@@ -7,25 +7,7 @@ import {
   getBlockedExternalIds,
 } from "~/lib/import-blocklist.server";
 
-// =============================================================================
-// normalizeUrl mirror — must match the one in technl.tsx and genesis.tsx
-// =============================================================================
-
-function normalizeUrl(url: string): string {
-  try {
-    const parsed = new URL(url);
-    return (
-      parsed.hostname.replace(/^www\./, "").toLowerCase() +
-      parsed.pathname.replace(/\/$/, "").toLowerCase()
-    );
-  } catch {
-    return url.toLowerCase();
-  }
-}
-
-// =============================================================================
-// isBlocked / blockItem / unblockItem
-// =============================================================================
+import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 
 describe("import blocklist", () => {
   it("is not blocked initially", async () => {
@@ -67,10 +49,6 @@ describe("import blocklist", () => {
     expect(matches[0].reason).toBe("updated reason");
   });
 });
-
-// =============================================================================
-// getBlockedItems / getBlockedExternalIds
-// =============================================================================
 
 describe("getBlockedItems", () => {
   it("returns all blocked items for a source", async () => {
@@ -119,15 +97,11 @@ describe("getBlockedExternalIds", () => {
   });
 });
 
-// =============================================================================
-// normalizeUrl + blocklist integration (reproduces the URL-path-case bug)
-// =============================================================================
-
 describe("normalizeUrl blocklist integration", () => {
   it("normalizeUrl lowercases path so it matches getBlockedExternalIds", async () => {
     // Simulate: block a company whose website has mixed-case path
     const url = "http://www.ic.gc.ca/Intro.html";
-    const externalId = normalizeUrl(url);
+    const externalId = normalizeBlockKey("technl", url);
 
     expect(externalId).toBe("ic.gc.ca/intro.html"); // path must be lowercased
 
@@ -137,14 +111,31 @@ describe("normalizeUrl blocklist integration", () => {
     const blockedSet = await getBlockedExternalIds("technl");
     expect(blockedSet.has(externalId)).toBe(true);
   });
+});
 
-  it("normalizeUrl strips www and trailing slash", () => {
-    expect(normalizeUrl("https://www.example.com/Page/")).toBe("example.com/page");
-    expect(normalizeUrl("http://Example.COM/")).toBe("example.com");
+it("upserts concurrent normalized identities without losing the original block date or reason", async () => {
+  await blockItem("github", "https://github.com/Foo/", "Foo", "Original reason");
+  const before = (await getBlockedItems("github"))[0];
+  await Promise.all([
+    blockItem("github", "@foo", "Foo"),
+    blockItem("github", "github.com/FOO", "Foo"),
+  ]);
+  const rows = await getBlockedItems("github");
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    externalId: "foo",
+    reason: "Original reason",
+    blockedAt: before.blockedAt,
   });
+  expect(await unblockItem("github", "https://www.github.com/foo")).toBe(true);
+  expect(await unblockItem("github", "foo")).toBe(false);
+});
 
-  it("normalizeUrl handles non-URL input gracefully", () => {
-    expect(normalizeUrl("not a url")).toBe("not a url");
-    expect(normalizeUrl("Company Name")).toBe("company name");
-  });
+it("uses one normalized directory key for bare domains, full URLs and padded names", () => {
+  for (const source of ["technl", "genesis", "bounce"]) {
+    expect(normalizeBlockKey(source, "www.X.com/")).toBe("x.com");
+    expect(normalizeBlockKey(source, "https://x.com")).toBe("x.com");
+    expect(normalizeBlockKey(source, "X.com/Path/")).toBe("x.com/path");
+    expect(normalizeBlockKey(source, "  Garrison Guitars ")).toBe("garrison guitars");
+  }
 });
