@@ -35,6 +35,18 @@ export const projectUpdateInput = updateContract(z.object(projectFields).partial
 export const projectGalleryAddInput = z
   .object({ id: id(), image: imageFileInput, caption: nullableText(2000).default(null) })
   .strict();
+export const projectGalleryUpdateInput = z
+  .object({ id: id(), imageId: id(), caption: nullableText(2000) })
+  .strict();
+export const projectGalleryReorderInput = z
+  .object({
+    id: id(),
+    imageIds: z
+      .array(id())
+      .max(1000)
+      .describe("Every gallery image ID exactly once, in the desired order."),
+  })
+  .strict();
 export const projectGalleryRemoveInput = z.object({ id: id(), imageId: id(), confirm }).strict();
 
 export const projectOutput = z

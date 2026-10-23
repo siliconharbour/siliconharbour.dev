@@ -1,3 +1,5 @@
+import { projectGalleryUpdateInput, projectGalleryReorderInput } from "../contracts/projects";
+import { updateProjectImage, reorderProjectImages } from "~/lib/projects.server";
 import { projectImageOutput } from "../contracts/directory-relations";
 import { z } from "zod";
 import { defineOperation } from "../define";
@@ -9,6 +11,38 @@ import { processAndSaveCoverImage } from "~/lib/images.server";
 import { toPlain } from "../plain";
 
 export const projectGalleryOperations = {
+  projectGalleryUpdate: defineOperation({
+    name: "projectGalleryUpdate",
+    area: "projects",
+    risk: "write",
+    access: "admin",
+    summary: "Edit a project gallery caption.",
+    description:
+      "Update a caption without replacing the image or changing its position. Null or blank clears the caption. The image must belong to the supplied project; otherwise throws NotFound.",
+    input: projectGalleryUpdateInput,
+    output: projectImageOutput,
+    examples: [
+      { title: "Edit caption", input: { id: 1, imageId: 1, caption: "Project screenshot" } },
+    ],
+    run: async (_ctx, { id, imageId, caption }) => {
+      const image = await updateProjectImage(id, imageId, { caption });
+      if (!image) throw new NotFoundError("Project image not found");
+      return toPlain(image);
+    },
+  }),
+  projectGalleryReorder: defineOperation({
+    name: "projectGalleryReorder",
+    area: "projects",
+    risk: "write",
+    access: "admin",
+    summary: "Reorder a project gallery.",
+    description:
+      "Supply every image ID belonging to the project exactly once in the desired order. Reject missing, duplicate or foreign IDs before writing. Persist consecutive positions in one transaction; images and captions stay unchanged. Empty galleries accept an empty array.",
+    input: projectGalleryReorderInput,
+    output: z.array(projectImageOutput),
+    examples: [{ title: "Move image to front", input: { id: 1, imageIds: [2, 1] } }],
+    run: async (_ctx, { id, imageIds }) => toPlain(reorderProjectImages(id, imageIds)),
+  }),
   projectGalleryAdd: defineOperation({
     name: "projectGalleryAdd",
     area: "projects",

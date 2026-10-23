@@ -1,3 +1,4 @@
+import { ProjectGalleryEditor } from "~/components/manage/ProjectGalleryEditor";
 import {
   loadAdminOperation,
   loadAllAdminItems,
@@ -6,12 +7,12 @@ import {
 import { operationCatalog } from "~/operations/catalog";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
-import { Link, redirect, useActionData, useLoaderData, Form, useFetcher } from "react-router";
+import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
-import { projectTypes, projectStatuses, type ProjectImage } from "~/db/schema";
+import { projectTypes, projectStatuses } from "~/db/schema";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.project?.name || "Project"} - siliconharbour.dev` }];
@@ -43,6 +44,21 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   await requireAdmin(request);
   const form = await request.formData();
+  if (form.get("intent") === "updateGalleryImage") {
+    const result = await runAdminOperation(request, operationCatalog.projectGalleryUpdate, {
+      id: Number(params.id),
+      imageId: Number(form.get("imageId")),
+      caption: form.get("caption"),
+    });
+    return result.ok ? { success: true } : { error: result.error };
+  }
+  if (form.get("intent") === "reorderGallery") {
+    const result = await runAdminOperation(request, operationCatalog.projectGalleryReorder, {
+      id: Number(params.id),
+      imageIds: form.getAll("imageIds").map(Number),
+    });
+    return result.ok ? { success: true } : { error: result.error };
+  }
   if (form.get("intent") === "addGalleryImage") {
     const result = await runAdminOperation(request, operationCatalog.projectGalleryAdd, {
       id: Number(params.id),
@@ -324,97 +340,8 @@ export default function EditProject() {
         </Form>
 
         {/* Gallery Management */}
-        <GalleryManager images={project.images} />
+        <ProjectGalleryEditor images={project.images} />
       </div>
     </div>
-  );
-}
-
-function GalleryManager({ images }: { images: Pick<ProjectImage, "id" | "image" | "caption">[] }) {
-  const fetcher = useFetcher();
-
-  return (
-    <div className="border-t border-line pt-pad-6">
-      <h2 className="text-xl font-semibold text-heading mb-4">Gallery Images</h2>
-
-      {/* Existing Images */}
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-gap-4 mb-6">
-          {images.map((image) => (
-            <div key={image.id} className="relative group">
-              <img
-                src={`/images/${image.image}`}
-                alt={image.caption || ""}
-                className="w-full aspect-video object-cover"
-              />
-              {image.caption && <p className="text-xs text-muted mt-1 truncate">{image.caption}</p>}
-              <fetcher.Form method="post" className="absolute top-2 right-2">
-                <input type="hidden" name="intent" value="removeGalleryImage" />
-                <input type="hidden" name="imageId" value={image.id} />
-                <button
-                  type="submit"
-                  className="p-pad-1-5 bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Remove image"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </fetcher.Form>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Add New Image */}
-      <GalleryImageUploader />
-    </div>
-  );
-}
-
-function GalleryImageUploader() {
-  const fetcher = useFetcher();
-
-  return (
-    <fetcher.Form
-      method="post"
-      className="flex flex-col gap-gap-4 p-pad-4 border border-dashed border-harbour-300"
-    >
-      <input type="hidden" name="intent" value="addGalleryImage" />
-
-      <ImageUpload
-        label="Add Gallery Image"
-        name="galleryImageData"
-        aspect={16 / 9}
-        previewStyle="cover"
-        helpText="Upload image (16:9)"
-      />
-
-      <div className="flex flex-col gap-gap-1">
-        <label htmlFor="caption" className="text-sm text-body">
-          Caption (optional)
-        </label>
-        <input
-          type="text"
-          id="caption"
-          name="caption"
-          placeholder="Describe this image..."
-          className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={fetcher.state !== "idle"}
-        className="px-pad-4 py-pad-2 bg-tint hover:bg-harbour-200 text-heading font-medium transition-colors self-start disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {fetcher.state !== "idle" ? "Adding..." : "Add to Gallery"}
-      </button>
-    </fetcher.Form>
   );
 }
