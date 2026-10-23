@@ -1,0 +1,136 @@
+import { defineOperation } from "../define";
+import * as output from "../contracts/public-outputs";
+import * as content from "~/lib/public-content.server";
+
+export const publicDetailOperations = {
+  companyPublicGet: defineOperation({
+    name: "companyPublicGet",
+    area: "companies",
+    risk: "read",
+    access: "public",
+    summary: "Get one public company by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use companyGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.companyPublicDetailOutput,
+    examples: [{ title: "Public company", input: { slug: "company" } }],
+    run: (_ctx, input) => content.getPublicCompany(input.slug),
+  }),
+  personPublicGet: defineOperation({
+    name: "personPublicGet",
+    area: "people",
+    risk: "read",
+    access: "public",
+    summary: "Get one public person by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use personGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.personPublicOutput,
+    examples: [{ title: "Public person", input: { slug: "person" } }],
+    run: (_ctx, input) => content.getPublicPerson(input.slug),
+  }),
+  educationPublicGet: defineOperation({
+    name: "educationPublicGet",
+    area: "education",
+    risk: "read",
+    access: "public",
+    summary: "Get one public education by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use educationGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.educationPublicOutput,
+    examples: [{ title: "Public education", input: { slug: "education" } }],
+    run: (_ctx, input) => content.getPublicEducation(input.slug),
+  }),
+  groupPublicGet: defineOperation({
+    name: "groupPublicGet",
+    area: "groups",
+    risk: "read",
+    access: "public",
+    summary: "Get one public group by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use groupGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.groupPublicOutput,
+    examples: [{ title: "Public group", input: { slug: "group" } }],
+    run: (_ctx, input) => content.getPublicGroup(input.slug),
+  }),
+  productPublicGet: defineOperation({
+    name: "productPublicGet",
+    area: "products",
+    risk: "read",
+    access: "public",
+    summary: "Get one public product by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use productGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.productPublicOutput,
+    examples: [{ title: "Public product", input: { slug: "product" } }],
+    run: (_ctx, input) => content.getPublicProduct(input.slug),
+  }),
+  projectPublicGet: defineOperation({
+    name: "projectPublicGet",
+    area: "projects",
+    risk: "read",
+    access: "public",
+    summary: "Get one public project by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use projectGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.projectPublicDetailOutput,
+    examples: [{ title: "Public project", input: { slug: "project" } }],
+    run: (_ctx, input) => content.getPublicProject(input.slug),
+  }),
+  technologyPublicGet: defineOperation({
+    name: "technologyPublicGet",
+    area: "technologies",
+    risk: "read",
+    access: "public",
+    summary: "Get one public technology by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use technologyGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.technologyPublicDetailOutput,
+    examples: [{ title: "Public technology", input: { slug: "technology" } }],
+    run: (_ctx, input) => content.getPublicTechnology(input.slug),
+  }),
+  eventPublicGet: defineOperation({
+    name: "eventPublicGet",
+    area: "events",
+    risk: "read",
+    access: "public",
+    summary: "Get one public event by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use eventGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.eventPublicDetailOutput,
+    examples: [{ title: "Public event", input: { slug: "event" } }],
+    run: (_ctx, input) => content.getPublicEvent(input.slug),
+  }),
+  jobPublicGet: defineOperation({
+    name: "jobPublicGet",
+    area: "jobs",
+    risk: "read",
+    access: "public",
+    summary: "Get one public job by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use jobGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.jobPublicOutput,
+    examples: [{ title: "Public job", input: { slug: "job" } }],
+    run: (_ctx, input) => content.getPublicJob(input.slug),
+  }),
+  newsPublicGet: defineOperation({
+    name: "newsPublicGet",
+    area: "news",
+    risk: "read",
+    access: "public",
+    summary: "Get one public news by slug.",
+    description:
+      "Return public fields and visible related records. Hidden or missing records return NotFound; source identifiers, moderation data and import configuration are excluded. Administrators use newsGet for operational fields.",
+    input: output.publicGetInput,
+    output: output.newsPublicOutput,
+    examples: [{ title: "Public news", input: { slug: "news" } }],
+    run: (_ctx, input) => content.getPublicNews(input.slug),
+  }),
+};

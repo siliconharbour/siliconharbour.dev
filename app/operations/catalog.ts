@@ -1,3 +1,4 @@
+import { publicDetailOperations } from "./ops/public-details.server";
 import { bulkOperations } from "./ops/bulk.server";
 import { rejectedRecordOperations } from "./ops/rejected-records.server";
 import { operationDescribe } from "./ops/operation-describe.server";
@@ -38,6 +39,7 @@ import { personOperations } from "./ops/people.server";
 import { themeShareOperations } from "./ops/theme-shares.server";
 
 export const operationCatalog = {
+  ...publicDetailOperations,
   ...bulkOperations,
   ...rejectedRecordOperations,
   operationDescribe,
