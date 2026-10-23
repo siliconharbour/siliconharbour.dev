@@ -41,7 +41,7 @@ interface NextDataEvent {
 }
 
 // ---------------------------------------------------------------------------
-// JSON-LD types (legacy fallback)
+// JSON-LD types
 // ---------------------------------------------------------------------------
 
 interface SchemaOrgEvent {
@@ -106,9 +106,7 @@ function parseISOToLocal(isoString: string | undefined): { date: string; time: s
 // ---------------------------------------------------------------------------
 
 function parseNextDataEvents(html: string): FetchedEvent[] {
-  const scriptMatch = html.match(
-    /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/,
-  );
+  const scriptMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
   if (!scriptMatch) return [];
 
   let data: Record<string, unknown>;
@@ -176,7 +174,7 @@ function parseNextDataEvents(html: string): FetchedEvent[] {
 }
 
 // ---------------------------------------------------------------------------
-// JSON-LD parser (legacy fallback)
+// JSON-LD parser
 // ---------------------------------------------------------------------------
 
 function parseJsonLdEvents(html: string): FetchedEvent[] {
@@ -260,7 +258,7 @@ async function fetchOrganizerEvents(organizerId: string): Promise<FetchedEvent[]
   const events = parseNextDataEvents(html);
   if (events.length > 0) return events;
 
-  // Fall back to JSON-LD (legacy format)
+  // Fall back to JSON-LD
   return parseJsonLdEvents(html);
 }
 
@@ -277,10 +275,13 @@ async function fetchEventPage(url: string): Promise<FetchedEvent[]> {
 }
 
 function isEventbriteEventUrl(url: string): boolean {
-  return url.startsWith('https://www.eventbrite.ca/e/');
+  return url.startsWith("https://www.eventbrite.ca/e/");
 }
 
-function applyConfiguredOrganizer(events: FetchedEvent[], organizer: string | null): FetchedEvent[] {
+function applyConfiguredOrganizer(
+  events: FetchedEvent[],
+  organizer: string | null,
+): FetchedEvent[] {
   if (!organizer) return events;
   return events.map((event) => ({ ...event, organizer: event.organizer || organizer }));
 }

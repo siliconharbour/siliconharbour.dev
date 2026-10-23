@@ -51,7 +51,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const result = await syncJobs(sourceId);
-    return { intent: "sync", ...result };
+    return { intent: "sync" as const, ...result };
   }
 
   if (intent === "sync-all") {
@@ -80,7 +80,7 @@ export async function action({ request }: Route.ActionArgs) {
     const totalReactivated = succeeded.reduce((s, r) => s + (r.reactivated || 0), 0);
 
     return {
-      intent: "sync-all",
+      intent: "sync-all" as const,
       success: failed.length === 0,
       sourcesTotal: sources.length,
       sourcesSucceeded: succeeded.length,
@@ -105,12 +105,12 @@ export async function action({ request }: Route.ActionArgs) {
     } else if (reviewAction === "hide") {
       await hideImportedJob(jobId);
     }
-    return { intent: "review-job", success: true };
+    return { intent: "review-job" as const, success: true };
   }
 
   if (intent === "hide-all-pending") {
     const count = await hideAllPendingJobs();
-    return { intent: "hide-all-pending", success: true, hidden: count };
+    return { intent: "hide-all-pending" as const, success: true, hidden: count };
   }
 
   return { success: false, error: "Unknown action" };
@@ -135,9 +135,7 @@ function StatusBadge({ status }: { status: string | null }) {
   };
 
   return (
-    <span
-      className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}
-    >
+    <span className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}>
       {status.replaceAll("_", " ")}
     </span>
   );
@@ -330,7 +328,7 @@ export default function ManageImportJobs() {
                   {syncAllResult.sourcesFailed} source(s) failed:
                 </p>
                 <ul className="text-sm text-red-600 list-disc list-inside">
-                  {syncAllResult.errors.map((err: string, i: number) => (
+                  {syncAllResult.errors.map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
                 </ul>
@@ -375,10 +373,7 @@ export default function ManageImportJobs() {
         {sources.length === 0 ? (
           <div className="p-pad-8 border border-line bg-soft text-center">
             <p className="text-body mb-4">No job import sources configured yet.</p>
-            <Link
-              to="/manage/import/jobs/new"
-              className="text-body hover:text-heading underline"
-            >
+            <Link to="/manage/import/jobs/new" className="text-body hover:text-heading underline">
               Add your first source
             </Link>
           </div>
@@ -436,7 +431,10 @@ export default function ManageImportJobs() {
                         {sourceTypeLabels[source.sourceType as keyof typeof sourceTypeLabels] ||
                           source.sourceType}
                       </td>
-                      <td className="px-pad-4 py-pad-3 text-sm font-mono text-subtle" title={source.sourceIdentifier}>
+                      <td
+                        className="px-pad-4 py-pad-3 text-sm font-mono text-subtle"
+                        title={source.sourceIdentifier}
+                      >
                         {source.sourceIdentifier.length > 13
                           ? source.sourceIdentifier.slice(0, 10) + "..."
                           : source.sourceIdentifier}

@@ -51,7 +51,10 @@ function parseDateTime(isoString: string | undefined): { date: string; time: str
  * Strip HTML tags for plain text.
  */
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /**
@@ -82,8 +85,7 @@ async function fetchMeetupPage(
   if (!match) throw new Error("No __NEXT_DATA__ found on Meetup page");
 
   const data = JSON.parse(match[1]);
-  const apollo: Record<string, unknown> =
-    data?.props?.pageProps?.__APOLLO_STATE__ ?? {};
+  const apollo: Record<string, unknown> = data?.props?.pageProps?.__APOLLO_STATE__ ?? {};
 
   const events: MeetupApolloEvent[] = [];
   const venues: Record<string, MeetupApolloVenue> = {};
@@ -97,11 +99,7 @@ async function fetchMeetupPage(
     ) {
       events.push(value as unknown as MeetupApolloEvent);
     }
-    if (
-      key.startsWith("Venue:") &&
-      typeof value === "object" &&
-      value !== null
-    ) {
+    if (key.startsWith("Venue:") && typeof value === "object" && value !== null) {
       venues[key] = value as unknown as MeetupApolloVenue;
     }
   }

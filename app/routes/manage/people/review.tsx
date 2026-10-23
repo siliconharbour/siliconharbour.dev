@@ -407,9 +407,7 @@ export default function ReviewPeople() {
         <div className="max-w-2xl mx-auto flex flex-col items-center justify-center gap-gap-6 py-pad-20">
           <div className="text-6xl">🎉</div>
           <h1 className="text-2xl font-semibold text-heading">All caught up!</h1>
-          <p className="text-muted text-center">
-            There are no more people to review. Great work!
-          </p>
+          <p className="text-muted text-center">There are no more people to review. Great work!</p>
           <Link
             to="/manage/people"
             className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover text-white font-medium transition-colors"
@@ -657,9 +655,7 @@ export default function ReviewPeople() {
               <div className="flex items-center justify-end">
                 <label className="flex items-center gap-gap-2">
                   <input type="checkbox" name="approveAfterSave" defaultChecked />
-                  <span className="text-sm text-body font-medium">
-                    Make visible after save
-                  </span>
+                  <span className="text-sm text-body font-medium">Make visible after save</span>
                 </label>
               </div>
 

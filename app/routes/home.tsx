@@ -57,9 +57,7 @@ export async function loader({}: Route.LoaderArgs) {
   const thisWeekIds = new Set(visibleThisWeek.map((e) => e.id));
   const futureEvents = upcoming.filter(
     (event) =>
-      !thisWeekIds.has(event.id) &&
-      !activePeriodIds.has(event.id) &&
-      !linkedEventIds.has(event.id),
+      !thisWeekIds.has(event.id) && !activePeriodIds.has(event.id) && !linkedEventIds.has(event.id),
   );
 
   // Prepare refs for featured events (thisWeek events that show descriptions)
@@ -156,10 +154,7 @@ export default function Home() {
                     <section className="flex flex-col gap-gap-4">
                       <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold text-heading">Upcoming Events</h2>
-                        <Link
-                          to="/events"
-                          className="text-sm text-muted hover:text-heading"
-                        >
+                        <Link to="/events" className="text-sm text-muted hover:text-heading">
                           View all
                         </Link>
                       </div>
@@ -188,7 +183,12 @@ export default function Home() {
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-gap-3">
                             {recurringEvents.map((event) => (
-                              <EventCard key={event.id} event={event} variant="compact" showStatus />
+                              <EventCard
+                                key={event.id}
+                                event={event}
+                                variant="compact"
+                                showStatus
+                              />
                             ))}
                           </div>
                         </>
@@ -240,9 +240,7 @@ export default function Home() {
                             </p>
                           )}
                           {article.excerpt && (
-                            <p className="text-sm text-muted line-clamp-2">
-                              {article.excerpt}
-                            </p>
+                            <p className="text-sm text-muted line-clamp-2">{article.excerpt}</p>
                           )}
                         </div>
                       </Link>
@@ -280,9 +278,7 @@ export default function Home() {
                           </div>
                         ) : (
                           <div className="w-12 h-12 bg-tint flex items-center justify-center">
-                            <span className="text-lg text-subtle">
-                              {company.name.charAt(0)}
-                            </span>
+                            <span className="text-lg text-subtle">{company.name.charAt(0)}</span>
                           </div>
                         )}
                         <span className="link-title text-sm font-medium text-heading group-hover:text-body text-center line-clamp-2">
@@ -323,9 +319,7 @@ export default function Home() {
                           </div>
                         ) : (
                           <div className="w-12 h-12 bg-tint flex items-center justify-center">
-                            <span className="text-lg text-subtle">
-                              {project.name.charAt(0)}
-                            </span>
+                            <span className="text-lg text-subtle">{project.name.charAt(0)}</span>
                           </div>
                         )}
                         <span className="link-title text-sm font-medium text-heading group-hover:text-body text-center line-clamp-2">

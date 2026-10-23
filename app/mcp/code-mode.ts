@@ -1,3 +1,7 @@
+import { OperationError } from "~/operations/errors";
+import { PublicFetchError } from "~/lib/public-fetch.server";
+import { ImageInputError } from "~/lib/image-input.server";
+import { formatValidationError } from "~/operations/fields";
 import { CodeMode, Tool, toolError } from "@opencode-ai/codemode";
 import { Effect } from "effect";
 import { z } from "zod";
@@ -33,12 +37,12 @@ export function createCodeMode(
             try: () => fn(input),
             catch: (error) =>
               error instanceof z.ZodError
-                ? toolError(
-                    error.issues
-                      .map((issue) => `${issue.path.join(".") || "input"}: ${issue.message}`)
-                      .join("; "),
-                  )
-                : error,
+                ? toolError(formatValidationError(error, fn.inputSchema, input))
+                : error instanceof OperationError ||
+                    error instanceof PublicFetchError ||
+                    error instanceof ImageInputError
+                  ? toolError(error.message)
+                  : error,
           }),
       }),
     ]),

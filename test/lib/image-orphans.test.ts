@@ -114,10 +114,7 @@ describe("orphaned image scanning", () => {
       "filename.webp",
       "nested/relative.png",
     );
-    db.prepare("INSERT INTO content (image, body) VALUES (?, ?)").run(
-      "/images/public.jpg",
-      null,
-    );
+    db.prepare("INSERT INTO content (image, body) VALUES (?, ?)").run("/images/public.jpg", null);
     db.close();
 
     const result = await stageOrphanedImagesBatch({

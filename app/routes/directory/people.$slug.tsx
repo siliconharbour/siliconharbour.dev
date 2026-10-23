@@ -7,7 +7,7 @@ import { RichMarkdown } from "~/components/RichMarkdown";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const person = data?.person;
   const name = person?.name ?? "Person";
   const description = person?.bio

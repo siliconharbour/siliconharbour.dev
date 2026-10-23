@@ -49,14 +49,10 @@ export function DirectoryImportPage({
   } = loaderData;
 
   const fetcher = useFetcher();
-  const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>(
-    [],
-  );
+  const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadLogos, setDownloadLogos] = useState(true);
-  const [blockedSet, setBlockedSet] = useState<Set<string>>(
-    new Set(initialBlocked),
-  );
+  const [blockedSet, setBlockedSet] = useState<Set<string>>(new Set(initialBlocked));
   const [filter, setFilter] = useState<FilterKey>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -91,9 +87,7 @@ export function DirectoryImportPage({
       const { name, field } = fetcherData.adopted;
       const key = name.toLowerCase();
       if (existingCompanyData[key]) {
-        const scraped = fetchedCompanies.find(
-          (c) => c.name.toLowerCase() === key,
-        );
+        const scraped = fetchedCompanies.find((c) => c.name.toLowerCase() === key);
         if (scraped) {
           const val =
             field === "website"
@@ -114,10 +108,7 @@ export function DirectoryImportPage({
     }
 
     if (fetcherData?.intent === "block" && fetcherData.blocked) {
-      setBlockedSet(
-        (prev) =>
-          new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]),
-      );
+      setBlockedSet((prev) => new Set([...prev, fetcherData.blocked.externalId.toLowerCase()]));
     }
     if (fetcherData?.intent === "unblock" && fetcherData.unblocked) {
       setBlockedSet((prev) => {
@@ -141,18 +132,13 @@ export function DirectoryImportPage({
 
   const alreadyHasFlag = (company: ScrapedCompany) => {
     if (hasSourceFlagNames.includes(company.name.toLowerCase())) return true;
-    if (
-      company.website &&
-      hasSourceFlagWebsites.includes(normalizeUrl(company.website))
-    )
+    if (company.website && hasSourceFlagWebsites.includes(normalizeUrl(company.website)))
       return true;
     return false;
   };
 
   const getExternalId = (company: ScrapedCompany) => {
-    return company.website
-      ? normalizeUrl(company.website)
-      : company.name.toLowerCase();
+    return company.website ? normalizeUrl(company.website) : company.name.toLowerCase();
   };
 
   const isBlocked = (company: ScrapedCompany) => {
@@ -172,9 +158,7 @@ export function DirectoryImportPage({
     if (filter !== "all" && getCompanyCategory(c) !== filter) return false;
     if (statusCategories && statusFilter !== "all") {
       const val = statusCategories.getValue(c);
-      const matchOption = statusCategories.options.find(
-        (o) => o.value === statusFilter,
-      );
+      const matchOption = statusCategories.options.find((o) => o.value === statusFilter);
       if (matchOption && val !== matchOption.label) return false;
     }
     return true;
@@ -182,17 +166,11 @@ export function DirectoryImportPage({
 
   const categoryCounts: Record<FilterKey, number> = {
     all: fetchedCompanies.length,
-    new: fetchedCompanies.filter((c) => getCompanyCategory(c) === "new")
+    new: fetchedCompanies.filter((c) => getCompanyCategory(c) === "new").length,
+    [notSourceKey]: fetchedCompanies.filter((c) => getCompanyCategory(c) === notSourceKey).length,
+    [alreadySourceKey]: fetchedCompanies.filter((c) => getCompanyCategory(c) === alreadySourceKey)
       .length,
-    [notSourceKey]: fetchedCompanies.filter(
-      (c) => getCompanyCategory(c) === notSourceKey,
-    ).length,
-    [alreadySourceKey]: fetchedCompanies.filter(
-      (c) => getCompanyCategory(c) === alreadySourceKey,
-    ).length,
-    blocked: fetchedCompanies.filter(
-      (c) => getCompanyCategory(c) === "blocked",
-    ).length,
+    blocked: fetchedCompanies.filter((c) => getCompanyCategory(c) === "blocked").length,
   };
 
   // --- Diff computation ---
@@ -200,9 +178,7 @@ export function DirectoryImportPage({
   const getDiffs = (company: ScrapedCompany) => {
     const existing =
       existingCompanyData[company.name.toLowerCase()] ||
-      (company.website
-        ? existingCompanyData[`website:${normalizeUrl(company.website)}`]
-        : null);
+      (company.website ? existingCompanyData[`website:${normalizeUrl(company.website)}`] : null);
     if (!existing) return [];
     const diffs: {
       key: string;
@@ -292,9 +268,7 @@ export function DirectoryImportPage({
   };
 
   const selectAll = () => {
-    const selectable = filteredCompanies.filter(
-      (c) => !alreadyHasFlag(c) && !isBlocked(c),
-    );
+    const selectable = filteredCompanies.filter((c) => !alreadyHasFlag(c) && !isBlocked(c));
     setSelected(new Set(selectable.map((c) => c.sourceId)));
   };
 
@@ -316,10 +290,7 @@ export function DirectoryImportPage({
   };
 
   const handleUnblock = (company: ScrapedCompany) => {
-    fetcher.submit(
-      { intent: "unblock", externalId: getExternalId(company) },
-      { method: "post" },
-    );
+    fetcher.submit({ intent: "unblock", externalId: getExternalId(company) }, { method: "post" });
   };
 
   const handleImport = () => {
@@ -334,10 +305,8 @@ export function DirectoryImportPage({
     );
   };
 
-  const isFetching =
-    fetcher.state !== "idle" && fetcher.formData?.get("intent") === "fetch";
-  const isImporting =
-    fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
+  const isFetching = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "fetch";
+  const isImporting = fetcher.state !== "idle" && fetcher.formData?.get("intent") === "import";
 
   return (
     <ManagePage
@@ -356,9 +325,7 @@ export function DirectoryImportPage({
             disabled={isFetching}
             className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
           >
-            {isFetching
-              ? "Fetching..."
-              : `Fetch Companies from ${sourceLabel}`}
+            {isFetching ? "Fetching..." : `Fetch Companies from ${sourceLabel}`}
           </button>
         </fetcher.Form>
       )}
@@ -426,8 +393,7 @@ export function DirectoryImportPage({
 
             <div className="flex items-center gap-gap-4 flex-wrap">
               <span className="text-muted">
-                Showing {filteredCompanies.length} of{" "}
-                {fetchedCompanies.length}
+                Showing {filteredCompanies.length} of {fetchedCompanies.length}
               </span>
               <button
                 type="button"
@@ -523,9 +489,7 @@ export function DirectoryImportPage({
                         (() => {
                           const val = statusCategories.getValue(company);
                           if (!val) return null;
-                          const opt = statusCategories.options.find(
-                            (o) => o.label === val,
-                          );
+                          const opt = statusCategories.options.find((o) => o.label === val);
                           if (!opt) return null;
                           return (
                             <span
@@ -541,9 +505,7 @@ export function DirectoryImportPage({
                         })()}
                     </div>
                     {showDescriptionInCard && company.description && (
-                      <p className="text-sm text-muted truncate">
-                        {company.description}
-                      </p>
+                      <p className="text-sm text-muted truncate">{company.description}</p>
                     )}
                     {company.website && (
                       <a
@@ -568,22 +530,12 @@ export function DirectoryImportPage({
                                 key={d.key}
                                 className="flex items-center gap-gap-2 px-pad-2 py-pad-1"
                               >
-                                <span className="text-subtle w-20 shrink-0">
-                                  {d.field}
-                                </span>
-                                <span
-                                  className="text-muted truncate"
-                                  title={d.ours}
-                                >
+                                <span className="text-subtle w-20 shrink-0">{d.field}</span>
+                                <span className="text-muted truncate" title={d.ours}>
                                   {d.ours}
                                 </span>
-                                <span className="text-harbour-300 shrink-0">
-                                  {"\u2192"}
-                                </span>
-                                <span
-                                  className="text-amber-700 truncate flex-1"
-                                  title={d.theirs}
-                                >
+                                <span className="text-harbour-300 shrink-0">{"\u2192"}</span>
+                                <span className="text-amber-700 truncate flex-1" title={d.theirs}>
                                   {d.theirs}
                                 </span>
                                 <button
@@ -613,16 +565,11 @@ export function DirectoryImportPage({
 
                   {displayCategories.length > 0 && (
                     <div className="hidden sm:flex gap-gap-1 flex-wrap max-w-xs">
-                      {displayCategories
-                        .slice(0, maxCategoryBadges)
-                        .map((cat, i) => (
-                          <span
-                            key={i}
-                            className="text-xs px-pad-2 py-pad-0-5 bg-tint text-body"
-                          >
-                            {cat}
-                          </span>
-                        ))}
+                      {displayCategories.slice(0, maxCategoryBadges).map((cat, i) => (
+                        <span key={i} className="text-xs px-pad-2 py-pad-0-5 bg-tint text-body">
+                          {cat}
+                        </span>
+                      ))}
                     </div>
                   )}
 
@@ -655,15 +602,11 @@ export function DirectoryImportPage({
               disabled={selected.size === 0 || isImporting}
               className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
             >
-              {isImporting
-                ? "Importing..."
-                : `Import ${selected.size} Selected Companies`}
+              {isImporting ? "Importing..." : `Import ${selected.size} Selected Companies`}
             </button>
 
             {selected.size > 0 && (
-              <span className="text-sm text-muted">
-                {selected.size} companies selected
-              </span>
+              <span className="text-sm text-muted">{selected.size} companies selected</span>
             )}
           </div>
         </>

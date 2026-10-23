@@ -154,7 +154,11 @@ const NEWS_KEYWORDS_KEY = "news_global_keywords";
  * Get the global keywords used for filtering news import sources.
  */
 export async function getNewsGlobalKeywords(): Promise<string> {
-  const result = await db.select().from(siteConfig).where(eq(siteConfig.key, NEWS_KEYWORDS_KEY)).get();
+  const result = await db
+    .select()
+    .from(siteConfig)
+    .where(eq(siteConfig.key, NEWS_KEYWORDS_KEY))
+    .get();
   return result?.value ?? "";
 }
 

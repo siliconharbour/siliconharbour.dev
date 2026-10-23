@@ -42,7 +42,10 @@ function htmlToText(html: string | null | undefined): string {
   );
 }
 
-function formatLocalDateTime(isoString: string, timezone: string): { date: string; time: string | null } {
+function formatLocalDateTime(
+  isoString: string,
+  timezone: string,
+): { date: string; time: string | null } {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
@@ -54,7 +57,10 @@ function formatLocalDateTime(isoString: string, timezone: string): { date: strin
   });
   const parts = formatter.formatToParts(new Date(isoString));
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return { date: `${get("year")}-${get("month")}-${get("day")}`, time: `${get("hour")}:${get("minute")}` };
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    time: `${get("hour")}:${get("minute")}`,
+  };
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -119,10 +125,12 @@ async function getCrmJwt(): Promise<string> {
   const tokenResponse = await fetch(`${CRM_BASE}/jwt/token?client_id=${JWT_CLIENT_ID}`, {
     headers: { cookie: "orgId=technl", accept: "application/json" },
   });
-  if (!tokenResponse.ok) throw new Error(`Failed to fetch techNL NeonCRM token: ${tokenResponse.status}`);
+  if (!tokenResponse.ok)
+    throw new Error(`Failed to fetch techNL NeonCRM token: ${tokenResponse.status}`);
 
   const token = (await tokenResponse.json()) as CrmTokenResponse;
-  if (!token.id_token) throw new Error(token.error ?? "techNL NeonCRM token response did not include id_token");
+  if (!token.id_token)
+    throw new Error(token.error ?? "techNL NeonCRM token response did not include id_token");
 
   return token.id_token;
 }
@@ -141,14 +149,24 @@ function formatLocation(location: NeonLocation | null | undefined): string {
   if (!location) return "";
   const address = location.address;
   const addressText = address
-    ? [address.line_1, address.line_2, address.city, address.state_province_iso, address.postal_code]
+    ? [
+        address.line_1,
+        address.line_2,
+        address.city,
+        address.state_province_iso,
+        address.postal_code,
+      ]
         .filter(Boolean)
         .join(", ")
     : "";
   return [location.name, addressText].filter(Boolean).join(" - ");
 }
 
-function mapEvent(detail: NeonEventDetail, timezone: string, organizer: string): FetchedEvent | null {
+function mapEvent(
+  detail: NeonEventDetail,
+  timezone: string,
+  organizer: string,
+): FetchedEvent | null {
   const title = detail.name?.trim();
   const occurrence = detail.occurrences?.[0];
   if (!title || !occurrence?.start_datetime) return null;
@@ -176,12 +194,16 @@ function mapEvent(detail: NeonEventDetail, timezone: string, organizer: string):
 
 async function fetchTechNLEvents(): Promise<FetchedEvent[]> {
   const jwt = await getCrmJwt();
-  const publicToken = await fetchJson<NeonPublicTokenResponse>(`${NEON_EVENTS_BASE}/api/portal/token-public`, {
-    headers: getNeonHeaders(jwt),
-  });
+  const publicToken = await fetchJson<NeonPublicTokenResponse>(
+    `${NEON_EVENTS_BASE}/api/portal/token-public`,
+    {
+      headers: getNeonHeaders(jwt),
+    },
+  );
 
   const timezone = publicToken.entity?.instance?.timezone ?? "America/St_Johns";
-  const organizer = publicToken.entity?.instance?.organization_profile?.organization_name ?? "techNL";
+  const organizer =
+    publicToken.entity?.instance?.organization_profile?.organization_name ?? "techNL";
   const summaries: NeonEventSummary[] = [];
 
   for (let page = 1; ; page++) {
@@ -189,9 +211,12 @@ async function fetchTechNLEvents(): Promise<FetchedEvent[]> {
       "pagination[pageSize]": "50",
       "pagination[page]": String(page),
     });
-    const pageData = await fetchJson<NeonEventsPage>(`${NEON_EVENTS_BASE}/api/portal/events?${params}`, {
-      headers: getNeonHeaders(jwt),
-    });
+    const pageData = await fetchJson<NeonEventsPage>(
+      `${NEON_EVENTS_BASE}/api/portal/events?${params}`,
+      {
+        headers: getNeonHeaders(jwt),
+      },
+    );
 
     summaries.push(...pageData.data);
     if (page >= pageData.last_page) break;

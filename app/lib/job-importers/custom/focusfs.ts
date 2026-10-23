@@ -27,13 +27,7 @@
  */
 
 import type { FetchedJob, WorkplaceType } from "../types";
-import {
-  fetchPage,
-  htmlToText,
-  slugify,
-  parseHtmlDocument,
-  getNodeText,
-} from "./utils";
+import { fetchPage, htmlToText, slugify, parseHtmlDocument, getNodeText } from "./utils";
 
 const CAREERS_URL = "https://focusfs.com/careers";
 const ORIGIN = "https://focusfs.com";
@@ -236,9 +230,7 @@ function isRawRole(value: unknown): value is RawRole {
 
 function buildJobFromRole(role: RawRole): FetchedJob {
   const { department, location, workplaceType } = parseSector(role.sector);
-  const descriptionHtml = role.description
-    ? renderMarkdownToHtml(role.description)
-    : undefined;
+  const descriptionHtml = role.description ? renderMarkdownToHtml(role.description) : undefined;
   const subtitleText = role.subtitle?.trim();
   const bodyText = descriptionHtml ? htmlToText(descriptionHtml).trim() : "";
   const combinedText = [subtitleText, bodyText].filter(Boolean).join("\n\n");
@@ -272,7 +264,10 @@ function parseSector(sector?: string): {
   workplaceType?: WorkplaceType;
 } {
   if (!sector) return {};
-  const parts = sector.split(/\s*[·•]\s*/).map((part) => part.trim()).filter(Boolean);
+  const parts = sector
+    .split(/\s*[·•]\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
   const department = parts[0];
   const locationRaw = parts.slice(1).join(" · ");
   if (!locationRaw) return { department };
@@ -374,10 +369,7 @@ function renderInline(text: string): string {
 }
 
 function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /**

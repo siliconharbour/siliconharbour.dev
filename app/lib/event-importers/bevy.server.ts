@@ -40,9 +40,10 @@ function parseSourceIdentifier(identifier: string): { domain: string; chapterId:
  * Parse UTC ISO string into local date and time components.
  * Bevy dates are UTC — we convert to America/St_Johns for display.
  */
-function parseToLocalDateAndTime(
-  isoString: string | undefined,
-): { date: string; time: string | null } {
+function parseToLocalDateAndTime(isoString: string | undefined): {
+  date: string;
+  time: string | null;
+} {
   if (!isoString) return { date: "", time: null };
   try {
     const tz = "America/St_Johns";
@@ -69,7 +70,10 @@ function parseToLocalDateAndTime(
  * Strip HTML tags for a plain text description fallback.
  */
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function fetchBevyEvents(
@@ -128,7 +132,7 @@ async function fetchAllEvents(identifier: string): Promise<FetchedEvent[]> {
 
     const description = ev.description
       ? stripHtml(ev.description)
-      : ev.description_short?.trim() ?? "";
+      : (ev.description_short?.trim() ?? "");
 
     results.push({
       externalId,

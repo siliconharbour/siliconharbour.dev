@@ -122,9 +122,7 @@ function CommentRow({ comment }: { comment: Comment }) {
       <div className="flex items-start justify-between gap-gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-gap-3 mb-2 flex-wrap">
-            <span className="font-medium text-heading">
-              {comment.authorName || "Anonymous"}
-            </span>
+            <span className="font-medium text-heading">{comment.authorName || "Anonymous"}</span>
             <span className="text-xs text-subtle">
               {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
             </span>

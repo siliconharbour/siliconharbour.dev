@@ -437,7 +437,7 @@ export async function createImportSource(data: {
       companyId: data.companyId,
       sourceType: data.sourceType,
       sourceIdentifier: data.sourceIdentifier,
-      sourceUrl: data.sourceUrl,
+      sourceUrl: data.sourceUrl ?? "",
       createdAt: now,
       updatedAt: now,
     })
@@ -451,7 +451,7 @@ export async function createImportSource(data: {
  */
 export async function updateImportSource(
   sourceId: number,
-  data: { sourceType?: string; sourceIdentifier?: string; sourceUrl?: string | null },
+  data: { sourceType?: JobSourceType; sourceIdentifier?: string; sourceUrl?: string | null },
 ) {
   await db
     .update(jobImportSources)

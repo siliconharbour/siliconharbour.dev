@@ -3,7 +3,7 @@
  *
  * Baseline (s-fa1b): 5.8% lines, ~19% functions covered.
  * Targets the load-bearing path used by the manage UI, the MCP
- * createEntity({ type:'job' }) dispatch, and the public jobs listing.
+ * job operations, and the public jobs listing.
  */
 
 import { describe, it, expect } from "vitest";
@@ -330,9 +330,7 @@ describe("getPaginatedJobs", () => {
 
   it("includes company identity in unfiltered and searched results", async () => {
     const company = await seedCompany("Pagination Company");
-    const job = await createJob(
-      jobInput({ title: "Pi Developer", companyId: company.id }),
-    );
+    const job = await createJob(jobInput({ title: "Pi Developer", companyId: company.id }));
 
     const unfiltered = await getPaginatedJobs(10, 0);
     expect(unfiltered.items.find((item) => item.id === job.id)?.companyName).toBe(

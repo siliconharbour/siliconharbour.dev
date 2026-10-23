@@ -25,9 +25,7 @@ export default function ManageTechnologiesIndex() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-gap-3">
             <h1 className="text-2xl font-semibold text-heading">Technologies</h1>
-            <span className="px-pad-2 py-pad-0-5 bg-tint text-body text-sm">
-              {totalCount}
-            </span>
+            <span className="px-pad-2 py-pad-0-5 bg-tint text-body text-sm">{totalCount}</span>
           </div>
           <Link
             to="/manage/technologies/new"

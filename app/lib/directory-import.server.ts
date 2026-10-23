@@ -17,17 +17,9 @@ import {
   getCompanyByName,
   deleteCompany,
 } from "~/lib/companies.server";
-import {
-  getAllEducation,
-  getEducationByName,
-  deleteEducation,
-} from "~/lib/education.server";
+import { getAllEducation, getEducationByName, deleteEducation } from "~/lib/education.server";
 import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
-import {
-  getBlockedExternalIds,
-  blockItem,
-  unblockItem,
-} from "~/lib/import-blocklist.server";
+import { getBlockedExternalIds, blockItem, unblockItem } from "~/lib/import-blocklist.server";
 import { normalizeUrl } from "~/lib/directory-import";
 import type { DirectoryImportLoaderData } from "~/lib/directory-import";
 
@@ -49,20 +41,14 @@ export async function buildDirectoryImportLoaderData(
 ): Promise<DirectoryImportLoaderData> {
   const existingCompanies = await getAllCompanies(true); // include hidden
 
-  const companyNames = new Set(
-    existingCompanies.map((c) => c.name.toLowerCase()),
-  );
+  const companyNames = new Set(existingCompanies.map((c) => c.name.toLowerCase()));
   const companyWebsites = new Set(
-    existingCompanies
-      .filter((c) => c.website)
-      .map((c) => normalizeUrl(c.website!)),
+    existingCompanies.filter((c) => c.website).map((c) => normalizeUrl(c.website!)),
   );
 
   // Track which companies already have the source flag set
   const hasSourceFlagNames = new Set(
-    existingCompanies
-      .filter((c) => c[config.sourceFlag])
-      .map((c) => c.name.toLowerCase()),
+    existingCompanies.filter((c) => c[config.sourceFlag]).map((c) => c.name.toLowerCase()),
   );
   const hasSourceFlagWebsites = new Set(
     existingCompanies
@@ -89,8 +75,7 @@ export async function buildDirectoryImportLoaderData(
   const blockedIds = await getBlockedExternalIds(config.sourceKey);
 
   // Build lookup of existing company data for diff display, keyed by name AND website
-  const existingCompanyData: DirectoryImportLoaderData["existingCompanyData"] =
-    {};
+  const existingCompanyData: DirectoryImportLoaderData["existingCompanyData"] = {};
   for (const c of existingCompanies) {
     const data = {
       website: c.website,
@@ -114,10 +99,7 @@ export async function buildDirectoryImportLoaderData(
   };
 }
 
-export async function handleDirectoryImportAction(
-  request: Request,
-  config: DirectoryImportConfig,
-) {
+export async function handleDirectoryImportAction(request: Request, config: DirectoryImportConfig) {
   const formData = await request.formData();
   const intent = formData.get("intent");
 
@@ -185,9 +167,8 @@ export async function handleDirectoryImportAction(
         const allCompanies = await getAllCompanies(true);
         const normalizedWebsite = normalizeUrl(websiteValue);
         existing =
-          allCompanies.find(
-            (c) => c.website && normalizeUrl(c.website) === normalizedWebsite,
-          ) ?? null;
+          allCompanies.find((c) => c.website && normalizeUrl(c.website) === normalizedWebsite) ??
+          null;
       }
     }
     if (!existing) {
@@ -239,8 +220,7 @@ export async function handleDirectoryImportAction(
             const normalizedWebsite = normalizeUrl(company.website);
             existing =
               allCompanies.find(
-                (c) =>
-                  c.website && normalizeUrl(c.website) === normalizedWebsite,
+                (c) => c.website && normalizeUrl(c.website) === normalizedWebsite,
               ) ?? null;
           }
 
@@ -249,9 +229,7 @@ export async function handleDirectoryImportAction(
             await updateCompany(existing.id, {
               [config.sourceFlag]: true,
             });
-            imported.push(
-              `${existing.name} (marked ${config.sourceLabel})`,
-            );
+            imported.push(`${existing.name} (marked ${config.sourceLabel})`);
           } else {
             // Create new company (hidden by default, requires review)
             await createCompany({

@@ -403,10 +403,7 @@ export default function ReviewCompanies() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <Link
-              to="/manage/companies"
-              className="text-sm text-subtle hover:text-body"
-            >
+            <Link to="/manage/companies" className="text-sm text-subtle hover:text-body">
               &larr; Back to Companies
             </Link>
             <h1 className="text-2xl font-semibold text-heading mt-1">Review Companies</h1>
@@ -452,7 +449,9 @@ export default function ReviewCompanies() {
                     </>
                   )}
                   {currentCompany.technl && (
-                    <span className="px-pad-1-5 py-pad-0-5 bg-blue-100 text-blue-700 text-xs">TechNL</span>
+                    <span className="px-pad-1-5 py-pad-0-5 bg-blue-100 text-blue-700 text-xs">
+                      TechNL
+                    </span>
                   )}
                   {currentCompany.genesis && (
                     <span className="px-pad-1-5 py-pad-0-5 bg-green-100 text-green-700 text-xs">
@@ -464,9 +463,7 @@ export default function ReviewCompanies() {
             </div>
 
             {currentCompany.description && !editMode && (
-              <p className="mt-4 text-sm text-body line-clamp-3">
-                {currentCompany.description}
-              </p>
+              <p className="mt-4 text-sm text-body line-clamp-3">{currentCompany.description}</p>
             )}
           </div>
 
@@ -613,9 +610,7 @@ export default function ReviewCompanies() {
                 </label>
                 <label className="flex items-center gap-gap-2 ml-auto">
                   <input type="checkbox" name="approveAfterSave" defaultChecked />
-                  <span className="text-sm text-body font-medium">
-                    Make visible after save
-                  </span>
+                  <span className="text-sm text-body font-medium">Make visible after save</span>
                 </label>
               </div>
 

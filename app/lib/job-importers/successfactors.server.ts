@@ -13,12 +13,7 @@
  *   3. Fetch each job detail page, extract .job_description HTML
  */
 
-import type {
-  JobImporter,
-  ImportSourceConfig,
-  FetchedJob,
-  ValidationResult,
-} from "./types";
+import type { JobImporter, ImportSourceConfig, FetchedJob, ValidationResult } from "./types";
 import { htmlToText } from "./text.server";
 import { parseHTML } from "linkedom";
 import pLimit from "p-limit";
@@ -168,8 +163,7 @@ export const successfactorsImporter: JobImporter = {
       "Scrapes SAP SuccessFactors career sites. Search page for listings, detail pages for descriptions.",
     style: "HTML scraping with detail fetch pass",
     reliability: "medium",
-    quirks:
-      "sourceIdentifier format: host:location. Location filters the search results.",
+    quirks: "sourceIdentifier format: host:location. Location filters the search results.",
   },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {

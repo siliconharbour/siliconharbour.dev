@@ -34,7 +34,10 @@ function absoluteUrl(href: string, baseUrl: string): string {
 }
 
 function parsePublishedAt(text: string): Date | undefined {
-  const match = /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2}),\s+(\d{4})(?!\d)/i.exec(text);
+  const match =
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2}),\s+(\d{4})(?!\d)/i.exec(
+      text,
+    );
   if (!match) return undefined;
 
   const month = MONTHS[match[1].toLowerCase()];

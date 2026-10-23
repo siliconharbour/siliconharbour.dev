@@ -173,9 +173,7 @@ export default function NewNews() {
 
           <ManageField
             label={
-              selectedType === "link"
-                ? "Commentary (optional, Markdown)"
-                : "Content * (Markdown)"
+              selectedType === "link" ? "Commentary (optional, Markdown)" : "Content * (Markdown)"
             }
             htmlFor="content"
           >

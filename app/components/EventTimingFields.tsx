@@ -47,10 +47,7 @@ export function EventTimingFields({
 
       {value !== "period" && periodOptions.length > 0 && (
         <div>
-          <label
-            htmlFor="parentEventId"
-            className="block text-sm font-medium mb-1 text-heading"
-          >
+          <label htmlFor="parentEventId" className="block text-sm font-medium mb-1 text-heading">
             Part of a time period (optional)
           </label>
           <select

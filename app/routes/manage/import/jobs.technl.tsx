@@ -82,9 +82,7 @@ function MatchBadge({
     );
   }
   return (
-    <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-700">
-      Unknown company
-    </span>
+    <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-700">Unknown company</span>
   );
 }
 
@@ -110,18 +108,13 @@ export default function TechNLJobBoardImport() {
     list.push(job);
     byCompany.set(key, list);
   }
-  const companyGroups = Array.from(byCompany.entries()).sort(([a], [b]) =>
-    a.localeCompare(b),
-  );
+  const companyGroups = Array.from(byCompany.entries()).sort(([a], [b]) => a.localeCompare(b));
 
   return (
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-gap-6">
         <div className="flex flex-wrap items-center gap-gap-4">
-          <Link
-            to="/manage/import/jobs"
-            className="text-subtle hover:text-body"
-          >
+          <Link to="/manage/import/jobs" className="text-subtle hover:text-body">
             &larr; Back
           </Link>
           <h1 className="text-2xl font-semibold text-heading">TechNL Job Board</h1>
@@ -158,15 +151,12 @@ export default function TechNLJobBoardImport() {
             >
               technl.ca job feed
             </a>
-            . Use this to spot postings from companies that don&apos;t yet have a
-            direct ATS importer set up. Approved jobs should be added with{" "}
-            <code className="bg-soft px-pad-1">createJob</code> via the MCP,
-            keeping <code className="bg-soft px-pad-1">url</code> pointed at
-            the technl.ca link.
+            . Use this to spot postings from companies that don&apos;t yet have a direct ATS
+            importer set up. Approved jobs should be added with{" "}
+            <code className="bg-soft px-pad-1">createJob</code> via the MCP, keeping{" "}
+            <code className="bg-soft px-pad-1">url</code> pointed at the technl.ca link.
           </p>
-          <p className="mt-2 text-xs text-subtle">
-            Last fetched {formatDate(fetchedAt)}
-          </p>
+          <p className="mt-2 text-xs text-subtle">Last fetched {formatDate(fetchedAt)}</p>
         </div>
 
         {error && (
@@ -189,9 +179,7 @@ export default function TechNLJobBoardImport() {
               <div className="text-sm text-muted">Total Jobs</div>
             </div>
             <div className="p-pad-4 border border-line bg-surface text-center rounded-panel">
-              <div className="text-3xl font-bold text-heading">
-                {companyGroups.length}
-              </div>
+              <div className="text-3xl font-bold text-heading">{companyGroups.length}</div>
               <div className="text-sm text-muted">Companies</div>
             </div>
             <div className="p-pad-4 border border-amber-200 bg-amber-50 text-center">
@@ -287,12 +275,8 @@ export default function TechNLJobBoardImport() {
                       <td className="px-pad-4 py-pad-3 text-sm text-muted">
                         {job.location || "—"}
                       </td>
-                      <td className="px-pad-4 py-pad-3 text-sm text-muted">
-                        {job.jobType || "—"}
-                      </td>
-                      <td className="px-pad-4 py-pad-3 text-sm text-muted">
-                        {job.salary || "—"}
-                      </td>
+                      <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.jobType || "—"}</td>
+                      <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.salary || "—"}</td>
                       <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                         {formatDate(job.postedAt)}
                       </td>

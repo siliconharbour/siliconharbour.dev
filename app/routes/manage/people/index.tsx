@@ -73,7 +73,9 @@ export default function ManagePeopleIndex() {
                   className="px-pad-4 py-pad-2 bg-slate-500 hover:bg-slate-600 text-white font-medium transition-colors flex items-center gap-gap-2"
                 >
                   Hide All
-                  <span className="px-pad-1-5 py-pad-0-5 bg-slate-600 text-xs ">{visibleCount}</span>
+                  <span className="px-pad-1-5 py-pad-0-5 bg-slate-600 text-xs ">
+                    {visibleCount}
+                  </span>
                 </button>
               </Form>
             )}

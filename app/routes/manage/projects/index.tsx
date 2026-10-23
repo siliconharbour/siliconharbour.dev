@@ -81,7 +81,9 @@ export default function ManageProjectsIndex() {
                 <div className="flex-1 min-w-0 flex flex-col gap-gap-0-5">
                   <div className="flex items-center gap-gap-2">
                     <h2 className="font-medium truncate text-heading">{project.name}</h2>
-                    <span className={`text-xs px-pad-1-5 py-pad-0-5 ${statusColors[project.status]}`}>
+                    <span
+                      className={`text-xs px-pad-1-5 py-pad-0-5 ${statusColors[project.status]}`}
+                    >
                       {project.status}
                     </span>
                   </div>

@@ -7,7 +7,7 @@ import { CommentSection } from "~/components/CommentSection";
 import { ReferencedBy } from "~/components/ReferencedBy";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const group = data?.group;
   const name = group?.name ?? "Group";
   const description = group?.description
@@ -114,9 +114,7 @@ export default function GroupDetail() {
                 </Link>
               )}
             </div>
-            {group.meetingFrequency && (
-              <p className="text-muted">Meets {group.meetingFrequency}</p>
-            )}
+            {group.meetingFrequency && <p className="text-muted">Meets {group.meetingFrequency}</p>}
           </div>
         </div>
 

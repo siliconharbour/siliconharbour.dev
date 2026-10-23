@@ -642,9 +642,7 @@ export default function ImportGitHub() {
       {/* Divider */}
       <div className="border-t border-line pt-pad-4">
         <h2 className="font-semibold text-heading mb-2">Manual Import</h2>
-        <p className="text-sm text-subtle mb-4">
-          Or search and select individual users to import.
-        </p>
+        <p className="text-sm text-subtle mb-4">Or search and select individual users to import.</p>
       </div>
 
       {/* Rate limit info */}
@@ -673,7 +671,9 @@ export default function ImportGitHub() {
 
       {/* Error display */}
       {fetcherData?.intent === "search" && fetcherData.error && (
-        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">{fetcherData.error}</div>
+        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
+          {fetcherData.error}
+        </div>
       )}
 
       {/* Import results */}
@@ -769,9 +769,7 @@ export default function ImportGitHub() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-gap-2 flex-wrap">
-                      <span
-                        className={`font-medium ${blocked ? "line-through text-subtle" : ""}`}
-                      >
+                      <span className={`font-medium ${blocked ? "line-through text-subtle" : ""}`}>
                         {displayName}
                       </span>
                       <span className="text-sm text-subtle">@{user.login}</span>

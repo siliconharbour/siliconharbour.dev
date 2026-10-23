@@ -218,9 +218,7 @@ export async function consumeConsentRequest(nonce: string, userId: number) {
       .where(eq(oauthConsentRequests.nonceHash, hash(nonce)))
       .get();
     if (!row || row.userId !== userId || row.expiresAt < new Date()) return null;
-    tx.delete(oauthConsentRequests)
-      .where(eq(oauthConsentRequests.nonceHash, row.nonceHash))
-      .run();
+    tx.delete(oauthConsentRequests).where(eq(oauthConsentRequests.nonceHash, row.nonceHash)).run();
     return JSON.parse(row.params) as Record<string, string>;
   });
 }
@@ -300,7 +298,10 @@ export async function exchangeAuthorizationCode(input: {
       throw new OAuthError(OAuthErrorCode.InvalidGrant, "Invalid or expired authorization code");
     }
     if (parseScopes(row.scopes).includes("mcp:write") && result.userRole !== "admin") {
-      throw new OAuthError(OAuthErrorCode.InvalidGrant, "Authorization grant is no longer permitted");
+      throw new OAuthError(
+        OAuthErrorCode.InvalidGrant,
+        "Authorization grant is no longer permitted",
+      );
     }
     tx.delete(oauthAuthorizationCodes)
       .where(eq(oauthAuthorizationCodes.codeHash, row.codeHash))
@@ -311,7 +312,9 @@ export async function exchangeAuthorizationCode(input: {
       scopes: parseScopes(row.scopes),
       resource: row.resource,
     });
-    tx.insert(oauthTokens).values([...grant.values]).run();
+    tx.insert(oauthTokens)
+      .values([...grant.values])
+      .run();
     return grant.response;
   });
 }
@@ -363,7 +366,9 @@ export async function exchangeRefreshToken(input: {
       resource: row.resource,
       familyId: row.familyId,
     });
-    tx.insert(oauthTokens).values([...grant.values]).run();
+    tx.insert(oauthTokens)
+      .values([...grant.values])
+      .run();
     return { rejected: false as const, response: grant.response };
   });
   if (result.rejected) {
@@ -393,9 +398,7 @@ export async function exchangeTokenGrant(input: unknown) {
   const parsed = tokenRequestSchema.safeParse(input);
   if (!parsed.success) {
     const grantType =
-      typeof input === "object" && input && "grant_type" in input
-        ? String(input.grant_type)
-        : "";
+      typeof input === "object" && input && "grant_type" in input ? String(input.grant_type) : "";
     throw new OAuthError(
       grantType && !["authorization_code", "refresh_token"].includes(grantType)
         ? OAuthErrorCode.UnsupportedGrantType
@@ -428,9 +431,7 @@ export const oauthTokenVerifier = {
       .select({ token: oauthTokens, userRole: users.role })
       .from(oauthTokens)
       .innerJoin(users, eq(oauthTokens.userId, users.id))
-      .where(
-        and(eq(oauthTokens.tokenHash, hash(token)), eq(oauthTokens.tokenType, "access")),
-      )
+      .where(and(eq(oauthTokens.tokenHash, hash(token)), eq(oauthTokens.tokenType, "access")))
       .get();
     const scopes = row ? parseScopes(row.token.scopes) : [];
     if (

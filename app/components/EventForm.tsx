@@ -628,9 +628,7 @@ export function EventForm({
                         <div className="mt-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
                             <div>
-                              <label className="block text-xs text-muted mb-1">
-                                End Date
-                              </label>
+                              <label className="block text-xs text-muted mb-1">End Date</label>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -665,9 +663,7 @@ export function EventForm({
 
                             {!dateEntry.isAllDay && (
                               <div>
-                                <label className="block text-xs text-muted mb-1">
-                                  End Time
-                                </label>
+                                <label className="block text-xs text-muted mb-1">End Time</label>
                                 <input
                                   type="time"
                                   value={dateEntry.endTime}
@@ -737,9 +733,7 @@ export function EventForm({
 
             {/* Series Start Date */}
             <div>
-              <label className="block text-xs text-muted mb-1">
-                Series Start Date (optional)
-              </label>
+              <label className="block text-xs text-muted mb-1">Series Start Date (optional)</label>
               <p className="text-xs text-subtle mb-2">
                 When this series began. Leave empty to use creation date.
               </p>

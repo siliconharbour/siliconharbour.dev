@@ -13,6 +13,7 @@
 ### Task 1: Shared Components (ManagePage + ManageList)
 
 **Files:**
+
 - Modify: `app/components/manage/ManagePage.tsx`
 - Modify: `app/components/manage/ManageList.tsx`
 
@@ -21,12 +22,14 @@
 In `app/components/manage/ManagePage.tsx`:
 
 Change outer wrapper padding from `p-6` to `p-4 md:p-6`:
+
 ```
 oldString: "min-h-screen p-6"
 newString: "min-h-screen p-4 md:p-6"
 ```
 
 Change header flex row to allow wrapping:
+
 ```
 oldString: "flex items-center justify-between gap-4"
 newString: "flex flex-wrap items-center justify-between gap-4"
@@ -37,6 +40,7 @@ newString: "flex flex-wrap items-center justify-between gap-4"
 In `app/components/manage/ManageList.tsx`:
 
 Change ManageListItem to allow content wrapping:
+
 ```
 oldString: "flex items-center gap-4 p-4 bg-white border border-harbour-200"
 newString: "flex flex-wrap items-center gap-4 p-4 bg-white border border-harbour-200"
@@ -57,6 +61,7 @@ git commit -m "fix: make ManagePage and ManageListItem responsive
 ### Task 2: Import Jobs Table (`import/jobs.tsx`)
 
 **Files:**
+
 - Modify: `app/routes/manage/import/jobs.tsx`
 
 - [ ] **Step 1: Fix outer padding**
@@ -97,6 +102,7 @@ git commit -m "fix: make import/jobs page responsive
 ### Task 3: Import Events Table (`import/events.tsx`)
 
 **Files:**
+
 - Modify: `app/routes/manage/import/events.tsx`
 
 - [ ] **Step 1: Fix outer padding**
@@ -117,6 +123,7 @@ newString: "flex flex-wrap items-center justify-between gap-2"
 - [ ] **Step 3: Fix table overflow**
 
 The table wrapper at line 116 has no overflow handling at all. Add `overflow-x-auto`:
+
 ```
 oldString: "border border-harbour-200"
   (this is the div wrapping the <table>, not other divs with the same border)
@@ -141,6 +148,7 @@ git commit -m "fix: make import/events page responsive
 ### Task 4: Import Job Source Detail (`import/jobs.$sourceId.tsx`) -- Largest Page
 
 **Files:**
+
 - Modify: `app/routes/manage/import/jobs.$sourceId.tsx`
 
 - [ ] **Step 1: Fix outer padding**
@@ -169,12 +177,14 @@ newString: "grid grid-cols-2 md:grid-cols-5 gap-4"
 Fix each of these 4 table wrappers by replacing `overflow-hidden` with `overflow-x-auto`:
 
 Table 1 -- Pending Review:
+
 ```
 oldString: "border border-blue-200 bg-white overflow-hidden"
 newString: "border border-blue-200 bg-white overflow-x-auto"
 ```
 
 Table 2 -- Active Jobs:
+
 ```
 oldString: "border border-harbour-200 bg-white overflow-hidden"
   (the one wrapping the Active Jobs table, around line 992)
@@ -182,12 +192,14 @@ newString: "border border-harbour-200 bg-white overflow-x-auto"
 ```
 
 Table 3 -- Hidden Jobs:
+
 ```
 oldString: "border border-amber-200 bg-white overflow-hidden"
 newString: "border border-amber-200 bg-white overflow-x-auto"
 ```
 
 Table 4 -- Removed Jobs:
+
 ```
 oldString: "border border-harbour-200 bg-white overflow-hidden"
   (the one wrapping the Removed Jobs table, around line 1154)
@@ -199,6 +211,7 @@ Note: Tables 2 and 4 share the same className string `"border border-harbour-200
 - [ ] **Step 5: Fix technology preview table wrapper**
 
 The technology preview table wrapper at line 796 has `"border border-harbour-200"` with no overflow. Add `overflow-x-auto`:
+
 ```
 oldString: "border border-harbour-200"
   (the div wrapping the technology preview <table>)
@@ -224,6 +237,7 @@ git commit -m "fix: make import job source detail page responsive
 ### Task 5: Form Pages (Companies + Jobs new/edit)
 
 **Files:**
+
 - Modify: `app/routes/manage/companies/new.tsx`
 - Modify: `app/routes/manage/companies/edit.tsx`
 - Modify: `app/routes/manage/jobs/new.tsx`
@@ -248,12 +262,14 @@ newString: "grid grid-cols-1 md:grid-cols-2 gap-4"
 - [ ] **Step 3: Fix jobs/new.tsx grids (2 occurrences)**
 
 First grid (Location + Department, line 121):
+
 ```
 oldString: "grid grid-cols-2 gap-4"
 newString: "grid grid-cols-1 md:grid-cols-2 gap-4"
 ```
 
 Second grid (Workplace Type + Salary, line 149):
+
 ```
 oldString: "grid grid-cols-2 gap-4"
 newString: "grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -264,12 +280,14 @@ Note: Both occurrences have the same className. Use surrounding context (field l
 - [ ] **Step 4: Fix jobs/edit.tsx grids (2 occurrences)**
 
 First grid (Location + Department, line 148):
+
 ```
 oldString: "grid grid-cols-2 gap-4"
 newString: "grid grid-cols-1 md:grid-cols-2 gap-4"
 ```
 
 Second grid (Workplace Type + Salary, line 176):
+
 ```
 oldString: "grid grid-cols-2 gap-4"
 newString: "grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -292,6 +310,7 @@ git commit -m "fix: make company and job forms responsive
 ### Task 6: List Page Headers (companies, people, events)
 
 **Files:**
+
 - Modify: `app/routes/manage/companies/index.tsx`
 - Modify: `app/routes/manage/people/index.tsx`
 - Modify: `app/routes/manage/events/index.tsx`
@@ -334,6 +353,7 @@ git commit -m "fix: make list page headers wrap on mobile
 ### Task 7: Remaining Page Padding (comments, settings)
 
 **Files:**
+
 - Modify: `app/routes/manage/comments.tsx`
 - Modify: `app/routes/manage/settings.tsx`
 
@@ -381,6 +401,7 @@ Expected: Build completes successfully with no errors.
 - [ ] **Step 3: Verify no remaining `overflow-hidden` on table wrappers**
 
 Search the manage routes for any remaining `overflow-hidden` that wraps a `<table>`:
+
 ```bash
 # Use grep to check -- should return 0 results in manage/ route files
 ```

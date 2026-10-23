@@ -9,7 +9,7 @@ import { ReferencedBy } from "~/components/ReferencedBy";
 import { ImageGallery } from "~/components/ImageGallery";
 import type { ProjectType, ProjectStatus } from "~/db/schema";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `${data?.project?.name ?? "Project"} - siliconharbour.dev` }];
 }
 

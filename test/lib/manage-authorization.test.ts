@@ -49,7 +49,9 @@ describe("management authorization boundary", () => {
       if (exemptions.has(file)) continue;
       const source = readFileSync(file, "utf8");
       if (!/export (?:async function|const) (?:loader|action)/.test(source)) continue;
-      expect(source, `${file} must enforce administrator access`).toContain("requireAdmin(request)");
+      expect(source, `${file} must enforce administrator access`).toContain(
+        "requireAdmin(request)",
+      );
     }
   });
 });

@@ -1,3 +1,4 @@
+import { RouterContextProvider } from "react-router";
 /**
  * /api/events recurrence exposure tests.
  *
@@ -16,24 +17,31 @@ import { loader as eventDetailLoader } from "~/routes/api/events.$slug";
 
 interface LoaderArgs {
   request: Request;
-  params: Record<string, string>;
-  context: unknown;
+  params: Record<string, string> & { slug: string };
+  context: RouterContextProvider;
+  url: URL;
+  pattern: string;
 }
 
 function makeArgs(url: string, params: Record<string, string> = {}): LoaderArgs {
   return {
     request: new Request(`https://example.com${url}`),
-    params,
-    context: {},
+    params: { slug: "", ...params },
+    context: new RouterContextProvider(),
+    url: new URL(`https://example.com${url}`),
+    pattern: url,
   };
 }
 
 async function callJson(
-  loader: (args: LoaderArgs) => Promise<Response> | Response,
+  loader: (
+    args: LoaderArgs,
+  ) => Promise<Response | { data: unknown; init: ResponseInit | null }> | Response,
   url: string,
   params: Record<string, string> = {},
 ): Promise<{ status: number; body: any }> {
   const res = await loader(makeArgs(url, params));
+  if (!(res instanceof Response)) return { status: res.init?.status ?? 200, body: res.data };
   const body = await res.json();
   return { status: res.status, body };
 }
@@ -208,10 +216,7 @@ describe("GET /api/events — recurrence field", () => {
     const { body } = await callJson(eventsListLoader, "/api/events");
     const slugs = (body as { data: EventResponse[] }).data.map((event) => event.slug);
 
-    expect(slugs).toEqual([
-      "alphabetically-last-but-sooner",
-      "alphabetically-first-but-later",
-    ]);
+    expect(slugs).toEqual(["alphabetically-last-but-sooner", "alphabetically-first-but-later"]);
   });
 
   it("includes a recurring-only event (no explicit dates) and emits its recurrence block", async () => {

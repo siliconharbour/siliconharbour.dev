@@ -83,7 +83,12 @@ function getOctokit(): InstanceType<typeof ThrottledOctokit> {
     auth: token ?? undefined,
     userAgent: "siliconharbour.dev/1.0",
     throttle: {
-      onRateLimit: (retryAfter, options, octokit, retryCount) => {
+      onRateLimit: (
+        retryAfter: number,
+        options: { method?: string; url?: string },
+        octokit: { log: { warn(message: string): void; info(message: string): void } },
+        retryCount: number,
+      ) => {
         octokit.log.warn(`Rate limit hit for ${options.method} ${options.url}`);
         // Retry up to 2 times after waiting
         if (retryCount < 2) {
@@ -92,14 +97,18 @@ function getOctokit(): InstanceType<typeof ThrottledOctokit> {
         }
         return false;
       },
-      onSecondaryRateLimit: (retryAfter, options, octokit) => {
+      onSecondaryRateLimit: (
+        retryAfter: number,
+        options: { method?: string; url?: string },
+        octokit: { log: { warn(message: string): void } },
+      ) => {
         octokit.log.warn(`Secondary rate limit for ${options.method} ${options.url}`);
         // Don't retry secondary rate limits (abuse detection)
         return false;
       },
     },
     retry: {
-      doNotRetry: ["429"], // Don't retry rate limits (handled by throttling)
+      doNotRetry: [429], // Don't retry rate limits (handled by throttling)
       retries: 3,
     },
   });
@@ -571,65 +580,4 @@ export async function fetchFullProfiles(
   }
 
   return { profiles, errors };
-}
-
-// Legacy exports for backward compatibility
-export async function getUserFollowing(
-  username: string,
-  page: number = 1,
-  perPage: number = 100,
-): Promise<{ users: GitHubUserBasic[]; rateLimit: RateLimitInfo }> {
-  const octokit = getOctokit();
-
-  const response = await octokit.rest.users.listFollowingForUser({
-    username,
-    page,
-    per_page: perPage,
-  });
-
-  const rateLimit: RateLimitInfo = {
-    remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
-    limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
-    reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
-  };
-
-  return {
-    users: response.data.map((user) => ({
-      login: user.login,
-      id: user.id,
-      avatar_url: user.avatar_url,
-      html_url: user.html_url,
-    })),
-    rateLimit,
-  };
-}
-
-export async function getUserFollowers(
-  username: string,
-  page: number = 1,
-  perPage: number = 100,
-): Promise<{ users: GitHubUserBasic[]; rateLimit: RateLimitInfo }> {
-  const octokit = getOctokit();
-
-  const response = await octokit.rest.users.listFollowersForUser({
-    username,
-    page,
-    per_page: perPage,
-  });
-
-  const rateLimit: RateLimitInfo = {
-    remaining: parseInt(response.headers["x-ratelimit-remaining"] ?? "0"),
-    limit: parseInt(response.headers["x-ratelimit-limit"] ?? "0"),
-    reset: new Date(parseInt(response.headers["x-ratelimit-reset"] ?? "0") * 1000),
-  };
-
-  return {
-    users: response.data.map((user) => ({
-      login: user.login,
-      id: user.id,
-      avatar_url: user.avatar_url,
-      html_url: user.html_url,
-    })),
-    rateLimit,
-  };
 }

@@ -2,7 +2,6 @@
   "name": "siliconharbour.dev",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.11.1",
   "scripts": {
     "build": "tsx scripts/generate-theme.ts && react-router build",
     "dev": "tsx scripts/generate-theme.ts && tsx watch server.ts",
@@ -94,5 +93,6 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.3"
-  }
+  },
+  "packageManager": "pnpm@12.11.1"
 }

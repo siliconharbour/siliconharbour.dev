@@ -20,9 +20,7 @@ function build(rows: Array<Record<string, string>>): FormData {
 
 describe("parseOneTimeEventDates", () => {
   it("parses a timed event with start time only", () => {
-    const fd = build([
-      { startDate: "2026-12-31", startTime: "18:00", hasEnd: "0", isAllDay: "0" },
-    ]);
+    const fd = build([{ startDate: "2026-12-31", startTime: "18:00", hasEnd: "0", isAllDay: "0" }]);
     const r = parseOneTimeEventDates(fd);
     expect(r.success).toBe(true);
     if (!r.success) return;
@@ -84,9 +82,7 @@ describe("parseOneTimeEventDates", () => {
   });
 
   it("fails when a timed entry has no start time", () => {
-    const fd = build([
-      { startDate: "2026-12-31", startTime: "", hasEnd: "0", isAllDay: "0" },
-    ]);
+    const fd = build([{ startDate: "2026-12-31", startTime: "", hasEnd: "0", isAllDay: "0" }]);
     const r = parseOneTimeEventDates(fd);
     expect(r.success).toBe(false);
     if (r.success) return;

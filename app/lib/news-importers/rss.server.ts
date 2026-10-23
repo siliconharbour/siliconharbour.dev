@@ -3,12 +3,7 @@
  * Fetches and parses RSS/Atom feeds to extract news items
  */
 
-import type {
-  NewsImporter,
-  FetchedNewsItem,
-  NewsImportSourceConfig,
-  ExcerptMode,
-} from "./types";
+import type { NewsImporter, FetchedNewsItem, NewsImportSourceConfig, ExcerptMode } from "./types";
 
 /**
  * Pick the excerpt text based on excerptMode.
@@ -23,7 +18,7 @@ function pickExcerpt(
 ): string | undefined {
   if (mode === "none") return undefined;
 
-  const raw = mode === "content" ? (contentEncoded || description) : description;
+  const raw = mode === "content" ? contentEncoded || description : description;
   if (!raw) return undefined;
 
   return decodeHtmlEntities(stripHtml(raw)).slice(0, 500) || undefined;
@@ -34,7 +29,10 @@ function pickExcerpt(
  * Handles both RSS 2.0 (<item>) and Atom (<entry>) feeds.
  * Uses regex-based parsing to avoid XML parser dependencies.
  */
-export function parseRssItems(xml: string, excerptMode: ExcerptMode = "description"): FetchedNewsItem[] {
+export function parseRssItems(
+  xml: string,
+  excerptMode: ExcerptMode = "description",
+): FetchedNewsItem[] {
   const items: FetchedNewsItem[] = [];
 
   // Try RSS 2.0 format first (<item> elements)
@@ -71,8 +69,7 @@ export function parseRssItems(xml: string, excerptMode: ExcerptMode = "descripti
       const id = extractTag(block, "id");
       const summary = extractTag(block, "summary");
       const content = extractTag(block, "content");
-      const published =
-        extractTag(block, "published") || extractTag(block, "updated");
+      const published = extractTag(block, "published") || extractTag(block, "updated");
 
       if (!title || !link) continue;
 
@@ -108,8 +105,7 @@ function extractTag(xml: string, tag: string): string | null {
 /** Extract href from Atom <link> element */
 function extractAtomLink(xml: string): string | null {
   // Match <link rel="alternate" href="..."/> or <link href="..."/>
-  const altMatch =
-    /<link[^>]*rel=["']alternate["'][^>]*href=["']([^"']+)["']/i.exec(xml);
+  const altMatch = /<link[^>]*rel=["']alternate["'][^>]*href=["']([^"']+)["']/i.exec(xml);
   if (altMatch) return altMatch[1];
   const hrefMatch = /<link[^>]*href=["']([^"']+)["']/i.exec(xml);
   return hrefMatch ? hrefMatch[1] : null;
@@ -177,20 +173,16 @@ const HTML_ENTITIES: Record<string, string> = {
 
 /** Decode HTML entities (named, decimal, and hex) */
 function decodeHtmlEntities(text: string): string {
-  return text
-    .replace(
-      /&(#x[\da-fA-F]+|#\d+|\w+);/g,
-      (match) => {
-        if (HTML_ENTITIES[match]) return HTML_ENTITIES[match];
-        if (match.startsWith("&#x")) {
-          return String.fromCharCode(parseInt(match.slice(3, -1), 16));
-        }
-        if (match.startsWith("&#")) {
-          return String.fromCharCode(Number(match.slice(2, -1)));
-        }
-        return match;
-      },
-    );
+  return text.replace(/&(#x[\da-fA-F]+|#\d+|\w+);/g, (match) => {
+    if (HTML_ENTITIES[match]) return HTML_ENTITIES[match];
+    if (match.startsWith("&#x")) {
+      return String.fromCharCode(parseInt(match.slice(3, -1), 16));
+    }
+    if (match.startsWith("&#")) {
+      return String.fromCharCode(Number(match.slice(2, -1)));
+    }
+    return match;
+  });
 }
 
 export const rssImporter: NewsImporter = {
@@ -199,21 +191,16 @@ export const rssImporter: NewsImporter = {
     name: "RSS/Atom Feed",
     description: "Import news from RSS or Atom feeds",
   },
-  async fetchItems(
-    config: NewsImportSourceConfig,
-  ): Promise<FetchedNewsItem[]> {
+  async fetchItems(config: NewsImportSourceConfig): Promise<FetchedNewsItem[]> {
     const response = await fetch(config.sourceUrl, {
       headers: {
         "User-Agent": "siliconharbour.dev news aggregator",
-        Accept:
-          "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml",
       },
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch RSS feed: ${response.status} ${response.statusText}`,
-      );
+      throw new Error(`Failed to fetch RSS feed: ${response.status} ${response.statusText}`);
     }
 
     const xml = await response.text();

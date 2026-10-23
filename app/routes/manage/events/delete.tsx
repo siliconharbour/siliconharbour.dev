@@ -5,7 +5,7 @@ import { getEventById, deleteEvent } from "~/lib/events.server";
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Delete ${data?.event?.title || "Event"} - siliconharbour.dev` }];
 }
 

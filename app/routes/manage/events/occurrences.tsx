@@ -11,7 +11,7 @@ import {
 import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.server";
 import { formatInTimezone } from "~/lib/timezone";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Manage Occurrences - ${data?.event?.title || "Event"} - siliconharbour.dev` }];
 }
 
@@ -102,10 +102,7 @@ export default function ManageOccurrences() {
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-4xl mx-auto flex flex-col gap-gap-6">
         <div>
-          <Link
-            to={`/manage/events/${event.id}`}
-            className="text-sm text-subtle hover:text-body"
-          >
+          <Link to={`/manage/events/${event.id}`} className="text-sm text-subtle hover:text-body">
             &larr; Back to Edit Event
           </Link>
         </div>
@@ -140,155 +137,163 @@ export default function ManageOccurrences() {
             {occurrences.map((occurrence, i) => {
               const isPast = new Date(occurrence.date) < new Date();
               return (
-              <div key={i} className={`py-pad-4 ${occurrence.cancelled ? "opacity-60" : isPast ? "opacity-75" : ""}`}>
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-gap-4">
-                  <div className="flex-1">
-                    <div
-                      className={`font-medium ${occurrence.cancelled ? "line-through text-subtle" : "text-heading"}`}
-                    >
-                      {formatInTimezone(occurrence.date, "EEEE, MMMM d, yyyy")}
-                      {isPast && !occurrence.cancelled && (
-                        <span className="ml-2 text-xs px-pad-1-5 py-pad-0-5 bg-soft text-subtle">
-                          Past
+                <div
+                  key={i}
+                  className={`py-pad-4 ${occurrence.cancelled ? "opacity-60" : isPast ? "opacity-75" : ""}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-gap-4">
+                    <div className="flex-1">
+                      <div
+                        className={`font-medium ${occurrence.cancelled ? "line-through text-subtle" : "text-heading"}`}
+                      >
+                        {formatInTimezone(occurrence.date, "EEEE, MMMM d, yyyy")}
+                        {isPast && !occurrence.cancelled && (
+                          <span className="ml-2 text-xs px-pad-1-5 py-pad-0-5 bg-soft text-subtle">
+                            Past
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted">
+                        {formatInTimezone(occurrence.date, "h:mm a")}
+                        {occurrence.endDate &&
+                          ` - ${formatTimedRangeEnd(occurrence.date, occurrence.endDate)}`}
+                      </div>
+                      {occurrence.location && (
+                        <div className="text-sm text-subtle">
+                          {occurrence.location}
+                          {occurrence.location !== event.location && (
+                            <span className="ml-1 text-amber-600">(overridden)</span>
+                          )}
+                        </div>
+                      )}
+                      {occurrence.cancelled && (
+                        <span className="inline-block mt-1 px-pad-2 py-pad-0-5 bg-red-100 text-red-700 text-xs">
+                          Cancelled
+                        </span>
+                      )}
+                      {occurrence.overrideId && !occurrence.cancelled && (
+                        <span className="inline-block mt-1 px-pad-2 py-pad-0-5 bg-amber-100 text-amber-700 text-xs">
+                          Has overrides
                         </span>
                       )}
                     </div>
-                    <div className="text-sm text-muted">
-                      {formatInTimezone(occurrence.date, "h:mm a")}
-                      {occurrence.endDate && ` - ${formatTimedRangeEnd(occurrence.date, occurrence.endDate)}`}
-                    </div>
-                    {occurrence.location && (
-                      <div className="text-sm text-subtle">
-                        {occurrence.location}
-                        {occurrence.location !== event.location && (
-                          <span className="ml-1 text-amber-600">(overridden)</span>
-                        )}
-                      </div>
-                    )}
-                    {occurrence.cancelled && (
-                      <span className="inline-block mt-1 px-pad-2 py-pad-0-5 bg-red-100 text-red-700 text-xs">
-                        Cancelled
-                      </span>
-                    )}
-                    {occurrence.overrideId && !occurrence.cancelled && (
-                      <span className="inline-block mt-1 px-pad-2 py-pad-0-5 bg-amber-100 text-amber-700 text-xs">
-                        Has overrides
-                      </span>
-                    )}
-                  </div>
 
-                  <div className="flex flex-wrap gap-gap-2">
-                    {occurrence.cancelled ? (
-                      <Form method="post">
-                        <input type="hidden" name="_action" value="uncancel" />
-                        <input type="hidden" name="date" value={occurrence.date.toISOString()} />
-                        <button
-                          type="submit"
-                          className="px-pad-3 py-pad-1 text-sm bg-green-600 text-white hover:bg-green-700"
-                        >
-                          Restore
-                        </button>
-                      </Form>
-                    ) : (
-                      <>
+                    <div className="flex flex-wrap gap-gap-2">
+                      {occurrence.cancelled ? (
                         <Form method="post">
-                          <input type="hidden" name="_action" value="cancel" />
+                          <input type="hidden" name="_action" value="uncancel" />
                           <input type="hidden" name="date" value={occurrence.date.toISOString()} />
                           <button
                             type="submit"
-                            className="px-pad-3 py-pad-1 text-sm bg-red-600 text-white hover:bg-red-700"
+                            className="px-pad-3 py-pad-1 text-sm bg-green-600 text-white hover:bg-green-700"
                           >
-                            Cancel
+                            Restore
                           </button>
                         </Form>
-                        <details className="relative">
-                          <summary className="px-pad-3 py-pad-1 text-sm bg-tint text-heading hover:bg-harbour-200 cursor-pointer list-none">
-                            Edit
-                          </summary>
-                          <div className="absolute right-0 mt-2 p-pad-4 bg-surface border border-line  z-10 min-w-72 rounded-panel">
-                            <Form method="post" className="space-y-3">
-                              <input type="hidden" name="_action" value="update" />
-                              <input
-                                type="hidden"
-                                name="date"
-                                value={occurrence.date.toISOString()}
-                              />
-
-                              <div>
-                                <label className="block text-xs text-muted mb-1">
-                                  Location Override
-                                </label>
-                                <input
-                                  type="text"
-                                  name="location"
-                                  defaultValue={occurrence.location || ""}
-                                  placeholder={event.location || "Enter location"}
-                                  className="w-full px-pad-2 py-pad-1 text-sm border border-line"
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-gap-2">
-                                <div>
-                                  <label className="block text-xs text-muted mb-1">
-                                    Start Time
-                                  </label>
-                                  <input
-                                    type="time"
-                                    name="startTime"
-                                    defaultValue={formatInTimezone(occurrence.date, "HH:mm")}
-                                    className="w-full px-pad-2 py-pad-1 text-sm border border-line"
-                                  />
-                                </div>
-                                <div>
-                                  <label className="block text-xs text-muted mb-1">
-                                    End Time
-                                  </label>
-                                  <input
-                                    type="time"
-                                    name="endTime"
-                                    defaultValue={
-                                      occurrence.endDate
-                                        ? formatInTimezone(occurrence.endDate, "HH:mm")
-                                        : ""
-                                    }
-                                    className="w-full px-pad-2 py-pad-1 text-sm border border-line"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="flex gap-gap-2">
-                                <button
-                                  type="submit"
-                                  className="px-pad-3 py-pad-1 text-sm bg-primary text-white hover:bg-primary-hover"
-                                >
-                                  Save
-                                </button>
-                              </div>
-                            </Form>
-
-                            {occurrence.overrideId && (
-                              <Form method="post" className="mt-2 pt-pad-2 border-t border-line">
-                                <input type="hidden" name="_action" value="clearOverride" />
+                      ) : (
+                        <>
+                          <Form method="post">
+                            <input type="hidden" name="_action" value="cancel" />
+                            <input
+                              type="hidden"
+                              name="date"
+                              value={occurrence.date.toISOString()}
+                            />
+                            <button
+                              type="submit"
+                              className="px-pad-3 py-pad-1 text-sm bg-red-600 text-white hover:bg-red-700"
+                            >
+                              Cancel
+                            </button>
+                          </Form>
+                          <details className="relative">
+                            <summary className="px-pad-3 py-pad-1 text-sm bg-tint text-heading hover:bg-harbour-200 cursor-pointer list-none">
+                              Edit
+                            </summary>
+                            <div className="absolute right-0 mt-2 p-pad-4 bg-surface border border-line  z-10 min-w-72 rounded-panel">
+                              <Form method="post" className="space-y-3">
+                                <input type="hidden" name="_action" value="update" />
                                 <input
                                   type="hidden"
-                                  name="overrideId"
-                                  value={occurrence.overrideId}
+                                  name="date"
+                                  value={occurrence.date.toISOString()}
                                 />
-                                <button
-                                  type="submit"
-                                  className="text-xs text-red-600 hover:underline"
-                                >
-                                  Clear all overrides
-                                </button>
+
+                                <div>
+                                  <label className="block text-xs text-muted mb-1">
+                                    Location Override
+                                  </label>
+                                  <input
+                                    type="text"
+                                    name="location"
+                                    defaultValue={occurrence.location || ""}
+                                    placeholder={event.location || "Enter location"}
+                                    className="w-full px-pad-2 py-pad-1 text-sm border border-line"
+                                  />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-gap-2">
+                                  <div>
+                                    <label className="block text-xs text-muted mb-1">
+                                      Start Time
+                                    </label>
+                                    <input
+                                      type="time"
+                                      name="startTime"
+                                      defaultValue={formatInTimezone(occurrence.date, "HH:mm")}
+                                      className="w-full px-pad-2 py-pad-1 text-sm border border-line"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-muted mb-1">
+                                      End Time
+                                    </label>
+                                    <input
+                                      type="time"
+                                      name="endTime"
+                                      defaultValue={
+                                        occurrence.endDate
+                                          ? formatInTimezone(occurrence.endDate, "HH:mm")
+                                          : ""
+                                      }
+                                      className="w-full px-pad-2 py-pad-1 text-sm border border-line"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-gap-2">
+                                  <button
+                                    type="submit"
+                                    className="px-pad-3 py-pad-1 text-sm bg-primary text-white hover:bg-primary-hover"
+                                  >
+                                    Save
+                                  </button>
+                                </div>
                               </Form>
-                            )}
-                          </div>
-                        </details>
-                      </>
-                    )}
+
+                              {occurrence.overrideId && (
+                                <Form method="post" className="mt-2 pt-pad-2 border-t border-line">
+                                  <input type="hidden" name="_action" value="clearOverride" />
+                                  <input
+                                    type="hidden"
+                                    name="overrideId"
+                                    value={occurrence.overrideId}
+                                  />
+                                  <button
+                                    type="submit"
+                                    className="text-xs text-red-600 hover:underline"
+                                  >
+                                    Clear all overrides
+                                  </button>
+                                </Form>
+                              )}
+                            </div>
+                          </details>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
               );
             })}
           </div>

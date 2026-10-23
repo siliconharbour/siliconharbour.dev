@@ -14,60 +14,61 @@
 
 ### New files to create
 
-| File | Responsibility |
-|------|---------------|
-| `drizzle/0047_news_aggregator.sql` | Migration: drop old news, create new news + newsImportSources tables, rebuild news_fts |
-| `app/lib/news-importers/types.ts` | `FetchedNewsItem`, `NewsSourceType`, `NewsSyncResult`, `NewsImporter` types |
-| `app/lib/news-importers/index.ts` | Importer registry (rss, custom) |
-| `app/lib/news-importers/rss.server.ts` | Generic RSS/Atom feed parser |
-| `app/lib/news-importers/custom.server.ts` | Custom scraper registry (empty initially, pattern ready) |
-| `app/lib/news-importers/sync.server.ts` | Sync algorithm, source CRUD, triage functions, keyword filtering |
-| `app/routes/news/links.tsx` | "Links" filter tab |
-| `app/routes/news/articles.tsx` | "Articles" filter tab |
-| `app/routes/manage/import/news.tsx` | Import source management + pending review triage UI |
-| `app/routes/manage/import/news.new.tsx` | Add news source form |
+| File                                      | Responsibility                                                                         |
+| ----------------------------------------- | -------------------------------------------------------------------------------------- |
+| `drizzle/0047_news_aggregator.sql`        | Migration: drop old news, create new news + newsImportSources tables, rebuild news_fts |
+| `app/lib/news-importers/types.ts`         | `FetchedNewsItem`, `NewsSourceType`, `NewsSyncResult`, `NewsImporter` types            |
+| `app/lib/news-importers/index.ts`         | Importer registry (rss, custom)                                                        |
+| `app/lib/news-importers/rss.server.ts`    | Generic RSS/Atom feed parser                                                           |
+| `app/lib/news-importers/custom.server.ts` | Custom scraper registry (empty initially, pattern ready)                               |
+| `app/lib/news-importers/sync.server.ts`   | Sync algorithm, source CRUD, triage functions, keyword filtering                       |
+| `app/routes/news/links.tsx`               | "Links" filter tab                                                                     |
+| `app/routes/news/articles.tsx`            | "Articles" filter tab                                                                  |
+| `app/routes/manage/import/news.tsx`       | Import source management + pending review triage UI                                    |
+| `app/routes/manage/import/news.new.tsx`   | Add news source form                                                                   |
 
 ### Existing files to modify
 
-| File | Changes |
-|------|---------|
-| `app/db/schema.ts` | Replace `newsTypes` enum, redefine `news` table, add `newsImportSources` table, add `newsSourceTypes` enum, update type exports |
-| `drizzle/meta/_journal.json` | Add migration entry idx 47 |
-| `app/routes.ts` | Update news layout tabs, add import/news routes, remove old type tabs |
-| `app/lib/news.server.ts` | Rewrite for new schema (status field, type field, externalUrl, sourceName) |
-| `app/lib/news-listing.server.ts` | Update type filter from old types to `link` | `article` |
-| `app/components/news/NewsListing.tsx` | Dual display: link posts (external link + source badge) vs articles (internal link), new filter tabs |
-| `app/routes/news/layout.tsx` | Update tabs from old types to All / Links / Articles |
-| `app/routes/news/all.tsx` | Update meta, pass `showTypeBadge` |
-| `app/routes/news/detail.tsx` | Dual rendering: article (full content) vs link post (excerpt + "Read on" button) |
-| `app/routes/news/index.md.tsx` | Add `type`, `externalUrl`, `sourceName` to markdown output |
-| `app/routes/news/detail.md.tsx` | Same field additions |
-| `app/routes/news-rss.tsx` | Use `externalUrl` for link post items |
-| `app/routes/news-og.tsx` | Update type labels |
-| `app/routes/api/news.tsx` | Add new fields to JSON output |
-| `app/routes/api/news.$slug.tsx` | Same field additions |
-| `app/lib/markdown.server.ts` | Update `newsToMarkdown()` for new fields |
-| `app/lib/og-image.server.ts` | Update `prepareNewsOGData()` type labels |
-| `app/routes/manage/news/index.tsx` | Add type/status badges, "Submit URL" action |
-| `app/routes/manage/news/new.tsx` | Support link post creation (URL submission with metadata extraction) |
-| `app/routes/manage/news/edit.tsx` | Handle new schema fields |
-| `app/mcp/bridge.ts` | Add `submitNewsLink`, `createNewsArticle`, `pendingNews`, `approveNews`, `hideNews` |
-| `app/mcp/server.ts` | Register news MCP tools |
+| File                                  | Changes                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `app/db/schema.ts`                    | Replace `newsTypes` enum, redefine `news` table, add `newsImportSources` table, add `newsSourceTypes` enum, update type exports |
+| `drizzle/meta/_journal.json`          | Add migration entry idx 47                                                                                                      |
+| `app/routes.ts`                       | Update news layout tabs, add import/news routes, remove old type tabs                                                           |
+| `app/lib/news.server.ts`              | Rewrite for new schema (status field, type field, externalUrl, sourceName)                                                      |
+| `app/lib/news-listing.server.ts`      | Update type filter from old types to `link`                                                                                     | `article` |
+| `app/components/news/NewsListing.tsx` | Dual display: link posts (external link + source badge) vs articles (internal link), new filter tabs                            |
+| `app/routes/news/layout.tsx`          | Update tabs from old types to All / Links / Articles                                                                            |
+| `app/routes/news/all.tsx`             | Update meta, pass `showTypeBadge`                                                                                               |
+| `app/routes/news/detail.tsx`          | Dual rendering: article (full content) vs link post (excerpt + "Read on" button)                                                |
+| `app/routes/news/index.md.tsx`        | Add `type`, `externalUrl`, `sourceName` to markdown output                                                                      |
+| `app/routes/news/detail.md.tsx`       | Same field additions                                                                                                            |
+| `app/routes/news-rss.tsx`             | Use `externalUrl` for link post items                                                                                           |
+| `app/routes/news-og.tsx`              | Update type labels                                                                                                              |
+| `app/routes/api/news.tsx`             | Add new fields to JSON output                                                                                                   |
+| `app/routes/api/news.$slug.tsx`       | Same field additions                                                                                                            |
+| `app/lib/markdown.server.ts`          | Update `newsToMarkdown()` for new fields                                                                                        |
+| `app/lib/og-image.server.ts`          | Update `prepareNewsOGData()` type labels                                                                                        |
+| `app/routes/manage/news/index.tsx`    | Add type/status badges, "Submit URL" action                                                                                     |
+| `app/routes/manage/news/new.tsx`      | Support link post creation (URL submission with metadata extraction)                                                            |
+| `app/routes/manage/news/edit.tsx`     | Handle new schema fields                                                                                                        |
+| `app/mcp/bridge.ts`                   | Add `submitNewsLink`, `createNewsArticle`, `pendingNews`, `approveNews`, `hideNews`                                             |
+| `app/mcp/server.ts`                   | Register news MCP tools                                                                                                         |
 
 ### Files to delete
 
-| File | Reason |
-|------|--------|
+| File                                | Reason                                   |
+| ----------------------------------- | ---------------------------------------- |
 | `app/routes/news/announcements.tsx` | Old type tab, replaced by Links/Articles |
-| `app/routes/news/general.tsx` | Old type tab |
-| `app/routes/news/editorial.tsx` | Old type tab |
-| `app/routes/news/updates.tsx` | Old type tab |
+| `app/routes/news/general.tsx`       | Old type tab                             |
+| `app/routes/news/editorial.tsx`     | Old type tab                             |
+| `app/routes/news/updates.tsx`       | Old type tab                             |
 
 ---
 
 ## Task 1: Database Schema & Migration
 
 **Files:**
+
 - Modify: `app/db/schema.ts:267-286` (news table + types)
 - Create: `drizzle/0047_news_aggregator.sql`
 - Modify: `drizzle/meta/_journal.json`
@@ -258,6 +259,7 @@ Rebuild news_fts with trigram tokenizer."
 ## Task 2: News Importer Types & Registry
 
 **Files:**
+
 - Create: `app/lib/news-importers/types.ts`
 - Create: `app/lib/news-importers/index.ts`
 
@@ -396,6 +398,7 @@ Registry pattern mirroring job importers with rss + custom source types."
 ## Task 3: RSS Importer
 
 **Files:**
+
 - Create: `app/lib/news-importers/rss.server.ts`
 
 - [ ] **Step 1: Create RSS importer**
@@ -471,7 +474,10 @@ function parseRssItems(xml: string): FetchedNewsItem[] {
 /** Extract text content from an XML tag */
 function extractTag(xml: string, tag: string): string | null {
   // Handle CDATA sections
-  const cdataRegex = new RegExp(`<${tag}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${tag}>`, "i");
+  const cdataRegex = new RegExp(
+    `<${tag}[^>]*>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${tag}>`,
+    "i",
+  );
   const cdataMatch = cdataRegex.exec(xml);
   if (cdataMatch) return cdataMatch[1].trim();
 
@@ -492,7 +498,10 @@ function extractAtomLink(xml: string): string | null {
 
 /** Strip HTML tags from text */
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** Decode common HTML entities */
@@ -547,6 +556,7 @@ Handles CDATA sections and HTML entity decoding."
 ## Task 4: Custom Scraper Registry
 
 **Files:**
+
 - Create: `app/lib/news-importers/custom.server.ts`
 
 - [ ] **Step 1: Create custom scraper registry**
@@ -621,6 +631,7 @@ Same pattern as job custom importers."
 ## Task 5: News Sync Algorithm
 
 **Files:**
+
 - Create: `app/lib/news-importers/sync.server.ts`
 
 - [ ] **Step 1: Create sync.server.ts**
@@ -636,7 +647,12 @@ Create `app/lib/news-importers/sync.server.ts`. This is the largest new file -- 
 import { db } from "~/db";
 import { newsImportSources, news } from "~/db/schema";
 import { eq, and, desc, count } from "drizzle-orm";
-import type { NewsSyncResult, NewsImportSourceConfig, NewsSourceType, FetchedNewsItem } from "./types";
+import type {
+  NewsSyncResult,
+  NewsImportSourceConfig,
+  NewsSourceType,
+  FetchedNewsItem,
+} from "./types";
 import { getNewsImporter } from "./index";
 import { generateNewsSlug } from "~/lib/news.server";
 
@@ -748,7 +764,14 @@ async function updateSourceMeta(
 export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> {
   const source = await getNewsSourceById(sourceId);
   if (!source) {
-    return { success: false, error: "Source not found", added: 0, updated: 0, filtered: 0, totalPublished: 0 };
+    return {
+      success: false,
+      error: "Source not found",
+      added: 0,
+      updated: 0,
+      filtered: 0,
+      totalPublished: 0,
+    };
   }
 
   await updateSourceMeta(sourceId, { lastSyncStatus: "pending", lastSyncError: null });
@@ -873,7 +896,15 @@ export async function syncAllNewsSources(): Promise<{
     .from(newsImportSources)
     .where(eq(newsImportSources.enabled, true));
 
-  const totals = { sourcesTotal: sources.length, sourcesSucceeded: 0, sourcesFailed: 0, added: 0, updated: 0, filtered: 0, errors: [] as string[] };
+  const totals = {
+    sourcesTotal: sources.length,
+    sourcesSucceeded: 0,
+    sourcesFailed: 0,
+    added: 0,
+    updated: 0,
+    filtered: 0,
+    errors: [] as string[],
+  };
 
   for (const source of sources) {
     const result = await syncNewsSource(source.id);
@@ -927,10 +958,7 @@ export async function approveNewsItem(newsId: number) {
  * Hide a news item.
  */
 export async function hideNewsItem(newsId: number) {
-  await db
-    .update(news)
-    .set({ status: "hidden", updatedAt: new Date() })
-    .where(eq(news.id, newsId));
+  await db.update(news).set({ status: "hidden", updatedAt: new Date() }).where(eq(news.id, newsId));
 }
 
 /**
@@ -960,12 +988,14 @@ Mirrors job import sync pattern."
 ## Task 6: Rewrite news.server.ts
 
 **Files:**
+
 - Modify: `app/lib/news.server.ts`
 - Modify: `app/lib/news-listing.server.ts`
 
 - [ ] **Step 1: Rewrite news.server.ts for new schema**
 
 The existing file needs updating for the new schema. Key changes:
+
 - `createNews` now accepts `type`, `externalUrl`, `sourceName`, `status`
 - `updateNews` handles the new fields
 - `getPublishedNews` filters by `status = "published"` instead of just `publishedAt`
@@ -1053,11 +1083,7 @@ export async function getAllNews(): Promise<News[]> {
 }
 
 export async function getPublishedNews(): Promise<News[]> {
-  return db
-    .select()
-    .from(news)
-    .where(eq(news.status, "published"))
-    .orderBy(desc(news.publishedAt));
+  return db.select().from(news).where(eq(news.status, "published")).orderBy(desc(news.publishedAt));
 }
 
 // Paginated queries with search
@@ -1141,6 +1167,7 @@ type filter supports link/article, createNews accepts new fields."
 ## Task 7: Update Public News Routes
 
 **Files:**
+
 - Modify: `app/routes/news/layout.tsx`
 - Create: `app/routes/news/links.tsx`
 - Create: `app/routes/news/articles.tsx`
@@ -1360,6 +1387,7 @@ Remove admin button from public layout. Add import/news route registration."
 ## Task 8: Update NewsListing Component
 
 **Files:**
+
 - Modify: `app/components/news/NewsListing.tsx`
 
 - [ ] **Step 1: Rewrite NewsListing for dual display**
@@ -1367,12 +1395,14 @@ Remove admin button from public layout. Add import/news route registration."
 The component needs to handle link posts (external link + source badge) and articles (internal link + cover image) differently. Update `app/components/news/NewsListing.tsx`:
 
 Key changes:
+
 - `TypeBadge` now shows "Link" or "Article" instead of old types
 - Link posts render with: title linking to `externalUrl`, source name badge, permalink icon to `/news/:slug`
 - Articles render with: title linking to `/news/:slug`, cover image, excerpt
 - The `HeadlineArticle`, `SecondaryArticle`, and `ArticleCard` components all need to check `article.type` and `article.externalUrl` to decide link target
 
 Replace `TypeBadge`:
+
 ```typescript
 function TypeBadge({ type }: { type: string }) {
   const labels: Record<string, string> = {
@@ -1388,6 +1418,7 @@ function TypeBadge({ type }: { type: string }) {
 ```
 
 Add a `SourceBadge` component:
+
 ```typescript
 function SourceBadge({ sourceName }: { sourceName: string | null }) {
   if (!sourceName) return null;
@@ -1400,6 +1431,7 @@ function SourceBadge({ sourceName }: { sourceName: string | null }) {
 ```
 
 For each article card variant, update the link behavior:
+
 - If `article.externalUrl` exists (link post): primary title links to `article.externalUrl` with `target="_blank" rel="noopener noreferrer"`, add a small permalink icon linking to `/news/${article.slug}`
 - If no `externalUrl` (article): title links to `/news/${article.slug}` as before
 - Show `SourceBadge` for link posts
@@ -1421,6 +1453,7 @@ TypeBadge shows Link/Article instead of old types."
 ## Task 9: Update Detail Page
 
 **Files:**
+
 - Modify: `app/routes/news/detail.tsx`
 
 - [ ] **Step 1: Update detail page for dual rendering**
@@ -1428,6 +1461,7 @@ TypeBadge shows Link/Article instead of old types."
 Update `app/routes/news/detail.tsx` to render differently for link posts vs articles.
 
 For link posts (`article.type === "link"`):
+
 - Title
 - Source name + published date
 - Excerpt
@@ -1435,6 +1469,7 @@ For link posts (`article.type === "link"`):
 - Comments and backlinks (if enabled)
 
 For articles (`article.type === "article"`):
+
 - Same as current: cover image, title, full markdown content, comments, backlinks
 
 Update the component's JSX to branch on `article.type`:
@@ -1494,6 +1529,7 @@ Articles show full markdown content as before."
 ## Task 10: Update Supporting Endpoints
 
 **Files:**
+
 - Modify: `app/routes/news-rss.tsx`
 - Modify: `app/routes/news-og.tsx`
 - Modify: `app/routes/api/news.tsx`
@@ -1516,9 +1552,7 @@ In `app/routes/news-rss.tsx`, for link posts, use `article.externalUrl` as the `
 In `app/lib/og-image.server.ts` `prepareNewsOGData()`, update the type label logic:
 
 ```typescript
-const typeLabel = article.type === "link"
-  ? article.sourceName || "Link"
-  : "Article";
+const typeLabel = article.type === "link" ? article.sourceName || "Link" : "Article";
 ```
 
 - [ ] **Step 3: Update JSON API endpoints**
@@ -1587,6 +1621,7 @@ Markdown frontmatter includes new fields. OG shows source name for link posts."
 ## Task 11: Update Manage News Pages
 
 **Files:**
+
 - Modify: `app/routes/manage/news/index.tsx`
 - Modify: `app/routes/manage/news/new.tsx`
 - Modify: `app/routes/manage/news/edit.tsx`
@@ -1595,6 +1630,7 @@ Markdown frontmatter includes new fields. OG shows source name for link posts."
 - [ ] **Step 1: Update manage news index**
 
 Update `app/routes/manage/news/index.tsx`:
+
 - Show type badge (Link / Article) and status badge (Draft / Published / Hidden / Pending Review)
 - Add "Submit URL" action that accepts a URL, fetches metadata, and creates a link post
 - Keep "New Article" button for original articles
@@ -1602,12 +1638,14 @@ Update `app/routes/manage/news/index.tsx`:
 - [ ] **Step 2: Update manage news new/edit**
 
 Update `app/routes/manage/news/new.tsx`:
+
 - Add `type` selector at the top: "Article" or "Link Post"
 - When "Link Post" is selected: show URL field, sourceName field, content is optional commentary
 - When "Article" is selected: same as before (title, content, excerpt, cover image)
 - Both types have publish toggle
 
 Update `app/routes/manage/news/edit.tsx`:
+
 - Same dual mode based on `article.type`
 - Display `externalUrl` and `sourceName` for link posts
 - Show status selector (Draft / Published / Hidden)
@@ -1628,6 +1666,7 @@ Edit form shows link-specific fields. Status management (draft/published/hidden)
 ## Task 12: News Import Management Page
 
 **Files:**
+
 - Create: `app/routes/manage/import/news.tsx`
 - Create: `app/routes/manage/import/news.new.tsx`
 
@@ -1636,6 +1675,7 @@ Edit form shows link-specific fields. Status management (draft/published/hidden)
 Create `app/routes/manage/import/news.tsx` mirroring `app/routes/manage/import/jobs.tsx`:
 
 Structure:
+
 - Loader: fetch all news import sources + all pending news items (using `getAllNewsImportSources()` and `getAllPendingNews()`)
 - Action: handle intents `sync` (single source), `sync-all`, `review-news` (approve/hide per item), `hide-all-pending`
 - UI:
@@ -1648,6 +1688,7 @@ Structure:
 Create `app/routes/manage/import/news.new.tsx`:
 
 Form fields:
+
 - Name (text, required)
 - Source Type (select: RSS / Custom)
 - Source URL (text, required -- RSS feed URL or page URL)
@@ -1671,6 +1712,7 @@ add source form with keywords support. Mirrors job import page pattern."
 ## Task 13: MCP Bridge Functions
 
 **Files:**
+
 - Modify: `app/mcp/bridge.ts`
 - Modify: `app/mcp/server.ts`
 
@@ -1681,7 +1723,12 @@ Add to `app/mcp/bridge.ts`:
 ```typescript
 // ---- News ----
 
-export async function submitNewsLink(url: string, title?: string, excerpt?: string, sourceName?: string) {
+export async function submitNewsLink(
+  url: string,
+  title?: string,
+  excerpt?: string,
+  sourceName?: string,
+) {
   // If title not provided, fetch the page and extract metadata
   if (!title) {
     const response = await fetch(url, { headers: { "User-Agent": "siliconharbour.dev" } });
@@ -1691,7 +1738,9 @@ export async function submitNewsLink(url: string, title?: string, excerpt?: stri
     title = titleMatch ? titleMatch[1].trim() : new URL(url).hostname;
     // Extract meta description
     if (!excerpt) {
-      const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(html);
+      const descMatch = /<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i.exec(
+        html,
+      );
       excerpt = descMatch ? descMatch[1].trim() : undefined;
     }
   }
@@ -1757,29 +1806,48 @@ Add to `app/mcp/server.ts`:
 server.tool(
   "submitNewsLink",
   "Submit a link post from an external URL. Auto-extracts title and excerpt if not provided.",
-  { url: z.string().url(), title: z.string().optional(), excerpt: z.string().optional(), sourceName: z.string().optional() },
+  {
+    url: z.string().url(),
+    title: z.string().optional(),
+    excerpt: z.string().optional(),
+    sourceName: z.string().optional(),
+  },
   async ({ url, title, excerpt, sourceName }) => ({
-    content: [{ type: "text", text: JSON.stringify(await bridge.submitNewsLink(url, title, excerpt, sourceName), null, 2) }],
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(await bridge.submitNewsLink(url, title, excerpt, sourceName), null, 2),
+      },
+    ],
   }),
 );
 
 server.tool(
   "createNewsArticle",
   "Create an original news article (draft by default).",
-  { title: z.string(), content: z.string(), excerpt: z.string().optional(), publish: z.boolean().optional() },
+  {
+    title: z.string(),
+    content: z.string(),
+    excerpt: z.string().optional(),
+    publish: z.boolean().optional(),
+  },
   async ({ title, content, excerpt, publish }) => ({
-    content: [{ type: "text", text: JSON.stringify(await bridge.createNewsArticle(title, content, excerpt, publish), null, 2) }],
+    content: [
+      {
+        type: "text",
+        text: JSON.stringify(
+          await bridge.createNewsArticle(title, content, excerpt, publish),
+          null,
+          2,
+        ),
+      },
+    ],
   }),
 );
 
-server.tool(
-  "pendingNews",
-  "List all news items pending review.",
-  {},
-  async () => ({
-    content: [{ type: "text", text: JSON.stringify(await bridge.pendingNews(), null, 2) }],
-  }),
-);
+server.tool("pendingNews", "List all news items pending review.", {}, async () => ({
+  content: [{ type: "text", text: JSON.stringify(await bridge.pendingNews(), null, 2) }],
+}));
 
 server.tool(
   "approveNews",
@@ -1790,14 +1858,9 @@ server.tool(
   }),
 );
 
-server.tool(
-  "hideNews",
-  "Hide a news item.",
-  { id: z.number() },
-  async ({ id }) => ({
-    content: [{ type: "text", text: JSON.stringify(await bridge.hideNews(id), null, 2) }],
-  }),
-);
+server.tool("hideNews", "Hide a news item.", { id: z.number() }, async ({ id }) => ({
+  content: [{ type: "text", text: JSON.stringify(await bridge.hideNews(id), null, 2) }],
+}));
 ```
 
 - [ ] **Step 3: Commit**
@@ -1814,6 +1877,7 @@ pendingNews, approveNews, hideNews."
 ## Task 14: Build Verification & Cleanup
 
 **Files:**
+
 - Modify: `app/routes/manage/index.tsx` (add link to import/news in sidebar if needed)
 
 - [ ] **Step 1: Run lint**
@@ -1843,6 +1907,7 @@ Expected: All tests pass (existing tests should still pass; news had no tests be
 - [ ] **Step 4: Verify routes work**
 
 Start the dev server and verify:
+
 - `/news` loads (empty listing, no errors)
 - `/manage/import/news` loads (empty sources list)
 - `/manage/news` loads (empty article list)

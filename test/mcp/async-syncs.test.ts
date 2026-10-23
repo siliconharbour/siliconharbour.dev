@@ -16,9 +16,7 @@ describe("MCP async syncs", () => {
     const task = deferred<{ added: number }>();
     const runner = vi.fn(() => task.promise);
 
-    const started = startAsyncSync([
-      { type: "job", sourceId: 123, name: "example", run: runner },
-    ]);
+    const started = startAsyncSync([{ type: "job", sourceId: 123, name: "example", run: runner }]);
 
     expect(started.status).toBe("running");
     expect(started.total).toBe(1);

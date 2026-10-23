@@ -51,7 +51,7 @@ function getProvenanceSourceDisplayLabel(sourceType: "job_posting" | "survey" | 
   }
 }
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const company = data?.company;
   const name = company?.name ?? "Company";
   const description = company?.description
@@ -326,9 +326,7 @@ export default function CompanyDetail() {
               )}
             </div>
             {company.location && <p className="text-muted">{company.location}</p>}
-            {company.founded && (
-              <p className="text-sm text-subtle">Founded {company.founded}</p>
-            )}
+            {company.founded && <p className="text-sm text-subtle">Founded {company.founded}</p>}
           </div>
         </div>
 
@@ -341,9 +339,9 @@ export default function CompanyDetail() {
           company.wikipedia ||
           company.linkedin ||
           company.github ||
-           company.technl ||
-           company.genesis ||
-           company.bounce) && (
+          company.technl ||
+          company.genesis ||
+          company.bounce) && (
           <div className="flex flex-wrap gap-gap-3">
             {company.website && (
               <a

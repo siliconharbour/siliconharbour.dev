@@ -4,7 +4,7 @@ import { loadContentPage } from "~/lib/content.server";
 import { Markdown } from "~/components/Markdown";
 import { buildSeoMeta } from "~/lib/seo";
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   return buildSeoMeta({
     title: data?.frontmatter?.title ?? "Community Guidelines",
     description:

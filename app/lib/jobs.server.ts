@@ -140,7 +140,7 @@ export async function getAllJobs(): Promise<Job[]> {
 
 /**
  * Get all active jobs for public display with company names
- * @param includeTechnical - if true, include only technical jobs (default: true for backward compat)
+ * @param includeTechnical - if true, include only technical jobs (default: true)
  * @param includeNonTechnical - if true, include non-technical jobs (default: false)
  */
 export async function getActiveJobs(options?: { includeNonTechnical?: boolean }) {

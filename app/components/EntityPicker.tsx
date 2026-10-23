@@ -127,9 +127,7 @@ export function EntityPicker({
           autoComplete="off"
         />
         {loading && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-subtle">
-            …
-          </span>
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-subtle">…</span>
         )}
 
         {isOpen && results.length > 0 && (

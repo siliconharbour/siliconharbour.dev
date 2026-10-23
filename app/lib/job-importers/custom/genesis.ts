@@ -44,10 +44,14 @@ export function parseGenesisCareers(
   const emptyState = getNodeText(careers.querySelector(".w-dyn-empty"));
   if (/no items found/i.test(emptyState)) return [];
 
-  throw new Error("Genesis careers page contained neither job listings nor its expected empty state");
+  throw new Error(
+    "Genesis careers page contained neither job listings nor its expected empty state",
+  );
 }
 
-export async function scrapeGenesis(careersUrl: string = DEFAULT_CAREERS_URL): Promise<FetchedJob[]> {
+export async function scrapeGenesis(
+  careersUrl: string = DEFAULT_CAREERS_URL,
+): Promise<FetchedJob[]> {
   const url = careersUrl || DEFAULT_CAREERS_URL;
   return parseGenesisCareers(await fetchPage(url), url);
 }

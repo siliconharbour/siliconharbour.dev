@@ -49,7 +49,12 @@ export type CampaignSend = {
   lastError: string | null;
 };
 
-export type ListStats = { listId: number; confirmed: number; unconfirmed: number; unsubscribed: number };
+export type ListStats = {
+  listId: number;
+  confirmed: number;
+  unconfirmed: number;
+  unsubscribed: number;
+};
 export type CampaignPreview = { subject: string; html: string | null; text: string };
 
 const PUBLIC_SIGNUP_KEY = "newsletter_public_signup_enabled";
@@ -60,10 +65,14 @@ export function isNewsletterConfigured() {
 }
 
 export function pilotEmails() {
-  return [...new Set((process.env.LISTS_PILOT_EMAILS ?? "")
-    .split(/[\s,]+/)
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean))];
+  return [
+    ...new Set(
+      (process.env.LISTS_PILOT_EMAILS ?? "")
+        .split(/[\s,]+/)
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 export function pilotProviderLabel(email: string) {
@@ -108,10 +117,12 @@ export async function setNewsletterFlags(flags: { publicSignup: boolean; liveSen
       [PUBLIC_SIGNUP_KEY, flags.publicSignup],
       [LIVE_SEND_KEY, flags.liveSend],
     ] as const) {
-      tx
-        .insert(siteConfig)
+      tx.insert(siteConfig)
         .values({ key, value: String(value) })
-        .onConflictDoUpdate({ target: siteConfig.key, set: { value: String(value), updatedAt: new Date() } })
+        .onConflictDoUpdate({
+          target: siteConfig.key,
+          set: { value: String(value), updatedAt: new Date() },
+        })
         .run();
     }
   });
@@ -129,7 +140,10 @@ async function listsRequest<T>(path: string, init: RequestInit = {}): Promise<T>
       ...init.headers,
     },
   });
-  const body = (await response.json().catch(() => null)) as ListsResponse<T> | { error?: string } | null;
+  const body = (await response.json().catch(() => null)) as
+    | ListsResponse<T>
+    | { error?: string }
+    | null;
   if (!response.ok || !body || !("data" in body)) {
     const detail = body && "error" in body ? body.error : undefined;
     throw new Error(`Lists request failed (${response.status})${detail ? `: ${detail}` : ""}`);
@@ -150,7 +164,11 @@ export async function getNewsletterStats(listId: number) {
 }
 
 export async function getNewsletterSubscribers(listId: number, search = "", offset = 0) {
-  const params = new URLSearchParams({ listId: String(listId), limit: "50", offset: String(offset) });
+  const params = new URLSearchParams({
+    listId: String(listId),
+    limit: "50",
+    offset: String(offset),
+  });
   if (search) params.set("search", search);
   return listsRequest<Subscriber[]>(`/subscribers?${params}`);
 }
@@ -178,7 +196,9 @@ export async function unsubscribeFromNewsletter(id: number, listId: number) {
 
 export async function getNewsletterCampaigns(listId: number) {
   const campaigns = await listsRequest<Campaign[]>("/campaigns?limit=200");
-  return campaigns.filter((campaign) => campaign.audienceType === "list" && campaign.audienceId === listId);
+  return campaigns.filter(
+    (campaign) => campaign.audienceType === "list" && campaign.audienceId === listId,
+  );
 }
 
 export async function getNewsletterCampaign(id: number, listId: number) {
@@ -219,7 +239,8 @@ export async function getConfirmedPilotSubscriberIds(listId: number) {
   for (const email of pilotEmails()) {
     const subscribers = await getNewsletterSubscribers(listId, email);
     const subscriber = subscribers.find((item) => item.email.toLowerCase() === email);
-    if (subscriber?.status === "active" && subscriber.membershipStatus === "confirmed") ids.push(subscriber.id);
+    if (subscriber?.status === "active" && subscriber.membershipStatus === "confirmed")
+      ids.push(subscriber.id);
   }
   return ids;
 }
@@ -227,7 +248,8 @@ export async function getConfirmedPilotSubscriberIds(listId: number) {
 export async function sendNewsletterTest(id: number, listId: number) {
   await getNewsletterCampaign(id, listId);
   const subscriberIds = await getConfirmedPilotSubscriberIds(listId);
-  if (subscriberIds.length === 0) throw new Error("No pilot addresses have confirmed their subscriptions yet");
+  if (subscriberIds.length === 0)
+    throw new Error("No pilot addresses have confirmed their subscriptions yet");
   return listsRequest<Campaign>(`/campaigns/${id}/test-send`, {
     method: "POST",
     body: JSON.stringify({ subscriberIds, confirm: true }),

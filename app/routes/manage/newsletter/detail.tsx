@@ -24,7 +24,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const id = z.coerce.number().int().positive().parse(params.id);
   const list = await getNewsletterList();
   const campaign = await getNewsletterCampaign(id, list.id);
-  const page = Math.max(1, Number.parseInt(new URL(request.url).searchParams.get("page") ?? "1", 10) || 1);
+  const page = Math.max(
+    1,
+    Number.parseInt(new URL(request.url).searchParams.get("page") ?? "1", 10) || 1,
+  );
   const [preview, flags, pilotIds, sends] = await Promise.all([
     getNewsletterPreview(id),
     getNewsletterFlags(),
@@ -56,8 +59,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
     if (intent === "live-send") {
       const flags = await getNewsletterFlags();
-      if (!flags.liveSend) return { error: "Full-list sending is disabled in newsletter settings." };
-      if (form.get("confirm") !== campaign.subject) return { error: "Enter the exact campaign subject to confirm." };
+      if (!flags.liveSend)
+        return { error: "Full-list sending is disabled in newsletter settings." };
+      if (form.get("confirm") !== campaign.subject)
+        return { error: "Enter the exact campaign subject to confirm." };
       await sendNewsletterLive(id, list.id);
       return { success: "Campaign sent to the confirmed list." };
     }
@@ -73,25 +78,183 @@ export default function NewsletterCampaignDetail() {
   const audience = newsletterAudience(campaign);
   return (
     <div className="mx-auto max-w-5xl p-pad-4 md:p-pad-6">
-      <Link to="/manage/newsletter/campaigns" className="text-sm text-body underline">&larr; Campaigns</Link>
-      <div className="mt-4 flex flex-wrap items-center gap-gap-3"><h1 className="text-2xl font-semibold text-heading">{campaign.subject}</h1><span className="bg-tint px-pad-1-5 py-pad-0-5 text-xs text-body">{campaign.status}</span></div>
-      <p className="mt-2 text-sm text-body">Audience: <strong>{audience.label}</strong>{audience.testCount !== null && " · Only selected pilot addresses were eligible for this campaign."}</p>
-      {campaign.status !== "draft" && <p className="mt-1 text-sm text-muted">The send records below show who was actually sent this campaign.</p>}
-      {"error" in (actionData ?? {}) && <p className="mt-4 border border-red-200 bg-red-50 p-pad-3 text-red-700">{actionData?.error}</p>}
-      {"success" in (actionData ?? {}) && <p className="mt-4 border border-green-200 bg-green-50 p-pad-3 text-green-700">{actionData?.success}</p>}
-      {campaign.lastError && <p className="mt-4 border border-red-200 bg-red-50 p-pad-3 text-red-700">{campaign.lastError}</p>}
-      {campaign.status !== "draft" && <section className="mt-6 border border-line bg-surface rounded-panel"><h2 className="border-b border-line bg-soft p-pad-3 font-semibold text-heading">Actual sends ({Object.values(campaign.deliveryCounts ?? {}).reduce((total, count) => total + count, 0)})</h2><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-soft text-heading"><tr><th className="px-pad-4 py-pad-2">Recipient</th><th className="px-pad-4 py-pad-2">Status</th><th className="px-pad-4 py-pad-2">Delivered</th></tr></thead><tbody className="divide-y divide-harbour-100">{sends.map((send) => <tr key={send.id}><td className="px-pad-4 py-pad-2 text-heading">{send.email ?? `Subscriber #${send.subscriberId}`}</td><td className="px-pad-4 py-pad-2"><span className={`px-pad-1-5 py-pad-0-5 text-xs ${send.status === "delivered" ? "bg-green-100 text-green-700" : send.status === "bounced" || send.status === "failed" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>{send.status}</span></td><td className="px-pad-4 py-pad-2 text-muted">{send.deliveredAt ? new Date(send.deliveredAt).toLocaleString() : "—"}</td></tr>)}</tbody></table>{sends.length === 0 && <p className="p-pad-4 text-sm text-muted">No sends recorded.</p>}</div><div className="flex gap-gap-4 p-pad-3 text-sm">{page > 1 && <Link to={`?page=${page - 1}`} className="text-body underline">Previous</Link>}{sends.length === 50 && <Link to={`?page=${page + 1}`} className="text-body underline">Next</Link>}</div></section>}
-      {campaign.status === "draft" && <Form method="post" className="mt-6 space-y-4 border border-line p-pad-4">
-        <input type="hidden" name="intent" value="save" />
-        <label className="block text-sm font-medium text-heading">Subject<input name="subject" defaultValue={campaign.subject} required maxLength={255} className="mt-1 block w-full border border-line p-pad-2" /></label>
-        <label className="block text-sm font-medium text-heading">Body (Markdown)<textarea name="bodyMarkdown" defaultValue={campaign.bodyMarkdown} required rows={18} className="mt-1 block w-full border border-line p-pad-2 font-mono text-sm" /></label>
-        <button className="bg-primary px-pad-4 py-pad-2 font-medium text-white">Save draft</button>
-      </Form>}
-      <section className="mt-6 border border-line"><h2 className="border-b border-line bg-soft p-pad-3 font-semibold text-heading">Email preview</h2><div className="p-pad-4"><p className="mb-3 text-sm text-muted">Subject: {preview.subject}</p><iframe title="Newsletter preview" srcDoc={preview.html ?? `<pre>${preview.text.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</pre>`} sandbox="" className="h-[600px] w-full border border-line" /></div></section>
-      {campaign.status === "draft" && <div className="mt-6 grid gap-gap-4 md:grid-cols-2">
-        <Form method="post" className="border border-line p-pad-4"><input type="hidden" name="intent" value="test-send" /><h2 className="font-semibold text-heading">Pilot send</h2><p className="mt-1 text-sm text-muted">Send only to {pilotCount} confirmed pilot {pilotCount === 1 ? "address" : "addresses"}. The draft remains editable.</p><label className="mt-4 block text-sm"><input type="checkbox" name="confirm" value="yes" required /> I reviewed the preview and recipients.</label><button disabled={pilotCount === 0} className="mt-3 bg-primary px-pad-3 py-pad-2 text-sm text-white disabled:opacity-50">Send pilot email</button></Form>
-        <Form method="post" className="border border-line p-pad-4"><input type="hidden" name="intent" value="live-send" /><h2 className="font-semibold text-heading">Full-list send</h2><p className="mt-1 text-sm text-muted">This sends to every confirmed subscriber. Currently {flags.liveSend ? "enabled" : "disabled"}.</p><label className="mt-4 block text-sm">Type the exact subject to confirm<input name="confirm" autoComplete="off" required className="mt-1 block w-full border border-line p-pad-2" /></label><button disabled={!flags.liveSend} className="mt-3 bg-primary px-pad-3 py-pad-2 text-sm text-white disabled:opacity-50">Send to full list</button></Form>
-      </div>}
+      <Link to="/manage/newsletter/campaigns" className="text-sm text-body underline">
+        &larr; Campaigns
+      </Link>
+      <div className="mt-4 flex flex-wrap items-center gap-gap-3">
+        <h1 className="text-2xl font-semibold text-heading">{campaign.subject}</h1>
+        <span className="bg-tint px-pad-1-5 py-pad-0-5 text-xs text-body">{campaign.status}</span>
+      </div>
+      <p className="mt-2 text-sm text-body">
+        Audience: <strong>{audience.label}</strong>
+        {audience.testCount !== null &&
+          " · Only selected pilot addresses were eligible for this campaign."}
+      </p>
+      {campaign.status !== "draft" && (
+        <p className="mt-1 text-sm text-muted">
+          The send records below show who was actually sent this campaign.
+        </p>
+      )}
+      {"error" in (actionData ?? {}) && (
+        <p className="mt-4 border border-red-200 bg-red-50 p-pad-3 text-red-700">
+          {actionData?.error}
+        </p>
+      )}
+      {"success" in (actionData ?? {}) && (
+        <p className="mt-4 border border-green-200 bg-green-50 p-pad-3 text-green-700">
+          {actionData?.success}
+        </p>
+      )}
+      {campaign.lastError && (
+        <p className="mt-4 border border-red-200 bg-red-50 p-pad-3 text-red-700">
+          {campaign.lastError}
+        </p>
+      )}
+      {campaign.status !== "draft" && (
+        <section className="mt-6 border border-line bg-surface rounded-panel">
+          <h2 className="border-b border-line bg-soft p-pad-3 font-semibold text-heading">
+            Actual sends (
+            {Object.values(campaign.deliveryCounts ?? {}).reduce(
+              (total, count) => total + count,
+              0,
+            )}
+            )
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-soft text-heading">
+                <tr>
+                  <th className="px-pad-4 py-pad-2">Recipient</th>
+                  <th className="px-pad-4 py-pad-2">Status</th>
+                  <th className="px-pad-4 py-pad-2">Delivered</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-harbour-100">
+                {sends.map((send) => (
+                  <tr key={send.id}>
+                    <td className="px-pad-4 py-pad-2 text-heading">
+                      {send.email ?? `Subscriber #${send.subscriberId}`}
+                    </td>
+                    <td className="px-pad-4 py-pad-2">
+                      <span
+                        className={`px-pad-1-5 py-pad-0-5 text-xs ${send.status === "delivered" ? "bg-green-100 text-green-700" : send.status === "bounced" || send.status === "failed" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
+                      >
+                        {send.status}
+                      </span>
+                    </td>
+                    <td className="px-pad-4 py-pad-2 text-muted">
+                      {send.deliveredAt ? new Date(send.deliveredAt).toLocaleString() : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {sends.length === 0 && <p className="p-pad-4 text-sm text-muted">No sends recorded.</p>}
+          </div>
+          <div className="flex gap-gap-4 p-pad-3 text-sm">
+            {page > 1 && (
+              <Link to={`?page=${page - 1}`} className="text-body underline">
+                Previous
+              </Link>
+            )}
+            {sends.length === 50 && (
+              <Link to={`?page=${page + 1}`} className="text-body underline">
+                Next
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
+      {campaign.status === "draft" && (
+        <Form method="post" className="mt-6 space-y-4 border border-line p-pad-4">
+          <input type="hidden" name="intent" value="save" />
+          <label className="block text-sm font-medium text-heading">
+            Subject
+            <input
+              name="subject"
+              defaultValue={campaign.subject}
+              required
+              maxLength={255}
+              className="mt-1 block w-full border border-line p-pad-2"
+            />
+          </label>
+          <label className="block text-sm font-medium text-heading">
+            Body (Markdown)
+            <textarea
+              name="bodyMarkdown"
+              defaultValue={campaign.bodyMarkdown}
+              required
+              rows={18}
+              className="mt-1 block w-full border border-line p-pad-2 font-mono text-sm"
+            />
+          </label>
+          <button className="bg-primary px-pad-4 py-pad-2 font-medium text-white">
+            Save draft
+          </button>
+        </Form>
+      )}
+      <section className="mt-6 border border-line">
+        <h2 className="border-b border-line bg-soft p-pad-3 font-semibold text-heading">
+          Email preview
+        </h2>
+        <div className="p-pad-4">
+          <p className="mb-3 text-sm text-muted">Subject: {preview.subject}</p>
+          <iframe
+            title="Newsletter preview"
+            srcDoc={
+              preview.html ??
+              `<pre>${preview.text.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</pre>`
+            }
+            sandbox=""
+            className="h-[600px] w-full border border-line"
+          />
+        </div>
+      </section>
+      {campaign.status === "draft" && (
+        <div className="mt-6 grid gap-gap-4 md:grid-cols-2">
+          <Form method="post" className="border border-line p-pad-4">
+            <input type="hidden" name="intent" value="test-send" />
+            <h2 className="font-semibold text-heading">Pilot send</h2>
+            <p className="mt-1 text-sm text-muted">
+              Send only to {pilotCount} confirmed pilot {pilotCount === 1 ? "address" : "addresses"}
+              . The draft remains editable.
+            </p>
+            <label className="mt-4 block text-sm">
+              <input type="checkbox" name="confirm" value="yes" required /> I reviewed the preview
+              and recipients.
+            </label>
+            <button
+              disabled={pilotCount === 0}
+              className="mt-3 bg-primary px-pad-3 py-pad-2 text-sm text-white disabled:opacity-50"
+            >
+              Send pilot email
+            </button>
+          </Form>
+          <Form method="post" className="border border-line p-pad-4">
+            <input type="hidden" name="intent" value="live-send" />
+            <h2 className="font-semibold text-heading">Full-list send</h2>
+            <p className="mt-1 text-sm text-muted">
+              This sends to every confirmed subscriber. Currently{" "}
+              {flags.liveSend ? "enabled" : "disabled"}.
+            </p>
+            <label className="mt-4 block text-sm">
+              Type the exact subject to confirm
+              <input
+                name="confirm"
+                autoComplete="off"
+                required
+                className="mt-1 block w-full border border-line p-pad-2"
+              />
+            </label>
+            <button
+              disabled={!flags.liveSend}
+              className="mt-3 bg-primary px-pad-3 py-pad-2 text-sm text-white disabled:opacity-50"
+            >
+              Send to full list
+            </button>
+          </Form>
+        </div>
+      )}
     </div>
   );
 }

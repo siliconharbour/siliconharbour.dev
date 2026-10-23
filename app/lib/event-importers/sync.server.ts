@@ -10,7 +10,7 @@ import { RateLimitedError } from "./luma-http.server";
 import type { EventSourceType, FetchStatus } from "~/db/schema";
 import { eq, and, inArray, asc, gte } from "drizzle-orm";
 import { generateEventSlug } from "~/lib/events.server";
-import { fetchImage } from "~/lib/scraper.server";
+import { fetchPublicImage } from "~/lib/public-image-fetch.server";
 import { processAndSaveCoverImage } from "~/lib/images.server";
 import { syncOrganizerReferences } from "~/lib/references.server";
 import type { EventSyncResult, ImportSourceConfig, FetchedEvent } from "./types";
@@ -262,7 +262,7 @@ export async function getAllPendingEvents() {
 
 export async function downloadAndSaveCoverImage(imageUrl: string): Promise<string | null> {
   try {
-    const buffer = await fetchImage(imageUrl);
+    const buffer = await fetchPublicImage(imageUrl);
     if (!buffer) return null;
     return await processAndSaveCoverImage(buffer);
   } catch {
@@ -498,4 +498,20 @@ export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
     });
     return { success: false, rateLimited, error: message, added: 0, skipped: 0, removed: 0 };
   }
+}
+
+export async function approveImportedEventWithCover(id: number) {
+  const event = await db.select().from(events).where(eq(events.id, id)).get();
+  if (!event) throw new Error("Event not found");
+  const cover =
+    !event.coverImage && event.coverImageUrl
+      ? await downloadAndSaveCoverImage(event.coverImageUrl)
+      : null;
+  if (cover)
+    await db
+      .update(events)
+      .set({ coverImage: cover, updatedAt: new Date() })
+      .where(eq(events.id, id));
+  await approveImportedEvent(id);
+  return { approved: true, coverPulled: Boolean(cover) };
 }

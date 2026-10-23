@@ -4,20 +4,14 @@
  * Pattern mirrors app/lib/job-importers/custom.server.ts
  */
 
-import type {
-  NewsImporter,
-  FetchedNewsItem,
-  NewsImportSourceConfig,
-} from "./types";
+import type { NewsImporter, FetchedNewsItem, NewsImportSourceConfig } from "./types";
 import { genesisScraper } from "./custom/genesis";
 
 /**
  * Scraper function signature.
  * sourceIdentifier format: "scraperName" or "scraperName:config"
  */
-type NewsScraper = (
-  config: NewsImportSourceConfig,
-) => Promise<FetchedNewsItem[]>;
+type NewsScraper = (config: NewsImportSourceConfig) => Promise<FetchedNewsItem[]>;
 
 /**
  * Registry of custom news scrapers.
@@ -38,9 +32,7 @@ export const customNewsImporter: NewsImporter = {
     name: "Custom Scraper",
     description: "Custom scrapers for sites without RSS feeds",
   },
-  async fetchItems(
-    config: NewsImportSourceConfig,
-  ): Promise<FetchedNewsItem[]> {
+  async fetchItems(config: NewsImportSourceConfig): Promise<FetchedNewsItem[]> {
     const identifier = config.sourceIdentifier;
     if (!identifier) {
       throw new Error("Custom news sources require a sourceIdentifier");

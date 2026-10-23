@@ -299,7 +299,11 @@ async function parseBounceCompanyDetail(
     const images = document.querySelectorAll("img");
     for (const img of images) {
       const src = img.getAttribute("src") || "";
-      if (src.includes("wp-content/uploads") && !src.includes("Logo.webp") && !src.includes("bounce-logo")) {
+      if (
+        src.includes("wp-content/uploads") &&
+        !src.includes("Logo.webp") &&
+        !src.includes("bounce-logo")
+      ) {
         logoUrl = src;
         break;
       }

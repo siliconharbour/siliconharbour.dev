@@ -22,7 +22,7 @@ import { formatInTimezone } from "~/lib/timezone";
 import { buildSeoMeta, stripMarkdown } from "~/lib/seo";
 import { eventTagColorStyles } from "~/lib/event-tags";
 
-export function meta({ data, params }: Route.MetaArgs) {
+export function meta({ loaderData: data, params }: Route.MetaArgs) {
   const event = data?.event;
   const title = event?.title ?? "Event";
   const description = event?.description

@@ -17,6 +17,7 @@ Fix all known responsive issues across ~15 admin pages. No layout refactors or n
 **Fix:** Change `overflow-hidden` to `overflow-x-auto` on all table wrapper divs.
 
 **Affected files:**
+
 - `app/routes/manage/import/jobs.tsx` (1 table)
 - `app/routes/manage/import/events.tsx` (1 table)
 - `app/routes/manage/import/jobs.$sourceId.tsx` (5 tables: technology preview, pending review, active jobs, hidden jobs, removed jobs)
@@ -28,6 +29,7 @@ Fix all known responsive issues across ~15 admin pages. No layout refactors or n
 **Fix:** Change `grid-cols-2` to `grid-cols-1 md:grid-cols-2` on form field rows.
 
 **Affected files:**
+
 - `app/routes/manage/companies/new.tsx` (Location/Founded row)
 - `app/routes/manage/companies/edit.tsx` (same)
 - `app/routes/manage/jobs/new.tsx` (Location/Department, Workplace Type/Salary Range)
@@ -40,6 +42,7 @@ Fix all known responsive issues across ~15 admin pages. No layout refactors or n
 **Fix:** Add `flex-wrap gap-2` to header rows. On mobile, buttons wrap below the title.
 
 **Affected files:**
+
 - `app/routes/manage/import/jobs.tsx` (title + 3 buttons)
 - `app/routes/manage/import/events.tsx` (title + buttons)
 - `app/routes/manage/companies/index.tsx` (title + 3 buttons)
@@ -56,6 +59,7 @@ Fix all known responsive issues across ~15 admin pages. No layout refactors or n
 **Fix:** Add `flex-wrap` to the flex container in `ManageListItem`. This cascades to all list pages that use it.
 
 **Affected file:**
+
 - `app/components/manage/ManageList.tsx`
 
 ### Pattern E: Stats/detail grid breakpoints
@@ -63,10 +67,12 @@ Fix all known responsive issues across ~15 admin pages. No layout refactors or n
 **Problem:** `grid-cols-5` stats row and `grid-cols-2` detail DL in `jobs.$sourceId.tsx` have no responsive fallback.
 
 **Fix:**
+
 - Stats: `grid-cols-2 md:grid-cols-5` (2-col on mobile, 5-col on desktop)
 - Details DL: `grid-cols-1 md:grid-cols-2`
 
 **Affected file:**
+
 - `app/routes/manage/import/jobs.$sourceId.tsx`
 
 ### Pattern F: Mobile padding
@@ -76,6 +82,7 @@ Fix all known responsive issues across ~15 admin pages. No layout refactors or n
 **Fix:** Change `p-6` to `p-4 md:p-6` on `ManagePage` wrapper and pages that build their own wrapper.
 
 **Affected files:**
+
 - `app/components/manage/ManagePage.tsx`
 - Any page not using `ManagePage` that has `min-h-screen p-6` (import pages, comments, settings)
 

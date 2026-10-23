@@ -45,11 +45,7 @@ const formSchema = z.object({
   enabled: z.preprocess((v) => v === "on", z.boolean()),
 });
 
-function matchesKeywords(
-  title: string,
-  excerpt: string | undefined,
-  keywords: string,
-): boolean {
+function matchesKeywords(title: string, excerpt: string | undefined, keywords: string): boolean {
   const keywordList = keywords
     .split(",")
     .map((k) => k.trim().toLowerCase())
@@ -168,9 +164,7 @@ export default function NewNewsImportSource() {
   const isCreating = isSubmitting && activeIntent !== "test-feed";
 
   const testResult =
-    actionData && "intent" in actionData && actionData.intent === "test-feed"
-      ? actionData
-      : null;
+    actionData && "intent" in actionData && actionData.intent === "test-feed" ? actionData : null;
 
   return (
     <ManagePage
@@ -179,7 +173,9 @@ export default function NewNewsImportSource() {
       backLabel="Back to Import News"
     >
       {actionData && "error" in actionData && !("intent" in actionData) && (
-        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-700">{actionData.error}</div>
+        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-700">
+          {actionData.error}
+        </div>
       )}
 
       <Form method="post" className="bg-surface border border-line p-pad-6 flex flex-col gap-gap-4">
@@ -227,16 +223,11 @@ export default function NewNewsImportSource() {
             placeholder="https://example.com/feed/"
             className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           />
-          <p className="mt-1 text-xs text-subtle">
-            RSS feed URL or page URL for custom scrapers.
-          </p>
+          <p className="mt-1 text-xs text-subtle">RSS feed URL or page URL for custom scrapers.</p>
         </div>
 
         <div>
-          <label
-            htmlFor="sourceIdentifier"
-            className="block text-sm font-medium text-heading mb-1"
-          >
+          <label htmlFor="sourceIdentifier" className="block text-sm font-medium text-heading mb-1">
             Source Identifier (optional)
           </label>
           <input
@@ -258,19 +249,11 @@ export default function NewNewsImportSource() {
             </label>
             <div className="flex items-center gap-gap-4 text-xs text-muted">
               <label className="flex items-center gap-gap-1-5">
-                <input
-                  type="checkbox"
-                  name="useGlobalKeywords"
-                  className="w-3 h-3"
-                />
+                <input type="checkbox" name="useGlobalKeywords" className="w-3 h-3" />
                 Use global keywords
               </label>
               <label className="flex items-center gap-gap-1-5">
-                <input
-                  type="checkbox"
-                  name="useCompanyNameFilter"
-                  className="w-3 h-3"
-                />
+                <input type="checkbox" name="useCompanyNameFilter" className="w-3 h-3" />
                 Use company name filter
               </label>
             </div>
@@ -283,9 +266,9 @@ export default function NewNewsImportSource() {
             className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:border-harbour-500"
           />
           <p className="mt-1 text-xs text-subtle">
-            Comma-separated keywords for filtering. Leave empty to import all items.
-            Global keywords are configured in Settings. Company name filter uses names of
-            companies flagged &quot;include in news filter&quot;.
+            Comma-separated keywords for filtering. Leave empty to import all items. Global keywords
+            are configured in Settings. Company name filter uses names of companies flagged
+            &quot;include in news filter&quot;.
           </p>
         </div>
 
@@ -327,13 +310,7 @@ export default function NewNewsImportSource() {
         </div>
 
         <div className="flex items-center gap-gap-2">
-          <input
-            type="checkbox"
-            id="enabled"
-            name="enabled"
-            defaultChecked
-            className="w-4 h-4"
-          />
+          <input type="checkbox" id="enabled" name="enabled" defaultChecked className="w-4 h-4" />
           <label htmlFor="enabled" className="text-sm text-heading">
             Enabled (include in sync operations)
           </label>
@@ -421,9 +398,7 @@ export default function NewNewsImportSource() {
                             )}
                           </div>
                           {item.excerpt && (
-                            <p className="text-sm text-muted mt-1 line-clamp-2">
-                              {item.excerpt}
-                            </p>
+                            <p className="text-sm text-muted mt-1 line-clamp-2">{item.excerpt}</p>
                           )}
                           {item.publishedAt && (
                             <p className="text-xs text-subtle mt-1">

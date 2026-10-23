@@ -13,12 +13,7 @@
  * Job URLs: https://jobs.dayforcehcm.com/en-US/{namespace}/{boardCode}/jobs/{jobPostingId}
  */
 
-import type {
-  JobImporter,
-  ImportSourceConfig,
-  FetchedJob,
-  ValidationResult,
-} from "./types";
+import type { JobImporter, ImportSourceConfig, FetchedJob, ValidationResult } from "./types";
 import { htmlToText } from "./text.server";
 
 const BASE_URL = "https://jobs.dayforcehcm.com";
@@ -93,9 +88,7 @@ async function getSession(): Promise<{ csrfToken: string; cookies: string }> {
 
   // Extract Set-Cookie headers for the session
   const setCookies = res.headers.getSetCookie?.() ?? [];
-  const cookieStr = setCookies
-    .map((c) => c.split(";")[0])
-    .join("; ");
+  const cookieStr = setCookies.map((c) => c.split(";")[0]).join("; ");
 
   return { csrfToken: data.csrfToken, cookies: cookieStr };
 }
@@ -157,7 +150,9 @@ function buildLocation(posting: DayforceJobPosting): string | undefined {
     return posting.hasVirtualLocation ? "Remote" : undefined;
   }
   return posting.postingLocations
-    .map((loc) => loc.formattedAddress || `${loc.cityName}, ${loc.stateCode}, ${loc.isoCountryCode}`)
+    .map(
+      (loc) => loc.formattedAddress || `${loc.cityName}, ${loc.stateCode}, ${loc.isoCountryCode}`,
+    )
     .join("; ");
 }
 

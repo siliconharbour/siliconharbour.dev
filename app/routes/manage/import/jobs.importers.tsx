@@ -42,10 +42,7 @@ export default function ManageImportJobImportersPage() {
     <div className="min-h-screen p-pad-4 md:p-pad-6">
       <div className="max-w-5xl mx-auto flex flex-col gap-gap-8">
         <div>
-          <Link
-            to="/manage/import/jobs"
-            className="text-sm text-subtle hover:text-body"
-          >
+          <Link to="/manage/import/jobs" className="text-sm text-subtle hover:text-body">
             &larr; Back to Job Import Sources
           </Link>
         </div>
@@ -53,8 +50,8 @@ export default function ManageImportJobImportersPage() {
         <div>
           <h1 className="text-2xl font-semibold text-heading">Job Importers Overview</h1>
           <p className="text-muted mt-1">
-            How each importer works, its implementation style, and reliability rating.
-            This page is generated from importer metadata colocated with the code.
+            How each importer works, its implementation style, and reliability rating. This page is
+            generated from importer metadata colocated with the code.
           </p>
         </div>
 
@@ -110,9 +107,9 @@ export default function ManageImportJobImportersPage() {
         <div className="p-pad-4 bg-soft border border-line text-sm text-muted">
           <p className="font-medium text-body mb-1">How this page works</p>
           <p>
-            Each importer exports a <code className="text-heading">meta</code> property
-            describing itself. This page reads that metadata from the importer registry, so it
-            stays in sync automatically when importers are added or updated.
+            Each importer exports a <code className="text-heading">meta</code> property describing
+            itself. This page reads that metadata from the importer registry, so it stays in sync
+            automatically when importers are added or updated.
           </p>
         </div>
       </div>

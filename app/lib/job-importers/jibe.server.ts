@@ -120,7 +120,10 @@ function detectWorkplaceType(job: JibeJob): WorkplaceType | undefined {
   if (empType.includes("remote")) return "remote";
   if (empType.includes("hybrid")) return "hybrid";
 
-  const locText = [job.location_name, job.city, job.state, job.country].filter(Boolean).join(" ").toLowerCase();
+  const locText = [job.location_name, job.city, job.state, job.country]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
   if (locText.includes("remote")) return "remote";
   if (locText.includes("hybrid")) return "hybrid";
 
@@ -186,7 +189,8 @@ async function fetchAllJibeJobs(domain: string): Promise<JibeJob[]> {
 function convertJob(domain: string, job: JibeJob): FetchedJob {
   const descriptionHtml = buildDescriptionHtml(job);
   const department =
-    job.department || (job.categories && job.categories.length > 0 ? job.categories[0].name : undefined);
+    job.department ||
+    (job.categories && job.categories.length > 0 ? job.categories[0].name : undefined);
 
   return {
     externalId: job.slug,
@@ -209,8 +213,7 @@ export const jibeImporter: JobImporter = {
       "Calls Jibe JSON API (/api/jobs?limit=100&page=N). Returns full descriptions in one call, paginated.",
     style: "Clean API integration, single-step fetch",
     reliability: "high",
-    quirks:
-      "Each customer has their own domain. API wraps jobs in a { data: {...} } envelope.",
+    quirks: "Each customer has their own domain. API wraps jobs in a { data: {...} } envelope.",
   },
 
   async fetchJobs(config: ImportSourceConfig): Promise<FetchedJob[]> {
@@ -223,8 +226,7 @@ export const jibeImporter: JobImporter = {
     if (!config.sourceIdentifier || config.sourceIdentifier.trim() === "") {
       return {
         valid: false,
-        error:
-          "Jibe careers domain is required (e.g., 'jobs.symphonyai.com')",
+        error: "Jibe careers domain is required (e.g., 'jobs.symphonyai.com')",
       };
     }
 

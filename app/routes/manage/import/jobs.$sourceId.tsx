@@ -84,7 +84,7 @@ function sanitizeManualFetchedJob(input: unknown): FetchedJob | null {
       typeof value.descriptionText === "string"
         ? value.descriptionText.trim() || undefined
         : undefined,
-    url: typeof value.url === "string" ? value.url.trim() || undefined : undefined,
+    url: typeof value.url === "string" ? value.url.trim() : "",
     workplaceType:
       value.workplaceType === "remote" ||
       value.workplaceType === "onsite" ||
@@ -196,7 +196,7 @@ const VERAFIN_BROWSER_SCRIPT = String.raw`(async () => {
   if (typeof copy === "function") copy(output);
 })();`;
 
-export function meta({ data }: Route.MetaArgs) {
+export function meta({ loaderData: data }: Route.MetaArgs) {
   const companyName = data?.company?.name || "Source";
   return [{ title: `${companyName} Jobs - Import - siliconharbour.dev` }];
 }
@@ -415,9 +415,7 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   return (
-    <span
-      className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}
-    >
+    <span className={`text-xs px-pad-1-5 py-pad-0-5 ${colors[status] || "bg-tint text-body"}`}>
       {labels[status] || status}
     </span>
   );
@@ -778,16 +776,13 @@ export default function ViewJobImportSource() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-3">
                   <div className="flex flex-col gap-gap-1">
-                    <label
-                      htmlFor="tech-sourceKey"
-                      className="text-sm font-medium text-heading"
-                    >
+                    <label htmlFor="tech-sourceKey" className="text-sm font-medium text-heading">
                       Source
                     </label>
                     <select
                       id="tech-sourceKey"
                       name="sourceKey"
-                      defaultValue={techDefaults.sourceKey}
+                      defaultValue={techDefaults?.sourceKey}
                       className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     >
                       {technologyProvenanceSourceOptions.map((option) => (
@@ -798,32 +793,26 @@ export default function ViewJobImportSource() {
                     </select>
                   </div>
                   <div className="flex flex-col gap-gap-1">
-                    <label
-                      htmlFor="tech-lastVerified"
-                      className="text-sm font-medium text-heading"
-                    >
+                    <label htmlFor="tech-lastVerified" className="text-sm font-medium text-heading">
                       Last Verified (YYYY-MM)
                     </label>
                     <input
                       type="text"
                       id="tech-lastVerified"
                       name="lastVerified"
-                      defaultValue={techDefaults.lastVerified}
+                      defaultValue={techDefaults?.lastVerified}
                       className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-gap-1">
-                    <label
-                      htmlFor="tech-sourceUrl"
-                      className="text-sm font-medium text-heading"
-                    >
+                    <label htmlFor="tech-sourceUrl" className="text-sm font-medium text-heading">
                       Source URL
                     </label>
                     <input
                       type="url"
                       id="tech-sourceUrl"
                       name="sourceUrl"
-                      defaultValue={techDefaults.sourceUrl || ""}
+                      defaultValue={techDefaults?.sourceUrl || ""}
                       className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none text-sm"
                     />
                   </div>
@@ -977,7 +966,9 @@ export default function ViewJobImportSource() {
                       />
                     </td>
                     <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.location || "-"}</td>
-                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.department || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">
+                      {job.department || "-"}
+                    </td>
                     <td className="px-pad-4 py-pad-3 text-center">
                       <WorkplaceBadge type={job.workplaceType} />
                     </td>
@@ -1073,7 +1064,9 @@ export default function ViewJobImportSource() {
                       />
                     </td>
                     <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.location || "-"}</td>
-                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.department || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">
+                      {job.department || "-"}
+                    </td>
                     <td className="px-pad-4 py-pad-3 text-center">
                       <WorkplaceBadge type={job.workplaceType} />
                     </td>
@@ -1162,7 +1155,9 @@ export default function ViewJobImportSource() {
                       />
                     </td>
                     <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.location || "-"}</td>
-                    <td className="px-pad-4 py-pad-3 text-sm text-muted">{job.department || "-"}</td>
+                    <td className="px-pad-4 py-pad-3 text-sm text-muted">
+                      {job.department || "-"}
+                    </td>
                     <td className="px-pad-4 py-pad-3 text-sm text-subtle">
                       {formatDate(job.firstSeenAt)}
                     </td>
@@ -1242,9 +1237,7 @@ export default function ViewJobImportSource() {
 
         {source.jobs.length === 0 && (
           <div className="p-pad-8 border border-line bg-soft text-center">
-            <p className="text-body">
-              No jobs imported yet. Click "Sync Now" to fetch jobs.
-            </p>
+            <p className="text-body">No jobs imported yet. Click "Sync Now" to fetch jobs.</p>
           </div>
         )}
       </div>

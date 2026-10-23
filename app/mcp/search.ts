@@ -1,172 +1,131 @@
 import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import {
-  getHostFunctionDocs,
-  getEntitySchemaDocs,
-  type EntityVariantDoc,
-  type UnionSchemaDoc,
-} from "./bridge.js";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const openapiPath = join(__dirname, "../../public/openapi.json");
-
-type SchemaObject = {
-  properties?: Record<string, { type?: string; description?: string; nullable?: boolean }>;
-  description?: string;
-};
-
-type PathMethods = Record<string, { summary?: string; description?: string }>;
-
-const spec = JSON.parse(readFileSync(openapiPath, "utf-8")) as {
-  paths: Record<string, PathMethods>;
-  components: { schemas: Record<string, SchemaObject> };
-};
-
-function schemaToText(name: string, schema: SchemaObject): string {
-  const props = schema.properties ?? {};
-  const fields = Object.entries(props)
-    .map(([k, v]) => `  ${k}: ${v.type ?? "object"}${v.nullable ? " | null" : ""}`)
-    .join("\n");
-  return `### ${name}\n${fields || "  (no properties documented)"}`;
+import { operationCatalog } from "~/operations/catalog";
+import { publicContext, type OperationContext } from "~/operations/context";
+import { z } from "zod";
+import { schemaFields, schemaType, type JsonSchema } from "./schema-docs";
+const entries = Object.values(operationCatalog).map((operation) => {
+  const input = z.toJSONSchema(operation.input, { io: "input", unrepresentable: "any" });
+  const output = z.toJSONSchema(operation.output, { io: "output", unrepresentable: "any" });
+  return {
+    operation,
+    input,
+    output,
+    words: {
+      name: words(operation.name),
+      area: words(operation.area),
+      summary: words(operation.summary),
+      description: words(operation.description),
+      fields: words(schemaFields(input as JsonSchema).join(" ")),
+    },
+  };
+});
+function words(value: string) {
+  return value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean)
+    .map((word) => (word.endsWith("s") ? word.slice(0, -1) : word));
 }
-
-function endpointToText(path: string, methods: PathMethods): string {
-  return Object.entries(methods)
-    .filter(([method]) => ["get", "post", "put", "delete", "patch"].includes(method))
-    .map(
-      ([method, op]) => `  ${method.toUpperCase()} ${path}${op.summary ? ` — ${op.summary}` : ""}`,
+const stopWords = new Set([
+  "a",
+  "an",
+  "the",
+  "to",
+  "and",
+  "how",
+  "can",
+  "i",
+  "show",
+  "me",
+  "all",
+  "operation",
+  "tool",
+  "field",
+  "schema",
+  "siliconharbour",
+]);
+export function searchOperations(query: string, context: OperationContext = publicContext()) {
+  const tokens = words(query).filter((word) => !stopWords.has(word));
+  return entries
+    .filter(
+      ({ operation }) =>
+        (operation.access === "public" || context.actor?.role === "admin") &&
+        context.scopes.has(operation.risk === "read" ? "read" : "write"),
     )
+    .map((entry) => {
+      let score = entry.operation.name.toLowerCase() === query.toLowerCase().trim() ? 1000 : 0;
+      for (const token of tokens)
+        for (const [field, weight] of [
+          ["name", 16],
+          ["area", 10],
+          ["summary", 8],
+          ["description", 2],
+          ["fields", 4],
+        ] as const)
+          if (entry.words[field].some((word) => word === token)) score += weight;
+      if (tokens.length && tokens.every((token) => entry.words.name.includes(token))) score += 40;
+      if (
+        tokens.length &&
+        tokens.every((token) => Object.values(entry.words).some((list) => list.includes(token)))
+      )
+        score += 20;
+      return { ...entry, score };
+    })
+    .filter((entry) => entry.score > 0 || tokens.length === 0)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        a.operation.area.localeCompare(b.operation.area) ||
+        a.operation.name.localeCompare(b.operation.name),
+    );
+}
+function operationText(entry: (typeof entries)[number], full: boolean) {
+  const { operation, input, output } = entry;
+  return [
+    `### tools.siliconharbour.${operation.name}`,
+    operation.summary,
+    operation.description,
+    `Area: ${operation.area}. Access: ${operation.access}. Risk: ${operation.risk}.`,
+    `${operation.name}(input: ${schemaType(input as JsonSchema)}): Promise<${schemaType(output as JsonSchema)}>`,
+    ...operation.examples
+      .slice(0, 1)
+      .map((example) => `Example: ${operation.name}(${JSON.stringify(example.input)})`),
+    ...(full ? [`Input JSON Schema:\n${JSON.stringify(input, null, 2)}`] : []),
+  ].join("\n");
+}
+let publicSpec: unknown;
+function publicApiMatches(query: string) {
+  publicSpec ??= JSON.parse(
+    readFileSync(new URL("../../public/openapi.json", import.meta.url), "utf8"),
+  );
+  const spec = publicSpec as { components?: { schemas?: Record<string, JsonSchema> } };
+  return Object.entries(spec.components?.schemas ?? {})
+    .filter(([name]) => name.toLowerCase() === query.toLowerCase().trim())
+    .map(([name, schema]) => `### Public REST schema: ${name}\n${schemaType(schema)}`)
     .join("\n");
 }
-
-const HOST_FN_NAME_FOR_ENTITY: Record<string, string | null> = {
-  event: "events",
-  job: "jobs",
-  company: "companies",
-  group: "groups",
-  person: "people",
-  people: "people",
-  education: "education",
-  technology: "technologies",
-  news: "news",
-  product: null, // no dedicated function — query companies instead
-  project: null, // no dedicated function — query companies instead
-};
-
-function formatModuleHint(query: string): string | null {
-  const docs = getHostFunctionDocs();
-  const readByName = new Map(docs.read.map((d) => [d.name, d]));
-  const matched = Object.entries(HOST_FN_NAME_FOR_ENTITY).find(([k]) => query.includes(k));
-  if (!matched) return null;
-  const [, fnName] = matched;
-  if (fnName === null) {
-    return "tools.siliconharbour: (no dedicated function — query companies instead)";
-  }
-  const doc = readByName.get(fnName);
-  if (!doc) return null; // function removed from bridge
-  return `tools.siliconharbour.${doc.signature}\n  ${doc.description}`;
-}
-
-function renderVariant(unionName: string, v: EntityVariantDoc): string {
-  const lines = [`### ${unionName} type=${JSON.stringify(v.type)}`];
-  if (v.required.length) {
-    lines.push("required:");
-    for (const f of v.required) lines.push(`  ${f.name}: ${f.type}`);
-  }
-  if (v.optional.length) {
-    lines.push("optional:");
-    for (const f of v.optional) lines.push(`  ${f.name}: ${f.type}`);
-  }
-  if (!v.required.length && !v.optional.length) {
-    lines.push("  (no fields)");
-  }
-  return lines.join("\n");
-}
-
-function matchVariants(unions: UnionSchemaDoc[], q: string): string[] {
-  const tokens = q.toLowerCase().replace(/[:,]/g, " ").split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return [];
-
-  const results: string[] = [];
-  for (const u of unions) {
-    const unionTokenMatch = tokens.includes(u.unionName.toLowerCase());
-    for (const v of u.variants) {
-      const variantType = v.type.toLowerCase();
-
-      const variantTokenMatch = tokens.some((t) => t === variantType || t.includes(variantType));
-      if (variantTokenMatch || (unionTokenMatch && tokens.length === 1)) {
-        results.push(renderVariant(u.unionName, v));
-      }
-    }
-  }
-  return results;
-}
-
-export function searchSpec(query: string): string {
-  const q = query.toLowerCase();
-  const results: string[] = [];
-  if (/image|upload|cover|icon|attach/.test(q)) {
-    results.push(
-      "### Image workflows (mcp:write)\n" +
-        "Public URL: tools.siliconharbour.setEntityImage({ type, id, role: 'cover' | 'icon', url }).\n" +
-        "Local file: tools.siliconharbour.prepareImageUpload({ filename?, contentType, size }); PUT exact raw bytes to uploadUrl using the returned method and headers OUTSIDE execute; then tools.siliconharbour.attachImage({ type, id, role, uploadId }).\n" +
-        "Uploads expire in 10 minutes, are single-use, and accept static JPEG/PNG/WebP/GIF/AVIF up to 5 MiB and 16 megapixels. Event/company/group/education/project/product support cover and icon; person/technology icon only; news cover only. Image attachment does not publish an entity.",
+export function searchSpec(query: string, context: OperationContext = publicContext()): string {
+  const matches = searchOperations(query, context);
+  if (!matches.length)
+    return (
+      publicApiMatches(query) ||
+      `No matching operations for ${JSON.stringify(query)}. Search an area or an operation name.`
     );
+  if (!words(query).some((word) => !stopWords.has(word))) {
+    const areas = new Map<string, string[]>();
+    for (const { operation } of matches)
+      areas.set(operation.area, [...(areas.get(operation.area) ?? []), operation.name]);
+    return [...areas].map(([area, names]) => `${area}: ${names.join(", ")}`).join("\n");
   }
-
-  for (const [name, schema] of Object.entries(spec.components?.schemas ?? {})) {
-    const text = `${name} ${JSON.stringify(schema)}`.toLowerCase();
-    if (text.includes(q)) {
-      results.push(schemaToText(name, schema));
-    }
+  const parts: string[] = [];
+  let size = 0;
+  for (const entry of matches.slice(0, 8)) {
+    const full = entry.operation.name.toLowerCase() === query.trim().toLowerCase();
+    const text = operationText(entry, full);
+    if (parts.length && size + text.length > 16000) break;
+    parts.push(text);
+    size += text.length;
   }
-
-  for (const [path, methods] of Object.entries(spec.paths ?? {})) {
-    if (`${path} ${JSON.stringify(methods)}`.toLowerCase().includes(q)) {
-      const line = endpointToText(path, methods);
-      if (line) results.push(line);
-    }
-  }
-
-  const fnDocs = getHostFunctionDocs();
-  const matchingFns = fnDocs.execute.filter(
-    (d) =>
-      q === "siliconharbour tools" ||
-      d.name.toLowerCase().includes(q) ||
-      d.description.toLowerCase().includes(q),
-  );
-  if (matchingFns.length > 0) {
-    results.push(
-      "### tools.siliconharbour functions\n" +
-        matchingFns
-          .slice(0, 12)
-          .map((d) => `  tools.siliconharbour.${d.signature}\n    — ${d.description}`)
-          .join("\n"),
-    );
-  }
-
-  const unions = getEntitySchemaDocs();
-  const variantMatches = matchVariants(unions, q);
-  if (variantMatches.length > 0) {
-    results.push(...variantMatches.slice(0, 8));
-  }
-
-  if (results.length === 0) {
-    return [
-      `No matches for "${query}".`,
-      "Available entities: event, job, company, group, person, education, technology, product, project, news",
-      "For all tools.siliconharbour functions: search('siliconharbour tools')",
-    ].join("\n");
-  }
-
-  const hint = formatModuleHint(q);
-
-  const parts = [results.slice(0, 6).join("\n\n")];
-  if (hint)
-    parts.push(
-      `\nUsage in query/execute tool (call the function with one input object and return its result):\n${hint}`,
-    );
-
-  return parts.join("").trim();
+  return parts.join("\n\n");
 }

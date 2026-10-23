@@ -122,8 +122,12 @@ export default function ImportEvents() {
                   <th className="text-left px-pad-4 py-pad-3 text-body font-medium">Type</th>
                   <th className="text-left px-pad-4 py-pad-3 text-body font-medium">Pending</th>
                   <th className="text-left px-pad-4 py-pad-3 text-body font-medium">Published</th>
-                  <th className="text-left px-pad-4 py-pad-3 text-body font-medium">Last Success</th>
-                  <th className="text-left px-pad-4 py-pad-3 text-body font-medium">Last Attempt</th>
+                  <th className="text-left px-pad-4 py-pad-3 text-body font-medium">
+                    Last Success
+                  </th>
+                  <th className="text-left px-pad-4 py-pad-3 text-body font-medium">
+                    Last Attempt
+                  </th>
                   <th className="text-left px-pad-4 py-pad-3 text-body font-medium">Status</th>
                   <th className="px-pad-4 py-pad-3"></th>
                 </tr>
@@ -166,7 +170,9 @@ export default function ImportEvents() {
                           rate limited
                         </span>
                       ) : source.fetchStatus === "error" ? (
-                        <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-700">error</span>
+                        <span className="text-xs px-pad-1-5 py-pad-0-5 bg-red-100 text-red-700">
+                          error
+                        </span>
                       ) : source.fetchStatus === "pending" ? (
                         <span className="text-xs px-pad-1-5 py-pad-0-5 bg-tint text-body">
                           pending
