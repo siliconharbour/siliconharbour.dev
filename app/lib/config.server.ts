@@ -213,3 +213,31 @@ export async function updateDiscordConfig(config: Partial<DiscordConfig>): Promi
       set: { value: config.botToken, updatedAt: new Date() },
     });
 }
+
+export function saveSiteConfig(input: {
+  sections: SectionVisibility;
+  comments: CommentVisibility;
+  newsGlobalKeywords: string | null;
+  botToken?: string | null;
+}) {
+  const entries: Array<[string, string]> = [
+    ...sectionKeys.map(
+      (key) => [`${VISIBILITY_PREFIX}${key}`, String(input.sections[key])] as [string, string],
+    ),
+    ...commentableKeys.map(
+      (key) =>
+        [`${COMMENT_VISIBILITY_PREFIX}${key}`, String(input.comments[key])] as [string, string],
+    ),
+    [NEWS_KEYWORDS_KEY, input.newsGlobalKeywords ?? ""],
+    ...(input.botToken !== undefined
+      ? [[DISCORD_BOT_TOKEN_KEY, input.botToken ?? ""] as [string, string]]
+      : []),
+  ];
+  db.transaction((tx) => {
+    for (const [key, value] of entries)
+      tx.insert(siteConfig)
+        .values({ key, value })
+        .onConflictDoUpdate({ target: siteConfig.key, set: { value, updatedAt: new Date() } })
+        .run();
+  });
+}

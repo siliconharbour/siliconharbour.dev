@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { formatError } from "./errors.js";
+import { formatError } from "~/mcp/errors";
 
 type AsyncSyncStatus = "running" | "completed" | "failed";
 

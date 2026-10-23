@@ -1,31 +1,22 @@
+import { adminContext } from "~/operations/context";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/settings";
 import { Form, Link, useActionData, useLoaderData, useFetcher } from "react-router";
 import { useState } from "react";
 import { requireAdmin } from "~/lib/session.server";
 import {
   getSectionVisibility,
-  updateSectionVisibility,
   getCommentVisibility,
-  updateCommentVisibility,
-  getDiscordConfig,
-  updateDiscordConfig,
   getNewsGlobalKeywords,
-  type SectionVisibility,
-  type CommentVisibility,
 } from "~/lib/config.server";
-import {
-  listDestinations,
-  addDestination,
-  removeDestination,
-} from "~/lib/discord-destinations.server";
+import { listDestinations } from "~/lib/discord-destinations.server";
 import {
   sectionKeys,
   type SectionKey,
   commentableKeys,
   type CommentableKey,
-  discordChannelTypes,
   type DiscordChannelType,
   type DiscordDestination,
 } from "~/db/schema";
@@ -49,7 +40,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   ] = await Promise.all([
     getSectionVisibility(),
     getCommentVisibility(),
-    getDiscordConfig(),
+    operationCatalog.discordConfigGet.execute(
+      adminContext((await requireAdmin(request)).user.id),
+      {},
+    ),
     listDestinations("events"),
     listDestinations("jobs"),
     getNewsGlobalKeywords(),
@@ -67,147 +61,86 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-
-  const intent = formData.get("intent");
-
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "add-event-tag" || intent === "update-event-tag") {
     const result = await runAdminOperation(request, operationCatalog.eventTagSave, {
-      ...(intent === "update-event-tag" && { id: Number(formData.get("tagId")) }),
-      name: formData.get("name"),
-      color: formData.get("color"),
+      ...(intent === "update-event-tag" && { id: Number(form.get("tagId")) }),
+      name: form.get("name"),
+      color: form.get("color"),
     });
-    return result.ok ? { intent, success: true } : { intent, error: result.error };
+    return result.ok
+      ? ({ intent, success: true } as const)
+      : ({ intent, error: result.error } as const);
   }
   if (intent === "delete-event-tag") {
     const result = await runAdminOperation(request, operationCatalog.eventTagDelete, {
-      id: Number(formData.get("tagId")),
+      id: Number(form.get("tagId")),
       confirm: true,
     });
-    return result.ok ? { intent, success: true } : { intent, error: result.error };
+    return result.ok
+      ? ({ intent, success: true } as const)
+      : ({ intent, error: result.error } as const);
   }
-
   if (intent === "test-discord") {
-    const token = formData.get("discord_bot_token");
-    if (!token || typeof token !== "string") {
-      return { success: false, discordTest: { valid: false, error: "No token provided" } };
-    }
-    const { verifyBotToken, listGuilds } = await import("~/lib/discord.server");
-    const verifyResult = await verifyBotToken(token);
-    if (!verifyResult.valid) {
-      return { success: false, discordTest: verifyResult };
-    }
-    const guildsResult = await listGuilds(token);
-    return {
-      success: false,
-      discordTest: {
-        ...verifyResult,
-        guildCount: guildsResult.guilds?.length ?? 0,
-      },
-    };
+    const result = await runAdminOperation(request, operationCatalog.discordTest, {
+      ...(form.get("discord_bot_token") && { token: form.get("discord_bot_token") }),
+      confirm: true,
+    });
+    return result.ok
+      ? ({ success: false, discordTest: result.data } as const)
+      : ({ success: false, discordTest: { valid: false, error: result.error } } as const);
   }
-
   if (intent === "load-guilds") {
-    const config = await getDiscordConfig();
-    if (!config.botToken) {
-      return { intent: "load-guilds" as const, error: "Bot token not configured" };
-    }
-    const { listGuilds } = await import("~/lib/discord.server");
-    const result = await listGuilds(config.botToken);
-    if (!result.ok) {
-      return { intent: "load-guilds" as const, error: result.error ?? "Failed to load guilds" };
-    }
-    return {
-      intent: "load-guilds" as const,
-      guilds: (result.guilds ?? []).map((g) => ({ id: g.id, name: g.name })),
-    };
+    const result = await runAdminOperation(request, operationCatalog.discordGuildsList, {});
+    return result.ok
+      ? ({ intent: "load-guilds", guilds: result.data } as const)
+      : ({ intent: "load-guilds", error: result.error } as const);
   }
-
   if (intent === "load-channels") {
-    const guildId = formData.get("guildId");
-    if (typeof guildId !== "string" || !guildId) {
-      return { intent: "load-channels" as const, error: "Missing guild ID" };
-    }
-    const config = await getDiscordConfig();
-    if (!config.botToken) {
-      return { intent: "load-channels" as const, error: "Bot token not configured" };
-    }
-    const { listPostableChannels } = await import("~/lib/discord.server");
-    const result = await listPostableChannels(guildId, config.botToken);
-    if (!result.ok) {
-      return { intent: "load-channels" as const, error: result.error ?? "Failed to load channels" };
-    }
-    return {
-      intent: "load-channels" as const,
+    const guildId = form.get("guildId");
+    const result = await runAdminOperation(request, operationCatalog.discordChannelsList, {
       guildId,
-      channels: result.channels ?? [],
-    };
+    });
+    return result.ok
+      ? ({ intent: "load-channels", guildId: String(guildId), channels: result.data } as const)
+      : ({ intent: "load-channels", error: result.error } as const);
   }
-
   if (intent === "add-destination") {
-    const type = formData.get("type");
-    const guildId = formData.get("guildId");
-    const guildName = formData.get("guildName");
-    const channelId = formData.get("channelId");
-    const channelName = formData.get("channelName");
-    if (
-      typeof type !== "string" ||
-      !(discordChannelTypes as readonly string[]).includes(type) ||
-      typeof guildId !== "string" ||
-      typeof guildName !== "string" ||
-      typeof channelId !== "string" ||
-      typeof channelName !== "string" ||
-      !guildId ||
-      !channelId
-    ) {
-      return { intent: "add-destination" as const, error: "Invalid destination" };
-    }
-    await addDestination({
-      type: type as DiscordChannelType,
-      guildId,
-      guildName,
-      channelId,
-      channelName,
+    const result = await runAdminOperation(request, operationCatalog.discordDestinationAdd, {
+      type: form.get("type"),
+      guildId: form.get("guildId"),
+      guildName: form.get("guildName"),
+      channelId: form.get("channelId"),
+      channelName: form.get("channelName"),
     });
-    return { intent: "add-destination" as const, success: true };
+    return result.ok
+      ? ({ intent: "add-destination", success: true } as const)
+      : ({ intent: "add-destination", error: result.error } as const);
   }
-
   if (intent === "remove-destination") {
-    const id = Number(formData.get("destinationId"));
-    if (!id) return { intent: "remove-destination" as const, error: "Invalid destination" };
-    await removeDestination(id);
-    return { intent: "remove-destination" as const, success: true };
-  }
-
-  // Default: save the main settings form
-  const sectionUpdates: Partial<SectionVisibility> = {};
-  for (const section of sectionKeys) {
-    sectionUpdates[section] = formData.has(section);
-  }
-
-  const commentUpdates: Partial<CommentVisibility> = {};
-  for (const contentType of commentableKeys) {
-    commentUpdates[contentType] = formData.has(`comments_${contentType}`);
-  }
-
-  const discordUpdates: Partial<{ botToken: string }> = {};
-  const botToken = formData.get("discord_bot_token");
-  if (typeof botToken === "string") discordUpdates.botToken = botToken;
-
-  const newsKeywords = formData.get("news_global_keywords");
-  if (typeof newsKeywords === "string") {
-    const result = await runAdminOperation(request, operationCatalog.newsGlobalKeywordsSet, {
-      keywords: newsKeywords,
+    const result = await runAdminOperation(request, operationCatalog.discordDestinationRemove, {
+      id: Number(form.get("destinationId")),
+      confirm: true,
     });
-    if (!result.ok) return { error: result.error };
+    return result.ok
+      ? ({ intent: "remove-destination", success: true } as const)
+      : ({ intent: "remove-destination", error: result.error } as const);
   }
-
-  await Promise.all([
-    updateSectionVisibility(sectionUpdates),
-    updateCommentVisibility(commentUpdates),
-    updateDiscordConfig(discordUpdates),
-  ]);
-  return { success: true };
+  const sections = Object.fromEntries(sectionKeys.map((key) => [key, form.has(key)]));
+  const comments = Object.fromEntries(
+    commentableKeys.map((key) => [key, form.has(`comments_${key}`)]),
+  );
+  const result = await runAdminOperation(request, operationCatalog.siteConfigSave, {
+    sections,
+    comments,
+    newsGlobalKeywords: form.get("news_global_keywords") ?? null,
+    ...(form.get("discord_bot_token") || form.get("clearDiscordToken")
+      ? { botToken: form.get("clearDiscordToken") ? null : form.get("discord_bot_token") }
+      : {}),
+    confirm: true,
+  });
+  return result.ok ? { success: true } : { error: result.error };
 }
 
 const sectionLabels: Record<SectionKey, string> = {
@@ -599,8 +532,12 @@ export default function Settings() {
                     type="password"
                     id="discord_bot_token"
                     name="discord_bot_token"
-                    defaultValue={discordConfig.botToken}
-                    placeholder="Enter Discord bot token"
+                    defaultValue=""
+                    placeholder={
+                      discordConfig.botTokenConfigured
+                        ? discordConfig.botTokenMasked
+                        : "Enter Discord bot token"
+                    }
                     className="flex-1 px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent text-sm"
                   />
                   <button
@@ -619,6 +556,11 @@ export default function Settings() {
                     {testFetcher.state === "submitting" ? "Testing..." : "Test Connection"}
                   </button>
                 </div>
+                <label className="flex items-center gap-gap-2 text-sm text-body">
+                  <input type="checkbox" name="clearDiscordToken" />
+                  Clear saved token
+                </label>
+
                 {discordTestResult && (
                   <p
                     className={`text-sm ${discordTestResult.valid ? "text-green-700" : "text-red-700"}`}

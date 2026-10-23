@@ -1,31 +1,16 @@
+import { jsonFromForm } from "~/lib/admin/import-form-adapters";
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/github-following";
 import { useFetcher, useLoaderData } from "react-router";
 import { useState, useMemo } from "react";
 import { requireAdmin } from "~/lib/session.server";
-import { fetchAvatar } from "~/lib/github.server";
+
 import type { GitHubUser, GitHubUserBasic } from "~/lib/github.types";
-import {
-  getFollowingImportProgress,
-  startFollowingImport,
-  processFollowingBatch,
-  pauseFollowingImport,
-  resetFollowingImport,
-  resumeFollowingImport,
-  type FollowingImportProgress,
-} from "~/lib/github-following-import.server";
-import {
-  createPerson,
-  getAllPeople,
-  getPersonByName,
-  getPersonByGitHub,
-} from "~/lib/people.server";
-import {
-  findCompanyByFuzzyName,
-  parseGitHubCompanyField,
-  extractCompanyFromBio,
-  updateCompany,
-} from "~/lib/companies.server";
-import { processAndSaveIconImageWithPadding } from "~/lib/images.server";
+
+import { getAllPeople } from "~/lib/people.server";
+
 import { ManagePage } from "~/components/manage/ManagePage";
 
 export function meta({}: Route.MetaArgs) {
@@ -42,7 +27,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   );
 
   // Get current job progress - this is the source of truth
-  const progress = await getFollowingImportProgress();
+  const result = await runAdminOperation(request, operationCatalog.githubFollowingStatus, {});
+  if (!result.ok) throw new Response(result.error, { status: 400 });
+  const progress = result.data;
 
   return {
     existingGitHubs: Array.from(existingGitHubs),
@@ -52,143 +39,49 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-
-  // Start fetching a user's following/followers
-  if (intent === "start") {
-    const username = (formData.get("username") as string)?.trim();
-    const mode = (formData.get("mode") as "following" | "followers" | "both") || "following";
-
-    if (!username) {
-      return { intent, error: "Username is required" };
-    }
-
-    const progress = await startFollowingImport(username, mode);
-    return { intent, progress, error: null };
-  }
-
-  // Continue processing profiles
-  if (intent === "continue") {
-    const progress = await processFollowingBatch();
-    return { intent, progress, error: null };
-  }
-
-  // Resume a paused job
-  if (intent === "resume") {
-    const progress = await resumeFollowingImport();
-    return { intent, progress, error: null };
-  }
-
-  // Pause the job
-  if (intent === "pause") {
-    const progress = await pauseFollowingImport();
-    return { intent, progress, error: null };
-  }
-
-  // Reset/cancel the job
-  if (intent === "reset") {
-    const progress = await resetFollowingImport();
-    return { intent, progress, error: null };
-  }
-
-  // Import selected users
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "import") {
-    const usersJson = formData.get("users") as string;
-    const downloadAvatars = formData.get("downloadAvatars") === "true";
-
+    let users: unknown;
     try {
-      const users: GitHubUser[] = JSON.parse(usersJson);
-      const imported: string[] = [];
-      const errors: string[] = [];
-
-      for (const user of users) {
-        try {
-          let avatar: string | null = null;
-
-          if (downloadAvatars && user.avatar_url) {
-            const imageBuffer = await fetchAvatar(user.avatar_url);
-            if (imageBuffer) {
-              avatar = await processAndSaveIconImageWithPadding(imageBuffer);
-            }
-          }
-
-          const githubUrl = user.html_url;
-          const displayName = user.name || user.login;
-
-          // Check if person already exists
-          const existingByGitHub = await getPersonByGitHub(githubUrl);
-          const existingByName = await getPersonByName(displayName);
-
-          if (existingByGitHub || existingByName) {
-            imported.push(`${displayName} (skipped - already exists)`);
-            continue;
-          }
-
-          // Try to find company
-          let companyName: string | null = null;
-          let githubOrgUrl: string | null = null;
-          let matchedCompany = null;
-
-          if (user.company) {
-            const parsed = parseGitHubCompanyField(user.company);
-            companyName = parsed.name;
-            githubOrgUrl = parsed.githubOrg;
-            matchedCompany = await findCompanyByFuzzyName(parsed.name);
-          }
-
-          if (!companyName && user.bio) {
-            const bioCompany = extractCompanyFromBio(user.bio);
-            if (bioCompany) {
-              companyName = bioCompany;
-              matchedCompany = await findCompanyByFuzzyName(bioCompany);
-            }
-          }
-
-          if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
-            await updateCompany(matchedCompany.id, { github: githubOrgUrl });
-          }
-
-          // Build bio
-          let bio = user.bio || "";
-          const companyRefName = matchedCompany?.name || companyName;
-
-          if (companyRefName && !bio.toLowerCase().includes(companyRefName.toLowerCase())) {
-            const companyRef = `[[${companyRefName}]]`;
-            if (bio) {
-              bio = `${bio}\n\nWorks at ${companyRef}.`;
-            } else {
-              bio = `GitHub user from ${user.location || "unknown location"}. Works at ${companyRef}.`;
-            }
-          } else if (!bio) {
-            bio = `GitHub user from ${user.location || "unknown location"}.`;
-          }
-
-          await createPerson({
-            name: displayName,
-            bio,
-            website: user.blog || null,
-            github: githubUrl,
-            avatar,
-            visible: false,
-          });
-
-          imported.push(
-            `${displayName}${matchedCompany ? ` (linked to ${matchedCompany.name})` : ""}`,
-          );
-        } catch (e) {
-          errors.push(`${user.name || user.login}: ${String(e)}`);
-        }
-      }
-
-      return { intent: "import", imported, errors };
-    } catch (e) {
-      return { intent: "import", imported: [], errors: [String(e)] };
+      users = jsonFromForm(form, "users");
+    } catch (error) {
+      return {
+        intent: "import",
+        imported: [],
+        errors: [error instanceof Error ? error.message : "Invalid JSON"],
+      } as const;
     }
+    const result = await runAdminOperation(request, operationCatalog.githubFollowingImport, {
+      users,
+      downloadAvatars: form.get("downloadAvatars") === "true",
+    });
+    return result.ok
+      ? ({ intent: "import", ...result.data } as const)
+      : ({ intent: "import", imported: [], errors: [result.error] } as const);
   }
-
-  return null;
+  const operations = {
+    start: operationCatalog.githubFollowingStart,
+    continue: operationCatalog.githubFollowingContinue,
+    resume: operationCatalog.githubFollowingResume,
+    pause: operationCatalog.githubFollowingPause,
+    reset: operationCatalog.githubFollowingReset,
+  };
+  if (typeof intent !== "string" || !Object.hasOwn(operations, intent)) return null;
+  const input =
+    intent === "start"
+      ? { username: form.get("username"), mode: form.get("mode") || "following", confirm: true }
+      : intent === "pause"
+        ? {}
+        : { confirm: true };
+  const result = await runAdminOperation(
+    request,
+    operations[intent as keyof typeof operations],
+    input,
+  );
+  return result.ok
+    ? ({ intent: intent as keyof typeof operations, progress: result.data, error: null } as const)
+    : ({ intent: intent as keyof typeof operations, error: result.error } as const);
 }
 
 export default function ImportGitHubFollowing() {
@@ -201,7 +94,7 @@ export default function ImportGitHubFollowing() {
   const [downloadAvatars, setDownloadAvatars] = useState(true);
 
   // Progress comes from fetcher response (most recent) or loader (initial)
-  const progress: FollowingImportProgress = fetcher.data?.progress ?? loaderProgress;
+  const progress = fetcher.data?.progress ?? loaderProgress;
 
   // Simple handlers - NO useEffects, NO auto-run
   // User clicks a button, action runs, fetcher.data updates with new progress

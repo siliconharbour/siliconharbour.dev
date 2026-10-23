@@ -11,27 +11,12 @@ import { consumeImageUpload } from "./mcp-image-uploads.server";
 import { ImageInputError } from "./image-input.server";
 import { isImageReferenced } from "./image-orphans.server";
 
-export const imageTargetSchema = z.object({
-  type: z.enum([
-    "event",
-    "company",
-    "group",
-    "person",
-    "education",
-    "project",
-    "product",
-    "news",
-    "technology",
-  ]),
-  id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-  role: z.enum(["cover", "icon"]),
-});
-export const setEntityImageSchema = imageTargetSchema
-  .extend({ url: z.string().url().max(4096) })
-  .strict();
-export const attachImageSchema = imageTargetSchema
-  .extend({ uploadId: z.string().regex(/^[a-f0-9]{32}$/) })
-  .strict();
+import {
+  imageTargetInput as imageTargetSchema,
+  imageSetInput as setEntityImageSchema,
+  imageAttachInput as attachImageSchema,
+} from "~/operations/contracts/images";
+export { imageTargetSchema, setEntityImageSchema, attachImageSchema };
 type ImageTarget = z.infer<typeof imageTargetSchema>;
 const targets = {
   event: { table: "events", cover: "cover_image", icon: "icon_image" },
@@ -113,9 +98,11 @@ export async function deleteUnreferencedImages(filenames: Array<string | null | 
 
 export async function clearEntityImage(input: ImageTarget) {
   const target = targetRow(input);
+  const clearSource =
+    input.type === "event" && input.role === "cover" ? ", cover_image_url = NULL" : "";
   rawDb
     .prepare(
-      `UPDATE \`${target.table}\` SET \`${target.column}\` = NULL, updated_at = ? WHERE id = ?`,
+      `UPDATE \`${target.table}\` SET \`${target.column}\` = NULL${clearSource}, updated_at = ? WHERE id = ?`,
     )
     .run(Math.floor(Date.now() / 1000), input.id);
   await deleteUnreferencedImages([target.filename]);
@@ -169,7 +156,7 @@ export async function applyEntityImage(
 
 type ImageCommand = import("zod").infer<typeof import("~/operations/fields").imageInput>;
 type ImageFields = Partial<
-  Record<"avatar" | "logo" | "icon" | "iconImage" | "coverImage", string | null>
+  Record<"avatar" | "logo" | "icon" | "iconImage" | "coverImage" | "coverImageUrl", string | null>
 >;
 
 export async function withEntityImages<T>(
@@ -197,6 +184,7 @@ export async function withEntityImages<T>(
     if (!targets[target.type][role])
       throw new ImageInputError(`${target.type} does not support ${role} images`);
     const key = role === "cover" ? "coverImage" : iconField;
+    if (target.type === "event" && role === "cover") fields.coverImageUrl = null;
     if (target.id !== undefined)
       previous.push(targetRow({ ...target, id: target.id, role }).filename);
     if (command.kind === "clear") {

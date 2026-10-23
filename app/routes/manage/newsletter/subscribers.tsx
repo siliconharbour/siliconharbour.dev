@@ -1,15 +1,11 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/subscribers";
 import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
-import { z } from "zod";
+
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getNewsletterFlags,
-  getNewsletterList,
-  getNewsletterSubscribers,
-  pilotEmails,
-  subscribeToNewsletter,
-  unsubscribeFromNewsletter,
-} from "~/lib/newsletter.server";
+import { getNewsletterList, getNewsletterSubscribers } from "~/lib/newsletter.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Newsletter subscribers - siliconharbour.dev" }];
@@ -32,41 +28,28 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
   const form = await request.formData();
-  try {
-    const list = await getNewsletterList();
-    const intent = form.get("intent");
-    if (intent === "resend") {
-      const email = z.email().parse(form.get("email"));
-      const flags = await getNewsletterFlags();
-      if (
-        !flags.publicSignup &&
-        process.env.NODE_ENV === "production" &&
-        !pilotEmails().includes(email.toLowerCase())
-      )
-        return {
-          error:
-            "Only configured pilot addresses can be sent confirmation while public signup is off.",
-        };
-      const matches = await getNewsletterSubscribers(list.id, email);
-      const subscriber = matches.find((item) => item.email.toLowerCase() === email.toLowerCase());
-      if (
-        !subscriber ||
-        subscriber.status !== "active" ||
-        subscriber.membershipStatus !== "unconfirmed"
-      )
-        return { error: "Only active, unconfirmed subscribers can be sent another confirmation." };
-      await subscribeToNewsletter(email);
-      return redirect("/manage/newsletter/subscribers?notice=confirmation-requested");
-    }
-    if (intent === "unsubscribe") {
-      const id = z.coerce.number().int().positive().parse(form.get("id"));
-      await unsubscribeFromNewsletter(id, list.id);
-      return redirect("/manage/newsletter/subscribers?notice=unsubscribed");
-    }
-    return { error: "Unknown subscriber action." };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Subscriber action failed." };
+  const intent = form.get("intent");
+  if (intent === "resend") {
+    const result = await runAdminOperation(
+      request,
+      operationCatalog.newsletterSubscriberResendConfirmation,
+      { email: form.get("email"), confirm: true },
+    );
+    return result.ok
+      ? redirect("/manage/newsletter/subscribers?notice=confirmation-requested")
+      : ({ error: result.error } as const);
   }
+  if (intent === "unsubscribe") {
+    const result = await runAdminOperation(
+      request,
+      operationCatalog.newsletterSubscriberUnsubscribe,
+      { id: Number(form.get("id")), confirm: true },
+    );
+    return result.ok
+      ? redirect("/manage/newsletter/subscribers?notice=unsubscribed")
+      : ({ error: result.error } as const);
+  }
+  return { error: "Unknown subscriber action." } as const;
 }
 
 const statusStyle = {

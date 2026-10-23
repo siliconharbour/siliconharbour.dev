@@ -24,7 +24,7 @@ import {
   syncAllNewsSources,
 } from "~/lib/news-importers/sync.server";
 import { previewNewsFeed } from "~/lib/news-importers/feed-preview.server";
-import { startAsyncSync } from "~/mcp/async-syncs";
+import { startAsyncSync } from "~/lib/async-syncs.server";
 async function requireSource(id: number) {
   const source = await getNewsSourceById(id);
   if (!source) throw new NotFoundError("News source not found");

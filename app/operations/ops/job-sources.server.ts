@@ -23,7 +23,7 @@ import {
 import { syncAllJobSources } from "~/lib/job-importers/sync-all.server";
 import { getCompanyById } from "~/lib/companies.server";
 import { getImporter } from "~/lib/job-importers";
-import { startAsyncSync } from "~/mcp/async-syncs";
+import { startAsyncSync } from "~/lib/async-syncs.server";
 export async function requireJobSource(id: number) {
   const source = await getSourceById(id);
   if (!source) throw new NotFoundError("Job source not found");

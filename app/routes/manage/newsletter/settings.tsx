@@ -1,7 +1,10 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/settings";
 import { Form, Link, useActionData, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsletterFlags, setNewsletterFlags } from "~/lib/newsletter.server";
+import { getNewsletterFlags } from "~/lib/newsletter.server";
 import { getTurnstileSiteKey, isTurnstileEnabled } from "~/lib/turnstile.server";
 
 export function meta({}: Route.MetaArgs) {
@@ -19,18 +22,12 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
   const form = await request.formData();
-  const flags = {
+  const result = await runAdminOperation(request, operationCatalog.newsletterSettingsSet, {
     publicSignup: form.get("publicSignup") === "on",
     liveSend: form.get("liveSend") === "on",
-  };
-  if (
-    flags.publicSignup &&
-    process.env.NODE_ENV === "production" &&
-    (!getTurnstileSiteKey() || !isTurnstileEnabled())
-  )
-    return { error: "Configure the Turnstile site and secret keys before opening public signup." };
-  await setNewsletterFlags(flags);
-  return { success: true };
+    confirm: true,
+  });
+  return result.ok ? ({ success: true } as const) : ({ error: result.error } as const);
 }
 
 export default function NewsletterSettings() {

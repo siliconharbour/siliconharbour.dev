@@ -150,3 +150,5 @@ export const lookupInput = z
   });
 
 export { technologyProvenanceSourceKeys } from "~/lib/technology-evidence";
+
+export { imageContentTypes, MAX_IMAGE_BYTES } from "~/lib/image-types";

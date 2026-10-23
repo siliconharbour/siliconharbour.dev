@@ -1,18 +1,13 @@
+import { operationCatalog } from "~/operations/catalog";
+import { runAdminOperation } from "~/lib/admin/run-operation.server";
+
 import type { Route } from "./+types/events";
 import { Form, Link, useActionData, useLoaderData, useNavigation } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 import { getDiscordConfig } from "~/lib/config.server";
 import { listDestinations } from "~/lib/discord-destinations.server";
-import {
-  getUnpostedEvents,
-  createDiscordPost,
-  skipItems,
-  getPostHistory,
-  undoDiscordPost,
-  undoDiscordBatch,
-} from "~/lib/discord-posts.server";
-import { buildEventsMessage } from "~/lib/discord-messages.server";
-import { logDiscord, postMessage } from "~/lib/discord.server";
+import { getUnpostedEvents, getPostHistory } from "~/lib/discord-posts.server";
+
 import { format } from "date-fns";
 import { getGeneratedOccurrences } from "~/lib/events.server";
 import { parseRecurrenceRule, describeRecurrenceRule } from "~/lib/recurrence.server";
@@ -64,158 +59,41 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  const formData = await request.formData();
-  const intent = formData.get("intent");
-  const config = await getDiscordConfig();
-
-  if (!config.botToken) {
-    return { error: "Discord is not configured. Set the bot token in Settings." };
-  }
-
-  if (intent === "skip") {
-    const eventId = Number(formData.get("eventId"));
-    if (!eventId) return { error: "Invalid event ID" };
-
-    await skipItems({
-      channelType: "events",
-      itemIds: [eventId],
-      itemType: "event",
-    });
-    return { success: true, skipped: true };
-  }
-
+  const form = await request.formData();
+  const intent = form.get("intent");
   if (intent === "post") {
-    const destinations = await listDestinations("events");
-    if (destinations.length === 0) {
-      return {
-        error: "No event destinations configured. Add one in Settings.",
-      };
-    }
-
-    const selectedIds = formData.getAll("selectedEvents").map(Number).filter(Boolean);
-    if (selectedIds.length === 0) {
-      return { error: "No events selected" };
-    }
-
-    const introText = (formData.get("introText") as string) || null;
-
-    // Fetch the full event data for selected events
-    const allUnposted = await getUnpostedEvents();
-    const selectedEvents = allUnposted.filter((e) => selectedIds.includes(e.id));
-
-    if (selectedEvents.length === 0) {
-      return { error: "Selected events are no longer available" };
-    }
-
-    // For recurring events, generate synthetic dates for the message
-    const eventsForMessage = selectedEvents.map((event) => {
-      if (event.dates.length === 0 && event.recurrenceRule) {
-        const occurrences = getGeneratedOccurrences(event);
-        const syntheticDates = occurrences.slice(0, 1).map((date, i) => ({
-          id: -(i + 1),
-          eventId: event.id,
-          startDate: date,
-          endDate: null,
-          isAllDay: !event.defaultStartTime,
-        }));
-        return { ...event, dates: syntheticDates };
-      }
-      return event;
+    const result = await runAdminOperation(request, operationCatalog.discordPost, {
+      type: "events",
+      itemIds: form.getAll("selectedEvents").map(Number),
+      introText: form.get("introText") ?? null,
+      confirm: true,
     });
-
-    const components = buildEventsMessage(eventsForMessage, introText || undefined);
-
-    // Fan-out: post to each destination, record one discord_posts row per
-    // destination, all sharing a batch_id.
-    const batchId = crypto.randomUUID();
-    const successes: Array<{
-      destination: (typeof destinations)[number];
-      messageId: string | null;
-    }> = [];
-    const failures: Array<{ destination: (typeof destinations)[number]; error: string }> = [];
-
-    logDiscord("batch.started", {
-      batchId,
-      channelType: "events",
-      itemIds: selectedEvents.map((event) => event.id),
-      destinationCount: destinations.length,
-      chunkCount: 1,
+    return result.ok ? result.data : ({ error: result.error } as const);
+  }
+  if (intent === "skip") {
+    const result = await runAdminOperation(request, operationCatalog.discordSkip, {
+      type: "events",
+      itemIds: [Number(form.get("eventId"))],
     });
-
-    for (const destination of destinations) {
-      const result = await postMessage(destination.channelId, components, config.botToken, {
-        batchId,
-        channelType: "events",
-        destinationId: destination.id,
-        chunkIndex: 1,
-        chunkCount: 1,
-      });
-      if (result.success) {
-        successes.push({ destination, messageId: result.messageId ?? null });
-      } else {
-        failures.push({ destination, error: result.error ?? "Unknown error" });
-      }
-    }
-
-    if (successes.length === 0) {
-      return {
-        error: `Failed to post to any destination: ${failures
-          .map((f) => `#${f.destination.channelName} (${f.error})`)
-          .join("; ")}`,
-      };
-    }
-
-    // Attach items to the first successful row; siblings reference the same batch.
-    for (let i = 0; i < successes.length; i++) {
-      const { destination, messageId } = successes[i];
-      await createDiscordPost({
-        channelType: "events",
-        discordMessageId: messageId,
-        destination: { guildId: destination.guildId, channelId: destination.channelId },
-        batchId,
-        introText,
-        itemIds: selectedIds,
-        itemType: "event",
-        attachItems: i === 0,
-      });
-    }
-
-    logDiscord("batch.recorded", {
-      batchId,
-      channelType: "events",
-      destinationSuccessCount: successes.length,
-      destinationFailureCount: failures.length,
-    });
-
-    return {
-      success: true,
-      posted: selectedEvents.length,
-      destinations: successes.length,
-      failures: failures.map((f) => ({
-        channelName: f.destination.channelName,
-        guildName: f.destination.guildName,
-        error: f.error,
-      })),
-    };
+    return result.ok
+      ? ({ success: true, skipped: true } as const)
+      : ({ error: result.error } as const);
   }
 
-  if (intent === "undo") {
-    const postId = Number(formData.get("postId"));
-    if (!postId) return { error: "Invalid post ID" };
-
-    await undoDiscordPost(postId);
-    return { success: true, undone: true };
+  if (intent === "undo" || intent === "undo-batch") {
+    const operation =
+      intent === "undo" ? operationCatalog.discordUndo : operationCatalog.discordUndoBatch;
+    const result = await runAdminOperation(request, operation, {
+      ...(intent === "undo"
+        ? { id: Number(form.get("postId")) }
+        : { batchId: form.get("batchId") }),
+      confirm: true,
+    });
+    return result.ok
+      ? ({ success: true, undone: true } as const)
+      : ({ error: result.error } as const);
   }
-
-  if (intent === "undo-batch") {
-    const batchId = formData.get("batchId");
-    if (typeof batchId !== "string" || !batchId) return { error: "Invalid batch ID" };
-
-    await undoDiscordBatch(batchId);
-    return { success: true, undone: true };
-  }
-
-  return { error: "Unknown action" };
+  return { error: "Unknown action" } as const;
 }
 
 export default function DiscordEvents() {

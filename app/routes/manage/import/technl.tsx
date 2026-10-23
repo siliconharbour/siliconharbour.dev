@@ -1,10 +1,10 @@
+import { runDirectoryImportAction } from "~/lib/admin/directory-import-action.server";
 import type { Route } from "./+types/technl";
 import { useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 import { scrapeTechNL } from "~/lib/scraper.server";
 import {
   buildDirectoryImportLoaderData,
-  handleDirectoryImportAction,
   type DirectoryImportConfig,
 } from "~/lib/directory-import.server";
 import { DirectoryImportPage } from "~/components/manage/DirectoryImportPage";
@@ -29,7 +29,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export async function action({ request }: Route.ActionArgs) {
   await requireAdmin(request);
-  return handleDirectoryImportAction(request, config);
+  return runDirectoryImportAction(request, "technl");
 }
 
 export default function ImportTechNL() {
