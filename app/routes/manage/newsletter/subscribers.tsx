@@ -1,11 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/subscribers";
 import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsletterList, getNewsletterSubscribers } from "~/lib/newsletter.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Newsletter subscribers - siliconharbour.dev" }];
@@ -16,9 +15,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const search = url.searchParams.get("search")?.trim().slice(0, 255) ?? "";
   const page = Math.max(1, Number.parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
-  const list = await getNewsletterList();
+  const result = await loadAdminOperation(request, operationCatalog.newsletterSubscriberList, {
+    query: search,
+    offset: (page - 1) * 50,
+    limit: 50,
+  });
   return {
-    subscribers: await getNewsletterSubscribers(list.id, search, (page - 1) * 50),
+    subscribers: result.items,
+    hasNext: result.nextOffset !== null,
     search,
     page,
     notice: url.searchParams.get("notice"),
@@ -60,7 +64,7 @@ const statusStyle = {
 } as const;
 
 export default function NewsletterSubscribers() {
-  const { subscribers, search, page, notice } = useLoaderData<typeof loader>();
+  const { subscribers, search, page, notice, hasNext } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   return (
     <div className="mx-auto max-w-5xl p-pad-4 md:p-pad-6">
@@ -161,7 +165,7 @@ export default function NewsletterSubscribers() {
             Previous
           </Link>
         )}
-        {subscribers.length === 50 && (
+        {hasNext && (
           <Link
             to={`?search=${encodeURIComponent(search)}&page=${page + 1}`}
             className="text-body underline"

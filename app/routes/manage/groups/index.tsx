@@ -1,7 +1,10 @@
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPaginatedGroups } from "~/lib/groups.server";
+
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,12 +15,19 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: groups } = await getPaginatedGroups(100, 0, searchQuery, true);
-  return { groups, searchQuery };
+  const { limit, offset } = parsePaginationParams(url, 100);
+  const { items: groups, total } = await loadAdminOperation(request, operationCatalog.groupList, {
+    limit,
+    offset,
+    query: searchQuery,
+    sort: "createdAt",
+    order: "desc",
+  });
+  return { groups, searchQuery, total, limit, offset };
 }
 
 export default function ManageGroupsIndex() {
-  const { groups } = useLoaderData<typeof loader>();
+  const { groups, total, limit, offset } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-pad-4 md:p-pad-6">
@@ -31,6 +41,8 @@ export default function ManageGroupsIndex() {
             New Group
           </Link>
         </div>
+
+        <Pagination total={total} limit={limit} offset={offset} />
 
         <SearchInput placeholder="Search groups..." />
 

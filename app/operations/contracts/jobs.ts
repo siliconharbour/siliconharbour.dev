@@ -78,7 +78,7 @@ export const jobCreateInput = z.object(jobFields).strict().safeExtend(createOpti
 export const jobUpdateInput = updateContract(
   z.object(jobFields).omit({ companyName: true }).partial().shape,
 );
-export const jobListInput = listInput(["createdAt", "postedAt", "title", "lastSeenAt"])
+export const jobListInput = listInput(["createdAt", "updatedAt", "postedAt", "title", "lastSeenAt"])
   .extend({
     status: z.union([z.enum(jobStatuses), z.literal("all")]).optional(),
     sourceId: id().nullable().optional(),

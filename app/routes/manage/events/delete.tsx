@@ -1,10 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/delete";
 import { Link, Form, redirect, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getEventById } from "~/lib/events.server";
+
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { DeleteConfirmationCard } from "~/components/manage/DeleteConfirmationCard";
 
@@ -17,10 +17,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "event");
 
-  const event = await getEventById(id);
-  if (!event) {
-    throw new Response("Event not found", { status: 404 });
-  }
+  const event = await loadAdminOperation(request, operationCatalog.eventGet, { id });
 
   return { event };
 }

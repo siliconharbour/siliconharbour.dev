@@ -33,6 +33,7 @@ export const jobOperations = {
     run: async (_ctx, input) => {
       const result = await getPaginatedJobs(input.limit, input.offset, input.query, {
         includeNonTechnical: true,
+        searchCompanyNames: true,
         companyId: input.companyId,
         sourceId: input.sourceId,
         sourceType: input.sourceType,

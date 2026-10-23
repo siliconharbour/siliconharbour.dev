@@ -1,15 +1,16 @@
+import {
+  loadAllAdminItems,
+  loadAdminOperation,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { jobFormInput } from "~/lib/admin/content-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-import { getJobById } from "~/lib/jobs.server";
-import { db } from "~/db";
-import { companies } from "~/db/schema";
-import { asc } from "drizzle-orm";
+
 import { parseIdOrThrow } from "~/lib/admin/route";
 import { actionError } from "~/lib/admin/action-result";
 
@@ -24,21 +25,17 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "job");
 
-  const job = await getJobById(id);
-  if (!job) {
-    throw new Response("Job not found", { status: 404 });
-  }
+  const job = await loadAdminOperation(request, operationCatalog.jobGet, { id });
 
   // Only allow editing manual jobs
   if (job.sourceType !== "manual") {
     throw new Response("Cannot edit imported jobs", { status: 403 });
   }
 
-  // Get all companies for the dropdown
-  const companyList = await db
-    .select({ id: companies.id, name: companies.name })
-    .from(companies)
-    .orderBy(asc(companies.name));
+  const companyList = await loadAllAdminItems(request, operationCatalog.companyList, {
+    sort: "name",
+    order: "asc",
+  });
 
   return { job, companies: companyList };
 }

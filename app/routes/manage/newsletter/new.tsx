@@ -1,11 +1,10 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/new";
 import { Form, Link, redirect, useActionData } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsletterList } from "~/lib/newsletter.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New newsletter - siliconharbour.dev" }];
@@ -13,7 +12,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  await getNewsletterList();
+  await loadAdminOperation(request, operationCatalog.newsletterListGet, {});
   return null;
 }
 

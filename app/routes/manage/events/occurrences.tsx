@@ -1,11 +1,11 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import { formatTimedRangeEnd } from "~/lib/event-display";
 import type { Route } from "./+types/occurrences";
 import { Link, Form, useLoaderData, useActionData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getEventById, getEventWithOccurrences } from "~/lib/events.server";
+
 import { describeRecurrenceRule, parseRecurrenceRule } from "~/lib/recurrence.server";
 import { formatInTimezone } from "~/lib/timezone";
 
@@ -21,19 +21,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Invalid event ID", { status: 400 });
   }
 
-  const event = await getEventById(id);
-  if (!event) {
-    throw new Response("Event not found", { status: 404 });
-  }
+  const event = await loadAdminOperation(request, operationCatalog.eventGet, { id });
 
   if (!event.recurrenceRule) {
     throw new Response("This event is not recurring", { status: 400 });
   }
 
-  // Show the past week so admins can still cancel/edit today's or recent occurrences
-  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const eventWithOccurrences = await getEventWithOccurrences(id, oneWeekAgo);
-  const occurrences = eventWithOccurrences?.occurrences || [];
+  const occurrences = await loadAdminOperation(request, operationCatalog.eventOccurrencesGet, {
+    id,
+  });
 
   const parsed = parseRecurrenceRule(event.recurrenceRule);
   const recurrenceDescription = parsed ? describeRecurrenceRule(parsed) : null;
@@ -138,7 +134,7 @@ export default function ManageOccurrences() {
                       <div
                         className={`font-medium ${occurrence.cancelled ? "line-through text-subtle" : "text-heading"}`}
                       >
-                        {formatInTimezone(occurrence.date, "EEEE, MMMM d, yyyy")}
+                        {formatInTimezone(new Date(occurrence.date), "EEEE, MMMM d, yyyy")}
                         {isPast && !occurrence.cancelled && (
                           <span className="ml-2 text-xs px-pad-1-5 py-pad-0-5 bg-soft text-subtle">
                             Past
@@ -146,9 +142,9 @@ export default function ManageOccurrences() {
                         )}
                       </div>
                       <div className="text-sm text-muted">
-                        {formatInTimezone(occurrence.date, "h:mm a")}
+                        {formatInTimezone(new Date(occurrence.date), "h:mm a")}
                         {occurrence.endDate &&
-                          ` - ${formatTimedRangeEnd(occurrence.date, occurrence.endDate)}`}
+                          ` - ${formatTimedRangeEnd(new Date(occurrence.date), new Date(occurrence.endDate))}`}
                       </div>
                       {occurrence.location && (
                         <div className="text-sm text-subtle">
@@ -174,7 +170,7 @@ export default function ManageOccurrences() {
                       {occurrence.cancelled ? (
                         <Form method="post">
                           <input type="hidden" name="_action" value="uncancel" />
-                          <input type="hidden" name="date" value={occurrence.date.toISOString()} />
+                          <input type="hidden" name="date" value={occurrence.date} />
                           <button
                             type="submit"
                             className="px-pad-3 py-pad-1 text-sm bg-green-600 text-white hover:bg-green-700"
@@ -186,11 +182,7 @@ export default function ManageOccurrences() {
                         <>
                           <Form method="post">
                             <input type="hidden" name="_action" value="cancel" />
-                            <input
-                              type="hidden"
-                              name="date"
-                              value={occurrence.date.toISOString()}
-                            />
+                            <input type="hidden" name="date" value={occurrence.date} />
                             <button
                               type="submit"
                               className="px-pad-3 py-pad-1 text-sm bg-red-600 text-white hover:bg-red-700"
@@ -205,11 +197,7 @@ export default function ManageOccurrences() {
                             <div className="absolute right-0 mt-2 p-pad-4 bg-surface border border-line  z-10 min-w-72 rounded-panel">
                               <Form method="post" className="space-y-3">
                                 <input type="hidden" name="_action" value="update" />
-                                <input
-                                  type="hidden"
-                                  name="date"
-                                  value={occurrence.date.toISOString()}
-                                />
+                                <input type="hidden" name="date" value={occurrence.date} />
 
                                 <div>
                                   <label className="block text-xs text-muted mb-1">
@@ -232,7 +220,10 @@ export default function ManageOccurrences() {
                                     <input
                                       type="time"
                                       name="startTime"
-                                      defaultValue={formatInTimezone(occurrence.date, "HH:mm")}
+                                      defaultValue={formatInTimezone(
+                                        new Date(occurrence.date),
+                                        "HH:mm",
+                                      )}
                                       className="w-full px-pad-2 py-pad-1 text-sm border border-line"
                                     />
                                   </div>
@@ -245,7 +236,7 @@ export default function ManageOccurrences() {
                                       name="endTime"
                                       defaultValue={
                                         occurrence.endDate
-                                          ? formatInTimezone(occurrence.endDate, "HH:mm")
+                                          ? formatInTimezone(new Date(occurrence.endDate), "HH:mm")
                                           : ""
                                       }
                                       className="w-full px-pad-2 py-pad-1 text-sm border border-line"

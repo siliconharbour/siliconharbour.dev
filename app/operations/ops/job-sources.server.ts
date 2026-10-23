@@ -1,3 +1,6 @@
+import { getImportSourceWithStats } from "~/lib/job-importers/sync.server";
+import { id } from "../fields";
+import { jobOutput } from "../contracts/jobs";
 import { createIfAbsent, recordIdentity, identityKey } from "../creation.server";
 import { getAllImportSources } from "~/lib/job-importers/sync.server";
 import { listInput, page, collectionPage } from "../listing";
@@ -32,7 +35,34 @@ export async function requireJobSource(id: number) {
   if (!source) throw new NotFoundError("Job source not found");
   return source;
 }
+
 export const jobSourceOperations = {
+  jobSourceGet: defineOperation({
+    name: "jobSourceGet",
+    area: "jobs",
+    risk: "read",
+    access: "admin",
+    summary: "Get an import source and its review records.",
+    description:
+      "Return source configuration, lifecycle groups and review data for administrators. Throws when the source does not exist. Use the entity list for filtered pages.",
+    input: z.object({ id: id() }).strict(),
+    output: jobSourceOutput
+      .extend({
+        activeJobCount: z.number(),
+        pendingReviewCount: z.number(),
+        hiddenJobCount: z.number(),
+        removedJobCount: z.number(),
+        totalJobCount: z.number(),
+        jobs: z.array(jobOutput),
+      })
+      .strict(),
+    examples: [{ title: "Source", input: { id: 1 } }],
+    run: async (_ctx, { id }) => {
+      const source = await getImportSourceWithStats(id);
+      if (!source) throw new NotFoundError("Source not found");
+      return toPlain(source);
+    },
+  }),
   jobSourceList: defineOperation({
     name: "jobSourceList",
     area: "jobs",

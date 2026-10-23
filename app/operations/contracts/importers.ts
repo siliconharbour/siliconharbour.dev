@@ -159,3 +159,24 @@ export const githubFollowingOutput = z
     errors: z.array(z.string()),
   })
   .strict();
+
+export const directoryReviewOutput = z
+  .object({
+    existingNames: z.array(z.string()),
+    existingWebsites: z.array(z.string()),
+    hasSourceFlagNames: z.array(z.string()),
+    hasSourceFlagWebsites: z.array(z.string()),
+    blockedIds: z.array(z.string()),
+    existingCompanyData: z.record(
+      z.string(),
+      z
+        .object({
+          website: z.string().nullable(),
+          description: z.string(),
+          email: z.string().nullable(),
+          logo: z.string().nullable(),
+        })
+        .strict(),
+    ),
+  })
+  .strict();

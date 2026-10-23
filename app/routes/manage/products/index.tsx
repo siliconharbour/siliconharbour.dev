@@ -1,7 +1,10 @@
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPaginatedProducts } from "~/lib/products.server";
+
 import { SearchInput } from "~/components/SearchInput";
 import type { ProductType } from "~/db/schema";
 import { ManagePage } from "~/components/manage/ManagePage";
@@ -20,8 +23,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: products } = await getPaginatedProducts(100, 0, searchQuery);
-  return { products, searchQuery };
+  const { limit, offset } = parsePaginationParams(url, 100);
+  const { items: products, total } = await loadAdminOperation(
+    request,
+    operationCatalog.productList,
+    { limit, offset, query: searchQuery, sort: "name", order: "asc" },
+  );
+  return { products, searchQuery, total, limit, offset };
 }
 
 const typeLabels: Record<ProductType, string> = {
@@ -41,7 +49,7 @@ const typeColors: Record<ProductType, string> = {
 };
 
 export default function ManageProductsIndex() {
-  const { products } = useLoaderData<typeof loader>();
+  const { products, total, limit, offset } = useLoaderData<typeof loader>();
 
   return (
     <ManagePage
@@ -55,6 +63,7 @@ export default function ManageProductsIndex() {
         </Link>
       }
     >
+      <Pagination total={total} limit={limit} offset={offset} />
       <SearchInput placeholder="Search products..." />
 
       {products.length === 0 ? (

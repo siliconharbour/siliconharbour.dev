@@ -1,20 +1,20 @@
+import {
+  loadAllAdminItems,
+  loadAdminOperation,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/edit";
 import { useState } from "react";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
-import { desc, eq } from "drizzle-orm";
+
 import { requireAdmin } from "~/lib/session.server";
-import { db } from "~/db";
-import { jobs, jobTechnologyMentions } from "~/db/schema";
-import { getCompanyById } from "~/lib/companies.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { TechnologySelect } from "~/components/TechnologySelect";
 import { BaseMultiSelect } from "~/components/BaseMultiSelect";
 
-import { getAllTechnologies, getTechnologiesForContent } from "~/lib/technologies.server";
 import {
   getTechnologyProvenanceSourceByKey,
   inferTechnologyProvenanceSourceKey,
@@ -38,15 +38,6 @@ interface CompanyJobOption {
   id: number;
   title: string;
   status: string;
-}
-
-interface JobPostingEvidenceRow {
-  technologyId: number;
-  technologyName: string;
-  jobId: number;
-  jobTitle: string;
-  confidence: number | null;
-  excerptText: string | null;
 }
 
 interface ProvenanceGroup {
@@ -131,73 +122,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw new Response("Invalid company ID", { status: 400 });
   }
 
-  const company = await getCompanyById(id);
-  if (!company) {
-    throw new Response("Company not found", { status: 404 });
-  }
+  const company = await loadAdminOperation(request, operationCatalog.companyGet, { id });
 
-  const [allTechnologies, companyTechnologies] = await Promise.all([
-    getAllTechnologies(),
-    getTechnologiesForContent("company", id),
-  ]);
-  const companyJobs = await db
-    .select({
-      id: jobs.id,
-      title: jobs.title,
-      status: jobs.status,
-    })
-    .from(jobs)
-    .where(eq(jobs.companyId, id))
-    .orderBy(desc(jobs.firstSeenAt));
-
-  const mentionRows = await db
-    .select({
-      jobId: jobTechnologyMentions.jobId,
-      technologyId: jobTechnologyMentions.technologyId,
-      confidence: jobTechnologyMentions.confidence,
-      context: jobTechnologyMentions.context,
-    })
-    .from(jobTechnologyMentions)
-    .innerJoin(jobs, eq(jobTechnologyMentions.jobId, jobs.id))
-    .where(eq(jobs.companyId, id));
-  const bestMentionByKey = new Map<string, { confidence: number | null; context: string | null }>();
-  for (const mention of mentionRows) {
-    const key = `${mention.technologyId}:${mention.jobId}`;
-    const existing = bestMentionByKey.get(key);
-    if (!existing || (mention.confidence ?? -1) > (existing.confidence ?? -1)) {
-      bestMentionByKey.set(key, {
-        confidence: mention.confidence ?? null,
-        context: mention.context ?? null,
-      });
-    }
-  }
-
-  const companyJobMap = new Map(companyJobs.map((job) => [job.id, job]));
-  const jobPostingEvidenceRowsMap = new Map<string, JobPostingEvidenceRow>();
-  for (const item of companyTechnologies) {
-    for (const evidence of item.evidence) {
-      if (evidence.sourceType !== "job_posting" || !evidence.jobId) continue;
-      const key = `${item.technologyId}:${evidence.jobId}`;
-      const mention = bestMentionByKey.get(key);
-      const job = companyJobMap.get(evidence.jobId);
-      if (!job) continue;
-      if (!jobPostingEvidenceRowsMap.has(key)) {
-        jobPostingEvidenceRowsMap.set(key, {
-          technologyId: item.technologyId,
-          technologyName: item.technology.name,
-          jobId: evidence.jobId,
-          jobTitle: job.title,
-          confidence: mention?.confidence ?? null,
-          excerptText: evidence.excerptText ?? mention?.context ?? null,
-        });
-      }
-    }
-  }
-  const jobPostingEvidenceRows = Array.from(jobPostingEvidenceRowsMap.values()).sort((a, b) => {
-    const byTech = a.technologyName.localeCompare(b.technologyName);
-    if (byTech !== 0) return byTech;
-    return a.jobTitle.localeCompare(b.jobTitle);
+  const allTechnologies = await loadAllAdminItems(request, operationCatalog.technologyList, {
+    sort: "name",
+    order: "asc",
   });
+  const { technologies: companyTechnologies, companyJobs, jobPostingEvidenceRows } = company;
 
   return {
     company,

@@ -1,3 +1,7 @@
+import { occurrenceDisplayOutput } from "../contracts/events";
+import { id, dateTime } from "../fields";
+import { getPeriodOptions } from "~/lib/event-periods.server";
+import { getEventWithOccurrences } from "~/lib/events.server";
 import { normalizeEventDates } from "~/lib/event-timing";
 import {
   createIfAbsent,
@@ -5,7 +9,7 @@ import {
   identityKey,
   normalizeIdentityUrl,
 } from "../creation.server";
-import { page } from "../listing";
+import { page, listInput, collectionPage } from "../listing";
 import { listEvents } from "~/lib/content-lists.server";
 import { getEventTagIdsBySlugs } from "~/lib/event-tags.server";
 import { z } from "zod";
@@ -125,6 +129,41 @@ function eventCreationIdentity(input: z.output<typeof eventCreateInput>) {
   );
 }
 export const eventOperations = {
+  eventPeriodOptionsList: defineOperation({
+    name: "eventPeriodOptionsList",
+    area: "events",
+    risk: "read",
+    access: "admin",
+    summary: "List parent periods for event forms.",
+    description:
+      "Return eligible period IDs and titles, optionally excluding the event being edited.",
+    input: listInput(["title"]).extend({ excludeId: id().optional() }).strict(),
+    output: page(z.object({ id: z.number(), title: z.string() }).strict()),
+    examples: [{ title: "Periods", input: {} }],
+    run: async (_ctx, input) =>
+      collectionPage(await getPeriodOptions(input.excludeId), input, { title: (row) => row.title }),
+  }),
+  eventOccurrencesGet: defineOperation({
+    name: "eventOccurrencesGet",
+    area: "events",
+    risk: "read",
+    access: "admin",
+    summary: "Get generated event occurrences and overrides.",
+    description:
+      "Return occurrences within a bounded date range, including cancelled instances. Defaults to the past week through the next 90 days. Dates use America/St_Johns recurrence rules.",
+    input: z.object({ id: id(), from: dateTime.optional(), until: dateTime.optional() }).strict(),
+    output: z.array(occurrenceDisplayOutput),
+    examples: [{ title: "Occurrences", input: { id: 1 } }],
+    run: async (ctx, input) => {
+      const from = input.from ? new Date(input.from) : new Date(ctx.now().getTime() - 7 * 86400000);
+      const until = input.until ? new Date(input.until) : new Date(from.getTime() + 97 * 86400000);
+      if (until < from || until.getTime() - from.getTime() > 366 * 86400000)
+        throw new InvalidOperationError("Range must be ordered and at most 366 days");
+      const event = await getEventWithOccurrences(input.id, from, until);
+      if (!event) throw new NotFoundError("Event not found");
+      return toPlain(event.occurrences);
+    },
+  }),
   eventList: defineOperation({
     name: "eventList",
     area: "events",

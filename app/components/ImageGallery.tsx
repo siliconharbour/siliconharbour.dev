@@ -3,7 +3,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import type { ProjectImage } from "~/db/schema";
 
 interface ImageGalleryProps {
-  images: ProjectImage[];
+  images: Pick<ProjectImage, "id" | "image" | "caption">[];
 }
 
 export function ImageGallery({ images }: ImageGalleryProps) {

@@ -1,10 +1,10 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/news";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllNewsImportSources, getAllPendingNews } from "~/lib/news-importers/sync.server";
+
 import { sourceTypeLabels } from "~/lib/news-importers/types";
 
 export function meta({}: Route.MetaArgs) {
@@ -15,8 +15,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
   const [sources, pendingNews] = await Promise.all([
-    getAllNewsImportSources(),
-    getAllPendingNews(),
+    loadAllAdminItems(request, operationCatalog.newsSourceList),
+    loadAllAdminItems(request, operationCatalog.newsList, { status: "pending_review" }),
   ]);
 
   return { sources, pendingNews };
@@ -68,7 +68,7 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: false, error: "Unknown action" } as const;
 }
 
-function formatDate(date: Date | null | undefined): string {
+function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "Never";
   return new Date(date).toLocaleString("en-CA", {
     dateStyle: "short",
@@ -101,7 +101,6 @@ function PendingNewsRow({
     externalUrl: string | null;
     sourceName: string | null;
     excerpt: string | null;
-    sourceType: string | null;
   };
 }) {
   const fetcher = useFetcher();

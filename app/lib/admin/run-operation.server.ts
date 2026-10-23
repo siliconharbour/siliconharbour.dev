@@ -38,3 +38,35 @@ export async function runAdminOperation<O extends Operation>(
     throw error;
   }
 }
+
+export async function loadAdminOperation<O extends Operation>(
+  request: Request,
+  operation: O,
+  input: unknown,
+): Promise<Awaited<ReturnType<O["execute"]>>> {
+  if (operation.risk !== "read") throw new Error(`${operation.name} is not a read operation`);
+  const result = await runAdminOperation(request, operation, input);
+  if (!result.ok) throw new Response(result.error, { status: 400 });
+  return result.data;
+}
+type PagedOperation<T> = Omit<Operation, "execute"> & {
+  execute(
+    context: import("~/operations/context").OperationContext,
+    input: unknown,
+  ): Promise<{ items: T[]; nextOffset: number | null }>;
+};
+export async function loadAllAdminItems<T>(
+  request: Request,
+  operation: PagedOperation<T>,
+  input: Record<string, unknown> = {},
+): Promise<T[]> {
+  const items: T[] = [];
+  let offset = 0;
+  for (;;) {
+    const page = await loadAdminOperation(request, operation, { ...input, limit: 200, offset });
+    items.push(...page.items);
+    if (page.nextOffset === null) return items;
+    if (page.nextOffset <= offset) throw new Error(`${operation.name} did not advance pagination`);
+    offset = page.nextOffset;
+  }
+}

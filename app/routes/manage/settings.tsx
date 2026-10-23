@@ -1,18 +1,17 @@
+import {
+  loadAdminOperation,
+  loadAllAdminItems,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { parseKeywords } from "~/lib/keywords";
-import { adminContext } from "~/operations/context";
+
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/settings";
 import { Form, Link, useActionData, useLoaderData, useFetcher } from "react-router";
 import { useState } from "react";
 import { requireAdmin } from "~/lib/session.server";
-import {
-  getSectionVisibility,
-  getCommentVisibility,
-  getNewsGlobalKeywords,
-} from "~/lib/config.server";
-import { listDestinations } from "~/lib/discord-destinations.server";
+
 import {
   sectionKeys,
   type SectionKey,
@@ -21,7 +20,7 @@ import {
   type DiscordChannelType,
   type DiscordDestination,
 } from "~/db/schema";
-import { getEventTagsWithUsage } from "~/lib/event-tags.server";
+
 import { EventTagSettings } from "~/components/manage/EventTagSettings";
 
 export function meta({}: Route.MetaArgs) {
@@ -30,32 +29,18 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const [
-    visibility,
-    commentVisibility,
-    discordConfig,
-    eventsDestinations,
-    jobsDestinations,
-    newsGlobalKeywords,
-    eventTags,
-  ] = await Promise.all([
-    getSectionVisibility(),
-    getCommentVisibility(),
-    operationCatalog.discordConfigGet.execute(
-      adminContext((await requireAdmin(request)).user.id),
-      {},
-    ),
-    listDestinations("events"),
-    listDestinations("jobs"),
-    getNewsGlobalKeywords(),
-    getEventTagsWithUsage(),
+  const [config, eventsDestinations, jobsDestinations, eventTags] = await Promise.all([
+    loadAdminOperation(request, operationCatalog.siteConfigGet, {}),
+    loadAllAdminItems(request, operationCatalog.discordDestinationList, { type: "events" }),
+    loadAllAdminItems(request, operationCatalog.discordDestinationList, { type: "jobs" }),
+    loadAllAdminItems(request, operationCatalog.eventTagList, { sort: "name", order: "asc" }),
   ]);
   return {
-    visibility,
-    commentVisibility,
-    discordConfig,
+    visibility: config.sections,
+    commentVisibility: config.comments,
+    discordConfig: config.discord,
     discordDestinations: { events: eventsDestinations, jobs: jobsDestinations },
-    newsGlobalKeywords,
+    newsGlobalKeywords: config.newsGlobalKeywords,
     eventTags,
   };
 }
@@ -201,7 +186,7 @@ const commentableDescriptions: Record<CommentableKey, string> = {
 
 interface DestinationPickerProps {
   type: DiscordChannelType;
-  destinations: DiscordDestination[];
+  destinations: Omit<DiscordDestination, "createdAt">[];
 }
 
 interface Guild {

@@ -1,11 +1,10 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { useEffect, useState } from "react";
 import { requireAdmin } from "~/lib/session.server";
-import { getHiddenPeople } from "~/lib/people.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { Toast } from "~/components/Toast";
@@ -35,7 +34,11 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const people = await getHiddenPeople();
+  const people = await loadAllAdminItems(request, operationCatalog.personList, {
+    visible: false,
+    sort: "createdAt",
+    order: "desc",
+  });
   return { people };
 }
 

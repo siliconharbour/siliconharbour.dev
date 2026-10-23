@@ -1,3 +1,4 @@
+import { atsSourceTypes } from "../fields";
 import { listInput, page, collectionPage } from "../listing";
 import { toPlain } from "../plain";
 import { importSyncAll } from "~/lib/import-sync.server";
@@ -80,7 +81,7 @@ export const importerStatusOperations = {
     output: page(
       z
         .object({
-          sourceType: z.string(),
+          sourceType: z.enum(atsSourceTypes),
           name: z.string(),
           approach: z.string(),
           style: z.string(),

@@ -1,12 +1,10 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/jobs.new";
 import { Form, Link, useLoaderData, useActionData, useNavigation, redirect } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllCompanies } from "~/lib/companies.server";
-import { getAllImportSourcesWithStats } from "~/lib/job-importers/sync.server";
-import { getAvailableSourceTypes } from "~/lib/job-importers";
+
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
 export function meta({}: Route.MetaArgs) {
@@ -17,8 +15,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
   const [companies, existingSources] = await Promise.all([
-    getAllCompanies(true),
-    getAllImportSourcesWithStats(),
+    loadAllAdminItems(request, operationCatalog.companyList, { sort: "name", order: "asc" }),
+    loadAllAdminItems(request, operationCatalog.jobSourceList),
   ]);
 
   // Get companies that don't already have an import source
@@ -27,7 +25,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     .filter((c) => !companiesWithSource.has(c.id))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const sourceTypes = getAvailableSourceTypes();
+  const sourceTypes = (await loadAllAdminItems(request, operationCatalog.importerTypeList)).map(
+    (importer) => importer.sourceType,
+  );
 
   return {
     companies: availableCompanies,

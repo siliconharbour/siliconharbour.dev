@@ -1,3 +1,5 @@
+import { buildDirectoryImportLoaderData } from "~/lib/directory-import.server";
+import { directorySource, directoryReviewOutput } from "../contracts/importers";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import {
@@ -10,6 +12,19 @@ import {
 import { directoryImportConfigs } from "~/lib/directory-import-config.server";
 import { importDirectoryCompanies, adoptDirectoryField } from "~/lib/directory-import-write.server";
 export const directoryImporterOperations = {
+  directoryImportReviewGet: defineOperation({
+    name: "directoryImportReviewGet",
+    area: "importers",
+    risk: "read",
+    access: "admin",
+    summary: "Get directory review matches and blocklist keys.",
+    description:
+      "Return existing identities and field values for comparing directory candidates. Includes hidden records; no scraping runs.",
+    input: z.object({ source: directorySource }).strict(),
+    output: directoryReviewOutput,
+    examples: [{ title: "TechNL review", input: { source: "technl" } }],
+    run: (_ctx, { source }) => buildDirectoryImportLoaderData(directoryImportConfigs[source]),
+  }),
   directoryImportFetch: defineOperation({
     name: "directoryImportFetch",
     area: "importers",

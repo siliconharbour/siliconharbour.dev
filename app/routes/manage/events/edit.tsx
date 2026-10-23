@@ -1,19 +1,19 @@
+import {
+  loadAdminOperation,
+  loadAllAdminItems,
+  runAdminOperation,
+} from "~/lib/admin/run-operation.server";
 import { eventFormInput } from "~/lib/admin/event-form-adapter";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/edit";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getEventById } from "~/lib/events.server";
-import { getPeriodOptions } from "~/lib/event-periods.server";
 
 import { EventForm } from "~/components/EventForm";
 import { parseIdOrThrow } from "~/lib/admin/route";
 
 import { actionError } from "~/lib/admin/action-result";
-
-import { getEventTags } from "~/lib/event-tags.server";
 
 export function meta({ loaderData: data }: Route.MetaArgs) {
   return [{ title: `Edit ${data?.event?.title || "Event"} - siliconharbour.dev` }];
@@ -24,14 +24,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const id = parseIdOrThrow(params.id, "event");
 
-  const event = await getEventById(id);
-  if (!event) {
-    throw new Response("Event not found", { status: 404 });
-  }
+  const event = await loadAdminOperation(request, operationCatalog.eventGet, { id });
 
   const [periodOptions, availableTags] = await Promise.all([
-    getPeriodOptions(event.id),
-    getEventTags(),
+    loadAllAdminItems(request, operationCatalog.eventPeriodOptionsList, { excludeId: event.id }),
+    loadAllAdminItems(request, operationCatalog.eventTagList, { sort: "name", order: "asc" }),
   ]);
   return { event, periodOptions, availableTags };
 }

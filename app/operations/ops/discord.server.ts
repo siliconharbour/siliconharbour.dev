@@ -1,3 +1,4 @@
+import { getEventWithOccurrences } from "~/lib/events.server";
 import { getPostHistoryPage } from "~/lib/discord-posts.server";
 import { listInput, page, collectionPage } from "../listing";
 import { z } from "zod";
@@ -178,7 +179,31 @@ export const discordOperations = {
     ),
     examples: [{ title: "Unposted events", input: { type: "events" } }],
     run: async (_ctx, input) => {
-      const rows = input.type === "events" ? await getUnpostedEvents() : await getUnpostedJobs();
+      const rows =
+        input.type === "events"
+          ? await Promise.all(
+              (await getUnpostedEvents()).map(async (event) => {
+                if (event.dates.length || !event.recurrenceRule) return event;
+                const occurrence = (await getEventWithOccurrences(event.id))?.occurrences.find(
+                  (item) => !item.cancelled,
+                );
+                return {
+                  ...event,
+                  dates: occurrence
+                    ? [
+                        {
+                          id: -1,
+                          eventId: event.id,
+                          startDate: occurrence.date,
+                          endDate: occurrence.endDate,
+                          isAllDay: !event.defaultStartTime,
+                        },
+                      ]
+                    : [],
+                };
+              }),
+            )
+          : await getUnpostedJobs();
       return toPlain(
         collectionPage(rows as Array<(typeof rows)[number]>, input, {
           createdAt: (row) => row.createdAt,

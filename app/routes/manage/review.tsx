@@ -1,10 +1,8 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { getAllPendingEvents } from "~/lib/event-importers/sync.server";
-import { getAllPendingJobs } from "~/lib/job-importers/sync.server";
-import { getAllPendingNews } from "~/lib/news-importers/sync.server";
+
 import { requireAdmin } from "~/lib/session.server";
 import { formatInTimezone } from "~/lib/timezone";
 
@@ -15,9 +13,9 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const [pendingEvents, pendingNews, pendingJobs] = await Promise.all([
-    getAllPendingEvents(),
-    getAllPendingNews(),
-    getAllPendingJobs(),
+    loadAllAdminItems(request, operationCatalog.eventList, { importStatus: "pending_review" }),
+    loadAllAdminItems(request, operationCatalog.newsList, { status: "pending_review" }),
+    loadAllAdminItems(request, operationCatalog.jobList, { status: "pending_review" }),
   ]);
   return { pendingEvents, pendingNews, pendingJobs };
 }
@@ -164,13 +162,14 @@ export default function ManageReview() {
                   <div>
                     <h3 className="font-medium text-heading">{event.title}</h3>
                     <p className="text-xs text-subtle">
-                      {[event.organizer || event.sourceName, event.location]
-                        .filter(Boolean)
-                        .join(" • ")}
+                      {[event.organizer, event.location].filter(Boolean).join(" • ")}
                     </p>
-                    {event.startDate && (
+                    {event.dates[0]?.startDate && (
                       <p className="text-xs text-muted">
-                        {formatInTimezone(event.startDate, "MMM d, yyyy 'at' h:mm a")}
+                        {formatInTimezone(
+                          new Date(event.dates[0].startDate),
+                          "MMM d, yyyy 'at' h:mm a",
+                        )}
                       </p>
                     )}
                   </div>
@@ -216,7 +215,7 @@ export default function ManageReview() {
                   <div>
                     <h3 className="font-medium text-heading">{item.title}</h3>
                     <p className="text-xs text-subtle">
-                      {[item.sourceName, item.sourceType].filter(Boolean).join(" • ")}
+                      {[item.sourceName].filter(Boolean).join(" • ")}
                     </p>
                     {item.excerpt && (
                       <p className="mt-1 line-clamp-2 text-xs text-muted">{item.excerpt}</p>

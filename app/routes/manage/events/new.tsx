@@ -1,17 +1,13 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { eventFormInput } from "~/lib/admin/event-form-adapter";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
 
-import { getPeriodOptions } from "~/lib/event-periods.server";
-
 import { EventForm } from "~/components/EventForm";
 import { actionError } from "~/lib/admin/action-result";
-
-import { getEventTags } from "~/lib/event-tags.server";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "New Event - siliconharbour.dev" }];
@@ -19,7 +15,10 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const [periodOptions, availableTags] = await Promise.all([getPeriodOptions(), getEventTags()]);
+  const [periodOptions, availableTags] = await Promise.all([
+    loadAllAdminItems(request, operationCatalog.eventPeriodOptionsList, {}),
+    loadAllAdminItems(request, operationCatalog.eventTagList, { sort: "name", order: "asc" }),
+  ]);
   return { periodOptions, availableTags };
 }
 

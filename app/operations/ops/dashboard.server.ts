@@ -4,9 +4,7 @@ import { defineOperation } from "../define";
 import { emptyInput } from "../fields";
 import { dashboardOutput, reviewQueueOutput } from "../contracts/dashboard";
 import { getAdminDashboardCounts } from "~/lib/admin-dashboard.server";
-import { getAllPendingEvents } from "~/lib/event-importers/sync.server";
-import { getAllPendingNews } from "~/lib/news-importers/sync.server";
-import { getAllPendingJobs } from "~/lib/job-importers/sync.server";
+
 import { toPlain } from "../plain";
 export const dashboardOperations = {
   dashboardCounts: defineOperation({

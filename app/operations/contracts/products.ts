@@ -32,3 +32,9 @@ export const productOutput = z
     updatedAt: z.iso.datetime(),
   })
   .strict();
+
+export const productListItemOutput = productOutput
+  .extend({
+    company: z.object({ id: z.number(), name: z.string(), slug: z.string() }).strict().nullable(),
+  })
+  .strict();

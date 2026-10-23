@@ -4,7 +4,7 @@ import type { EventTagWithUsage } from "~/lib/event-tags.server";
 import { eventTagColorLabels, eventTagColorStyles } from "~/lib/event-tags";
 
 interface EventTagSettingsProps {
-  tags: EventTagWithUsage[];
+  tags: Pick<EventTagWithUsage, "id" | "name" | "slug" | "color" | "eventCount">[];
   error?: string;
 }
 

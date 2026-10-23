@@ -1,7 +1,10 @@
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPaginatedEducation } from "~/lib/education.server";
+
 import { SearchInput } from "~/components/SearchInput";
 
 export function meta({}: Route.MetaArgs) {
@@ -12,8 +15,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: institutions } = await getPaginatedEducation(100, 0, searchQuery, true);
-  return { institutions, searchQuery };
+  const { limit, offset } = parsePaginationParams(url, 100);
+  const { items: institutions, total } = await loadAdminOperation(
+    request,
+    operationCatalog.educationList,
+    { limit, offset, query: searchQuery, sort: "createdAt", order: "desc" },
+  );
+  return { institutions, searchQuery, total, limit, offset };
 }
 
 const typeLabels: Record<string, string> = {
@@ -25,7 +33,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function ManageEducationIndex() {
-  const { institutions } = useLoaderData<typeof loader>();
+  const { institutions, total, limit, offset } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-pad-4 md:p-pad-6">
@@ -39,6 +47,8 @@ export default function ManageEducationIndex() {
             New Institution
           </Link>
         </div>
+
+        <Pagination total={total} limit={limit} offset={offset} />
 
         <SearchInput placeholder="Search institutions..." />
 

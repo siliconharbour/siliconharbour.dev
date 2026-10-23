@@ -23,7 +23,7 @@ it("excludes hidden companies and their attached records from public product res
   const products = await operations.productPublicList.execute(publicContext(), {});
   const result = products.items.find((row) => row.id === product.id);
   expect(result).toBeDefined();
-  expect(result).not.toHaveProperty("company");
+  expect(result?.company).toBeNull();
   expect(JSON.stringify(products)).not.toContain("private@example.com");
   expect(operations.productPublicList.output.safeParse(products).success).toBe(true);
 });

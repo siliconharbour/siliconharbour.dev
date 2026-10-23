@@ -1,3 +1,6 @@
+import { getNewsSourceWithItems } from "~/lib/news-importers/sync.server";
+import { id } from "../fields";
+import { newsOutput } from "../contracts/news";
 import {
   createIfAbsent,
   recordIdentity,
@@ -37,7 +40,45 @@ async function requireSource(id: number) {
   if (!source) throw new NotFoundError("News source not found");
   return source;
 }
+
 export const newsSourceOperations = {
+  newsSourceGet: defineOperation({
+    name: "newsSourceGet",
+    area: "news",
+    risk: "read",
+    access: "admin",
+    summary: "Get an import source and its review records.",
+    description:
+      "Return source configuration, lifecycle groups and review data for administrators. Throws when the source does not exist. Use the entity list for filtered pages.",
+    input: z.object({ id: id() }).strict(),
+    output: newsSourceOutput
+      .extend({
+        items: z
+          .object({
+            pending: z.array(newsOutput),
+            published: z.array(newsOutput),
+            hidden: z.array(newsOutput),
+            drafts: z.array(newsOutput),
+          })
+          .strict(),
+        counts: z
+          .object({
+            pending: z.number(),
+            published: z.number(),
+            hidden: z.number(),
+            drafts: z.number(),
+            total: z.number(),
+          })
+          .strict(),
+      })
+      .strict(),
+    examples: [{ title: "Source", input: { id: 1 } }],
+    run: async (_ctx, { id }) => {
+      const source = await getNewsSourceWithItems(id);
+      if (!source) throw new NotFoundError("Source not found");
+      return toPlain(source);
+    },
+  }),
   newsSourceList: defineOperation({
     name: "newsSourceList",
     area: "news",

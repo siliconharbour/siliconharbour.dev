@@ -1,7 +1,10 @@
+import { Pagination, parsePaginationParams } from "~/components/Pagination";
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/index";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getPaginatedProjects } from "~/lib/projects.server";
+
 import { SearchInput } from "~/components/SearchInput";
 import type { ProjectStatus, ProjectType } from "~/db/schema";
 
@@ -13,8 +16,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
   const url = new URL(request.url);
   const searchQuery = url.searchParams.get("q") || "";
-  const { items: projects } = await getPaginatedProjects(100, 0, searchQuery);
-  return { projects, searchQuery };
+  const { limit, offset } = parsePaginationParams(url, 100);
+  const { items: projects, total } = await loadAdminOperation(
+    request,
+    operationCatalog.projectList,
+    { limit, offset, query: searchQuery, sort: "name", order: "asc" },
+  );
+  return { projects, searchQuery, total, limit, offset };
 }
 
 const typeLabels: Record<ProjectType, string> = {
@@ -34,7 +42,7 @@ const statusColors: Record<ProjectStatus, string> = {
 };
 
 export default function ManageProjectsIndex() {
-  const { projects } = useLoaderData<typeof loader>();
+  const { projects, total, limit, offset } = useLoaderData<typeof loader>();
 
   return (
     <div className="min-h-screen p-pad-4 md:p-pad-6">
@@ -48,6 +56,8 @@ export default function ManageProjectsIndex() {
             New Project
           </Link>
         </div>
+
+        <Pagination total={total} limit={limit} offset={offset} />
 
         <SearchInput placeholder="Search projects..." />
 

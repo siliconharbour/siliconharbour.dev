@@ -1,11 +1,10 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/jobs";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllImportSourcesWithStats, getAllPendingJobs } from "~/lib/job-importers/sync.server";
-import { getAllCompanies } from "~/lib/companies.server";
+
 import { sourceTypeLabels } from "~/lib/job-importers/types";
 
 export function meta({}: Route.MetaArgs) {
@@ -16,15 +15,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
   const [sources, companies, pendingJobs] = await Promise.all([
-    getAllImportSourcesWithStats(),
-    getAllCompanies(true),
-    getAllPendingJobs(),
+    loadAllAdminItems(request, operationCatalog.jobSourceList),
+    loadAllAdminItems(request, operationCatalog.companyList),
+    loadAllAdminItems(request, operationCatalog.jobList, { status: "pending_review" }),
   ]);
 
-  // Create a map of company id to company for easy lookup
   const companyMap = new Map(companies.map((c) => [c.id, c]));
 
-  // Enrich sources with company info
   const enrichedSources = sources.map((source) => ({
     ...source,
     company: companyMap.get(source.companyId),
@@ -81,7 +78,7 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: false, error: "Unknown action" } as const;
 }
 
-function formatDate(date: Date | null | undefined): string {
+function formatDate(date: Date | string | null | undefined): string {
   if (!date) return "Never";
   return new Date(date).toLocaleString("en-CA", {
     dateStyle: "short",

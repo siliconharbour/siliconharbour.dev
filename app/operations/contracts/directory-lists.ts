@@ -4,7 +4,14 @@ const named = listInput(["name", "createdAt", "updatedAt"]);
 const visible = named.extend({ visible: z.boolean().optional() }).strict();
 export const directoryListInputs = {
   person: visible,
-  company: visible.extend({ hasJobSource: z.boolean().optional() }).strict(),
+  company: visible
+    .extend({
+      hasJobSource: z.boolean().optional(),
+      missing: z
+        .enum(["logo", "linkedin", "location", "founded", "careers", "no-source"])
+        .optional(),
+    })
+    .strict(),
   education: visible,
   technology: visible,
   group: visible,

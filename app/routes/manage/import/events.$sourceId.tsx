@@ -1,20 +1,20 @@
+import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/events.$sourceId";
 import { Link, redirect, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getEventImportSourceWithStats } from "~/lib/event-importers/sync.server";
+
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { isPast } from "date-fns";
 import { formatInTimezone } from "~/lib/timezone";
 
-function EventDate({ date }: { date: Date | null }) {
+function EventDate({ date }: { date: Date | string | null }) {
   if (!date) return null;
   const past = isPast(date);
   return (
     <span className={`text-xs ${past ? "text-red-500" : "text-muted"}`}>
-      {formatInTimezone(date, "MMM d, yyyy")}
+      {formatInTimezone(new Date(date), "MMM d, yyyy")}
       {past ? " (past)" : ""}
     </span>
   );
@@ -29,7 +29,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const sourceId = Number(params.sourceId);
   if (!sourceId) throw new Response("Not Found", { status: 404 });
 
-  const source = await getEventImportSourceWithStats(sourceId);
+  const source = await loadAdminOperation(request, operationCatalog.eventSourceGet, {
+    id: sourceId,
+  });
   if (!source) throw new Response("Not Found", { status: 404 });
 
   return { source };

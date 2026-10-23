@@ -1,10 +1,9 @@
-import { page } from "../listing";
 import { listComments } from "~/lib/content-lists.server";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { deleteInput } from "../fields";
 import { commentListInput, commentListOutput } from "../contracts/comments";
-import { getPaginatedComments, getCommentById, deleteComment } from "~/lib/comments.server";
+import { getCommentById, deleteComment } from "~/lib/comments.server";
 import { NotFoundError } from "../errors";
 import { toPlain } from "../plain";
 export const commentOperations = {

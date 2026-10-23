@@ -1,5 +1,7 @@
+import type { z } from "zod";
+import type { directoryListInputs } from "~/operations/contracts/directory-lists";
 import { notRejected } from "./directory-active.server";
-import { and, eq, exists, not } from "drizzle-orm";
+import { and, eq, exists, not, inArray, or, isNull } from "drizzle-orm";
 import {
   companies,
   education,
@@ -27,13 +29,25 @@ export function listPeople(input: VisibilityInput) {
     ),
   );
 }
-export function listCompanies(input: VisibilityInput & { hasJobSource?: boolean }) {
+export function listCompanies(input: z.output<typeof directoryListInputs.company>) {
   const hasSource = exists(
     db
       .select({ id: jobImportSources.id })
       .from(jobImportSources)
       .where(eq(jobImportSources.companyId, companies.id)),
   );
+  let missing;
+  if (input.missing === "no-source") missing = not(hasSource);
+  else if (input.missing === "founded") missing = isNull(companies.founded);
+  else if (input.missing) {
+    const column = {
+      logo: companies.logo,
+      linkedin: companies.linkedin,
+      location: companies.location,
+      careers: companies.careersUrl,
+    }[input.missing];
+    missing = or(isNull(column), eq(column, ""));
+  }
   return sqlPage(
     companies,
     input,
@@ -41,6 +55,7 @@ export function listCompanies(input: VisibilityInput & { hasJobSource?: boolean 
     { name: companies.name, createdAt: companies.createdAt, updatedAt: companies.updatedAt },
     and(
       notRejected("company", companies.id),
+      missing,
       input.visible === undefined ? undefined : eq(companies.visible, input.visible),
       input.hasJobSource === undefined
         ? undefined
@@ -86,11 +101,33 @@ export function listGroups(input: VisibilityInput) {
   );
 }
 export function listProducts(input: ListInput) {
-  return sqlPage(products, input, [products.name, products.slug, products.description], {
+  const result = sqlPage(products, input, [products.name, products.slug, products.description], {
     name: products.name,
     createdAt: products.createdAt,
     updatedAt: products.updatedAt,
   });
+  const ids = result.items.flatMap((item) => (item.companyId === null ? [] : [item.companyId]));
+  const owners = ids.length
+    ? db
+        .select({ id: companies.id, name: companies.name, slug: companies.slug })
+        .from(companies)
+        .where(
+          and(
+            inArray(companies.id, ids),
+            eq(companies.visible, true),
+            notRejected("company", companies.id),
+          ),
+        )
+        .all()
+    : [];
+  const byId = new Map(owners.map((owner) => [owner.id, owner]));
+  return {
+    ...result,
+    items: result.items.map((item) => ({
+      ...item,
+      company: item.companyId === null ? null : (byId.get(item.companyId) ?? null),
+    })),
+  };
 }
 export function listProjects(input: ListInput) {
   return sqlPage(projects, input, [projects.name, projects.slug, projects.description], {

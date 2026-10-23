@@ -1,15 +1,11 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { jobFormInput } from "~/lib/admin/content-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/new";
 import { Link, redirect, useActionData, useLoaderData, Form } from "react-router";
 
 import { requireAdmin } from "~/lib/session.server";
-
-import { db } from "~/db";
-import { companies } from "~/db/schema";
-import { asc } from "drizzle-orm";
 
 import { actionError } from "~/lib/admin/action-result";
 import { ManageErrorAlert, ManageField, ManageSubmitButton } from "~/components/manage/ManageForm";
@@ -21,11 +17,10 @@ export function meta({}: Route.MetaArgs) {
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
 
-  // Get all companies for the dropdown
-  const companyList = await db
-    .select({ id: companies.id, name: companies.name })
-    .from(companies)
-    .orderBy(asc(companies.name));
+  const companyList = await loadAllAdminItems(request, operationCatalog.companyList, {
+    sort: "name",
+    order: "asc",
+  });
 
   return { companies: companyList };
 }

@@ -1,7 +1,9 @@
+import { operationCatalog } from "~/operations/catalog";
+import { loadAdminOperation } from "~/lib/admin/run-operation.server";
 import type { Route } from "./+types/campaigns";
 import { Link, useLoaderData } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getNewsletterCampaigns, getNewsletterList } from "~/lib/newsletter.server";
+
 import { newsletterAudience } from "~/lib/newsletter-audience";
 
 export function meta({}: Route.MetaArgs) {
@@ -10,12 +12,17 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const list = await getNewsletterList();
-  return { campaigns: await getNewsletterCampaigns(list.id) };
+  const url = new URL(request.url);
+  const page = Math.max(1, Number.parseInt(url.searchParams.get("page") ?? "1", 10) || 1);
+  const result = await loadAdminOperation(request, operationCatalog.newsletterCampaignList, {
+    limit: 50,
+    offset: (page - 1) * 50,
+  });
+  return { campaigns: result.items, hasNext: result.nextOffset !== null, page };
 }
 
 export default function NewsletterCampaigns() {
-  const { campaigns } = useLoaderData<typeof loader>();
+  const { campaigns, hasNext, page } = useLoaderData<typeof loader>();
   return (
     <div className="mx-auto max-w-5xl p-pad-4 md:p-pad-6">
       <Link to="/manage/newsletter" className="text-sm text-body underline">
@@ -71,6 +78,10 @@ export default function NewsletterCampaigns() {
         </table>
         {campaigns.length === 0 && <p className="p-pad-4 text-sm text-muted">No campaigns yet.</p>}
       </div>
+      <nav className="mt-4 flex gap-gap-4" aria-label="Campaign pages">
+        {page > 1 && <Link to={`?page=${page - 1}`}>Previous</Link>}
+        {hasNext && <Link to={`?page=${page + 1}`}>Next</Link>}
+      </nav>
     </div>
   );
 }

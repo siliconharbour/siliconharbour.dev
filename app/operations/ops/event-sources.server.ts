@@ -1,3 +1,6 @@
+import { getEventImportSourceWithStats } from "~/lib/event-importers/sync.server";
+import { id } from "../fields";
+import { eventRowOutput } from "../contracts/events";
 import { getAllEventImportSources } from "~/lib/event-importers/sync.server";
 import { createIfAbsent, recordIdentity, identityKey } from "../creation.server";
 import { listInput, page, collectionPage } from "../listing";
@@ -33,7 +36,33 @@ async function requireSource(id: number) {
   return source;
 }
 
+const item = eventRowOutput.extend({ startDate: z.iso.datetime().nullable() }).strict();
 export const eventSourceOperations = {
+  eventSourceGet: defineOperation({
+    name: "eventSourceGet",
+    area: "events",
+    risk: "read",
+    access: "admin",
+    summary: "Get an import source and its review records.",
+    description:
+      "Return source configuration, lifecycle groups and review data for administrators. Throws when the source does not exist. Use the entity list for filtered pages.",
+    input: z.object({ id: id() }).strict(),
+    output: eventSourceOutput
+      .extend({
+        pending: z.array(item),
+        approved: z.array(item),
+        published: z.array(item),
+        hidden: z.array(item),
+        removed: z.array(item),
+      })
+      .strict(),
+    examples: [{ title: "Source", input: { id: 1 } }],
+    run: async (_ctx, { id }) => {
+      const source = await getEventImportSourceWithStats(id);
+      if (!source) throw new NotFoundError("Source not found");
+      return toPlain(source);
+    },
+  }),
   eventSourceList: defineOperation({
     name: "eventSourceList",
     area: "events",

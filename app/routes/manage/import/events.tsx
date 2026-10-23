@@ -1,10 +1,10 @@
+import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { operationCatalog } from "~/operations/catalog";
-import { runAdminOperation } from "~/lib/admin/run-operation.server";
 
 import type { Route } from "./+types/events";
 import { Link, useLoaderData, useFetcher } from "react-router";
 import { requireAdmin } from "~/lib/session.server";
-import { getAllEventImportSourcesWithStats } from "~/lib/event-importers/sync.server";
+
 import { sourceTypeLabels } from "~/lib/event-importers/types";
 import { formatDistanceToNow } from "date-fns";
 
@@ -14,7 +14,7 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   await requireAdmin(request);
-  const sources = await getAllEventImportSourcesWithStats();
+  const sources = await loadAllAdminItems(request, operationCatalog.eventSourceList);
   return { sources };
 }
 
