@@ -1,16 +1,14 @@
-import { personRestoreRejected } from "~/operations/ops/directory-restore.server";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { requireAdmin } from "~/lib/session.server";
 import { getHiddenPeople } from "~/lib/people.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { Toast } from "~/components/Toast";
-import type { Person } from "~/db/schema";
 
 // Safely extract display text from a URL, falling back to the original string
 function getDisplayUrl(url: string): string {
@@ -54,27 +52,22 @@ export async function action({ request }: Route.ActionArgs) {
     return result.ok
       ? {
           success: true,
-          action: "bulk-rejected",
+          action: "bulk-rejected" as const,
           bulkRejectedCount: result.data.count,
           pattern: String(form.get("pattern")),
         }
       : { error: result.error };
   }
   if (intent === "undo-reject") {
-    let record: unknown;
-    try {
-      record = JSON.parse(String(form.get("personData") || "null"));
-    } catch {
-      return { error: "Invalid undo data" };
-    }
-    const result = await runAdminOperation(request, personRestoreRejected, { record });
-    return result.ok ? { success: true, action: "undone" } : { error: result.error };
+    const result = await runAdminOperation(request, operationCatalog.rejectedRecordRestore, {
+      id: Number(form.get("restoreId")),
+      confirm: true,
+    });
+    return result.ok ? { success: true, action: "undone" as const } : { error: result.error };
   }
   if (intent === "approve") {
     const result = await runAdminOperation(request, operationCatalog.personApprove, { id });
-    return result.ok
-      ? { success: true, action: "approved", undoData: { id, previousVisible: false } }
-      : { error: result.error };
+    return result.ok ? { success: true, action: "approved" as const, id } : { error: result.error };
   }
   if (intent === "reject") {
     const result = await runAdminOperation(request, operationCatalog.personReject, {
@@ -84,14 +77,15 @@ export async function action({ request }: Route.ActionArgs) {
     return result.ok
       ? {
           success: true,
-          action: "rejected",
-          undoData: { ...result.data.record, hasGithub: Boolean(result.data.record.github) },
+          action: "rejected" as const,
+          id,
+          restoreId: result.data.restoreId,
         }
       : { error: result.error };
   }
   if (intent === "undo-approve") {
     const result = await runAdminOperation(request, operationCatalog.personUnapprove, { id });
-    return result.ok ? { success: true, action: "undone" } : { error: result.error };
+    return result.ok ? { success: true, action: "undone" as const } : { error: result.error };
   }
   if (intent === "update") {
     const result = await runAdminOperation(request, operationCatalog.personUpdate, {
@@ -106,17 +100,12 @@ export async function action({ request }: Route.ActionArgs) {
       ]),
       ...(form.get("approveAfterSave") === "on" ? { visible: true } : {}),
     });
-    return result.ok ? { success: true, action: "updated" } : { error: result.error };
+    return result.ok ? { success: true, action: "updated" as const } : { error: result.error };
   }
   return { error: "Unknown action" };
 }
 
-interface UndoAction {
-  type: "approve" | "reject";
-  id: number;
-  name: string;
-  personData?: Person & { hasGithub?: boolean };
-}
+type UndoAction = { type: "approve"; id: number } | { type: "reject"; restoreId: number };
 
 export default function ReviewPeople() {
   const { people: initialPeople } = useLoaderData<typeof loader>();
@@ -134,7 +123,6 @@ export default function ReviewPeople() {
 
   const socialLinks = currentPerson?.socialLinks ?? {};
 
-  // Keep edit mode scoped to the current card.
   useEffect(() => {
     setEditMode(false);
   }, [currentPerson?.id]);
@@ -147,7 +135,6 @@ export default function ReviewPeople() {
     window.open(`/directory/people/${currentPerson.slug}`, "_blank", "noopener,noreferrer");
   }, [openPersonPageInNewTab, currentPerson?.id, currentPerson?.slug]);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle shortcuts if in edit mode or if typing in an input
@@ -187,39 +174,34 @@ export default function ReviewPeople() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentPerson, editMode]);
 
-  const advanceToNext = useCallback(() => {
-    setPeople((prev) => {
-      const newPeople = [...prev];
-      newPeople.splice(currentIndex, 1);
-      return newPeople;
-    });
-    // Index stays the same since we removed an item
-  }, [currentIndex]);
-
-  // Handle fetcher response
   useEffect(() => {
     if (fetcher.data?.success) {
+      if (fetcher.data.action === "undone") {
+        window.location.reload();
+        return;
+      }
+      if (fetcher.data.action === "approved")
+        setLastAction({ type: "approve", id: fetcher.data.id });
+      if (fetcher.data.action === "rejected") {
+        setLastAction({ type: "reject", restoreId: fetcher.data.restoreId });
+      }
+
       if (fetcher.data.action === "bulk-rejected") {
         // Reload to get fresh list after bulk reject
         setToastMessage(
           `Rejected ${fetcher.data.bulkRejectedCount} people matching "${fetcher.data.pattern}"`,
         );
         setTimeout(() => window.location.reload(), 1500);
-      } else if (fetcher.data.action !== "undone" && fetcher.data.action !== "updated") {
-        // Action completed, advance to next
-        advanceToNext();
+      } else if (fetcher.data.action !== "updated") {
+        const id = fetcher.data.id;
+        setPeople((rows) => rows.filter((row) => row.id !== id));
       }
     }
-  }, [fetcher.data, advanceToNext]);
+  }, [fetcher.data]);
 
   const handleApprove = () => {
     if (!currentPerson) return;
 
-    setLastAction({
-      type: "approve",
-      id: currentPerson.id,
-      name: currentPerson.name,
-    });
     setToastMessage(`"${currentPerson.name}" approved`);
 
     fetcher.submit({ intent: "approve", id: currentPerson.id.toString() }, { method: "post" });
@@ -234,12 +216,6 @@ export default function ReviewPeople() {
   const handleReject = () => {
     if (!currentPerson) return;
 
-    setLastAction({
-      type: "reject",
-      id: currentPerson.id,
-      name: currentPerson.name,
-      personData: { ...currentPerson, hasGithub: !!currentPerson.github },
-    });
     setToastMessage(
       `"${currentPerson.name}" rejected${currentPerson.github ? " and blocked" : ""}`,
     );
@@ -249,22 +225,14 @@ export default function ReviewPeople() {
 
   const handleUndo = () => {
     if (!lastAction) return;
-
     if (lastAction.type === "approve") {
-      fetcher.submit({ intent: "undo-approve", id: lastAction.id.toString() }, { method: "post" });
-      // Reload to get updated list
-      window.location.reload();
-    } else if (lastAction.type === "reject" && lastAction.personData) {
+      fetcher.submit({ intent: "undo-approve", id: String(lastAction.id) }, { method: "post" });
+    } else {
       fetcher.submit(
-        {
-          intent: "undo-reject",
-          personData: JSON.stringify(lastAction.personData),
-        },
+        { intent: "undo-reject", restoreId: String(lastAction.restoreId) },
         { method: "post" },
       );
-      window.location.reload();
     }
-
     setLastAction(null);
     setToastMessage(null);
   };
@@ -274,7 +242,15 @@ export default function ReviewPeople() {
     setLastAction(null);
   };
 
-  // Empty state - all done!
+  const toast = toastMessage ? (
+    <Toast
+      message={toastMessage}
+      actionLabel={lastAction ? "Undo" : undefined}
+      onAction={lastAction ? handleUndo : undefined}
+      onDismiss={handleDismissToast}
+    />
+  ) : null;
+
   if (people.length === 0 || !currentPerson) {
     return (
       <div className="min-h-screen p-pad-4 md:p-pad-6">
@@ -288,7 +264,11 @@ export default function ReviewPeople() {
           >
             Back to People
           </Link>
+          <Link to="/manage/rejected-records" className="text-sm text-body underline">
+            Rejected records
+          </Link>
         </div>
+        {toast}
       </div>
     );
   }
@@ -598,15 +578,7 @@ export default function ReviewPeople() {
         </div>
       </div>
 
-      {/* Toast notification */}
-      {toastMessage && (
-        <Toast
-          message={toastMessage}
-          actionLabel={lastAction ? "Undo" : undefined}
-          onAction={lastAction ? handleUndo : undefined}
-          onDismiss={handleDismissToast}
-        />
-      )}
+      {toast}
     </div>
   );
 }

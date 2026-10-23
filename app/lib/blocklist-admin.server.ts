@@ -11,7 +11,7 @@ export async function blockImportedIdentity(input: {
   deleteExisting: boolean;
 }) {
   const key = normalizeBlockKey(input.source, input.externalId);
-  await blockItem(input.source, key, input.name, input.reason ?? undefined);
+  blockItem(input.source, key, input.name, input.reason ?? undefined);
   const deletedIds: number[] = [];
   if (input.deleteExisting) {
     if (input.source === "github") {

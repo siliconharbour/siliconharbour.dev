@@ -1,7 +1,9 @@
+import { references as contentReferences, technologyAssignments } from "~/db/schema";
+import { notRejected } from "./directory-active.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { companies, type Company, type NewCompany } from "~/db/schema";
-import { eq, desc, asc, count, inArray, and, isNotNull, sql } from "drizzle-orm";
+import { eq, or, desc, asc, count, inArray, and, isNotNull, sql } from "drizzle-orm";
 import { generateSlug, makeSlugUnique } from "./slug";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
@@ -24,7 +26,7 @@ export async function generateCompanySlug(name: string, excludeId?: number): Pro
     const current = await db
       .select({ slug: companies.slug })
       .from(companies)
-      .where(eq(companies.id, excludeId))
+      .where(and(notRejected("company", companies.id), eq(companies.id, excludeId)))
       .get();
     if (current) {
       existingSlugs = existingSlugs.filter((s) => s !== current.slug);
@@ -59,7 +61,7 @@ export async function updateCompany(
   const [updated] = await db
     .update(companies)
     .set(updateData)
-    .where(eq(companies.id, id))
+    .where(and(notRejected("company", companies.id), eq(companies.id, id)))
     .returning();
 
   if (!updated) return null;
@@ -71,40 +73,81 @@ export async function updateCompany(
   return updated;
 }
 
-export async function deleteCompany(id: number): Promise<boolean> {
-  const record = await getCompanyById(id);
+export async function deleteCompany(id: number, includeRejected = false): Promise<boolean> {
+  const record = includeRejected
+    ? db.select().from(companies).where(eq(companies.id, id)).get()
+    : await getCompanyById(id);
   if (!record) return false;
 
-  await db.delete(companies).where(eq(companies.id, id));
+  db.transaction(() => {
+    db.delete(contentReferences)
+      .where(
+        or(
+          and(eq(contentReferences.sourceType, "company"), eq(contentReferences.sourceId, id)),
+          and(eq(contentReferences.targetType, "company"), eq(contentReferences.targetId, id)),
+        ),
+      )
+      .run();
+    db.delete(technologyAssignments)
+      .where(
+        and(
+          eq(technologyAssignments.contentType, "company"),
+          eq(technologyAssignments.contentId, id),
+        ),
+      )
+      .run();
+    db.delete(companies).where(eq(companies.id, id)).run();
+  });
   await deleteUnreferencedImages([record.logo, record.coverImage]);
   return true;
 }
 
 export async function getCompanyById(id: number): Promise<Company | null> {
-  return db.select().from(companies).where(eq(companies.id, id)).get() ?? null;
+  return (
+    db
+      .select()
+      .from(companies)
+      .where(and(notRejected("company", companies.id), eq(companies.id, id)))
+      .get() ?? null
+  );
 }
 
 export async function getCompanyBySlug(slug: string): Promise<Company | null> {
-  return db.select().from(companies).where(eq(companies.slug, slug)).get() ?? null;
+  return (
+    db
+      .select()
+      .from(companies)
+      .where(and(notRejected("company", companies.id), eq(companies.slug, slug)))
+      .get() ?? null
+  );
 }
 
 export async function getCompanyByName(name: string): Promise<Company | null> {
   const result = await db
     .select()
     .from(companies)
-    .where(sql`LOWER(${companies.name}) = LOWER(${name.trim()})`)
+    .where(
+      and(
+        notRejected("company", companies.id),
+        sql`LOWER(${companies.name}) = LOWER(${name.trim()})`,
+      ),
+    )
     .limit(1);
   return result[0] ?? null;
 }
 
 export async function getAllCompanies(includeHidden: boolean = false): Promise<Company[]> {
   if (includeHidden) {
-    return db.select().from(companies).orderBy(asc(companies.name));
+    return db
+      .select()
+      .from(companies)
+      .where(notRejected("company", companies.id))
+      .orderBy(asc(companies.name));
   }
   return db
     .select()
     .from(companies)
-    .where(eq(companies.visible, true))
+    .where(and(notRejected("company", companies.id), eq(companies.visible, true)))
     .orderBy(asc(companies.name));
 }
 
@@ -112,7 +155,7 @@ export async function getHiddenCompanies(): Promise<Company[]> {
   return db
     .select()
     .from(companies)
-    .where(eq(companies.visible, false))
+    .where(and(notRejected("company", companies.id), eq(companies.visible, false)))
     .orderBy(desc(companies.createdAt));
 }
 
@@ -120,7 +163,7 @@ export async function getHiddenCompaniesCount(): Promise<number> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(companies)
-    .where(eq(companies.visible, false));
+    .where(and(notRejected("company", companies.id), eq(companies.visible, false)));
   return total;
 }
 
@@ -137,7 +180,12 @@ export async function getRandomCompanies(count: number, seed?: number): Promise<
   const allCompanies = await db
     .select()
     .from(companies)
-    .where(and(eq(companies.visible, true), isNotNull(companies.logo)));
+    .where(
+      and(
+        notRejected("company", companies.id),
+        and(eq(companies.visible, true), isNotNull(companies.logo)),
+      ),
+    );
 
   if (allCompanies.length <= count) {
     return allCompanies;
@@ -161,7 +209,7 @@ export async function getVisibleCompaniesCount(): Promise<number> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(companies)
-    .where(eq(companies.visible, true));
+    .where(and(notRejected("company", companies.id), eq(companies.visible, true)));
   return total;
 }
 
@@ -169,7 +217,7 @@ export async function hideAllVisibleCompanies(): Promise<number> {
   const result = await db
     .update(companies)
     .set({ visible: false, updatedAt: new Date() })
-    .where(eq(companies.visible, true));
+    .where(and(notRejected("company", companies.id), eq(companies.visible, true)));
   return result.changes;
 }
 
@@ -196,23 +244,29 @@ export async function getPaginatedCompanies(
     const items = await db
       .select()
       .from(companies)
-      .where(whereClause)
+      .where(and(notRejected("company", companies.id), whereClause))
       .orderBy(searchRankOrder(companies.id, matchingIds))
       .limit(limit)
       .offset(offset);
 
-    const [{ total }] = await db.select({ total: count() }).from(companies).where(whereClause);
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(companies)
+      .where(and(notRejected("company", companies.id), whereClause));
 
     return { items, total };
   }
 
   // No search - get total count and paginated items
-  const [{ total }] = await db.select({ total: count() }).from(companies).where(visibilityFilter);
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(companies)
+    .where(and(notRejected("company", companies.id), visibilityFilter));
 
   const items = await db
     .select()
     .from(companies)
-    .where(visibilityFilter)
+    .where(and(notRejected("company", companies.id), visibilityFilter))
     .orderBy(asc(companies.name))
     .limit(limit)
     .offset(offset);

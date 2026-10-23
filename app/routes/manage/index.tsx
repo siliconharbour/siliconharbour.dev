@@ -165,6 +165,7 @@ export default function ManageIndex() {
           <div className="border border-line bg-surface rounded-panel">
             <ToolGroup label="Design">
               <ToolLink to="/manage/theme-shares">Theme shares</ToolLink>
+              <ToolLink to="/manage/rejected-records">Rejected records</ToolLink>
             </ToolGroup>
             <ToolGroup label="Jobs">
               <ToolLink to="/manage/import/jobs">Import Sources</ToolLink>

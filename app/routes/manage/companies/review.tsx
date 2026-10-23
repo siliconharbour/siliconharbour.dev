@@ -1,16 +1,14 @@
-import { companyRestoreRejected } from "~/operations/ops/directory-restore.server";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
 import type { Route } from "./+types/review";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { requireAdmin } from "~/lib/session.server";
 import { getHiddenCompanies } from "~/lib/companies.server";
 
 import { ImageUpload } from "~/components/ImageUpload";
 import { Toast } from "~/components/Toast";
-import type { Company } from "~/db/schema";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Review Companies - siliconharbour.dev" }];
@@ -29,23 +27,15 @@ export async function action({ request }: Route.ActionArgs) {
   const intent = form.get("intent");
 
   if (intent === "undo-reject") {
-    let record: unknown;
-    try {
-      record = JSON.parse(String(form.get("companyData") || "null"));
-    } catch {
-      return { error: "Invalid undo data" };
-    }
-    const result = await runAdminOperation(request, companyRestoreRejected, {
-      record,
-      ...(form.get("source") ? { source: form.get("source") } : {}),
+    const result = await runAdminOperation(request, operationCatalog.rejectedRecordRestore, {
+      id: Number(form.get("restoreId")),
+      confirm: true,
     });
-    return result.ok ? { success: true, action: "undone" } : { error: result.error };
+    return result.ok ? { success: true, action: "undone" as const } : { error: result.error };
   }
   if (intent === "approve") {
     const result = await runAdminOperation(request, operationCatalog.companyApprove, { id });
-    return result.ok
-      ? { success: true, action: "approved", undoData: { id, previousVisible: false } }
-      : { error: result.error };
+    return result.ok ? { success: true, action: "approved" as const, id } : { error: result.error };
   }
   if (intent === "reject") {
     const result = await runAdminOperation(request, operationCatalog.companyReject, {
@@ -55,14 +45,15 @@ export async function action({ request }: Route.ActionArgs) {
     return result.ok
       ? {
           success: true,
-          action: "rejected",
-          undoData: { ...result.data.record, source: result.data.blockedSource },
+          action: "rejected" as const,
+          id,
+          restoreId: result.data.restoreId,
         }
       : { error: result.error };
   }
   if (intent === "undo-approve") {
     const result = await runAdminOperation(request, operationCatalog.companyUnapprove, { id });
-    return result.ok ? { success: true, action: "undone" } : { error: result.error };
+    return result.ok ? { success: true, action: "undone" as const } : { error: result.error };
   }
   if (intent === "update") {
     const result = await runAdminOperation(request, operationCatalog.companyUpdate, {
@@ -83,17 +74,12 @@ export async function action({ request }: Route.ActionArgs) {
       ]),
       ...(form.get("approveAfterSave") === "on" ? { visible: true } : {}),
     });
-    return result.ok ? { success: true, action: "updated" } : { error: result.error };
+    return result.ok ? { success: true, action: "updated" as const } : { error: result.error };
   }
   return { error: "Unknown action" };
 }
 
-interface UndoAction {
-  type: "approve" | "reject";
-  id: number;
-  name: string;
-  companyData?: Company & { source?: string | null };
-}
+type UndoAction = { type: "approve"; id: number } | { type: "reject"; restoreId: number };
 
 export default function ReviewCompanies() {
   const { companies: initialCompanies } = useLoaderData<typeof loader>();
@@ -108,12 +94,10 @@ export default function ReviewCompanies() {
   const currentCompany = companies[currentIndex];
   const remaining = companies.length - currentIndex;
 
-  // Keep edit mode scoped to the current card.
   useEffect(() => {
     setEditMode(false);
   }, [currentCompany?.id]);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't handle shortcuts if in edit mode or if typing in an input
@@ -153,35 +137,24 @@ export default function ReviewCompanies() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [currentCompany, editMode]);
 
-  const advanceToNext = useCallback(() => {
-    setCompanies((prev) => {
-      const newCompanies = [...prev];
-      newCompanies.splice(currentIndex, 1);
-      return newCompanies;
-    });
-    // Index stays the same since we removed an item
-  }, [currentIndex]);
-
-  // Handle fetcher response
   useEffect(() => {
-    if (
-      fetcher.data?.success &&
-      fetcher.data.action !== "undone" &&
-      fetcher.data.action !== "updated"
-    ) {
-      // Action completed, advance to next
-      advanceToNext();
+    if (!fetcher.data?.success) return;
+    if (fetcher.data.action === "undone") {
+      window.location.reload();
+      return;
     }
-  }, [fetcher.data, advanceToNext]);
+    if (fetcher.data.action === "approved") setLastAction({ type: "approve", id: fetcher.data.id });
+    if (fetcher.data.action === "rejected")
+      setLastAction({ type: "reject", restoreId: fetcher.data.restoreId });
+    if (fetcher.data.action !== "updated") {
+      const id = fetcher.data.id;
+      setCompanies((rows) => rows.filter((row) => row.id !== id));
+    }
+  }, [fetcher.data]);
 
   const handleApprove = () => {
     if (!currentCompany) return;
 
-    setLastAction({
-      type: "approve",
-      id: currentCompany.id,
-      name: currentCompany.name,
-    });
     setToastMessage(`"${currentCompany.name}" approved`);
 
     fetcher.submit({ intent: "approve", id: currentCompany.id.toString() }, { method: "post" });
@@ -196,15 +169,6 @@ export default function ReviewCompanies() {
   const handleReject = () => {
     if (!currentCompany) return;
 
-    setLastAction({
-      type: "reject",
-      id: currentCompany.id,
-      name: currentCompany.name,
-      companyData: {
-        ...currentCompany,
-        source: currentCompany.technl ? "technl" : currentCompany.genesis ? "genesis" : null,
-      },
-    });
     setToastMessage(`"${currentCompany.name}" rejected and blocked`);
 
     fetcher.submit({ intent: "reject", id: currentCompany.id.toString() }, { method: "post" });
@@ -212,24 +176,14 @@ export default function ReviewCompanies() {
 
   const handleUndo = () => {
     if (!lastAction) return;
-
     if (lastAction.type === "approve") {
-      fetcher.submit({ intent: "undo-approve", id: lastAction.id.toString() }, { method: "post" });
-      // Add the company back to the list
-      // We'd need to refetch, but for now just reload
-      window.location.reload();
-    } else if (lastAction.type === "reject" && lastAction.companyData) {
+      fetcher.submit({ intent: "undo-approve", id: String(lastAction.id) }, { method: "post" });
+    } else {
       fetcher.submit(
-        {
-          intent: "undo-reject",
-          companyData: JSON.stringify(lastAction.companyData),
-          source: lastAction.companyData.source || "",
-        },
+        { intent: "undo-reject", restoreId: String(lastAction.restoreId) },
         { method: "post" },
       );
-      window.location.reload();
     }
-
     setLastAction(null);
     setToastMessage(null);
   };
@@ -239,7 +193,15 @@ export default function ReviewCompanies() {
     setLastAction(null);
   };
 
-  // Empty state - all done!
+  const toast = toastMessage ? (
+    <Toast
+      message={toastMessage}
+      actionLabel={lastAction ? "Undo" : undefined}
+      onAction={lastAction ? handleUndo : undefined}
+      onDismiss={handleDismissToast}
+    />
+  ) : null;
+
   if (companies.length === 0 || !currentCompany) {
     return (
       <div className="min-h-screen p-pad-4 md:p-pad-6">
@@ -255,7 +217,11 @@ export default function ReviewCompanies() {
           >
             Back to Companies
           </Link>
+          <Link to="/manage/rejected-records" className="text-sm text-body underline">
+            Rejected records
+          </Link>
         </div>
+        {toast}
       </div>
     );
   }
@@ -542,15 +508,7 @@ export default function ReviewCompanies() {
         </div>
       </div>
 
-      {/* Toast notification */}
-      {toastMessage && (
-        <Toast
-          message={toastMessage}
-          actionLabel={lastAction ? "Undo" : undefined}
-          onAction={lastAction ? handleUndo : undefined}
-          onDismiss={handleDismissToast}
-        />
-      )}
+      {toast}
     </div>
   );
 }

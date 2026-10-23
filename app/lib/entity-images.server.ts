@@ -30,6 +30,13 @@ const targets = {
   technology: { table: "technologies", cover: null, icon: "icon" },
 } as const;
 function targetRow(input: ImageTarget) {
+  if (
+    (input.type === "person" || input.type === "company") &&
+    rawDb
+      .prepare("SELECT 1 FROM rejected_records WHERE type = ? AND entity_id = ?")
+      .get(input.type, input.id)
+  )
+    throw new ImageInputError("Entity not found.", 404);
   const target = targets[input.type];
   const column = target[input.role];
   if (!column) throw new ImageInputError(`${input.type} does not support ${input.role} images.`);

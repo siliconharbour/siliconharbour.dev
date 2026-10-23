@@ -26,14 +26,8 @@ export async function getBlockedExternalIds(source: string): Promise<Set<string>
     .where(eq(importBlocklist.source, source));
   return new Set(items.map((item) => item.externalId));
 }
-export async function blockItem(
-  source: string,
-  externalId: string,
-  name: string,
-  reason?: string,
-): Promise<void> {
-  await db
-    .insert(importBlocklist)
+export function blockItem(source: string, externalId: string, name: string, reason?: string): void {
+  db.insert(importBlocklist)
     .values({
       source,
       externalId: normalizeBlockKey(source, externalId),
@@ -44,9 +38,10 @@ export async function blockItem(
     .onConflictDoUpdate({
       target: [importBlocklist.source, importBlocklist.externalId],
       set: { reason: sql`coalesce(excluded.reason, ${importBlocklist.reason})` },
-    });
+    })
+    .run();
 }
-export async function unblockItem(source: string, externalId: string): Promise<boolean> {
+export function unblockItem(source: string, externalId: string): boolean {
   return db.delete(importBlocklist).where(identity(source, externalId)).run().changes > 0;
 }
 export async function getBlockedItem(

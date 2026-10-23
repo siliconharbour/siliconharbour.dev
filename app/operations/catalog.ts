@@ -1,3 +1,4 @@
+import { rejectedRecordOperations } from "./ops/rejected-records.server";
 import { operationDescribe } from "./ops/operation-describe.server";
 import { publicReadOperations } from "./ops/public-reads.server";
 import { importerStatusOperations } from "./ops/importer-status.server";
@@ -36,6 +37,7 @@ import { personOperations } from "./ops/people.server";
 import { themeShareOperations } from "./ops/theme-shares.server";
 
 export const operationCatalog = {
+  ...rejectedRecordOperations,
   operationDescribe,
   ...publicReadOperations,
   ...importerStatusOperations,

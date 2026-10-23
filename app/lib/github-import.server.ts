@@ -443,7 +443,7 @@ async function importSingleUser(
   // false-positive (Netherlands, Texas, Hong Kong, etc.). Auto-block these
   // so subsequent runs don't waste an API call re-fetching the same user.
   if (!locationLooksLikeNewfoundland(user.location)) {
-    await blockItem(
+    blockItem(
       "github",
       githubUrl,
       displayName,

@@ -984,3 +984,19 @@ export const themeShares = sqliteTable(
   },
   (table) => [index("theme_shares_created_idx").on(table.createdAt)],
 );
+
+export const rejectedRecords = sqliteTable(
+  "rejected_records",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    type: text("type", { enum: ["person", "company"] }).notNull(),
+    entityId: integer("entity_id").notNull(),
+    name: text("name").notNull(),
+    wasVisible: integer("was_visible", { mode: "boolean" }).notNull(),
+    blockSource: text("block_source"),
+    blockKey: text("block_key"),
+    rejectedAt: integer("rejected_at", { mode: "timestamp" }).notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  },
+  (table) => [uniqueIndex("rejected_records_entity_unique").on(table.type, table.entityId)],
+);

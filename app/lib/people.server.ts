@@ -1,10 +1,12 @@
+import { references as contentReferences } from "~/db/schema";
+import { notRejected } from "./directory-active.server";
 import { githubLogin } from "./url-fields";
 import { compactLinks, type SocialLinks, type LinkPatch } from "./links";
 import { patchLinks } from "./link-patch.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { people, type Person, type NewPerson } from "~/db/schema";
-import { eq, desc, asc, count, inArray, and, sql } from "drizzle-orm";
+import { eq, or, desc, asc, count, inArray, and, sql } from "drizzle-orm";
 import { syncReferences } from "./references.server";
 import { searchContentIds, searchRankOrder } from "./search.server";
 import { generateEntitySlug, getPaginatedBySearch } from "./crud-helpers.server";
@@ -23,7 +25,7 @@ export async function generatePersonSlug(name: string, excludeId?: number): Prom
       const current = await db
         .select({ slug: people.slug })
         .from(people)
-        .where(eq(people.id, id))
+        .where(and(notRejected("person", people.id), eq(people.id, id)))
         .get();
       return current?.slug ?? null;
     },
@@ -65,7 +67,11 @@ export async function updatePerson(
     ...(socialLinks !== undefined && { socialLinks: patchLinks(people.socialLinks, socialLinks) }),
   };
 
-  const [updated] = await db.update(people).set(updateData).where(eq(people.id, id)).returning();
+  const [updated] = await db
+    .update(people)
+    .set(updateData)
+    .where(and(notRejected("person", people.id), eq(people.id, id)))
+    .returning();
 
   if (!updated) return null;
 
@@ -76,28 +82,54 @@ export async function updatePerson(
   return updated;
 }
 
-export async function deletePerson(id: number): Promise<boolean> {
-  const record = await getPersonById(id);
+export async function deletePerson(id: number, includeRejected = false): Promise<boolean> {
+  const record = includeRejected
+    ? db.select().from(people).where(eq(people.id, id)).get()
+    : await getPersonById(id);
   if (!record) return false;
 
-  await db.delete(people).where(eq(people.id, id));
+  db.transaction(() => {
+    db.delete(contentReferences)
+      .where(
+        or(
+          and(eq(contentReferences.sourceType, "person"), eq(contentReferences.sourceId, id)),
+          and(eq(contentReferences.targetType, "person"), eq(contentReferences.targetId, id)),
+        ),
+      )
+      .run();
+    db.delete(people).where(eq(people.id, id)).run();
+  });
   await deleteUnreferencedImages([record.avatar]);
   return true;
 }
 
 export async function getPersonById(id: number): Promise<Person | null> {
-  return db.select().from(people).where(eq(people.id, id)).get() ?? null;
+  return (
+    db
+      .select()
+      .from(people)
+      .where(and(notRejected("person", people.id), eq(people.id, id)))
+      .get() ?? null
+  );
 }
 
 export async function getPersonBySlug(slug: string): Promise<Person | null> {
-  return db.select().from(people).where(eq(people.slug, slug)).get() ?? null;
+  return (
+    db
+      .select()
+      .from(people)
+      .where(and(notRejected("person", people.id), eq(people.slug, slug)))
+      .get() ?? null
+  );
 }
 
 export async function getPersonByName(name: string): Promise<Person | null> {
   const result = await db
     .select()
     .from(people)
-    .where(sql`LOWER(${people.name}) = LOWER(${name.trim()})`)
+    .where(
+      and(notRejected("person", people.id), sql`LOWER(${people.name}) = LOWER(${name.trim()})`),
+    )
     .limit(1);
   return result[0] ?? null;
 }
@@ -106,27 +138,44 @@ export async function getPersonByGitHub(githubUrl: string): Promise<Person | nul
   const result = await db
     .select()
     .from(people)
-    .where(sql`LOWER(${people.github}) = LOWER(${`https://github.com/${githubLogin(githubUrl)}`})`)
+    .where(
+      and(
+        notRejected("person", people.id),
+        sql`LOWER(${people.github}) = LOWER(${`https://github.com/${githubLogin(githubUrl)}`})`,
+      ),
+    )
     .limit(1);
   return result[0] ?? null;
 }
 
 export async function getAllPeople(includeHidden: boolean = false): Promise<Person[]> {
   if (includeHidden) {
-    return db.select().from(people).orderBy(desc(people.createdAt));
+    return db
+      .select()
+      .from(people)
+      .where(notRejected("person", people.id))
+      .orderBy(desc(people.createdAt));
   }
-  return db.select().from(people).where(eq(people.visible, true)).orderBy(desc(people.createdAt));
+  return db
+    .select()
+    .from(people)
+    .where(and(notRejected("person", people.id), eq(people.visible, true)))
+    .orderBy(desc(people.createdAt));
 }
 
 export async function getHiddenPeople(): Promise<Person[]> {
-  return db.select().from(people).where(eq(people.visible, false)).orderBy(desc(people.createdAt));
+  return db
+    .select()
+    .from(people)
+    .where(and(notRejected("person", people.id), eq(people.visible, false)))
+    .orderBy(desc(people.createdAt));
 }
 
 export async function getHiddenPeopleCount(): Promise<number> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(people)
-    .where(eq(people.visible, false));
+    .where(and(notRejected("person", people.id), eq(people.visible, false)));
   return total;
 }
 
@@ -134,7 +183,7 @@ export async function getVisiblePeopleCount(): Promise<number> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(people)
-    .where(eq(people.visible, true));
+    .where(and(notRejected("person", people.id), eq(people.visible, true)));
   return total;
 }
 
@@ -142,7 +191,7 @@ export async function hideAllVisiblePeople(): Promise<number> {
   const result = await db
     .update(people)
     .set({ visible: false, updatedAt: new Date() })
-    .where(eq(people.visible, true));
+    .where(and(notRejected("person", people.id), eq(people.visible, true)));
   return result.changes;
 }
 
@@ -162,11 +211,14 @@ export async function getPaginatedPeople(
     searchQuery,
     getSearchIds: (query) => searchContentIds("person", query),
     getAllWhenNoSearch: async () => {
-      const [{ total }] = await db.select({ total: count() }).from(people).where(visibilityFilter);
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(people)
+        .where(and(notRejected("person", people.id), visibilityFilter));
       const items = await db
         .select()
         .from(people)
-        .where(visibilityFilter)
+        .where(and(notRejected("person", people.id), visibilityFilter))
         .orderBy(asc(people.name))
         .limit(limit)
         .offset(offset);
@@ -179,11 +231,14 @@ export async function getPaginatedPeople(
       const items = await db
         .select()
         .from(people)
-        .where(whereClause)
+        .where(and(notRejected("person", people.id), whereClause))
         .orderBy(searchRankOrder(people.id, matchingIds))
         .limit(limit)
         .offset(offset);
-      const [{ total }] = await db.select({ total: count() }).from(people).where(whereClause);
+      const [{ total }] = await db
+        .select({ total: count() })
+        .from(people)
+        .where(and(notRejected("person", people.id), whereClause));
       return { items, total };
     },
   });

@@ -1,3 +1,5 @@
+import { rejectDirectoryRecord } from "~/lib/rejected-records.server";
+import { rejectedRecordOutput } from "../contracts/rejected-records";
 import { z } from "zod";
 import { defineOperation } from "../define";
 import { toPlain } from "../plain";
@@ -29,7 +31,7 @@ async function removePerson(id: number, block: boolean) {
   if (block && !person.github)
     throw new ConflictError("Cannot block a person without a GitHub profile");
   if (block && person.github)
-    await blockItem("github", person.github, person.name, "Removed during review");
+    blockItem("github", person.github, person.name, "Removed during review");
   await deletePerson(id);
   return { deleted: true as const, record: toPlain(person) };
 }
@@ -37,7 +39,7 @@ async function removeCompany(id: number, source?: string) {
   const company = await getCompanyById(id);
   if (!company) throw new NotFoundError("Company not found");
   if (source)
-    await blockItem(
+    blockItem(
       source,
       normalizeBlockKey(source, company.website || company.name),
       company.name,
@@ -119,14 +121,13 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Reject a person from the review queue.",
     description:
-      "Block the stored GitHub import identity when present, then delete the record and unreferenced images. Requires confirm: true. Returns the deleted record for review history.",
+      "Block the stored import identity when present and retain the record for seven days, hidden from the directory and review queues. Preserve images, ID, slug and relationships. Use rejectedRecordRestore with restoreId to undo, or rejectedRecordDelete to permanently remove it. Requires confirm: true.",
     input: deleteInput,
-    output: z.object({ deleted: z.literal(true), record: personOutput }).strict(),
+    output: rejectedRecordOutput.extend({ restoreId: z.number().int().positive() }).strict(),
     examples: [{ title: "Reject", input: { id: 1, confirm: true } }],
-    run: async (_ctx, input) => {
-      const person = await getPersonById(input.id);
-      if (!person) throw new NotFoundError("Person not found");
-      return removePerson(input.id, Boolean(person.github));
+    run: (ctx, input) => {
+      const record = rejectDirectoryRecord("person", input.id, ctx.now());
+      return toPlain({ ...record, restoreId: record.id });
     },
   }),
   personBulkReject: defineOperation({
@@ -136,7 +137,7 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Reject hidden people matching every search term.",
     description:
-      "Split pattern on spaces or commas and match every term against name, biography, and social links. Only hidden people are affected. Block each stored GitHub identity before deleting. Requires confirm: true.",
+      "Split pattern on spaces or commas and match every term against name, biography, and social links. Only hidden people are affected. Block each stored GitHub identity and retain each rejection for seven days. Use rejectedRecordList to find restore IDs. Requires confirm: true.",
     input: personBulkRejectInput,
     output: z.object({ ids: z.array(z.number()), count: z.number() }).strict(),
     examples: [
@@ -154,7 +155,7 @@ export const directoryReviewOperations = {
             .includes(term),
         ),
       );
-      for (const person of matches) await removePerson(person.id, Boolean(person.github));
+      for (const person of matches) rejectDirectoryRecord("person", person.id, _ctx.now());
       return { ids: matches.map((person) => person.id), count: matches.length };
     },
   }),
@@ -209,23 +210,13 @@ export const directoryReviewOperations = {
     access: "admin",
     summary: "Reject a company from the review queue.",
     description:
-      "Block the stored TechNL or Genesis import identity when marked as imported, then delete the record and unreferenced images. Requires confirm: true.",
+      "Block the stored import identity when present and retain the record for seven days, hidden from the directory and review queues. Preserve images, ID, slug and relationships. Use rejectedRecordRestore with restoreId to undo, or rejectedRecordDelete to permanently remove it. Requires confirm: true.",
     input: deleteInput,
-    output: z
-      .object({
-        deleted: z.literal(true),
-        record: companyOutput,
-        blockedSource: z.string().nullable(),
-      })
-      .strict(),
+    output: rejectedRecordOutput.extend({ restoreId: z.number().int().positive() }).strict(),
     examples: [{ title: "Reject", input: { id: 1, confirm: true } }],
-    run: async (_ctx, input) => {
-      const company = await getCompanyById(input.id);
-      if (!company) throw new NotFoundError("Company not found");
-      return removeCompany(
-        input.id,
-        company.technl ? "technl" : company.genesis ? "genesis" : undefined,
-      );
+    run: (ctx, input) => {
+      const record = rejectDirectoryRecord("company", input.id, ctx.now());
+      return toPlain({ ...record, restoreId: record.id });
     },
   }),
   companyHideAllVisible: defineOperation({

@@ -153,6 +153,7 @@ export default [
   // Admin routes
   ...prefix("manage", [
     route("theme-shares", "routes/manage/theme-shares.tsx"),
+    route("rejected-records", "routes/manage/rejected-records.tsx"),
     route("login", "routes/manage/login.tsx"),
     route("logout", "routes/manage/logout.tsx"),
     index("routes/manage/index.tsx"),
