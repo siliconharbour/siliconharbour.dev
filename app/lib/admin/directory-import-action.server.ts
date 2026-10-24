@@ -16,8 +16,33 @@ export async function runDirectoryImportAction(
       confirm: true,
     });
     return result.ok
-      ? ({ intent: "fetch", companies: result.data, error: null } as const)
+      ? ({ intent: "fetch", ...result.data, error: null } as const)
       : ({ intent: "fetch", companies: [], error: result.error } as const);
+  }
+  if (intent === "clear-flags") {
+    let entities: unknown;
+    try {
+      entities = jsonFromForm(form, "entities");
+    } catch {
+      return { intent: "clear-flags", error: "Invalid selection" } as const;
+    }
+    const result = await runAdminOperation(request, operations.directorySourceFlagsClear, {
+      source,
+      entities,
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "clear-flags", ...result.data } as const)
+      : ({ intent: "clear-flags", error: result.error } as const);
+  }
+  if (intent === "reconcile") {
+    const result = await runAdminOperation(request, operations.directorySourceReconcile, {
+      source,
+      confirm: true,
+    });
+    return result.ok
+      ? ({ intent: "reconcile", ...result.data } as const)
+      : ({ intent: "reconcile", error: result.error } as const);
   }
   if (intent === "import") {
     let companies: unknown;

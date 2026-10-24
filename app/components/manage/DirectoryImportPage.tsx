@@ -1,3 +1,5 @@
+import type { DirectoryFetchReport } from "~/operations/contracts/importers";
+import { DirectoryMembershipReview } from "./DirectoryMembershipReview";
 import { useFetcher } from "react-router";
 import { useState, useEffect } from "react";
 import type { ScrapedCompany } from "~/lib/scraper.server";
@@ -49,6 +51,7 @@ export function DirectoryImportPage({
   } = loaderData;
 
   const fetcher = useFetcher();
+  const [report, setReport] = useState<DirectoryFetchReport | null>(null);
   const [fetchedCompanies, setFetchedCompanies] = useState<ScrapedCompany[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [downloadLogos, setDownloadLogos] = useState(true);
@@ -72,14 +75,9 @@ export function DirectoryImportPage({
   const fetcherData = fetcher.data as any;
 
   useEffect(() => {
-    if (
-      fetcherData?.intent === "fetch" &&
-      fetcherData.companies &&
-      fetcherData.companies.length > 0
-    ) {
-      if (fetchedCompanies.length === 0) {
-        setFetchedCompanies(fetcherData.companies);
-      }
+    if (fetcherData?.intent === "fetch") {
+      setFetchedCompanies(fetcherData.error ? [] : fetcherData.companies);
+      setReport(fetcherData.error ? null : fetcherData);
     }
 
     // Update local existingCompanyData when a field is adopted so diffs refresh
@@ -316,24 +314,24 @@ export function DirectoryImportPage({
     >
       <p className="text-muted">{description}</p>
 
-      {fetchedCompanies.length === 0 && (
-        <fetcher.Form method="post">
-          <input type="hidden" name="intent" value="fetch" />
-          <button
-            type="submit"
-            disabled={isFetching}
-            className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
-          >
-            {isFetching ? "Fetching..." : `Fetch Companies from ${sourceLabel}`}
-          </button>
-        </fetcher.Form>
-      )}
+      <fetcher.Form method="post">
+        <input type="hidden" name="intent" value="fetch" />
+        <button
+          type="submit"
+          disabled={isFetching}
+          className="px-pad-4 py-pad-2 bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
+        >
+          {isFetching ? "Fetching..." : `Fetch Companies from ${sourceLabel}`}
+        </button>
+      </fetcher.Form>
 
       {fetcherData?.intent === "fetch" && fetcherData.error && (
         <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
           {fetcherData.error}
         </div>
       )}
+
+      {report && <DirectoryMembershipReview report={report} sourceLabel={sourceLabel} />}
 
       {fetcherData?.intent === "import" && (
         <div className="flex flex-col gap-gap-2">

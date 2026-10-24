@@ -1,4 +1,4 @@
-import { closestNames } from "./suggestions";
+import { closestNames } from "~/lib/name-suggestions";
 import { readFileSync } from "node:fs";
 import { operationCatalog } from "~/operations/catalog";
 import { publicContext, type OperationContext } from "~/operations/context";
@@ -58,7 +58,7 @@ export function searchOperations(query: string, context: OperationContext = publ
   );
   const nearby = !/\s/.test(query.trim())
     ? closestNames(
-        query.trim(),
+        query.trim().split(".").at(-1)!,
         visible.map((entry) => entry.operation.name),
       )
     : [];

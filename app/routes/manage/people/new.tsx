@@ -71,12 +71,11 @@ export default function NewPerson() {
 
           <div className="flex flex-col gap-gap-2">
             <label htmlFor="bio" className="font-medium text-heading">
-              Bio * (Markdown)
+              Bio (Markdown)
             </label>
             <textarea
               id="bio"
               name="bio"
-              required
               rows={8}
               className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none font-mono text-sm"
             />

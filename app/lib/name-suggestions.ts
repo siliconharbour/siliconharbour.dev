@@ -1,5 +1,5 @@
 export function closestNames(query: string, names: readonly string[]): string[] {
-  const needle = query.split(".").at(-1)!.toLowerCase();
+  const needle = query.toLowerCase();
   if (!needle || needle.length > 100) return [];
   function distance(left: string, right: string): number {
     const rows = Array.from({ length: left.length + 1 }, (_, i) =>

@@ -152,7 +152,7 @@ export default function EventDetail() {
   } = useLoaderData<typeof loader>();
   const isRecurring = !!event.recurrenceRule;
   const isPeriod = event.timeMode === "period";
-  const eventLinkDomain = getEventLinkDomain(event.link);
+  const eventLinkDomain = event.link ? getEventLinkDomain(event.link) : null;
 
   return (
     <div className="py-pad-8">
@@ -336,24 +336,26 @@ export default function EventDetail() {
             )}
 
             {/* Signup/View button */}
-            <a
-              href={event.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary text-white font-medium hover:bg-primary-hover transition-colors self-start"
-            >
-              {isPeriod
-                ? `Visit on ${eventLinkDomain}`
-                : `${event.requiresSignup ? "Signup for" : "View"} event on ${eventLinkDomain}`}
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-            </a>
+            {event.link && (
+              <a
+                href={event.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-primary text-white font-medium hover:bg-primary-hover transition-colors self-start"
+              >
+                {isPeriod
+                  ? `Visit on ${eventLinkDomain}`
+                  : `${event.requiresSignup ? "Signup for" : "View"} event on ${eventLinkDomain}`}
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+              </a>
+            )}
           </div>
 
           {/* Description - outside the card */}

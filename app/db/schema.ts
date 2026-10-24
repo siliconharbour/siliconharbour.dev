@@ -89,7 +89,7 @@ export const events = sqliteTable(
     title: text("title").notNull(),
     description: text("description").notNull(), // markdown
     location: text("location"),
-    link: text("link").notNull(), // external link
+    link: text("link"), // external link
     organizer: text("organizer"),
     coverImage: text("cover_image"),
     iconImage: text("icon_image"),
@@ -221,6 +221,12 @@ export const companies = sqliteTable("companies", {
   logo: text("logo"), // image filename
   coverImage: text("cover_image"),
   // Directory listings
+  technlExternalId: text("technl_external_id"),
+  technlLastSeenAt: integer("technl_last_seen_at", { mode: "timestamp" }),
+  genesisExternalId: text("genesis_external_id"),
+  genesisLastSeenAt: integer("genesis_last_seen_at", { mode: "timestamp" }),
+  bounceExternalId: text("bounce_external_id"),
+  bounceLastSeenAt: integer("bounce_last_seen_at", { mode: "timestamp" }),
   technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
   genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
   bounce: integer("bounce", { mode: "boolean" }).default(false), // listed on Bounce Health Innovation
@@ -300,6 +306,12 @@ export const education = sqliteTable("education", {
   logo: text("logo"),
   coverImage: text("cover_image"),
   // Directory listings (same as companies)
+  technlExternalId: text("technl_external_id"),
+  technlLastSeenAt: integer("technl_last_seen_at", { mode: "timestamp" }),
+  genesisExternalId: text("genesis_external_id"),
+  genesisLastSeenAt: integer("genesis_last_seen_at", { mode: "timestamp" }),
+  bounceExternalId: text("bounce_external_id"),
+  bounceLastSeenAt: integer("bounce_last_seen_at", { mode: "timestamp" }),
   technl: integer("technl", { mode: "boolean" }).default(false), // listed on TechNL
   genesis: integer("genesis", { mode: "boolean" }).default(false), // listed on Genesis Centre
   bounce: integer("bounce", { mode: "boolean" }).default(false), // listed on Bounce Health Innovation
@@ -318,7 +330,7 @@ export const people = sqliteTable("people", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
-  bio: text("bio").notNull(), // markdown
+  bio: text("bio"), // markdown
   website: text("website"),
   github: text("github"), // GitHub profile URL
   avatar: text("avatar"), // image filename

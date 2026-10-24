@@ -496,7 +496,11 @@
           "description": { "type": "string" },
           "organizer": { "type": "string", "nullable": true },
           "location": { "type": "string", "nullable": true },
-          "link": { "type": "string", "description": "External registration or info link" },
+          "link": {
+            "type": "string",
+            "nullable": true,
+            "description": "External registration or info link"
+          },
           "coverImage": { "type": "string", "nullable": true },
           "dates": { "type": "array", "items": { "$ref": "#/components/schemas/EventDate" } },
           "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },

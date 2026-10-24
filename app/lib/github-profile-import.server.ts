@@ -60,7 +60,7 @@ export async function importGithubProfiles(
           github: user.html_url,
           website: existing.website || user.blog || null,
           avatar: existing.avatar || avatar,
-          bio: existing.bio.startsWith("GitHub user from") ? bio : existing.bio,
+          bio: existing.bio?.startsWith("GitHub user from") ? bio : existing.bio,
         });
         imported.push(`${displayName} (merged${company ? `, linked to ${company.name}` : ""})`);
       } else {

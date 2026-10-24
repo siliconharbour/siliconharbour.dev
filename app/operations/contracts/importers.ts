@@ -50,6 +50,35 @@ export const scrapedCompany = z
     sourceId: z.string().max(1000).default(""),
   })
   .strict();
+export const directoryEntity = z
+  .object({ type: z.enum(["company", "education"]), id: z.number().int().positive() })
+  .strict();
+export const directorySourceFlagsClearInput = z
+  .object({ source: directorySource, entities: z.array(directoryEntity).min(1).max(1000), confirm })
+  .strict();
+export const directoryFetchOutput = z
+  .object({
+    companies: z.array(scrapedCompany),
+    droppedOff: z.array(
+      directoryEntity
+        .extend({
+          slug: z.string(),
+          name: z.string(),
+          website: z.string().nullable(),
+          externalId: z.string().nullable(),
+          lastSeenAt: z.iso.datetime().nullable(),
+          possibleMatch: z
+            .object({ name: z.string(), website: z.string().nullable(), sourceId: z.string() })
+            .strict()
+            .nullable(),
+        })
+        .strict(),
+    ),
+    warning: z.string().nullable(),
+    matchedCount: z.number().int(),
+  })
+  .strict();
+export type DirectoryFetchReport = z.output<typeof directoryFetchOutput>;
 export const directoryFetchInput = z.object({ source: directorySource, confirm }).strict();
 export const directoryImportInput = z
   .object({

@@ -100,3 +100,11 @@ Public lists and details select fields from `contracts/public-outputs.ts`. Impor
 User and OAuth-client administration remains script-only. Newsletter campaign deletion and subscriber resubscription/deletion are not exposed by this integration.
 
 Blocks preserve their original name, reason and timestamp when the same identity is blocked again, including delete/reject actions. Supply a reason when creating a block, or use `blocklistUpdate({id, name?, reason?})` to edit an existing entry. Omitted fields are preserved; `reason: null` clears the reason. `/manage/blocklist` provides the same editing and unblock actions.
+
+## Directory membership review
+
+`directoryImportFetch` returns `{ companies, droppedOff, warning, matchedCount }` without writing anything. Matches prefer stored source IDs, then normalized websites and names; ambiguous matches remain for review. Empty scrapes and results below half the flagged count suppress the removal list.
+
+Membership booleans remain the public source of truth. Per-source IDs and last-seen timestamps are observation history, initially unknown for existing records. `directoryImport` records reviewed matches; `directorySourceReconcile` fetches a fresh directory and records existing matches without changing flags or creating records. Both companies and education are supported.
+
+Review possible renames before calling `directorySourceFlagsClear` with `{ source, entities: [{ type: "company" | "education", id }], confirm: true }`, or select rows in the import page’s **No longer listed** section. Clearing preserves other sources, visibility and last-seen history. No flags are cleared automatically.

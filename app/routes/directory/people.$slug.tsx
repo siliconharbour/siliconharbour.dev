@@ -30,7 +30,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const isAdmin = user?.user.role === "admin";
 
   const [resolvedRefs, backlinks] = await Promise.all([
-    prepareRefsForClient(person.bio),
+    prepareRefsForClient(person.bio ?? ""),
     getDetailedBacklinks("person", person.id),
   ]);
 
@@ -155,9 +155,11 @@ export default function PersonDetail() {
           </div>
         </div>
 
-        <div className="prose">
-          <RichMarkdown content={person.bio} resolvedRefs={resolvedRefs} />
-        </div>
+        {person.bio && (
+          <div className="prose">
+            <RichMarkdown content={person.bio} resolvedRefs={resolvedRefs} />
+          </div>
+        )}
 
         <ReferencedBy backlinks={backlinks} />
       </article>

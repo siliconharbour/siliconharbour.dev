@@ -191,7 +191,7 @@ export function eventToMarkdown(event: EventWithDates): string {
 
 # ${event.title}
 
-${event.organizer ? `**Organizer:** ${event.organizer}\n\n` : ""}${event.location ? `**Location:** ${event.location}\n\n` : ""}**Event Link:** ${event.link}
+${event.organizer ? `**Organizer:** ${event.organizer}\n\n` : ""}${event.location ? `**Location:** ${event.location}\n\n` : ""}${event.link ? `**Event Link:** ${event.link}` : ""}
 ${datesSection}
 ## Description
 
@@ -266,7 +266,7 @@ export function personToMarkdown(person: Person): string {
 
 # ${person.name}
 
-${person.bio}
+${person.bio ?? ""}
 `;
 }
 
