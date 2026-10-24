@@ -46,7 +46,9 @@ function sync(destPath: string) {
   // -v: verbose
   // -z: compress during transfer
   // --progress: show progress
-  execSync(`rsync -avz --progress "${source}" "${destPath}"`, { stdio: "inherit" });
+  execSync(`rsync -avz --progress --rsync-path='sudo -n rsync' "${source}" "${destPath}"`, {
+    stdio: "inherit",
+  });
 }
 
 function pushDatabaseToRemote() {
