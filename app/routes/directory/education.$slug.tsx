@@ -1,3 +1,4 @@
+import { TECHNL_DIRECTORY_URL } from "~/lib/technl";
 import type { Route } from "./+types/education.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getEducationBySlug } from "~/lib/education.server";
@@ -149,7 +150,7 @@ export default function EducationDetail() {
             )}
             {institution.technl && (
               <a
-                href={`https://members.technl.ca/memberdirectory/Find?term=${encodeURIComponent(institution.name)}`}
+                href={TECHNL_DIRECTORY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"

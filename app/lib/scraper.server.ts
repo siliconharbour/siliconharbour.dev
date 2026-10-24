@@ -1,3 +1,6 @@
+import { parseExpressionAt, type Expression } from "acorn";
+import { z } from "zod";
+import { TECHNL_DIRECTORY_URL } from "./technl";
 import { publicFetch } from "~/lib/public-network-fetch.server";
 /**
  * Scraper utilities for importing company data from external directories.
@@ -20,91 +23,96 @@ export interface ScrapedCompany {
   sourceId: string;
 }
 
-const TECHNL_DIRECTORY_URL = "https://members.technl.ca/memberdirectory/FindStartsWith?term=%23%21";
+const TECHNL_EMBED_URL = "https://directory-display.lovable.app/";
+const technlDirectory = z.object({
+  complete: z.literal(true),
+  members: z.array(
+    z.object({
+      id: z.string().min(1),
+      name: z.string().trim().min(1),
+      member_type: z.string().nullable(),
+      description: z.string().nullable(),
+      website: z.string().nullable(),
+      logo_url: z.string().nullable(),
+    }),
+  ),
+});
 
-/**
- * Fetch and parse company data from TechNL member directory
- */
-export async function scrapeTechNL(): Promise<ScrapedCompany[]> {
-  const response = await publicFetch(TECHNL_DIRECTORY_URL, {
-    headers: {
-      "User-Agent": "siliconharbour.dev/1.0 (Community Directory Import)",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch TechNL directory: ${response.status}`);
+// Read only data expressions from the directory's serialized loader state; never execute scripts.
+function readTechNLData(node: Expression): unknown {
+  switch (node.type) {
+    case "Literal":
+      if (node.value === null || ["string", "number", "boolean"].includes(typeof node.value))
+        return node.value;
+      break;
+    case "UnaryExpression":
+      if (
+        node.operator === "!" &&
+        node.argument.type === "Literal" &&
+        typeof node.argument.value === "number"
+      )
+        return !node.argument.value;
+      break;
+    case "AssignmentExpression":
+      if (
+        node.operator === "=" &&
+        node.left.type === "MemberExpression" &&
+        node.left.object.type === "Identifier" &&
+        node.left.object.name === "$R" &&
+        node.left.computed &&
+        node.left.property.type === "Literal" &&
+        typeof node.left.property.value === "number"
+      )
+        return readTechNLData(node.right);
+      break;
+    case "ArrayExpression":
+      return node.elements.map((element) => {
+        if (!element || element.type === "SpreadElement")
+          throw new Error("Unexpected TechNL member data");
+        return readTechNLData(element);
+      });
+    case "ObjectExpression":
+      return Object.fromEntries(
+        node.properties.map((property) => {
+          if (
+            property.type !== "Property" ||
+            property.kind !== "init" ||
+            property.computed ||
+            property.method ||
+            property.key.type !== "Identifier"
+          )
+            throw new Error("Unexpected TechNL member data");
+          return [property.key.name, readTechNLData(property.value)];
+        }),
+      );
   }
-
-  const html = await response.text();
-  const { document } = parseHTML(html);
-
-  const companies: ScrapedCompany[] = [];
-  const seen = new Set<string>();
-  const cards = document.querySelectorAll(".gz-directory-card");
-
-  for (const card of cards) {
-    try {
-      const company = parseTechNLCard(card);
-      if (company) {
-        // Deduplicate by sourceId — TechNL's directory can list the same company multiple times
-        const key = company.sourceId || company.name.toLowerCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          companies.push(company);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to parse TechNL card:", e);
-    }
-  }
-
-  return companies;
+  throw new Error("Unexpected TechNL member data");
 }
 
-function parseTechNLCard(card: Element): ScrapedCompany | null {
-  // Get company name
-  const nameLink = card.querySelector(".gz-card-title a");
-  if (!nameLink) return null;
-
-  const name = nameLink.textContent?.trim() || "";
-  if (!name) return null;
-
-  // Get detail URL and hash
-  const detailHref = nameLink.getAttribute("href") || "";
-  const hash = card.getAttribute("hash") || "";
-  const sourceUrl = detailHref.startsWith("//") ? `https:${detailHref}` : detailHref;
-
-  // Get logo URL
-  const logoImg = card.querySelector(".card-header img");
-  const logoUrl = logoImg?.getAttribute("src") || null;
-
-  // Get website
-  const websiteLink = card.querySelector(".gz-card-website a");
-  const website = websiteLink?.getAttribute("href") || null;
-
-  // Get categories
-  const categoryElements = card.querySelectorAll(".gz-cat");
-  const categories: string[] = [];
-  for (const cat of categoryElements) {
-    const catText = cat.textContent?.trim();
-    if (catText) categories.push(catText);
+export async function scrapeTechNL(): Promise<ScrapedCompany[]> {
+  const response = await publicFetch(TECHNL_EMBED_URL);
+  if (!response.ok) throw new Error(`Failed to fetch TechNL directory: ${response.status}`);
+  const { document } = parseHTML(await response.text());
+  for (const script of document.querySelectorAll("script")) {
+    const source = script.textContent ?? "";
+    const start = source.search(/\{\s*members:/);
+    if (start < 0) continue;
+    const expression = parseExpressionAt(source, start, { ecmaVersion: "latest" });
+    const state = expression.type === "SequenceExpression" ? expression.expressions[0] : expression;
+    const data = technlDirectory.parse(readTechNLData(state));
+    const unique = new Map(data.members.map((member) => [member.id, member]));
+    return [...unique.values()].map((member) => ({
+      name: member.name,
+      description: member.description,
+      website: member.website,
+      email: null,
+      logoUrl: member.logo_url,
+      categories: member.member_type ? [member.member_type] : [],
+      sourceUrl: TECHNL_DIRECTORY_URL,
+      sourceId: member.id,
+    }));
   }
-
-  // TechNL uses contact forms, not direct emails
-  // We'd need to scrape individual pages for actual emails
-  const email: string | null = null;
-
-  return {
-    name,
-    description: null, // Would need to fetch detail page for full description
-    website,
-    email,
-    logoUrl,
-    categories,
-    sourceUrl,
-    sourceId: hash,
-  };
+  throw new Error("TechNL directory member data was not found; the source format may have changed");
 }
 
 const GENESIS_PORTFOLIO_URL = "https://www.genesiscentre.ca/portfolio";
