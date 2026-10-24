@@ -1,5 +1,7 @@
 PRAGMA foreign_keys=OFF;
 --> statement-breakpoint
+CREATE TEMP TABLE `__nullable_sequences` AS SELECT `name`, `seq` FROM `sqlite_sequence` WHERE `name` IN ('people', 'events');
+--> statement-breakpoint
 CREATE TABLE `__new_people` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,
@@ -111,5 +113,11 @@ ALTER TABLE `education` ADD `genesis_last_seen_at` integer;
 ALTER TABLE `education` ADD `bounce_external_id` text;
 --> statement-breakpoint
 ALTER TABLE `education` ADD `bounce_last_seen_at` integer;
+--> statement-breakpoint
+UPDATE `sqlite_sequence` SET `seq` = MAX(`seq`, COALESCE((SELECT `seq` FROM `__nullable_sequences` WHERE `name` = `sqlite_sequence`.`name`), 0)) WHERE `name` IN ('people', 'events');
+--> statement-breakpoint
+INSERT INTO `sqlite_sequence` (`name`, `seq`) SELECT `name`, `seq` FROM `__nullable_sequences` WHERE NOT EXISTS (SELECT 1 FROM `sqlite_sequence` WHERE `sqlite_sequence`.`name` = `__nullable_sequences`.`name`);
+--> statement-breakpoint
+DROP TABLE `__nullable_sequences`;
 --> statement-breakpoint
 PRAGMA foreign_keys=ON;

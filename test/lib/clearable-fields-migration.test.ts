@@ -20,7 +20,17 @@ it("rebuilds nullable columns without losing event relations, indexes, FTS trigg
       INSERT INTO events(id,slug,title,description,link,created_at,updated_at) VALUES(1,'parent','Parent','Description','https://example.com',1,1);
       INSERT INTO events(id,slug,title,description,link,parent_event_id,created_at,updated_at) VALUES(2,'child','Child','Description',' ',1,1,1);
       INSERT INTO event_dates(event_id,start_date) VALUES(2,1);`);
+    sqlite.exec(`INSERT INTO people(id,slug,name,bio,created_at,updated_at) VALUES(50,'deleted','Deleted','Bio',1,1);
+      DELETE FROM people WHERE id=50;
+      INSERT INTO events(id,slug,title,description,link,created_at,updated_at) VALUES(99,'deleted-event','Deleted event','Description','https://example.com',1,1);
+      DELETE FROM events WHERE id=99;`);
     migrateDatabase(sqlite);
+    expect(sqlite.prepare("SELECT seq FROM sqlite_sequence WHERE name='people'").get()).toEqual({
+      seq: 50,
+    });
+    expect(sqlite.prepare("SELECT seq FROM sqlite_sequence WHERE name='events'").get()).toEqual({
+      seq: 99,
+    });
     expect(sqlite.prepare("SELECT bio FROM people ORDER BY id").all()).toEqual([
       { bio: null },
       { bio: "Original bio" },
@@ -44,6 +54,8 @@ it("rebuilds nullable columns without losing event relations, indexes, FTS trigg
     expect(() => sqlite.exec("INSERT INTO event_dates(event_id,start_date) VALUES(999,1)")).toThrow(
       /FOREIGN/,
     );
+    sqlite.exec("INSERT INTO people(slug,name,created_at,updated_at) VALUES('after','After',1,1)");
+    expect(sqlite.prepare("SELECT id FROM people WHERE slug='after'").get()).toEqual({ id: 51 });
     migrateDatabase(sqlite);
   } finally {
     sqlite.close();
