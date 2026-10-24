@@ -168,7 +168,7 @@ export function Calendar({
           const isClickable = hasEvents && dpDay.inCurrentMonth;
 
           const dayClasses = `
-            calendar-day relative aspect-square flex flex-col items-center justify-start py-pad-1 text-sm transition-colors
+            calendar-day relative w-full min-w-0 aspect-square flex flex-col items-center justify-start py-pad-1 text-sm transition-colors
             ${dpDay.inCurrentMonth ? (hasEvents ? "text-heading" : "text-subtle") : "text-harbour-200"}
             ${isToday ? "bg-soft font-semibold" : ""}
             ${isClickable ? "hover:bg-soft cursor-pointer" : ""}
