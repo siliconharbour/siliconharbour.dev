@@ -187,7 +187,7 @@ export function Calendar({
                       <div key={lane} className="h-1">
                         {span && (
                           <div
-                            className="h-full bg-harbour-500"
+                            className="h-full bg-harbour-500/25"
                             style={{
                               marginLeft: span.start === dateKey ? 3 : 0,
                               marginRight: span.end === dateKey ? 3 : 0,
