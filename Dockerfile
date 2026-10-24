@@ -1,6 +1,6 @@
 FROM node:26.12.1-alpine AS package-manager-base
 RUN apk upgrade --no-cache && apk add --no-cache ca-certificates && update-ca-certificates
-RUN npm install -g pnpm@12.11.1
+RUN npm install -g pnpm@12.15.0
 
 FROM package-manager-base AS dependency-base
 RUN apk add --no-cache python3 make g++
@@ -8,14 +8,12 @@ RUN apk add --no-cache python3 make g++
 FROM dependency-base AS development-dependencies-env
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
-COPY patches /app/patches
 RUN pnpm install --frozen-lockfile
 COPY . /app
 
 FROM dependency-base AS production-dependencies-env
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
-COPY patches /app/patches
 RUN pnpm install --frozen-lockfile --prod
 
 FROM package-manager-base AS build-env
@@ -26,7 +24,6 @@ RUN pnpm run build
 
 FROM package-manager-base
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml /app/
-COPY patches /app/patches
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
 COPY ./app/assets /app/app/assets

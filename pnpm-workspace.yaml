@@ -9,11 +9,11 @@ allowBuilds:
   msgpackr-extract: false
 
 minimumReleaseAgeExclude:
-  - "@react-router/dev@8.4.0"
-  - "@react-router/express@8.4.0"
-  - "@react-router/node@8.4.0"
-  - "@react-router/serve@8.4.0"
-  - react-router@8.4.0
+  - "@react-router/dev@8.5.0"
+  - "@react-router/express@8.5.0"
+  - "@react-router/node@8.5.0"
+  - "@react-router/serve@8.5.0"
+  - react-router@8.5.0
 
 onlyBuiltDependencies:
   - bcrypt
@@ -21,9 +21,6 @@ onlyBuiltDependencies:
   - esbuild
   - sharp
 
-# Code Mode 1.18.4 pins an Effect beta; its patch adapts the renamed stable APIs.
+# Satori pins 0.7.3; use the security fix within the same minor version.
 overrides:
-  "@opencode-ai/codemode>effect": "4.0.2"
-
-patchedDependencies:
-  "@opencode-ai/codemode@1.18.4": patches/@opencode-ai__codemode@1.18.4.patch
+  "fflate@>=0.7.0 <0.7.5": "0.7.5"

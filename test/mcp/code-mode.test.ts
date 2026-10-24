@@ -139,10 +139,10 @@ describe("Code Mode", () => {
   });
 });
 
-it("suggests callable names in caught errors and in sandbox search", async () => {
+it("uses upstream discovery and exposes only callable names", async () => {
   const context = adminContext(1);
   const functions = buildReadFunctions(context);
-  const runtime = createCodeMode(functions, QUERY_LIMITS, context);
+  const runtime = createCodeMode(functions, QUERY_LIMITS);
   const caught = await Effect.runPromise(
     runtime.execute(
       "try { await tools.siliconharbour.persnGet({id:1}); } catch (error) { return error.message; }",
@@ -150,7 +150,7 @@ it("suggests callable names in caught errors and in sandbox search", async () =>
   );
   expect(caught).toMatchObject({
     ok: true,
-    value: expect.stringContaining("Did you mean personGet"),
+    value: expect.stringContaining("Unknown tool"),
   });
   const inherited = await Effect.runPromise(
     runtime.execute(
@@ -158,9 +158,8 @@ it("suggests callable names in caught errors and in sandbox search", async () =>
     ),
   );
   expect(inherited).toMatchObject({ ok: true, value: expect.stringContaining("Unknown tool") });
-  expect(inherited).not.toMatchObject({ value: expect.stringContaining("write operation") });
   const searched = await Effect.runPromise(
-    runtime.execute('return await search({query:"persnGet"});'),
+    runtime.execute('return await search({query:"personGet"});'),
   );
   expect(searched).toMatchObject({
     ok: true,
@@ -175,25 +174,25 @@ it("suggests callable names in caught errors and in sandbox search", async () =>
   );
   expect(keys).toMatchObject({ ok: true, value: Object.keys(functions) });
 });
-it("explains write-in-query errors even when caught, without exposing a write binding", async () => {
+it("keeps write bindings unavailable in query, including when errors are caught", async () => {
   const context = adminContext(1);
-  const runtime = createCodeMode(buildReadFunctions(context), QUERY_LIMITS, context);
+  const runtime = createCodeMode(buildReadFunctions(context), QUERY_LIMITS);
   expect(
     await Effect.runPromise(
       runtime.execute(
         'try { await tools.siliconharbour.personUpdate({id:1,name:"Nope"}); } catch (error) { return error.message; }',
       ),
     ),
-  ).toMatchObject({ ok: true, value: expect.stringContaining("Use the execute tool") });
+  ).toMatchObject({ ok: true, value: expect.stringContaining("Unknown tool") });
   const readonly = { ...context, scopes: new Set<"read" | "write">(["read"]) };
   const result = await Effect.runPromise(
-    createCodeMode(buildReadFunctions(readonly), QUERY_LIMITS, readonly).execute(
+    createCodeMode(buildReadFunctions(readonly), QUERY_LIMITS).execute(
       'return await tools.siliconharbour.personUpdate({id:1,name:"Nope"});',
     ),
   );
   expect(result).toMatchObject({
     ok: false,
-    error: { message: expect.stringContaining("mcp:write") },
+    error: { kind: "UnknownTool" },
     toolCalls: [],
   });
 });

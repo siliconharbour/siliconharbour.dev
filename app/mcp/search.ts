@@ -1,4 +1,4 @@
-import { CodeMode } from "@opencode-ai/codemode";
+import { closestNames } from "./suggestions";
 import { readFileSync } from "node:fs";
 import { operationCatalog } from "~/operations/catalog";
 import { publicContext, type OperationContext } from "~/operations/context";
@@ -57,7 +57,7 @@ export function searchOperations(query: string, context: OperationContext = publ
       context.scopes.has(operation.risk === "read" ? "read" : "write"),
   );
   const nearby = !/\s/.test(query.trim())
-    ? CodeMode.closestNames(
+    ? closestNames(
         query.trim(),
         visible.map((entry) => entry.operation.name),
       )
