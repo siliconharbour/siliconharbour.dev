@@ -1,3 +1,4 @@
+import type { CalendarEventData } from "./calendar-layout";
 import { InvalidOperationError } from "~/operations/errors";
 import { db } from "~/db";
 import {
@@ -396,22 +397,6 @@ export async function getUpcomingEvents(): Promise<EventWithDates[]> {
     });
 }
 
-/**
- * Calendar event data - minimal payload for rendering dots on a calendar
- */
-export interface CalendarEventData {
-  id: number;
-  slug: string;
-  title: string;
-  dates: string[]; // Array of "YYYY-MM-DD" date strings within the month
-  isRecurring: boolean;
-  isPeriod: boolean;
-}
-
-/**
- * Get all events that have occurrences in a given month.
- * Returns a minimal payload for calendar dot rendering.
- */
 export async function getEventsForMonth(
   year: number,
   month: number, // 1-indexed (1 = January)
@@ -457,7 +442,11 @@ export async function getEventsForMonth(
       .get();
     if (event) {
       const dateStrs = new Set<string>();
+      const spans: CalendarEventData["spans"] = [];
       for (const date of dates) {
+        const start = getDateInTimezone(date.startDate);
+        const end = date.endDate ? getDateInTimezone(date.endDate) : start;
+        if (start < end) spans.push({ start, end });
         const rangeStart = date.startDate > monthStart ? date.startDate : monthStart;
         const lastDayOfMonth = fromZonedTime(
           addDays(toZonedTime(monthEnd, SITE_TIMEZONE), -1),
@@ -469,8 +458,9 @@ export async function getEventsForMonth(
             : lastDayOfMonth
           : date.startDate;
         let cursor = toZonedTime(rangeStart, SITE_TIMEZONE);
-        const localEnd = toZonedTime(rangeEnd, SITE_TIMEZONE);
-        while (cursor <= localEnd) {
+        while (
+          getDateInTimezone(fromZonedTime(cursor, SITE_TIMEZONE)) <= getDateInTimezone(rangeEnd)
+        ) {
           dateStrs.add(getDateInTimezone(fromZonedTime(cursor, SITE_TIMEZONE)));
           cursor = addDays(cursor, 1);
         }
@@ -481,6 +471,7 @@ export async function getEventsForMonth(
         slug: event.slug,
         title: event.title,
         dates: [...dateStrs],
+        spans,
         isRecurring: false,
         isPeriod: event.timeMode === "period",
       });
@@ -519,6 +510,7 @@ export async function getEventsForMonth(
         slug: event.slug,
         title: event.title,
         dates: dateStrs,
+        spans: [],
         isRecurring: true,
         isPeriod: false,
       });

@@ -1,20 +1,9 @@
+import { layoutCalendarSpans, type CalendarEventData } from "~/lib/calendar-layout";
 import { useDatePicker } from "@rehookify/datepicker";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { addMonths, subMonths, format } from "date-fns";
 import { useNavigate } from "react-router";
 import { getDateInTimezone } from "~/lib/timezone";
-
-/**
- * Minimal calendar event data returned from /api/calendar-events
- */
-interface CalendarEventData {
-  id: number;
-  slug: string;
-  title: string;
-  dates: string[]; // "YYYY-MM-DD" strings
-  isRecurring: boolean;
-  isPeriod: boolean;
-}
 
 type CalendarProps = {
   /** If true, clicking a date navigates to event(s). Default: true */
@@ -95,6 +84,9 @@ export function Calendar({
     return map;
   }, [activeEvents]);
 
+  const spans = useMemo(() => layoutCalendarSpans(activeEvents), [activeEvents]);
+  const laneCount = Math.max(0, ...spans.map((span) => span.lane + 1));
+
   const handleDayClick = (date: Date) => {
     // Date-picker values represent browser calendar cells, not UTC instants.
     const dateKey = format(date, "yyyy-MM-dd");
@@ -151,7 +143,7 @@ export function Calendar({
       </div>
 
       {/* Week days header */}
-      <div className="grid grid-cols-7 gap-gap-1 mb-2">
+      <div className="grid grid-cols-7 mb-2">
         {weekDays.map((day) => (
           <div key={day} className="text-center text-xs font-medium text-subtle py-pad-2">
             {day}
@@ -161,18 +153,22 @@ export function Calendar({
 
       {/* Days grid */}
       <div
-        className={`grid grid-cols-7 gap-gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}
+        className={`grid grid-cols-7 gap-y-gap-1 ${loading ? "opacity-60" : ""} transition-opacity`}
       >
         {days.map((dpDay) => {
           const dateKey = format(dpDay.$date, "yyyy-MM-dd");
           const dayEvents = eventDateMap.get(dateKey) || [];
           const hasEvents = dayEvents.length > 0;
+          const daySpans = spans.filter((span) => span.start <= dateKey && span.end >= dateKey);
+          const dots = dayEvents.filter(
+            (event) => !daySpans.some((span) => span.event.id === event.id),
+          );
           const isToday = dateKey === getDateInTimezone(new Date());
 
           const isClickable = hasEvents && dpDay.inCurrentMonth;
 
           const dayClasses = `
-            calendar-day relative aspect-square flex flex-col items-center justify-start p-pad-1 text-sm transition-colors
+            calendar-day relative aspect-square flex flex-col items-center justify-start py-pad-1 text-sm transition-colors
             ${dpDay.inCurrentMonth ? (hasEvents ? "text-heading" : "text-subtle") : "text-harbour-200"}
             ${isToday ? "bg-soft font-semibold" : ""}
             ${isClickable ? "hover:bg-soft cursor-pointer" : ""}
@@ -181,17 +177,40 @@ export function Calendar({
           const dayContent = (
             <>
               <span className={isToday ? "text-body" : ""}>{dpDay.day}</span>
-              {hasEvents && dpDay.inCurrentMonth && (
+              {laneCount > 0 && (
+                <div className="w-full mt-1 flex flex-col gap-0.5" aria-hidden="true">
+                  {Array.from({ length: laneCount }, (_, lane) => {
+                    const span = dpDay.inCurrentMonth
+                      ? daySpans.find((span) => span.lane === lane)
+                      : undefined;
+                    return (
+                      <div key={lane} className="h-1">
+                        {span && (
+                          <div
+                            className="h-full bg-harbour-500"
+                            style={{
+                              marginLeft: span.start === dateKey ? 3 : 0,
+                              marginRight: span.end === dateKey ? 3 : 0,
+                            }}
+                            title={span.event.title}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {dots.length > 0 && dpDay.inCurrentMonth && (
                 <div className="flex gap-gap-0-5 mt-1 flex-wrap justify-center">
-                  {dayEvents.slice(0, 3).map((event) => (
+                  {dots.slice(0, 3).map((event) => (
                     <div
                       key={event.id}
                       className={`w-1.5 h-1.5 ${event.isPeriod || event.isRecurring ? "border border-harbour-500" : "bg-harbour-500"}`}
                       title={event.title}
                     />
                   ))}
-                  {dayEvents.length > 3 && (
-                    <span className="text-2xs text-subtle">+{dayEvents.length - 3}</span>
+                  {dots.length > 3 && (
+                    <span className="text-2xs text-subtle">+{dots.length - 3}</span>
                   )}
                 </div>
               )}
@@ -204,6 +223,8 @@ export function Calendar({
               type="button"
               onClick={() => handleDayClick(dpDay.$date)}
               className={dayClasses}
+              style={{ minHeight: `calc(2.5rem + ${laneCount * 0.375}rem)` }}
+              aria-label={`${format(dpDay.$date, "MMMM d, yyyy")}: ${dayEvents.map((event) => event.title).join(", ")}`}
             >
               {dayContent}
             </button>
