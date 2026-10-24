@@ -97,7 +97,7 @@ it("previews are read-only, reconciliation records external IDs, and renamed ent
   });
 });
 it("suppresses removals for empty or suspiciously small scrapes and offers possible rename matches", async () => {
-  for (const name of ["Acme Labs", "Other One", "Other Two", "Other Three", "Other Four"])
+  for (const name of ["Acme Labs Inc.", "Other One", "Other Two", "Other Three", "Other Four"])
     await operations.companyCreate.execute(context, {
       name,
       description: "Description",
@@ -115,7 +115,7 @@ it("suppresses removals for empty or suspiciously small scrapes and offers possi
     await operations.directorySourceReconcile.execute(context, { source: "technl", confirm: true }),
   ).toMatchObject({ recorded: 0, warning: expect.any(String) });
   fetch.mockResolvedValue([
-    entry("Acme Lab", "a"),
+    entry("Acme Lab Inc.", "a"),
     entry("Unrelated", "b"),
     entry("Elsewhere", "c"),
   ]);
@@ -123,9 +123,9 @@ it("suppresses removals for empty or suspiciously small scrapes and offers possi
     source: "technl",
     confirm: true,
   });
-  expect(preview.droppedOff.find((item) => item.name === "Acme Labs")?.possibleMatch?.name).toBe(
-    "Acme Lab",
-  );
+  expect(
+    preview.droppedOff.find((item) => item.name === "Acme Labs Inc.")?.possibleMatch?.name,
+  ).toBe("Acme Lab Inc.");
 });
 it("clears only reviewed flags through admin and MCP operations and validates the entire batch first", async () => {
   const company = await operations.companyCreate.execute(context, {

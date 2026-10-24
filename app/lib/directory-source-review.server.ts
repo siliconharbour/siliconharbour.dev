@@ -80,10 +80,10 @@ export async function reviewDirectorySource(source: DirectorySource, entries: Sc
               )
             : undefined;
           const nearby = closestNames(
-            row.name,
-            entries.map((entry) => entry.name),
+            nameKey(row.name),
+            entries.map((entry) => nameKey(entry.name)),
           )[0];
-          const suggestion = sameDomain ?? entries.find((entry) => entry.name === nearby);
+          const suggestion = sameDomain ?? entries.find((entry) => nameKey(entry.name) === nearby);
           return {
             type,
             id: row.id,

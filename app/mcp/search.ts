@@ -58,7 +58,7 @@ export function searchOperations(query: string, context: OperationContext = publ
   );
   const nearby = !/\s/.test(query.trim())
     ? closestNames(
-        query.trim(),
+        query.trim().split(".").at(-1)!,
         visible.map((entry) => entry.operation.name),
       )
     : [];
