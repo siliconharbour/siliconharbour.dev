@@ -210,6 +210,20 @@ describe("current event visibility", () => {
 });
 
 describe("period calendar coverage", () => {
+  it("preserves span endpoints across months and includes the last day when it ends earlier", async () => {
+    const event = await createEvent(baseEvent({ title: "Overnight conference" }), [
+      {
+        startDate: parseAsTimezone("2026-10-31", "18:00"),
+        endDate: parseAsTimezone("2026-11-02", "09:00"),
+        isAllDay: false,
+      },
+    ]);
+    const october = (await getEventsForMonth(2026, 10)).find((item) => item.id === event.id);
+    const november = (await getEventsForMonth(2026, 11)).find((item) => item.id === event.id);
+    expect(october?.dates).toEqual(["2026-10-31"]);
+    expect(november?.dates).toEqual(["2026-11-01", "2026-11-02"]);
+    expect(november?.spans).toEqual([{ start: "2026-10-31", end: "2026-11-02" }]);
+  });
   it("includes every local day covered by a period", async () => {
     const period = await createEvent(baseEvent({ title: "September Jam", timeMode: "period" }), [
       {
@@ -222,6 +236,7 @@ describe("period calendar coverage", () => {
     const calendar = await getEventsForMonth(2026, 9);
     const item = calendar.find((event) => event.id === period.id);
     expect(item?.isPeriod).toBe(true);
+    expect(item?.spans).toEqual([{ start: "2026-09-12", end: "2026-09-14" }]);
     expect(item?.dates).toEqual(["2026-09-12", "2026-09-13", "2026-09-14"]);
   });
 });
