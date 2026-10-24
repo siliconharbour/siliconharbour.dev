@@ -1,3 +1,4 @@
+import { TECHNL_DIRECTORY_URL } from "~/lib/technl";
 import type { Route } from "./+types/companies.$slug";
 import { Link, useLoaderData } from "react-router";
 import { useMemo, useState } from "react";
@@ -435,7 +436,7 @@ export default function CompanyDetail() {
             )}
             {company.technl && (
               <a
-                href={`https://members.technl.ca/memberdirectory/Find?term=${encodeURIComponent(company.name)}`}
+                href={TECHNL_DIRECTORY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"

@@ -42,6 +42,7 @@
     "@react-router/node": "8.4.0",
     "@react-router/serve": "8.4.0",
     "@rehookify/datepicker": "^6.6.8",
+    "acorn": "8.19.0",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^13.0.3",
     "culori": "^4.0.2",
