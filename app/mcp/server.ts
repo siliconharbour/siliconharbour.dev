@@ -68,7 +68,7 @@ export async function createMcpServer(auth?: AuthInfo): Promise<McpServer> {
 
   const context = mcpContext(auth);
   const readFunctions = buildReadFunctions(context);
-  const queryRuntime = createCodeMode(readFunctions, QUERY_LIMITS, context);
+  const queryRuntime = createCodeMode(readFunctions, QUERY_LIMITS);
 
   server.registerTool(
     "search",
@@ -103,7 +103,7 @@ export async function createMcpServer(auth?: AuthInfo): Promise<McpServer> {
 
   if (context.actor?.role === "admin" && context.scopes.has("write")) {
     const executeFunctions = buildExecuteFunctions(context);
-    const executeRuntime = createCodeMode(executeFunctions, EXECUTE_LIMITS, context);
+    const executeRuntime = createCodeMode(executeFunctions, EXECUTE_LIMITS);
     server.registerTool(
       "execute",
       {

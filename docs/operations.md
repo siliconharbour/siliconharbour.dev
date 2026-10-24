@@ -2,6 +2,8 @@
 
 `app/operations/catalog.ts` is the interface for admin actions and MCP. Operations own validation, authorization, and business rules; services in `app/lib` own database and external I/O. Routes translate forms and render results. `app/mcp/bridge.ts` only assembles catalog bindings.
 
+MCP uses unmodified `@opencode-ai/codemode`. Keep the direct `effect` version aligned with the exact version in CodeMode’s package dependencies; it currently requires `4.0.0-beta.101`. Top-level MCP search handles typo suggestions; sandbox search and diagnostics use upstream behavior.
+
 ## Calling operations
 
 MCP exposes `search`, `query`, and, for administrators with `mcp:write`, `execute`. Functions use noun-first camelCase:
