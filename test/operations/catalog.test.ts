@@ -125,3 +125,33 @@ it("advertises conditional creation and an explicit created result", () => {
     expect(output.properties, operation.name).toHaveProperty("created.type", "boolean");
   }
 });
+
+it("accepts null for every field whose published input schema permits null", () => {
+  type Json = { type?: string | string[]; anyOf?: Json[]; oneOf?: Json[] };
+  const nullable = (node: Json): boolean =>
+    node.type === "null" ||
+    (Array.isArray(node.type) && node.type.includes("null")) ||
+    [...(node.anyOf ?? []), ...(node.oneOf ?? [])].some(nullable);
+  function visit(schema: z.ZodType, path: string) {
+    const json = z.toJSONSchema(schema, { io: "input", unrepresentable: "any" }) as Json;
+    if (nullable(json)) expect(schema.safeParse(null).success, path).toBe(true);
+    if (schema instanceof z.ZodObject)
+      for (const [key, field] of Object.entries(schema.shape))
+        visit(field as z.ZodType, `${path}.${key}`);
+    else if (schema instanceof z.ZodArray) visit(schema.element as z.ZodType, `${path}[]`);
+    else if (schema instanceof z.ZodUnion)
+      schema.options.forEach((field, index) => visit(field as z.ZodType, `${path}[${index}]`));
+    else if (schema instanceof z.ZodPipe) visit(schema.in as z.ZodType, path);
+    else if (schema instanceof z.ZodRecord) visit(schema.valueType as z.ZodType, `${path}.*`);
+    else if (
+      schema instanceof z.ZodOptional ||
+      schema instanceof z.ZodNullable ||
+      schema instanceof z.ZodDefault ||
+      schema instanceof z.ZodPrefault ||
+      schema instanceof z.ZodReadonly ||
+      schema instanceof z.ZodNonOptional
+    )
+      visit(schema.unwrap() as z.ZodType, path);
+  }
+  for (const operation of Object.values(operationCatalog)) visit(operation.input, operation.name);
+});

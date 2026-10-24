@@ -304,14 +304,13 @@ export function EventForm({
         {/* Link */}
         <div>
           <label htmlFor="link" className="block text-sm font-medium mb-1 text-heading">
-            Event Link *
+            Event Link
           </label>
           <input
             type="url"
             id="link"
             name="link"
-            required
-            defaultValue={event?.link}
+            defaultValue={event?.link ?? ""}
             placeholder="https://..."
             className="w-full px-pad-3 py-pad-2 border border-line bg-surface focus:outline-none focus:ring-2 focus:ring-harbour-500 focus:border-transparent"
           />

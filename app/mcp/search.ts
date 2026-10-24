@@ -1,4 +1,4 @@
-import { closestNames } from "./suggestions";
+import { closestNames } from "~/lib/name-suggestions";
 import { readFileSync } from "node:fs";
 import { operationCatalog } from "~/operations/catalog";
 import { publicContext, type OperationContext } from "~/operations/context";

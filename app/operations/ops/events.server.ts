@@ -123,6 +123,7 @@ function eventCreationIdentity(input: z.output<typeof eventCreateInput>) {
     link ? identityKey(link, input.parentEventId, key) : null,
     getAllEvents,
     (row) =>
+      link !== null &&
       normalizeIdentityUrl(row.link) === link &&
       row.parentEventId === (input.parentEventId ?? null) &&
       scheduleIdentity(row, row.dates) === key,

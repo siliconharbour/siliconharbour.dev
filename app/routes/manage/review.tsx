@@ -174,14 +174,16 @@ export default function ManageReview() {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-gap-1">
-                    <a
-                      href={event.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="border border-line px-pad-2 py-pad-1 text-xs text-body hover:bg-soft"
-                    >
-                      View
-                    </a>
+                    {event.link && (
+                      <a
+                        href={event.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="border border-line px-pad-2 py-pad-1 text-xs text-body hover:bg-soft"
+                      >
+                        View
+                      </a>
+                    )}
                     <ReviewButton
                       kind="event"
                       id={event.id}

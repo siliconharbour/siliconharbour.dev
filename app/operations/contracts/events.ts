@@ -1,4 +1,4 @@
-import { createOptions } from "../fields";
+import { createOptions, canonicalUrl } from "../fields";
 import { listInput } from "../listing";
 import { z } from "zod";
 import { eventTimeModes, eventTagColors, eventSourceTypes, fetchStatuses } from "../fields";
@@ -10,7 +10,7 @@ export const eventRowOutput = z
     title: z.string(),
     description: z.string(),
     location: z.string().nullable(),
-    link: z.string(),
+    link: z.string().nullable(),
     organizer: z.string().nullable(),
     coverImage: z.string().nullable(),
     iconImage: z.string().nullable(),
@@ -123,7 +123,9 @@ export const eventDateInput = z
 export const eventFields = {
   title: text("title", 500),
   description: text("description"),
-  link: nullableUrl().pipe(z.string().min(1, "link is required")),
+  link: nullableUrl().describe(
+    "External event URL. Null or blank clears it; ifNotExists requires a URL.",
+  ),
   location: nullableText().optional(),
   organizer: nullableText().optional(),
   requiresSignup: z.boolean().optional(),
@@ -162,7 +164,7 @@ function validateSchedule(input: Record<string, unknown>, ctx: z.RefinementCtx) 
     });
 }
 export const eventCreateInput = z
-  .object(eventFields)
+  .object({ ...eventFields, link: eventFields.link.default(null) })
   .strict()
   .superRefine((input, ctx) => {
     validateSchedule(input, ctx);
@@ -203,7 +205,7 @@ export const eventSourceFields = {
   organizer: nullableText().optional(),
   sourceType: z.enum(eventSourceTypes),
   sourceIdentifier: text("sourceIdentifier", 1000),
-  sourceUrl: nullableUrl().pipe(z.string()),
+  sourceUrl: canonicalUrl(),
 };
 export const eventSourceCreateInput = z
   .object({ ...eventSourceFields, confirm })

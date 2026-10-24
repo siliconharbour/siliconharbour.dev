@@ -135,7 +135,7 @@ export async function buildSiteExport() {
       createdAt: person.createdAt.toISOString(),
       updatedAt: person.updatedAt.toISOString(),
     });
-    peopleFolder?.file(`${person.slug}.md`, `${frontmatter}\n${person.bio}`);
+    peopleFolder?.file(`${person.slug}.md`, `${frontmatter}\n${person.bio ?? ""}`);
   }
 
   // Export news

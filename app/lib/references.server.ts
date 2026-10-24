@@ -324,11 +324,11 @@ export async function deleteReferencesFrom(
 export async function syncReferences(
   sourceType: ContentType,
   sourceId: number,
-  content: string,
+  content: string | null,
   field: string = "description",
 ): Promise<{ resolved: ResolvedReference[]; unresolved: UnresolvedReference[] }> {
   // Parse references from content
-  const parsed = parseReferences(content);
+  const parsed = parseReferences(content ?? "");
 
   // Build a map of text -> relation for quick lookup
   const relationMap = new Map<string, string | undefined>();
@@ -508,7 +508,7 @@ export interface SerializedRef {
 export async function prepareRefsForClient(
   content: string,
 ): Promise<Record<string, SerializedRef>> {
-  const parsed = parseReferences(content);
+  const parsed = parseReferences(content ?? "");
   const texts = parsed.map((p) => p.text);
   const resolutions = await resolveReferences(texts);
 
@@ -661,7 +661,7 @@ export type EventBacklinkData = {
   title: string;
   description: string;
   location: string | null;
-  link: string;
+  link: string | null;
   organizer: string | null;
   coverImage: string | null;
   iconImage: string | null;

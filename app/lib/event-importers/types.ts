@@ -3,7 +3,7 @@ export interface FetchedEvent {
   title: string;
   description: string;
   location: string;
-  link: string;
+  link: string | null;
   organizer: string;
   startDate: string; // "YYYY-MM-DD"
   endDate: string; // "YYYY-MM-DD"

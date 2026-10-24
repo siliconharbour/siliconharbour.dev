@@ -168,6 +168,13 @@ export async function convertCompanyToEducation(
       coverImage: company.coverImage,
       technl: company.technl,
       genesis: company.genesis,
+      bounce: company.bounce,
+      technlExternalId: company.technlExternalId,
+      technlLastSeenAt: company.technlLastSeenAt,
+      genesisExternalId: company.genesisExternalId,
+      genesisLastSeenAt: company.genesisLastSeenAt,
+      bounceExternalId: company.bounceExternalId,
+      bounceLastSeenAt: company.bounceLastSeenAt,
     })
     .returning();
 

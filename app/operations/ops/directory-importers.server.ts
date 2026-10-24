@@ -1,3 +1,13 @@
+import {
+  reviewDirectorySource,
+  reconcileDirectorySource,
+  clearDirectorySourceFlags,
+} from "~/lib/directory-source-review.server";
+import {
+  directoryEntity,
+  directoryFetchOutput,
+  directorySourceFlagsClearInput,
+} from "../contracts/importers";
 import { buildDirectoryImportLoaderData } from "~/lib/directory-import.server";
 import { directorySource, directoryReviewOutput } from "../contracts/importers";
 import { z } from "zod";
@@ -6,7 +16,6 @@ import {
   directoryFetchInput,
   directoryImportInput,
   directoryAdoptInput,
-  scrapedCompany,
   importBatchOutput,
 } from "../contracts/importers";
 import { directoryImportConfigs } from "~/lib/directory-import-config.server";
@@ -32,11 +41,12 @@ export const directoryImporterOperations = {
     access: "admin",
     summary: "Fetch a company directory for review.",
     description:
-      "Scrape the fixed TechNL, Genesis, or Bounce source and return company candidates without importing them. Requires confirm: true.",
+      "Scrape the fixed TechNL, Genesis, or Bounce source and return candidates, dropped memberships, and possible rename matches without writing anything. Empty or suspiciously small results return a warning instead of removals. Requires confirm: true.",
     input: directoryFetchInput,
-    output: z.array(scrapedCompany),
+    output: directoryFetchOutput,
     examples: [{ title: "Fetch TechNL", input: { source: "technl", confirm: true } }],
-    run: (_ctx, { source }) => directoryImportConfigs[source].scrapeFn(),
+    run: async (_ctx, { source }) =>
+      reviewDirectorySource(source, await directoryImportConfigs[source].scrapeFn()),
   }),
   directoryImport: defineOperation({
     name: "directoryImport",
@@ -54,8 +64,40 @@ export const directoryImporterOperations = {
         input: { source: "technl", companies: [{ name: "Example", description: "Description" }] },
       },
     ],
-    run: (_ctx, input) =>
-      importDirectoryCompanies(input.source, input.companies, input.downloadLogos),
+    run: (ctx, input) =>
+      importDirectoryCompanies(input.source, input.companies, input.downloadLogos, ctx.now()),
+  }),
+  directorySourceReconcile: defineOperation({
+    name: "directorySourceReconcile",
+    area: "importers",
+    risk: "external",
+    access: "admin",
+    summary: "Record directory matches from a fresh source fetch.",
+    description:
+      "Fetch the full source and record IDs and last-seen timestamps for unambiguous existing matches. Never create records or change membership flags. Reject removal review for empty or suspiciously small scrapes. Requires confirm: true.",
+    input: directoryFetchInput,
+    output: z.object({ recorded: z.number().int(), warning: z.string().nullable() }).strict(),
+    examples: [{ title: "Record TechNL matches", input: { source: "technl", confirm: true } }],
+    run: async (ctx, { source }) =>
+      reconcileDirectorySource(source, await directoryImportConfigs[source].scrapeFn(), ctx.now()),
+  }),
+  directorySourceFlagsClear: defineOperation({
+    name: "directorySourceFlagsClear",
+    area: "importers",
+    risk: "destructive",
+    access: "admin",
+    summary: "Clear reviewed directory membership flags.",
+    description:
+      "Clear only the selected company's or institution's flag for one source. Preserve other memberships, visibility and historical last-seen metadata. Never delete records. Requires confirm: true.",
+    input: directorySourceFlagsClearInput,
+    output: z.object({ cleared: z.number().int(), entities: z.array(directoryEntity) }).strict(),
+    examples: [
+      {
+        title: "Clear reviewed memberships",
+        input: { source: "technl", entities: [{ type: "company", id: 1 }], confirm: true },
+      },
+    ],
+    run: (ctx, input) => clearDirectorySourceFlags(input.source, input.entities, ctx.now()),
   }),
   directoryImportAdoptField: defineOperation({
     name: "directoryImportAdoptField",

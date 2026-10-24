@@ -1,4 +1,11 @@
 import {
+  directoryRecords,
+  matchDirectoryRecord,
+  recordDirectoryObservation,
+  sourceTrackingFields,
+} from "./directory-source-review.server";
+import { updateEducation } from "./education.server";
+import {
   getAllCompanies,
   getCompanyByName,
   createCompany,
@@ -16,11 +23,14 @@ export async function importDirectoryCompanies(
   source: keyof typeof directoryImportConfigs,
   companies: ScrapedCompany[],
   downloadLogos: boolean,
+  now = new Date(),
 ) {
   const config = directoryImportConfigs[source];
   const imported: string[] = [];
   const errors: string[] = [];
   const blocked = await getBlockedExternalIds(source);
+  const records = await directoryRecords();
+  const tracking = sourceTrackingFields(source);
   for (const company of companies) {
     let logo: string | null = null;
     try {
@@ -28,22 +38,25 @@ export async function importDirectoryCompanies(
         imported.push(`${company.name} (blocked)`);
         continue;
       }
-      let existing = await getCompanyByName(company.name);
-      if (!existing && company.website) {
-        const key = normalizeUrl(company.website);
-        existing =
-          (await getAllCompanies(true)).find(
-            (row) => row.website && normalizeUrl(row.website) === key,
-          ) ?? null;
-      }
-      if (existing) {
-        await updateCompany(existing.id, { [config.sourceFlag]: true });
-        imported.push(`${existing.name} (marked ${config.sourceLabel})`);
+      const match = matchDirectoryRecord(records, source, company);
+      if (match) {
+        if (match.type === "company")
+          await updateCompany(match.row.id, { [config.sourceFlag]: true });
+        else await updateEducation(match.row.id, { [config.sourceFlag]: true });
+        recordDirectoryObservation(
+          { type: match.type, id: match.row.id },
+          source,
+          company.sourceId,
+          now,
+        );
+        if (company.sourceId) match.row[tracking.externalId] = company.sourceId;
+        match.row[tracking.lastSeenAt] = now;
+        imported.push(`${match.row.name} (marked ${config.sourceLabel})`);
         continue;
       }
       if (downloadLogos && company.logoUrl)
         logo = await processAndSaveIconImageWithPadding(await fetchPublicImage(company.logoUrl));
-      await createCompany({
+      const created = await createCompany({
         name: company.name,
         description: company.description ?? "",
         website: company.website,
@@ -52,6 +65,20 @@ export async function importDirectoryCompanies(
         logo,
         [config.sourceFlag]: true,
         visible: false,
+      });
+      recordDirectoryObservation(
+        { type: "company", id: created.id },
+        source,
+        company.sourceId,
+        now,
+      );
+      records.push({
+        type: "company",
+        row: {
+          ...created,
+          [tracking.externalId]: company.sourceId || null,
+          [tracking.lastSeenAt]: now,
+        },
       });
       imported.push(company.name);
     } catch (error) {

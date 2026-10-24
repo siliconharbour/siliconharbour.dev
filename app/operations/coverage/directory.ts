@@ -2,6 +2,21 @@ import { mappedFields } from "./declarations";
 import type { ColumnCoverage } from "../coverage";
 export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> = {
   companies: {
+    technlExternalId: { mapped: { directoryImport: "companies[].sourceId" } },
+    technlLastSeenAt: {
+      excluded:
+        "Recorded from the operation clock when a directory match is reconciled or imported",
+    },
+    genesisExternalId: { mapped: { directoryImport: "companies[].sourceId" } },
+    genesisLastSeenAt: {
+      excluded:
+        "Recorded from the operation clock when a directory match is reconciled or imported",
+    },
+    bounceExternalId: { mapped: { directoryImport: "companies[].sourceId" } },
+    bounceLastSeenAt: {
+      excluded:
+        "Recorded from the operation clock when a directory match is reconciled or imported",
+    },
     ...mappedFields(
       ["companyCreate", "companyUpdate"],
       [
@@ -40,6 +55,21 @@ export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> =
     updatedAt: { excluded: "Mutation timestamp" },
   },
   education: {
+    technlExternalId: { mapped: { directoryImport: "companies[].sourceId" } },
+    technlLastSeenAt: {
+      excluded:
+        "Recorded from the operation clock when a directory match is reconciled or imported",
+    },
+    genesisExternalId: { mapped: { directoryImport: "companies[].sourceId" } },
+    genesisLastSeenAt: {
+      excluded:
+        "Recorded from the operation clock when a directory match is reconciled or imported",
+    },
+    bounceExternalId: { mapped: { directoryImport: "companies[].sourceId" } },
+    bounceLastSeenAt: {
+      excluded:
+        "Recorded from the operation clock when a directory match is reconciled or imported",
+    },
     ...mappedFields(
       ["educationCreate", "educationUpdate"],
       [
