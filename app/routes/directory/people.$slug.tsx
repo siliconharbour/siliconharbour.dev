@@ -1,3 +1,4 @@
+import { socialLinkKeys, socialLinkLabels } from "~/lib/links";
 import type { Route } from "./+types/people.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getPersonBySlug } from "~/lib/people.server";
@@ -131,25 +132,18 @@ export default function PersonDetail() {
                   GitHub
                 </a>
               )}
-              {socialLinks.twitter && (
-                <a
-                  href={socialLinks.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-body hover:text-heading text-sm"
-                >
-                  Twitter
-                </a>
-              )}
-              {socialLinks.linkedin && (
-                <a
-                  href={socialLinks.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-body hover:text-heading text-sm"
-                >
-                  LinkedIn
-                </a>
+              {socialLinkKeys.map((key) =>
+                socialLinks[key] ? (
+                  <a
+                    key={key}
+                    href={socialLinks[key]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-body hover:text-heading text-sm"
+                  >
+                    {socialLinkLabels[key]}
+                  </a>
+                ) : null,
               )}
             </div>
           </div>

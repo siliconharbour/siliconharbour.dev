@@ -290,12 +290,14 @@ it("round-trips social links and atomically patches keys without dropping other 
       twitter: "https://example.com/old",
       linkedin: "https://example.com/profile",
       mastodon: "https://example.com/@me",
+      bluesky: "https://bsky.app/profile/me.example.com",
     },
   });
   expect(person.socialLinks).toEqual({
     twitter: "https://example.com/old",
     linkedin: "https://example.com/profile",
     mastodon: "https://example.com/@me",
+    bluesky: "https://bsky.app/profile/me.example.com",
   });
   await Promise.all([
     operations.personUpdate.execute(context, {
@@ -312,6 +314,7 @@ it("round-trips social links and atomically patches keys without dropping other 
     twitter: "https://example.com/new",
     linkedin: "https://example.com/new-profile",
     mastodon: "https://example.com/@me",
+    bluesky: "https://bsky.app/profile/me.example.com",
   });
   expect(
     (
@@ -325,9 +328,35 @@ it("round-trips social links and atomically patches keys without dropping other 
   expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
     linkedin: "https://example.com/new-profile",
     mastodon: "https://example.com/@me",
+    bluesky: "https://bsky.app/profile/me.example.com",
   });
   await editPerson({
     request: request({ name: "Link owner", bio: "Bio", linkedin: "", visible: "true" }),
+    params: { id: String(person.id) },
+  } as Parameters<typeof editPerson>[0]);
+  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
+    mastodon: "https://example.com/@me",
+    bluesky: "https://bsky.app/profile/me.example.com",
+  });
+  await execute("personUpdate", { id: person.id, socialLinks: { bluesky: null } });
+  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
+    mastodon: "https://example.com/@me",
+  });
+  await editPerson({
+    request: request({
+      name: "Link owner",
+      bio: "Bio",
+      bluesky: "https://bsky.app/profile/NEW.example.com",
+      visible: "true",
+    }),
+    params: { id: String(person.id) },
+  } as Parameters<typeof editPerson>[0]);
+  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
+    mastodon: "https://example.com/@me",
+    bluesky: "https://bsky.app/profile/new.example.com",
+  });
+  await editPerson({
+    request: request({ name: "Link owner", bio: "Bio", bluesky: "", visible: "true" }),
     params: { id: String(person.id) },
   } as Parameters<typeof editPerson>[0]);
   expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({

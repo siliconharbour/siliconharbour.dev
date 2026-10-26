@@ -1,3 +1,4 @@
+import { socialLinkKeys, socialLinkLabels } from "~/lib/links";
 import { BlockReasonField } from "~/components/manage/BlockReasonField";
 import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -136,33 +137,20 @@ export default function EditPerson() {
               />
             </div>
 
-            <div className="flex flex-col gap-gap-2">
-              <label htmlFor="twitter" className="text-sm text-body">
-                Twitter
-              </label>
-              <input
-                type="url"
-                id="twitter"
-                name="twitter"
-                placeholder="https://twitter.com/username"
-                defaultValue={socialLinks.twitter ?? ""}
-                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="flex flex-col gap-gap-2">
-              <label htmlFor="linkedin" className="text-sm text-body">
-                LinkedIn
-              </label>
-              <input
-                type="url"
-                id="linkedin"
-                name="linkedin"
-                placeholder="https://linkedin.com/in/username"
-                defaultValue={socialLinks.linkedin ?? ""}
-                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-              />
-            </div>
+            {socialLinkKeys.map((key) => (
+              <div key={key} className="flex flex-col gap-gap-2">
+                <label htmlFor={key} className="text-sm text-body">
+                  {socialLinkLabels[key]}
+                </label>
+                <input
+                  type="url"
+                  id={key}
+                  name={key}
+                  defaultValue={socialLinks[key] ?? ""}
+                  className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                />
+              </div>
+            ))}
           </div>
 
           <div className="flex flex-col gap-gap-2">

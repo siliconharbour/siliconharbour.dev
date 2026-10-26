@@ -1,3 +1,4 @@
+import { socialLinkKeys, socialLinkLabels } from "~/lib/links";
 import { BlockReasonField } from "~/components/manage/BlockReasonField";
 import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -384,25 +385,18 @@ export default function ReviewPeople() {
                       </a>
                     </>
                   )}
-                  {socialLinks.twitter && (
-                    <a
-                      href={ensureProtocol(socialLinks.twitter)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-heading"
-                    >
-                      Twitter
-                    </a>
-                  )}
-                  {socialLinks.linkedin && (
-                    <a
-                      href={ensureProtocol(socialLinks.linkedin)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-heading"
-                    >
-                      LinkedIn
-                    </a>
+                  {socialLinkKeys.map((key) =>
+                    socialLinks[key] ? (
+                      <a
+                        key={key}
+                        href={ensureProtocol(socialLinks[key])}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-heading"
+                      >
+                        {socialLinkLabels[key]}
+                      </a>
+                    ) : null,
                   )}
                 </div>
               </div>
@@ -491,32 +485,20 @@ export default function ReviewPeople() {
                     className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-col gap-gap-1">
-                  <label htmlFor="twitter" className="text-sm font-medium text-heading">
-                    Twitter
-                  </label>
-                  <input
-                    type="url"
-                    id="twitter"
-                    name="twitter"
-                    placeholder="https://twitter.com/username"
-                    defaultValue={socialLinks.twitter ?? ""}
-                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-gap-1">
-                  <label htmlFor="linkedin" className="text-sm font-medium text-heading">
-                    LinkedIn
-                  </label>
-                  <input
-                    type="url"
-                    id="linkedin"
-                    name="linkedin"
-                    placeholder="https://linkedin.com/in/username"
-                    defaultValue={socialLinks.linkedin ?? ""}
-                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                  />
-                </div>
+                {socialLinkKeys.map((key) => (
+                  <div key={key} className="flex flex-col gap-gap-1">
+                    <label htmlFor={key} className="text-sm font-medium text-heading">
+                      {socialLinkLabels[key]}
+                    </label>
+                    <input
+                      type="url"
+                      id={key}
+                      name={key}
+                      defaultValue={socialLinks[key] ?? ""}
+                      className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    />
+                  </div>
+                ))}
               </div>
 
               <div className="flex items-center justify-end">

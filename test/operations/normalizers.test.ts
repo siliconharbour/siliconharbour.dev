@@ -1,3 +1,4 @@
+import { hostSignature } from "~/mcp/host-function";
 import { expect, it } from "vitest";
 import { canonicalUrl, email, githubProfile } from "~/operations/fields";
 import { socialLinksPatch } from "~/lib/links";
@@ -31,6 +32,23 @@ it("canonicalizes links without discarding website path case or www, and normali
       linkedin: "https://www.linkedin.com/in/Profile",
     }),
   ).toEqual({ twitter: "https://x.com/foo", linkedin: "https://linkedin.com/in/Profile" });
+  expect(
+    socialLinksPatch.parse({ bluesky: "https://www.bsky.app/profile/Foo.BSKY.social/" }),
+  ).toEqual({
+    bluesky: "https://bsky.app/profile/foo.bsky.social",
+  });
+  expect(socialLinksPatch.parse({ bluesky: "http://example.com/@Me" })).toEqual({
+    bluesky: "http://example.com/@Me",
+  });
+  expect(
+    socialLinksPatch.parse({ bluesky: "https://bsky.app/profile/Foo.bsky.social/post/AbC" }),
+  ).toEqual({
+    bluesky: "https://bsky.app/profile/Foo.bsky.social/post/AbC",
+  });
+  expect(
+    socialLinksPatch.safeParse({ bsky: "https://bsky.app/profile/foo.bsky.social" }).success,
+  ).toBe(false);
+  expect(hostSignature("personUpdate", operationCatalog.personUpdate.input)).toContain("bluesky");
   expect(email().parse("  Person@Example.COM ")).toBe("person@example.com");
 });
 it("finds and blocks a profile created from a bare login through the canonical operations", async () => {

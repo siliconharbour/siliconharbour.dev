@@ -5,6 +5,7 @@
  * Progress is persisted to allow resuming interrupted imports.
  */
 
+import { socialLinkKeys, type SocialLinks } from "./links";
 import { db } from "~/db";
 import { importJobs } from "~/db/schema";
 import { eq } from "drizzle-orm";
@@ -504,7 +505,7 @@ async function importSingleUser(
     bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
   }
 
-  const socialLinks: Record<string, string> = {};
+  const socialLinks: SocialLinks = {};
 
   if (user.twitter_username) {
     socialLinks.twitter = `https://twitter.com/${user.twitter_username}`;
@@ -512,19 +513,11 @@ async function importSingleUser(
 
   for (const account of user.socialAccounts || []) {
     const provider = account.provider.toLowerCase();
-    if (provider === "twitter" && !socialLinks.twitter) {
-      socialLinks.twitter = account.url;
-    } else if (provider === "linkedin" || provider === "linkedin_company") {
-      socialLinks.linkedin = account.url;
-    } else if (provider === "instagram") {
-      socialLinks.instagram = account.url;
-    } else if (provider === "youtube") {
-      socialLinks.youtube = account.url;
-    } else if (provider === "mastodon") {
-      socialLinks.mastodon = account.url;
-    } else if (provider === "facebook") {
-      socialLinks.facebook = account.url;
-    }
+    const key = socialLinkKeys.find(
+      (key) => key === (provider === "linkedin_company" ? "linkedin" : provider),
+    );
+    if (!key || (key === "twitter" && socialLinks.twitter)) continue;
+    socialLinks[key] = account.url;
   }
 
   if (existingByName) {
