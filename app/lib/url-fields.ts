@@ -54,9 +54,15 @@ export function socialUrl(network: string) {
     if (network === "twitter" && ["twitter.com", "x.com"].includes(host)) {
       url.hostname = "x.com";
       url.pathname = url.pathname.toLowerCase().replace(/\/$/, "");
-      return `${url.protocol}//${url.host}${url.pathname === "/" ? "" : url.pathname}${url.search}${url.hash}`;
+    } else if (network === "bluesky" && host === "bsky.app") {
+      url.hostname = "bsky.app";
+      url.pathname = url.pathname.replace(
+        /^(\/profile\/)([^/]+)\/?$/,
+        (_, prefix, handle) => prefix + handle.toLowerCase(),
+      );
+    } else if (network === "linkedin" && host === "linkedin.com") {
+      url.hostname = "linkedin.com";
     }
-    if (network === "linkedin" && host === "linkedin.com") return value.replace(/\/\/www\./, "//");
-    return value;
+    return `${url.protocol}//${url.host}${url.pathname === "/" ? "" : url.pathname}${url.search}${url.hash}`;
   });
 }

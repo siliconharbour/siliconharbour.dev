@@ -7,8 +7,18 @@ export const socialLinkKeys = [
   "instagram",
   "youtube",
   "mastodon",
+  "bluesky",
   "facebook",
 ] as const;
+export const socialLinkLabels: Record<(typeof socialLinkKeys)[number], string> = {
+  twitter: "Twitter",
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+  youtube: "YouTube",
+  mastodon: "Mastodon",
+  bluesky: "Bluesky",
+  facebook: "Facebook",
+};
 export const projectLinkKeys = [
   "github",
   "itchio",
