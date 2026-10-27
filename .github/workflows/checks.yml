@@ -24,3 +24,42 @@ jobs:
       - run: pnpm fmt:check
       - run: pnpm test
       - run: pnpm build
+
+  container-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check compressed runtime, native addons, migrations and HTTP
+        shell: bash
+        run: |
+          set -euo pipefail
+          data=$(mktemp -d)
+          name="siliconharbour-runtime-${GITHUB_RUN_ID}"
+          trap 'docker logs "$name" 2>/dev/null || true; docker rm -f "$name" 2>/dev/null || true; rm -rf "$data"' EXIT
+          docker build --target development-dependencies-env -t siliconharbour-migrations .
+          docker run --rm --network none -v "$data:/data" -e DB_URL=/data/smoke.db \
+            siliconharbour-migrations pnpm run db:migrate
+          docker build -t siliconharbour-runtime .
+          docker run -d --name "$name" --network none -v "$data:/data" \
+            -e DB_URL=/data/smoke.db -e DATA_DIR=/data -e DB_NAME=smoke.db -e NODE_ENV=production \
+            -e SESSION_SECRET=container-test-secret-at-least-thirty-two-bytes \
+            -e SITE_URL=http://127.0.0.1:3000 siliconharbour-runtime
+          ready=false
+          for _ in $(seq 1 30); do
+            if docker exec "$name" node --input-type=module -e '
+              import assert from "node:assert/strict";
+              assert.equal(process.config.variables.v8_enable_pointer_compression, 1);
+              for (const path of ["/", "/api/events", "/api/companies"]) {
+                const response = await fetch("http://127.0.0.1:3000" + path);
+                assert.equal(response.status, 200, path);
+                assert((await response.text()).length > 0, path);
+              }
+            '; then ready=true; break; fi
+            sleep 2
+          done
+          test "$ready" = true
