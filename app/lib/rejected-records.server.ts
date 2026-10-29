@@ -31,7 +31,7 @@ export function rejectDirectoryRecord(
         : undefined;
     const record = person ?? company;
     if (!record) throw new NotFoundError(`${type === "person" ? "Person" : "Company"} not found`);
-    const source = person?.github
+    const source = person?.externalLinks?.github
       ? "github"
       : company?.technl
         ? "technl"
@@ -40,7 +40,7 @@ export function rejectDirectoryRecord(
           : company?.bounce
             ? "bounce"
             : null;
-    const identity = person?.github || company?.website || company?.name;
+    const identity = person?.externalLinks?.github || company?.website || company?.name;
     const key = source && identity ? normalizeBlockKey(source, identity) : null;
     const createdBlock =
       source && key

@@ -32,9 +32,7 @@ describe("formatFrontmatter via companyToMarkdown", () => {
     name: "Acme Corp",
     description: "A test company",
     website: "https://acme.example.com",
-    wikipedia: null,
-    github: null,
-    linkedin: null,
+    externalLinks: null,
     careersUrl: null,
     location: "St. John's",
     founded: "2020",
@@ -61,6 +59,21 @@ describe("formatFrontmatter via companyToMarkdown", () => {
     const md = companyToMarkdown(baseCompany);
     expect(md).toMatch(/^---\n/);
     expect(md).toMatch(/\n---\n/);
+  });
+
+  it("exports the external link object and omits it when absent", () => {
+    const links = {
+      github: "https://github.com/acme",
+      linkedin: "https://linkedin.com/company/acme",
+      wikipedia: "https://en.wikipedia.org/wiki/Acme",
+    };
+    const frontmatter = extractFrontmatter(
+      companyToMarkdown({ ...baseCompany, externalLinks: links }),
+    );
+    expect(frontmatter).toContain("external_links:");
+    for (const [key, value] of Object.entries(links))
+      expect(frontmatter).toContain(`  ${key}: ${value}`);
+    expect(extractFrontmatter(companyToMarkdown(baseCompany))).not.toContain("external_links:");
   });
 
   it("simple string values appear without quotes", () => {
@@ -148,9 +161,7 @@ describe("formatFrontmatter string escaping", () => {
       name: 'The "Best" Company',
       description: "desc",
       website: null,
-      wikipedia: null,
-      github: null,
-      linkedin: null,
+      externalLinks: null,
       careersUrl: null,
       location: null,
       founded: null,
@@ -188,9 +199,7 @@ describe("formatFrontmatter string escaping", () => {
       name: "Line One\nLine Two",
       description: "desc",
       website: null,
-      wikipedia: null,
-      github: null,
-      linkedin: null,
+      externalLinks: null,
       careersUrl: null,
       location: null,
       founded: null,
@@ -224,9 +233,7 @@ describe("formatFrontmatter string escaping", () => {
       name: "Company: The Sequel",
       description: "desc",
       website: null,
-      wikipedia: null,
-      github: null,
-      linkedin: null,
+      externalLinks: null,
       careersUrl: null,
       location: null,
       founded: null,
@@ -255,7 +262,7 @@ describe("formatFrontmatter string escaping", () => {
 
 describe("formatFrontmatter nested objects", () => {
   it("object values render as nested YAML keys", () => {
-    // personToMarkdown passes socialLinks as a nested object
+    // personToMarkdown passes externalLinks as a nested object
     // We can't easily test personToMarkdown without the full type,
     // but we can test via projectToMarkdown with links
     const project = {
@@ -299,9 +306,7 @@ describe("formatFrontmatter date handling", () => {
       name: "Date Co",
       description: "desc",
       website: null,
-      wikipedia: null,
-      github: null,
-      linkedin: null,
+      externalLinks: null,
       careersUrl: null,
       location: null,
       founded: null,

@@ -70,14 +70,14 @@ it("uses normalized stored identities and skips image work for existing records"
   const person = await ops.personCreate.execute(ctx, {
     name: "Person",
     bio: "Bio",
-    github: "@Example",
+    externalLinks: { github: "@Example" },
     ifNotExists: true,
   });
   expect(
     await ops.personCreate.execute(ctx, {
       name: "Changed",
       bio: "Changed",
-      github: "https://github.com/EXAMPLE/",
+      externalLinks: { github: "https://github.com/EXAMPLE/" },
       ifNotExists: true,
     }),
   ).toMatchObject({ id: person.id, name: "Person", created: false });
@@ -86,7 +86,7 @@ it("uses normalized stored identities and skips image work for existing records"
     ops.personCreate.execute(ctx, {
       name: "Person",
       bio: "Bio",
-      github: "example",
+      externalLinks: { github: "example" },
       ifNotExists: true,
     }),
   ).rejects.toThrow("rejected");

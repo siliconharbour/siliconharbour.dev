@@ -1,4 +1,4 @@
-import { socialLinkKeys, socialLinkLabels } from "~/lib/links";
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import type { Route } from "./+types/people.$slug";
 import { Link, useLoaderData } from "react-router";
 import { getPersonBySlug } from "~/lib/people.server";
@@ -35,13 +35,14 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     getDetailedBacklinks("person", person.id),
   ]);
 
-  const socialLinks = person.socialLinks ?? {};
+  const externalLinks = person.externalLinks ?? {};
 
-  return { person, resolvedRefs, backlinks, socialLinks, isAdmin };
+  return { person, resolvedRefs, backlinks, externalLinks, isAdmin };
 }
 
 export default function PersonDetail() {
-  const { person, resolvedRefs, backlinks, socialLinks, isAdmin } = useLoaderData<typeof loader>();
+  const { person, resolvedRefs, backlinks, externalLinks, isAdmin } =
+    useLoaderData<typeof loader>();
 
   return (
     <div className="max-w-4xl mx-auto p-pad-4 py-pad-8">
@@ -122,26 +123,16 @@ export default function PersonDetail() {
                   Website
                 </a>
               )}
-              {person.github && (
-                <a
-                  href={person.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-body hover:text-heading text-sm"
-                >
-                  GitHub
-                </a>
-              )}
-              {socialLinkKeys.map((key) =>
-                socialLinks[key] ? (
+              {externalLinkKeys.map((key) =>
+                externalLinks[key] ? (
                   <a
                     key={key}
-                    href={socialLinks[key]}
+                    href={externalLinks[key]}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-body hover:text-heading text-sm"
                   >
-                    {socialLinkLabels[key]}
+                    {externalLinkLabels[key]}
                   </a>
                 ) : null,
               )}

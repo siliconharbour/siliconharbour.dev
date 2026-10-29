@@ -71,16 +71,16 @@ export const personOperations = {
         "person",
         ifNotExists,
         urlIdentity(
-          input.github ?? input.website,
+          input.externalLinks?.github ?? input.website,
           () => getAllPeople(true),
-          (row) => (input.github ? row.github : row.website),
-          input.github ? normalizeGithubIdentity : normalizeDirectoryIdentity,
+          (row) => (input.externalLinks?.github ? row.externalLinks?.github : row.website),
+          input.externalLinks?.github ? normalizeGithubIdentity : normalizeDirectoryIdentity,
         ),
         async () => {
-          const { avatar, socialLinks, ...fields } = input;
+          const { avatar, externalLinks, ...fields } = input;
           const result = await withEntityImages({ type: "person" }, { icon: avatar }, (images) =>
             createPerson({
-              socialLinks,
+              externalLinks,
               ...fields,
               visible: fields.visible ?? false,
               ...images,
@@ -97,19 +97,19 @@ export const personOperations = {
     access: "admin",
     summary: "Update a person.",
     description:
-      "Patch only supplied fields; empty patches and unknown keys fail. socialLinks merges supplied keys; a null key removes that link, and a null object clears all links. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
+      "Patch only supplied fields; empty patches and unknown keys fail. externalLinks merges supplied keys; a null key removes that link, and a null object clears all links. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
     input: personUpdateInput,
     output: personOutput,
     examples: [{ title: "Rename", input: { id: 1, name: "Updated Person" } }],
     run: async (_context, input) => {
-      const { id, avatar, socialLinks, ...fields } = input;
+      const { id, avatar, externalLinks, ...fields } = input;
       if (!(await getPersonById(id))) throw new NotFoundError("Person not found");
       const result = await withEntityImages(
         { type: "person", id },
         { icon: avatar },
         async (images) => {
           const record = (await updatePerson(id, {
-            socialLinks,
+            externalLinks,
             ...fields,
             ...images,
           }))!;

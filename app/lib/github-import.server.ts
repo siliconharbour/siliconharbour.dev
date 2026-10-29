@@ -5,7 +5,7 @@
  * Progress is persisted to allow resuming interrupted imports.
  */
 
-import { socialLinkKeys, type SocialLinks } from "./links";
+import { externalLinkKeys, type ExternalLinks } from "./links";
 import { db } from "~/db";
 import { importJobs } from "~/db/schema";
 import { eq } from "drizzle-orm";
@@ -487,8 +487,8 @@ async function importSingleUser(
     }
   }
 
-  if (githubOrgUrl && matchedCompany && !matchedCompany.github) {
-    await updateCompany(matchedCompany.id, { github: githubOrgUrl });
+  if (githubOrgUrl && matchedCompany && !matchedCompany.externalLinks?.github) {
+    await updateCompany(matchedCompany.id, { externalLinks: { github: githubOrgUrl } });
   }
 
   let bio = user.bio || "";
@@ -505,29 +505,29 @@ async function importSingleUser(
     bio = `GitHub user from ${user.location || "Newfoundland & Labrador"}.`;
   }
 
-  const socialLinks: SocialLinks = {};
+  const externalLinks: ExternalLinks = {};
 
   if (user.twitter_username) {
-    socialLinks.twitter = `https://twitter.com/${user.twitter_username}`;
+    externalLinks.twitter = `https://twitter.com/${user.twitter_username}`;
   }
 
   for (const account of user.socialAccounts || []) {
     const provider = account.provider.toLowerCase();
-    const key = socialLinkKeys.find(
+    const key = externalLinkKeys.find(
       (key) => key === (provider === "linkedin_company" ? "linkedin" : provider),
     );
-    if (!key || (key === "twitter" && socialLinks.twitter)) continue;
-    socialLinks[key] = account.url;
+    if (!key || (key === "twitter" && externalLinks.twitter)) continue;
+    externalLinks[key] = account.url;
   }
+  externalLinks.github = githubUrl;
 
   if (existingByName) {
-    if (!existingByName.github) {
+    if (!existingByName.externalLinks?.github) {
       await updatePerson(existingByName.id, {
-        github: githubUrl,
         website: existingByName.website || user.blog || null,
         avatar: existingByName.avatar || avatar,
         bio: existingByName.bio?.startsWith("GitHub user from") ? bio : existingByName.bio,
-        socialLinks: { ...socialLinks, ...existingByName.socialLinks },
+        externalLinks: { ...externalLinks, ...existingByName.externalLinks },
       });
       return { name: displayName, action: "merged" };
     }
@@ -538,9 +538,8 @@ async function importSingleUser(
     name: displayName,
     bio,
     website: user.blog || null,
-    github: githubUrl,
     avatar,
-    socialLinks,
+    externalLinks,
     visible: false, // Imported users start hidden until reviewed
   });
 

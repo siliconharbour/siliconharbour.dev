@@ -26,12 +26,10 @@ const directory = {
 export const publicCompanyReference = companyOutput.pick(identity);
 export const companyPublicOutput = companyOutput.pick({
   ...directory,
-  wikipedia: true,
+  externalLinks: true,
   location: true,
   founded: true,
   careersUrl: true,
-  linkedin: true,
-  github: true,
 });
 export const personPublicOutput = personOutput.pick({
   ...identity,
@@ -39,8 +37,7 @@ export const personPublicOutput = personOutput.pick({
   bio: true,
   website: true,
   avatar: true,
-  github: true,
-  socialLinks: true,
+  externalLinks: true,
 });
 export const educationPublicOutput = educationOutput.pick({ ...directory, type: true });
 export const groupPublicOutput = groupOutput.pick({ ...directory, meetingFrequency: true });

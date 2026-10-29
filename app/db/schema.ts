@@ -1,5 +1,5 @@
 import { parseKeywords } from "~/lib/keywords";
-import type { SocialLinks, ProjectLinks } from "~/lib/links";
+import type { ExternalLinks, ProjectLinks } from "~/lib/links";
 import { importJobStatuses } from "~/lib/entity-types";
 import {
   contentTypes,
@@ -212,9 +212,7 @@ export const companies = sqliteTable("companies", {
   description: text("description").notNull(), // markdown
   website: text("website"), // external link
   careersUrl: text("careers_url"), // link to careers/jobs page
-  wikipedia: text("wikipedia"), // wikipedia article URL
-  linkedin: text("linkedin"), // LinkedIn company page URL
-  github: text("github"), // GitHub organization URL
+  externalLinks: text("external_links", { mode: "json" }).$type<ExternalLinks>(),
   email: text("email"), // contact email
   location: text("location"),
   founded: text("founded"), // year as string, flexible format
@@ -332,9 +330,8 @@ export const people = sqliteTable("people", {
   name: text("name").notNull(),
   bio: text("bio"), // markdown
   website: text("website"),
-  github: text("github"), // GitHub profile URL
   avatar: text("avatar"), // image filename
-  socialLinks: text("social_links", { mode: "json" }).$type<SocialLinks>(),
+  externalLinks: text("external_links", { mode: "json" }).$type<ExternalLinks>(),
   // Visibility - false means only visible in manage UI, not public
   visible: integer("visible", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })

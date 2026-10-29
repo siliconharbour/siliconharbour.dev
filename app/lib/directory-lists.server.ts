@@ -1,3 +1,4 @@
+import { linkValue } from "./link-patch.server";
 import type { z } from "zod";
 import type { directoryListInputs } from "~/operations/contracts/directory-lists";
 import { notRejected } from "./directory-active.server";
@@ -21,7 +22,13 @@ export function listPeople(input: VisibilityInput) {
   return sqlPage(
     people,
     input,
-    [people.name, people.slug, people.bio, people.website, people.github],
+    [
+      people.name,
+      people.slug,
+      people.bio,
+      people.website,
+      linkValue(people.externalLinks, "github"),
+    ],
     { name: people.name, createdAt: people.createdAt, updatedAt: people.updatedAt },
     and(
       notRejected("person", people.id),
@@ -38,11 +45,12 @@ export function listCompanies(input: z.output<typeof directoryListInputs.company
   );
   let missing;
   if (input.missing === "no-source") missing = not(hasSource);
+  else if (input.missing === "linkedin")
+    missing = isNull(linkValue(companies.externalLinks, "linkedin"));
   else if (input.missing === "founded") missing = isNull(companies.founded);
   else if (input.missing) {
     const column = {
       logo: companies.logo,
-      linkedin: companies.linkedin,
       location: companies.location,
       careers: companies.careersUrl,
     }[input.missing];
@@ -51,7 +59,13 @@ export function listCompanies(input: z.output<typeof directoryListInputs.company
   return sqlPage(
     companies,
     input,
-    [companies.name, companies.slug, companies.description, companies.website, companies.github],
+    [
+      companies.name,
+      companies.slug,
+      companies.description,
+      companies.website,
+      linkValue(companies.externalLinks, "github"),
+    ],
     { name: companies.name, createdAt: companies.createdAt, updatedAt: companies.updatedAt },
     and(
       notRejected("company", companies.id),

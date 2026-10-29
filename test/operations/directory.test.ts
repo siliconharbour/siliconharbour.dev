@@ -71,14 +71,14 @@ describe("directory admin/MCP parity", () => {
       id: second.id,
       name: "Second",
       bio: "New bio",
-      socialLinks: { twitter: "https://example.com/me" },
+      externalLinks: { twitter: "https://example.com/me" },
       visible: true,
     });
     const a = await operations.personGet.execute(context, { id: first.id });
     const b = await operations.personGet.execute(context, { id: second.id });
-    expect({ bio: a.bio, socialLinks: a.socialLinks, visible: a.visible }).toEqual({
+    expect({ bio: a.bio, externalLinks: a.externalLinks, visible: a.visible }).toEqual({
       bio: b.bio,
-      socialLinks: b.socialLinks,
+      externalLinks: b.externalLinks,
       visible: b.visible,
     });
   });
@@ -157,7 +157,7 @@ it("rejects unsupported nested link fields without saving a partial update", asy
     operations.personUpdate.execute(context, {
       id: person.id,
       bio: "Changed",
-      socialLinks: { bogus: "https://example.com" },
+      externalLinks: { bogus: "https://example.com" },
     }),
   ).rejects.toThrow("bogus");
   expect((await operations.personGet.execute(context, { id: person.id })).bio).toBe("Bio");
@@ -187,7 +187,7 @@ it("blocks the GitHub login used by importers before rejecting a person", async 
   const person = await operations.personCreate.execute(context, {
     name: "Person",
     bio: "Bio",
-    github: "https://github.com/ExampleUser",
+    externalLinks: { github: "https://github.com/ExampleUser" },
   });
   await operations.personReject.execute(context, { id: person.id, confirm: true });
   expect(await isBlocked("github", "exampleuser")).toBe(true);
@@ -281,92 +281,127 @@ it("rejects missing evidence jobs before saving company fields", async () => {
   );
 });
 
-it("round-trips social links and atomically patches keys without dropping other providers", async () => {
-  const person = await operations.personCreate.execute(context, {
-    name: "Link owner",
-    bio: "Bio",
-    visible: true,
-    socialLinks: {
+for (const type of ["person", "company"] as const) {
+  it(`${type} external links merge and clear through MCP and admin without dropping other providers`, async () => {
+    const record = await operations[`${type}Create`].execute(context, {
+      name: "Link owner",
+      ...(type === "person" ? { bio: "Bio" } : { description: "Bio" }),
+      visible: true,
+      externalLinks: {
+        github: "@link-owner",
+        wikipedia: "https://en.wikipedia.org/wiki/Link_owner",
+        twitter: "https://example.com/old",
+        linkedin: "https://example.com/profile",
+        mastodon: "https://example.com/@me",
+        bluesky: "https://bsky.app/profile/me.example.com",
+      },
+    });
+    const identityLinks = {
+      github: "https://github.com/link-owner",
+      wikipedia: "https://en.wikipedia.org/wiki/Link_owner",
+    };
+    expect(record.externalLinks).toEqual({
+      ...identityLinks,
       twitter: "https://example.com/old",
       linkedin: "https://example.com/profile",
       mastodon: "https://example.com/@me",
       bluesky: "https://bsky.app/profile/me.example.com",
-    },
+    });
+    await Promise.all([
+      operations[`${type}Update`].execute(context, {
+        id: record.id,
+        externalLinks: { twitter: "https://example.com/new" },
+      }),
+      operations[`${type}Update`].execute(context, {
+        id: record.id,
+        externalLinks: { linkedin: "https://example.com/new-profile" },
+      }),
+    ]);
+    const saved = await operations[`${type}Get`].execute(context, { id: record.id });
+    expect(saved.externalLinks).toEqual({
+      ...identityLinks,
+      twitter: "https://example.com/new",
+      linkedin: "https://example.com/new-profile",
+      mastodon: "https://example.com/@me",
+      bluesky: "https://bsky.app/profile/me.example.com",
+    });
+    expect(
+      (
+        await operations[`${type}Update`].execute(context, {
+          id: record.id,
+          externalLinks: saved.externalLinks,
+        })
+      ).externalLinks,
+    ).toEqual(saved.externalLinks);
+    await execute(`${type}Update`, { id: record.id, externalLinks: { twitter: null } });
+    expect(
+      (await operations[`${type}Get`].execute(context, { id: record.id })).externalLinks,
+    ).toEqual({
+      ...identityLinks,
+      linkedin: "https://example.com/new-profile",
+      mastodon: "https://example.com/@me",
+      bluesky: "https://bsky.app/profile/me.example.com",
+    });
+    await (type === "person" ? editPerson : editCompany)({
+      request: request({
+        name: "Link owner",
+        ...(type === "person" ? { bio: "Bio" } : { description: "Bio" }),
+        linkedin: "",
+        visible: "true",
+      }),
+      params: { id: String(record.id) },
+    } as Parameters<typeof editPerson>[0] & Parameters<typeof editCompany>[0]);
+    expect(
+      (await operations[`${type}Get`].execute(context, { id: record.id })).externalLinks,
+    ).toEqual({
+      ...identityLinks,
+      mastodon: "https://example.com/@me",
+      bluesky: "https://bsky.app/profile/me.example.com",
+    });
+    await execute(`${type}Update`, { id: record.id, externalLinks: { bluesky: null } });
+    expect(
+      (await operations[`${type}Get`].execute(context, { id: record.id })).externalLinks,
+    ).toEqual({
+      ...identityLinks,
+      mastodon: "https://example.com/@me",
+    });
+    await (type === "person" ? editPerson : editCompany)({
+      request: request({
+        name: "Link owner",
+        ...(type === "person" ? { bio: "Bio" } : { description: "Bio" }),
+        bluesky: "https://bsky.app/profile/NEW.example.com",
+        visible: "true",
+      }),
+      params: { id: String(record.id) },
+    } as Parameters<typeof editPerson>[0] & Parameters<typeof editCompany>[0]);
+    expect(
+      (await operations[`${type}Get`].execute(context, { id: record.id })).externalLinks,
+    ).toEqual({
+      ...identityLinks,
+      mastodon: "https://example.com/@me",
+      bluesky: "https://bsky.app/profile/new.example.com",
+    });
+    await (type === "person" ? editPerson : editCompany)({
+      request: request({
+        name: "Link owner",
+        ...(type === "person" ? { bio: "Bio" } : { description: "Bio" }),
+        bluesky: "",
+        visible: "true",
+      }),
+      params: { id: String(record.id) },
+    } as Parameters<typeof editPerson>[0] & Parameters<typeof editCompany>[0]);
+    expect(
+      (await operations[`${type}Get`].execute(context, { id: record.id })).externalLinks,
+    ).toEqual({
+      ...identityLinks,
+      mastodon: "https://example.com/@me",
+    });
+    expect(
+      (await operations[`${type}Update`].execute(context, { id: record.id, externalLinks: null }))
+        .externalLinks,
+    ).toBeNull();
   });
-  expect(person.socialLinks).toEqual({
-    twitter: "https://example.com/old",
-    linkedin: "https://example.com/profile",
-    mastodon: "https://example.com/@me",
-    bluesky: "https://bsky.app/profile/me.example.com",
-  });
-  await Promise.all([
-    operations.personUpdate.execute(context, {
-      id: person.id,
-      socialLinks: { twitter: "https://example.com/new" },
-    }),
-    operations.personUpdate.execute(context, {
-      id: person.id,
-      socialLinks: { linkedin: "https://example.com/new-profile" },
-    }),
-  ]);
-  const saved = await operations.personGet.execute(context, { id: person.id });
-  expect(saved.socialLinks).toEqual({
-    twitter: "https://example.com/new",
-    linkedin: "https://example.com/new-profile",
-    mastodon: "https://example.com/@me",
-    bluesky: "https://bsky.app/profile/me.example.com",
-  });
-  expect(
-    (
-      await operations.personUpdate.execute(context, {
-        id: person.id,
-        socialLinks: saved.socialLinks,
-      })
-    ).socialLinks,
-  ).toEqual(saved.socialLinks);
-  await execute("personUpdate", { id: person.id, socialLinks: { twitter: null } });
-  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
-    linkedin: "https://example.com/new-profile",
-    mastodon: "https://example.com/@me",
-    bluesky: "https://bsky.app/profile/me.example.com",
-  });
-  await editPerson({
-    request: request({ name: "Link owner", bio: "Bio", linkedin: "", visible: "true" }),
-    params: { id: String(person.id) },
-  } as Parameters<typeof editPerson>[0]);
-  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
-    mastodon: "https://example.com/@me",
-    bluesky: "https://bsky.app/profile/me.example.com",
-  });
-  await execute("personUpdate", { id: person.id, socialLinks: { bluesky: null } });
-  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
-    mastodon: "https://example.com/@me",
-  });
-  await editPerson({
-    request: request({
-      name: "Link owner",
-      bio: "Bio",
-      bluesky: "https://bsky.app/profile/NEW.example.com",
-      visible: "true",
-    }),
-    params: { id: String(person.id) },
-  } as Parameters<typeof editPerson>[0]);
-  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
-    mastodon: "https://example.com/@me",
-    bluesky: "https://bsky.app/profile/new.example.com",
-  });
-  await editPerson({
-    request: request({ name: "Link owner", bio: "Bio", bluesky: "", visible: "true" }),
-    params: { id: String(person.id) },
-  } as Parameters<typeof editPerson>[0]);
-  expect((await operations.personGet.execute(context, { id: person.id })).socialLinks).toEqual({
-    mastodon: "https://example.com/@me",
-  });
-  expect(
-    (await operations.personUpdate.execute(context, { id: person.id, socialLinks: null }))
-      .socialLinks,
-  ).toBeNull();
-});
+}
 
 it("merges and clears project links, including admin field clearing", async () => {
   const project = await operations.projectCreate.execute(context, {

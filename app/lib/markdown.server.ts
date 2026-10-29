@@ -112,8 +112,10 @@ export function companyToMarkdown(
     url: `${SITE_URL}/directory/companies/${company.slug}`,
     api_url: `${SITE_URL}/api/companies/${company.slug}`,
     website: company.website,
-    wikipedia: company.wikipedia,
-    github: company.github,
+    external_links: Object.keys(company.externalLinks ?? {}).length
+      ? company.externalLinks
+      : undefined,
+
     location: company.location,
     founded: company.founded,
     logo: company.logo ? `${SITE_URL}/images/${company.logo}` : null,
@@ -246,7 +248,7 @@ ${edu.website ? `**Website:** ${edu.website}\n\n` : ""}${edu.description}
 }
 
 export function personToMarkdown(person: Person): string {
-  const socialLinks = person.socialLinks ?? {};
+  const externalLinks = person.externalLinks ?? {};
 
   const frontmatter = formatFrontmatter({
     type: "person",
@@ -256,9 +258,8 @@ export function personToMarkdown(person: Person): string {
     url: `${SITE_URL}/directory/people/${person.slug}`,
     api_url: `${SITE_URL}/api/people/${person.slug}`,
     website: person.website,
-    github: person.github,
     avatar: person.avatar ? `${SITE_URL}/images/${person.avatar}` : null,
-    social_links: Object.keys(socialLinks).length > 0 ? socialLinks : undefined,
+    external_links: Object.keys(externalLinks).length > 0 ? externalLinks : undefined,
     updated_at: person.updatedAt,
   });
 

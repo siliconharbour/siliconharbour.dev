@@ -1,7 +1,9 @@
-import { socialUrl } from "./url-fields";
+import { githubProfile, socialUrl } from "./url-fields";
 import { z } from "zod";
 
-export const socialLinkKeys = [
+export const externalLinkKeys = [
+  "github",
+  "wikipedia",
   "twitter",
   "linkedin",
   "instagram",
@@ -10,7 +12,9 @@ export const socialLinkKeys = [
   "bluesky",
   "facebook",
 ] as const;
-export const socialLinkLabels: Record<(typeof socialLinkKeys)[number], string> = {
+export const externalLinkLabels: Record<(typeof externalLinkKeys)[number], string> = {
+  github: "GitHub",
+  wikipedia: "Wikipedia",
   twitter: "Twitter",
   linkedin: "LinkedIn",
   instagram: "Instagram",
@@ -30,7 +34,7 @@ export const projectLinkKeys = [
   "appstore",
   "playstore",
 ] as const;
-export type SocialLinks = Partial<Record<(typeof socialLinkKeys)[number], string>>;
+export type ExternalLinks = Partial<Record<(typeof externalLinkKeys)[number], string>>;
 export type ProjectLinks = Partial<Record<(typeof projectLinkKeys)[number], string>>;
 export type LinkPatch<T> = { [K in keyof T]?: string | null } | null;
 const linkUrl = z
@@ -44,16 +48,20 @@ function linkFields<const K extends readonly string[], V extends z.ZodType>(
 ) {
   return Object.fromEntries(keys.map((key) => [key, field(key)])) as { [P in K[number]]: V };
 }
-export const socialLinksOutput = z
-  .object(linkFields(socialLinkKeys, () => linkUrl.optional()))
+export const externalLinksOutput = z
+  .object(linkFields(externalLinkKeys, () => linkUrl.optional()))
   .strict()
   .nullable();
 export const projectLinksOutput = z
   .object(linkFields(projectLinkKeys, () => linkUrl.optional()))
   .strict()
   .nullable();
-export const socialLinksPatch = z
-  .object(linkFields(socialLinkKeys, (key) => socialUrl(key).nullable().optional()))
+export const externalLinksPatch = z
+  .object(
+    linkFields(externalLinkKeys, (key) =>
+      (key === "github" ? githubProfile() : socialUrl(key)).nullable().optional(),
+    ),
+  )
   .strict()
   .nullable();
 export const projectLinksPatch = z

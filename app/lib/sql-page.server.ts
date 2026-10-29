@@ -16,7 +16,7 @@ import { pageResult, type ListInput } from "~/operations/listing";
 export function sqlPage<T extends SQLiteTable>(
   table: T,
   input: ListInput,
-  search: AnySQLiteColumn[],
+  search: (AnySQLiteColumn | SQL)[],
   sorts: Record<string, AnySQLiteColumn>,
   where?: SQL,
 ) {

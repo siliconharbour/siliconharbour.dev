@@ -1,4 +1,4 @@
-import { socialLinkKeys, projectLinkKeys } from "~/lib/links";
+import { externalLinkKeys, projectLinkKeys } from "~/lib/links";
 import { personFields } from "~/operations/contracts/people";
 import { companyFields } from "~/operations/contracts/companies";
 import { educationFields } from "~/operations/contracts/education";
@@ -57,8 +57,8 @@ export function directoryFormInput(
       input[name] = name === "visible" && !editing && !form.has(name) ? true : checkbox(form, name);
     } else if (name === "companyId") {
       input[name] = form.get(name) ? Number(form.get(name)) : null;
-    } else if (name === "socialLinks" || name === "links") {
-      const keys = name === "socialLinks" ? socialLinkKeys : projectLinkKeys;
+    } else if (name === "externalLinks" || name === "links") {
+      const keys = name === "externalLinks" ? externalLinkKeys : projectLinkKeys;
       const values = Object.fromEntries(
         keys
           .filter((key) => form.has(key))

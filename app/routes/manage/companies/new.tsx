@@ -1,3 +1,4 @@
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
@@ -106,44 +107,19 @@ export default function NewCompany() {
             />
           </div>
 
-          <div className="flex flex-col gap-gap-2">
-            <label htmlFor="wikipedia" className="font-medium text-heading">
-              Wikipedia
-            </label>
-            <input
-              type="url"
-              id="wikipedia"
-              name="wikipedia"
-              placeholder="https://en.wikipedia.org/wiki/..."
-              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-gap-2">
-            <label htmlFor="github" className="font-medium text-heading">
-              GitHub Organization
-            </label>
-            <input
-              type="url"
-              id="github"
-              name="github"
-              placeholder="https://github.com/org-name"
-              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-gap-2">
-            <label htmlFor="linkedin" className="font-medium text-heading">
-              LinkedIn
-            </label>
-            <input
-              type="url"
-              id="linkedin"
-              name="linkedin"
-              placeholder="https://www.linkedin.com/company/..."
-              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
+          {externalLinkKeys.map((key) => (
+            <div key={key} className="flex flex-col gap-gap-2">
+              <label htmlFor={key} className="font-medium text-heading">
+                {externalLinkLabels[key]}
+              </label>
+              <input
+                type="url"
+                id={key}
+                name={key}
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              />
+            </div>
+          ))}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
             <div className="flex flex-col gap-gap-2">

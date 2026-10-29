@@ -1,3 +1,5 @@
+import { compactLinks, type ExternalLinks, type LinkPatch } from "./links";
+import { patchLinks } from "./link-patch.server";
 import { references as contentReferences, technologyAssignments } from "~/db/schema";
 import { notRejected, assertDirectoryIdentityAvailable } from "./directory-active.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
@@ -36,12 +38,23 @@ export async function generateCompanySlug(name: string, excludeId?: number): Pro
   return makeSlugUnique(baseSlug, existingSlugs);
 }
 
-export async function createCompany(company: Omit<NewCompany, "slug">): Promise<Company> {
+export async function createCompany(
+  company: Omit<NewCompany, "slug" | "externalLinks"> & {
+    externalLinks?: LinkPatch<ExternalLinks>;
+  },
+): Promise<Company> {
   assertDirectoryIdentityAvailable("company", company);
   const slug = await generateCompanySlug(company.name);
   const [newCompany] = await db
     .insert(companies)
-    .values({ ...company, slug })
+    .values({
+      ...company,
+      slug,
+      externalLinks:
+        company.externalLinks === undefined
+          ? undefined
+          : compactLinks<ExternalLinks>(company.externalLinks),
+    })
     .returning();
 
   await syncReferences("company", newCompany.id, newCompany.description);
@@ -51,13 +64,19 @@ export async function createCompany(company: Omit<NewCompany, "slug">): Promise<
 
 export async function updateCompany(
   id: number,
-  company: Partial<Omit<NewCompany, "slug">>,
+  company: Partial<Omit<NewCompany, "slug" | "externalLinks">> & {
+    externalLinks?: LinkPatch<ExternalLinks>;
+  },
 ): Promise<Company | null> {
-  let updateData: Partial<NewCompany> = { ...company, updatedAt: new Date() };
-
-  if (company.name) {
-    updateData.slug = await generateCompanySlug(company.name, id);
-  }
+  const { externalLinks, ...fields } = company;
+  const updateData = {
+    ...fields,
+    updatedAt: new Date(),
+    slug: company.name ? await generateCompanySlug(company.name, id) : undefined,
+    ...(externalLinks !== undefined && {
+      externalLinks: patchLinks(companies.externalLinks, externalLinks),
+    }),
+  };
 
   const [updated] = await db
     .update(companies)

@@ -1,3 +1,5 @@
+import type { ExternalLinks, LinkPatch } from "./links";
+import { linkValue } from "./link-patch.server";
 import { normalizeUrl } from "./directory-import";
 import { db } from "~/db";
 import { companies, people, rejectedRecords } from "~/db/schema";
@@ -12,20 +14,26 @@ export function notRejected(type: "person" | "company", id: AnySQLiteColumn) {
 
 export function assertDirectoryIdentityAvailable(
   type: "person" | "company",
-  values: { github?: string | null; website?: string | null },
+  values: { externalLinks?: LinkPatch<ExternalLinks>; website?: string | null },
 ) {
   const field =
-    type === "person" && values.github ? "github" : values.website ? "website" : "github";
+    type === "person" && values.externalLinks?.github
+      ? "github"
+      : values.website
+        ? "website"
+        : "github";
   const schema = field === "github" ? githubProfile() : canonicalUrl();
   const keyOf = (value: string | null | undefined) => {
     const parsed = schema.safeParse(value);
     return parsed.success ? (field === "website" ? normalizeUrl(parsed.data) : parsed.data) : null;
   };
-  const expected = keyOf(values[field]);
+  const expected = keyOf(field === "github" ? values.externalLinks?.github : values.website);
   if (!expected) return;
   const table = type === "person" ? people : companies;
   const retained = db
-    .select({ value: table[field] })
+    .select({
+      value: field === "github" ? linkValue(table.externalLinks, "github") : table.website,
+    })
     .from(table)
     .innerJoin(
       rejectedRecords,
