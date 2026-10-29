@@ -1,3 +1,4 @@
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import { TECHNL_DIRECTORY_URL } from "~/lib/technl";
 import type { Route } from "./+types/companies.$slug";
 import { Link, useLoaderData } from "react-router";
@@ -337,9 +338,7 @@ export default function CompanyDetail() {
 
         {(company.careersUrl ||
           company.website ||
-          company.wikipedia ||
-          company.linkedin ||
-          company.github ||
+          Object.values(company.externalLinks ?? {}).some(Boolean) ||
           company.technl ||
           company.genesis ||
           company.bounce) && (
@@ -380,59 +379,26 @@ export default function CompanyDetail() {
                 </svg>
               </a>
             )}
-            {company.wikipedia && (
-              <a
-                href={company.wikipedia}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
-              >
-                Wikipedia
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </a>
-            )}
-            {company.linkedin && (
-              <a
-                href={company.linkedin}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
-              >
-                LinkedIn
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </a>
-            )}
-            {company.github && (
-              <a
-                href={company.github}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
-              >
-                GitHub
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </a>
+            {externalLinkKeys.map((key) =>
+              company.externalLinks?.[key] ? (
+                <a
+                  key={key}
+                  href={company.externalLinks[key]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-gap-2 px-pad-4 py-pad-2 bg-tint text-heading font-medium hover:bg-harbour-200 transition-colors"
+                >
+                  {externalLinkLabels[key]}
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </a>
+              ) : null,
             )}
             {company.technl && (
               <a

@@ -1,8 +1,8 @@
 import { references as contentReferences } from "~/db/schema";
 import { notRejected, assertDirectoryIdentityAvailable } from "./directory-active.server";
 import { githubLogin } from "./url-fields";
-import { compactLinks, type SocialLinks, type LinkPatch } from "./links";
-import { patchLinks } from "./link-patch.server";
+import { compactLinks, type ExternalLinks, type LinkPatch } from "./links";
+import { patchLinks, linkValue } from "./link-patch.server";
 import { deleteUnreferencedImages } from "./entity-images.server";
 import { db } from "~/db";
 import { people, type Person, type NewPerson } from "~/db/schema";
@@ -33,7 +33,7 @@ export async function generatePersonSlug(name: string, excludeId?: number): Prom
 }
 
 export async function createPerson(
-  person: Omit<NewPerson, "slug" | "socialLinks"> & { socialLinks?: LinkPatch<SocialLinks> },
+  person: Omit<NewPerson, "slug" | "externalLinks"> & { externalLinks?: LinkPatch<ExternalLinks> },
 ): Promise<Person> {
   assertDirectoryIdentityAvailable("person", person);
   const slug = await generatePersonSlug(person.name);
@@ -42,10 +42,10 @@ export async function createPerson(
     .values({
       ...person,
       slug,
-      socialLinks:
-        person.socialLinks === undefined
+      externalLinks:
+        person.externalLinks === undefined
           ? undefined
-          : compactLinks<SocialLinks>(person.socialLinks),
+          : compactLinks<ExternalLinks>(person.externalLinks),
     })
     .returning();
 
@@ -56,16 +56,18 @@ export async function createPerson(
 
 export async function updatePerson(
   id: number,
-  person: Partial<Omit<NewPerson, "slug" | "socialLinks">> & {
-    socialLinks?: LinkPatch<SocialLinks>;
+  person: Partial<Omit<NewPerson, "slug" | "externalLinks">> & {
+    externalLinks?: LinkPatch<ExternalLinks>;
   },
 ): Promise<Person | null> {
-  const { socialLinks, ...fields } = person;
+  const { externalLinks, ...fields } = person;
   const updateData = {
     ...fields,
     updatedAt: new Date(),
     slug: person.name ? await generatePersonSlug(person.name, id) : undefined,
-    ...(socialLinks !== undefined && { socialLinks: patchLinks(people.socialLinks, socialLinks) }),
+    ...(externalLinks !== undefined && {
+      externalLinks: patchLinks(people.externalLinks, externalLinks),
+    }),
   };
 
   const [updated] = await db
@@ -142,7 +144,7 @@ export async function getPersonByGitHub(githubUrl: string): Promise<Person | nul
     .where(
       and(
         notRejected("person", people.id),
-        sql`LOWER(${people.github}) = LOWER(${`https://github.com/${githubLogin(githubUrl)}`})`,
+        sql`LOWER(${linkValue(people.externalLinks, "github")}) = LOWER(${`https://github.com/${githubLogin(githubUrl)}`})`,
       ),
     )
     .limit(1);

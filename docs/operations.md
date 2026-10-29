@@ -108,3 +108,9 @@ Blocks preserve their original name, reason and timestamp when the same identity
 Membership booleans remain the public source of truth. Per-source IDs and last-seen timestamps are observation history, initially unknown for existing records. `directoryImport` records reviewed matches; `directorySourceReconcile` fetches a fresh directory and records existing matches without changing flags or creating records. Both companies and education are supported.
 
 Review possible renames before calling `directorySourceFlagsClear` with `{ source, entities: [{ type: "company" | "education", id }], confirm: true }`, or select rows in the import page’s **No longer listed** section. Clearing preserves other sources, visibility and last-seen history. No flags are cleared automatically.
+
+People and companies store profile and reference URLs in `externalLinks`, including
+GitHub and Wikipedia. Inputs use the shared strict key list in `app/lib/links.ts`.
+Updates merge only supplied keys: a null key removes one link, and a null object
+clears all links. GitHub identity matching, import blocklisting and directory search
+read `externalLinks.github`; there is no separate GitHub or LinkedIn field.

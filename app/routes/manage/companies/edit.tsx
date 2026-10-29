@@ -1,3 +1,4 @@
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import { BlockReasonField } from "~/components/manage/BlockReasonField";
 import { optionalBlockReason } from "~/lib/admin/form";
 import {
@@ -316,47 +317,20 @@ export default function EditCompany() {
             />
           </div>
 
-          <div className="flex flex-col gap-gap-2">
-            <label htmlFor="wikipedia" className="font-medium text-heading">
-              Wikipedia
-            </label>
-            <input
-              type="url"
-              id="wikipedia"
-              name="wikipedia"
-              placeholder="https://en.wikipedia.org/wiki/..."
-              defaultValue={company.wikipedia ?? ""}
-              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-gap-2">
-            <label htmlFor="github" className="font-medium text-heading">
-              GitHub Organization
-            </label>
-            <input
-              type="url"
-              id="github"
-              name="github"
-              placeholder="https://github.com/org-name"
-              defaultValue={company.github ?? ""}
-              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
-
-          <div className="flex flex-col gap-gap-2">
-            <label htmlFor="linkedin" className="font-medium text-heading">
-              LinkedIn
-            </label>
-            <input
-              type="url"
-              id="linkedin"
-              name="linkedin"
-              placeholder="https://www.linkedin.com/company/..."
-              defaultValue={company.linkedin ?? ""}
-              className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-            />
-          </div>
+          {externalLinkKeys.map((key) => (
+            <div key={key} className="flex flex-col gap-gap-2">
+              <label htmlFor={key} className="font-medium text-heading">
+                {externalLinkLabels[key]}
+              </label>
+              <input
+                type="url"
+                id={key}
+                name={key}
+                defaultValue={company.externalLinks?.[key] ?? ""}
+                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+              />
+            </div>
+          ))}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">
             <div className="flex flex-col gap-gap-2">

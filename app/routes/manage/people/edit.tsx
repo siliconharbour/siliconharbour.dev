@@ -1,4 +1,4 @@
-import { socialLinkKeys, socialLinkLabels } from "~/lib/links";
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import { BlockReasonField } from "~/components/manage/BlockReasonField";
 import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAdminOperation, runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -24,9 +24,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const person = await loadAdminOperation(request, operationCatalog.personGet, { id });
 
-  const socialLinks = person.socialLinks ?? {};
+  const externalLinks = person.externalLinks ?? {};
 
-  return { person, socialLinks };
+  return { person, externalLinks };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -49,7 +49,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditPerson() {
-  const { person, socialLinks } = useLoaderData<typeof loader>();
+  const { person, externalLinks } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
 
   return (
@@ -121,32 +121,18 @@ export default function EditPerson() {
           </div>
 
           <div className="flex flex-col gap-gap-4">
-            <h3 className="font-medium text-heading">Social Links</h3>
+            <h3 className="font-medium text-heading">External links</h3>
 
-            <div className="flex flex-col gap-gap-2">
-              <label htmlFor="github" className="text-sm text-body">
-                GitHub
-              </label>
-              <input
-                type="url"
-                id="github"
-                name="github"
-                placeholder="https://github.com/username"
-                defaultValue={person.github || ""}
-                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-              />
-            </div>
-
-            {socialLinkKeys.map((key) => (
+            {externalLinkKeys.map((key) => (
               <div key={key} className="flex flex-col gap-gap-2">
                 <label htmlFor={key} className="text-sm text-body">
-                  {socialLinkLabels[key]}
+                  {externalLinkLabels[key]}
                 </label>
                 <input
                   type="url"
                   id={key}
                   name={key}
-                  defaultValue={socialLinks[key] ?? ""}
+                  defaultValue={externalLinks[key] ?? ""}
                   className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                 />
               </div>
@@ -179,7 +165,7 @@ export default function EditPerson() {
         </Form>
 
         {/* Import Block section - only show for GitHub-linked people */}
-        {person.github && (
+        {person.externalLinks?.github && (
           <div className="border-t border-line pt-pad-6 mt-6">
             <h2 className="text-lg font-semibold text-heading mb-2">Import Block</h2>
             <p className="text-sm text-muted mb-4">

@@ -16,7 +16,10 @@ export async function blockImportedIdentity(input: {
   if (input.deleteExisting) {
     if (input.source === "github") {
       for (const person of await getAllPeople(true))
-        if (person.github && normalizeBlockKey("github", person.github) === key) {
+        if (
+          person.externalLinks?.github &&
+          normalizeBlockKey("github", person.externalLinks?.github) === key
+        ) {
           await deletePerson(person.id);
           deletedIds.push(person.id);
         }

@@ -1,13 +1,12 @@
 import { blocklistReason } from "./blocklist";
 import { createOptions } from "../fields";
-import { nullableGithubProfile } from "../fields";
-import { socialLinksOutput } from "~/lib/links";
+import { externalLinksOutput } from "~/lib/links";
 import { z } from "zod";
 import {
   text,
   nullableText,
   nullableUrl,
-  socialLinks,
+  externalLinks,
   imageInput,
   updateContract,
   id,
@@ -17,8 +16,7 @@ export const personFields = {
   name: text("name", 300),
   bio: nullableText().describe("Markdown bio. Null or blank clears it."),
   website: nullableUrl().optional(),
-  github: nullableGithubProfile().optional(),
-  socialLinks: socialLinks.optional(),
+  externalLinks: externalLinks.optional(),
   avatar: imageInput.optional(),
   visible: z.boolean().optional(),
 };
@@ -48,9 +46,8 @@ export const personOutput = z
     name: z.string(),
     bio: z.string().nullable(),
     website: z.string().nullable(),
-    github: z.string().nullable(),
     avatar: z.string().nullable(),
-    socialLinks: socialLinksOutput,
+    externalLinks: externalLinksOutput,
     visible: z.boolean(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),

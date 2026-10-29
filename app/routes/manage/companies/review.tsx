@@ -1,3 +1,4 @@
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import { BlockReasonField } from "~/components/manage/BlockReasonField";
 import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -68,9 +69,7 @@ export async function action({ request }: Route.ActionArgs) {
         "name",
         "description",
         "website",
-        "wikipedia",
-        "linkedin",
-        "github",
+        "externalLinks",
         "location",
         "founded",
         "technl",
@@ -282,6 +281,19 @@ export default function ReviewCompanies() {
                       {new URL(currentCompany.website).hostname.replace(/^www\./, "")}
                     </a>
                   )}
+                  {externalLinkKeys.map((key) =>
+                    currentCompany.externalLinks?.[key] ? (
+                      <a
+                        key={key}
+                        href={currentCompany.externalLinks[key]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-heading"
+                      >
+                        {externalLinkLabels[key]}
+                      </a>
+                    ) : null,
+                  )}
                   {currentCompany.location && (
                     <>
                       {currentCompany.website && <span>·</span>}
@@ -384,30 +396,20 @@ export default function ReviewCompanies() {
                     className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-col gap-gap-1">
-                  <label htmlFor="github" className="text-sm font-medium text-heading">
-                    GitHub Org
-                  </label>
-                  <input
-                    type="url"
-                    id="github"
-                    name="github"
-                    defaultValue={currentCompany.github ?? ""}
-                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                  />
-                </div>
-                <div className="flex flex-col gap-gap-1">
-                  <label htmlFor="linkedin" className="text-sm font-medium text-heading">
-                    LinkedIn
-                  </label>
-                  <input
-                    type="url"
-                    id="linkedin"
-                    name="linkedin"
-                    defaultValue={currentCompany.linkedin ?? ""}
-                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                  />
-                </div>
+                {externalLinkKeys.map((key) => (
+                  <div key={key} className="flex flex-col gap-gap-2">
+                    <label htmlFor={key} className="text-sm font-medium text-heading">
+                      {externalLinkLabels[key]}
+                    </label>
+                    <input
+                      type="url"
+                      id={key}
+                      name={key}
+                      defaultValue={currentCompany.externalLinks?.[key] ?? ""}
+                      className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
+                    />
+                  </div>
+                ))}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-gap-4">

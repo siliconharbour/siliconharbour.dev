@@ -1,4 +1,4 @@
-import { socialLinkKeys, socialLinkLabels } from "~/lib/links";
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import { BlockReasonField } from "~/components/manage/BlockReasonField";
 import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
@@ -102,8 +102,7 @@ export async function action({ request }: Route.ActionArgs) {
         "name",
         "bio",
         "website",
-        "github",
-        "socialLinks",
+        "externalLinks",
         "avatar",
       ]),
       ...(form.get("approveAfterSave") === "on" ? { visible: true } : {}),
@@ -130,7 +129,7 @@ export default function ReviewPeople() {
   const currentPerson = people[currentIndex];
   const remaining = people.length - currentIndex;
 
-  const socialLinks = currentPerson?.socialLinks ?? {};
+  const externalLinks = currentPerson?.externalLinks ?? {};
 
   useEffect(() => {
     setEditMode(false);
@@ -227,7 +226,7 @@ export default function ReviewPeople() {
     if (!currentPerson) return;
 
     setToastMessage(
-      `"${currentPerson.name}" rejected${currentPerson.github ? " and blocked" : ""}`,
+      `"${currentPerson.name}" rejected${currentPerson.externalLinks?.github ? " and blocked" : ""}`,
     );
 
     fetcher.submit(
@@ -359,22 +358,8 @@ export default function ReviewPeople() {
                   {currentPerson.name}
                 </h2>
                 <div className="flex flex-wrap items-center gap-gap-2 mt-1 text-sm text-muted">
-                  {currentPerson.github && (
-                    <a
-                      href={currentPerson.github}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-heading flex items-center gap-gap-1"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                      GitHub
-                    </a>
-                  )}
                   {currentPerson.website && (
                     <>
-                      {currentPerson.github && <span>·</span>}
                       <a
                         href={ensureProtocol(currentPerson.website)}
                         target="_blank"
@@ -385,16 +370,16 @@ export default function ReviewPeople() {
                       </a>
                     </>
                   )}
-                  {socialLinkKeys.map((key) =>
-                    socialLinks[key] ? (
+                  {externalLinkKeys.map((key) =>
+                    externalLinks[key] ? (
                       <a
                         key={key}
-                        href={ensureProtocol(socialLinks[key])}
+                        href={ensureProtocol(externalLinks[key])}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:text-heading"
                       >
-                        {socialLinkLabels[key]}
+                        {externalLinkLabels[key]}
                       </a>
                     ) : null,
                   )}
@@ -472,29 +457,16 @@ export default function ReviewPeople() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-gap-4">
-                <div className="flex flex-col gap-gap-1">
-                  <label htmlFor="github" className="text-sm font-medium text-heading">
-                    GitHub
-                  </label>
-                  <input
-                    type="url"
-                    id="github"
-                    name="github"
-                    placeholder="https://github.com/username"
-                    defaultValue={currentPerson.github ?? ""}
-                    className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-                  />
-                </div>
-                {socialLinkKeys.map((key) => (
+                {externalLinkKeys.map((key) => (
                   <div key={key} className="flex flex-col gap-gap-1">
                     <label htmlFor={key} className="text-sm font-medium text-heading">
-                      {socialLinkLabels[key]}
+                      {externalLinkLabels[key]}
                     </label>
                     <input
                       type="url"
                       id={key}
                       name={key}
-                      defaultValue={socialLinks[key] ?? ""}
+                      defaultValue={externalLinks[key] ?? ""}
                       className="px-pad-3 py-pad-2 text-sm border border-harbour-300 focus:border-harbour-500 focus:outline-none"
                     />
                   </div>

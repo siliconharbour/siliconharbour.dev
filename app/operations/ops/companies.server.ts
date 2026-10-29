@@ -82,9 +82,9 @@ export const companyOperations = {
         "company",
         ifNotExists,
         urlIdentity(
-          input.website ?? input.github,
+          input.website ?? input.externalLinks?.github,
           () => getAllCompanies(true),
-          (row) => (input.website ? row.website : row.github),
+          (row) => (input.website ? row.website : row.externalLinks?.github),
           input.website ? normalizeDirectoryIdentity : normalizeGithubIdentity,
         ),
         async () => {
@@ -114,7 +114,7 @@ export const companyOperations = {
     access: "admin",
     summary: "Update a company.",
     description:
-      "Patch only supplied fields; empty patches and unknown keys fail. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
+      "Patch only supplied fields; empty patches and unknown keys fail. externalLinks merges supplied keys; a null key removes that link, and a null object clears all links. Renaming regenerates the slug and text changes synchronize references. Replaced or cleared images are removed only when unreferenced.",
     input: companyUpdateInput,
     output: companyOutput,
     examples: [{ title: "Rename", input: { id: 1, name: "Updated Company" } }],

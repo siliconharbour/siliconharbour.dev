@@ -5,3 +5,7 @@ export function patchLinks(column: SQLWrapper, patch: object | null) {
     ? null
     : sql`nullif(json_patch(coalesce(${column}, '{}'), ${JSON.stringify(patch)}), '{}')`;
 }
+
+export function linkValue(column: SQLWrapper, key: string) {
+  return sql<string | null>`json_extract(${column}, ${`$.${key}`})`;
+}

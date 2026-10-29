@@ -1,4 +1,4 @@
-import { socialLinkKeys, socialLinkLabels } from "~/lib/links";
+import { externalLinkKeys, externalLinkLabels } from "~/lib/links";
 import { operationCatalog } from "~/operations/catalog";
 import { runAdminOperation } from "~/lib/admin/run-operation.server";
 import { directoryFormInput } from "~/lib/admin/form-adapters";
@@ -95,25 +95,12 @@ export default function NewPerson() {
           </div>
 
           <div className="flex flex-col gap-gap-4">
-            <h3 className="font-medium text-heading">Social Links</h3>
+            <h3 className="font-medium text-heading">External links</h3>
 
-            <div className="flex flex-col gap-gap-2">
-              <label htmlFor="github" className="text-sm text-body">
-                GitHub
-              </label>
-              <input
-                type="url"
-                id="github"
-                name="github"
-                placeholder="https://github.com/username"
-                className="px-pad-3 py-pad-2 border border-harbour-300 focus:border-harbour-500 focus:outline-none"
-              />
-            </div>
-
-            {socialLinkKeys.map((key) => (
+            {externalLinkKeys.map((key) => (
               <div key={key} className="flex flex-col gap-gap-2">
                 <label htmlFor={key} className="text-sm text-body">
-                  {socialLinkLabels[key]}
+                  {externalLinkLabels[key]}
                 </label>
                 <input
                   type="url"

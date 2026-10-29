@@ -1,7 +1,7 @@
 import { hostSignature } from "~/mcp/host-function";
 import { expect, it } from "vitest";
 import { canonicalUrl, email, githubProfile } from "~/operations/fields";
-import { socialLinksPatch } from "~/lib/links";
+import { externalLinksPatch } from "~/lib/links";
 import { operationCatalog } from "~/operations/catalog";
 import { adminContext } from "~/operations/context";
 import { getPersonByGitHub } from "~/lib/people.server";
@@ -27,26 +27,26 @@ it("canonicalizes links without discarding website path case or www, and normali
   expect(canonicalUrl().safeParse("https://user:pass@example.com").success).toBe(false);
   expect(canonicalUrl().safeParse("javascript:alert(1)").success).toBe(false);
   expect(
-    socialLinksPatch.parse({
+    externalLinksPatch.parse({
       twitter: "https://www.twitter.com/Foo/",
       linkedin: "https://www.linkedin.com/in/Profile",
     }),
   ).toEqual({ twitter: "https://x.com/foo", linkedin: "https://linkedin.com/in/Profile" });
   expect(
-    socialLinksPatch.parse({ bluesky: "https://www.bsky.app/profile/Foo.BSKY.social/" }),
+    externalLinksPatch.parse({ bluesky: "https://www.bsky.app/profile/Foo.BSKY.social/" }),
   ).toEqual({
     bluesky: "https://bsky.app/profile/foo.bsky.social",
   });
-  expect(socialLinksPatch.parse({ bluesky: "http://example.com/@Me" })).toEqual({
+  expect(externalLinksPatch.parse({ bluesky: "http://example.com/@Me" })).toEqual({
     bluesky: "http://example.com/@Me",
   });
   expect(
-    socialLinksPatch.parse({ bluesky: "https://bsky.app/profile/Foo.bsky.social/post/AbC" }),
+    externalLinksPatch.parse({ bluesky: "https://bsky.app/profile/Foo.bsky.social/post/AbC" }),
   ).toEqual({
     bluesky: "https://bsky.app/profile/Foo.bsky.social/post/AbC",
   });
   expect(
-    socialLinksPatch.safeParse({ bsky: "https://bsky.app/profile/foo.bsky.social" }).success,
+    externalLinksPatch.safeParse({ bsky: "https://bsky.app/profile/foo.bsky.social" }).success,
   ).toBe(false);
   expect(hostSignature("personUpdate", operationCatalog.personUpdate.input)).toContain("bluesky");
   expect(email().parse("  Person@Example.COM ")).toBe("person@example.com");
@@ -56,9 +56,9 @@ it("finds and blocks a profile created from a bare login through the canonical o
   const person = await operationCatalog.personCreate.execute(context, {
     name: "Foo",
     bio: "Bio",
-    github: "@Foo",
+    externalLinks: { github: "@Foo" },
   });
-  expect(person.github).toBe("https://github.com/foo");
+  expect(person.externalLinks?.github).toBe("https://github.com/foo");
   expect((await getPersonByGitHub("https://github.com/FOO"))?.id).toBe(person.id);
   const result = await operationCatalog.blocklistAdd.execute(context, {
     source: "github",

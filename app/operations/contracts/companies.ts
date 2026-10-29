@@ -1,7 +1,8 @@
+import { externalLinksOutput } from "~/lib/links";
+import { externalLinks } from "../fields";
 import { blocklistReason } from "./blocklist";
 import { createOptions } from "../fields";
 import { email } from "../fields";
-import { nullableGithubProfile } from "../fields";
 import { technologyProvenanceSourceKeys } from "../fields";
 import { z } from "zod";
 import {
@@ -39,9 +40,7 @@ export const companyFields = {
   name: text("name", 300),
   description: text("description"),
   website: nullableUrl().optional(),
-  wikipedia: nullableUrl().optional(),
-  github: nullableGithubProfile().optional(),
-  linkedin: nullableUrl().optional(),
+  externalLinks: externalLinks.optional(),
   careersUrl: nullableUrl().optional(),
   email: nullableText(320).pipe(email().nullable()).optional(),
   location: nullableText().optional(),
@@ -83,10 +82,8 @@ export const companyOutput = z
     name: z.string(),
     description: z.string(),
     website: z.string().nullable(),
+    externalLinks: externalLinksOutput,
     careersUrl: z.string().nullable(),
-    wikipedia: z.string().nullable(),
-    linkedin: z.string().nullable(),
-    github: z.string().nullable(),
     email: z.string().nullable(),
     location: z.string().nullable(),
     founded: z.string().nullable(),

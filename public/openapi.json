@@ -463,7 +463,7 @@
           "name": { "type": "string" },
           "description": { "type": "string" },
           "website": { "type": "string", "nullable": true },
-          "wikipedia": { "type": "string", "nullable": true },
+          "externalLinks": { "type": "object", "nullable": true },
           "location": { "type": "string", "nullable": true },
           "founded": { "type": "string", "nullable": true },
           "logo": { "type": "string", "nullable": true },
@@ -629,7 +629,7 @@
           "bio": { "type": "string", "nullable": true },
           "website": { "type": "string", "nullable": true },
           "avatar": { "type": "string", "nullable": true },
-          "socialLinks": { "type": "object", "nullable": true },
+          "externalLinks": { "type": "object", "nullable": true },
           "url": { "type": "string", "description": "Canonical URL on siliconharbour.dev" },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }

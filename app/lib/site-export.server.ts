@@ -81,6 +81,7 @@ export async function buildSiteExport() {
       name: company.name,
       slug: company.slug,
       website: company.website,
+      externalLinks: company.externalLinks,
       location: company.location,
       founded: company.founded,
       logo: company.logo ? `${SITE_URL}/images/${company.logo}` : null,
@@ -131,7 +132,7 @@ export async function buildSiteExport() {
       slug: person.slug,
       website: person.website,
       avatar: person.avatar ? `${SITE_URL}/images/${person.avatar}` : null,
-      socialLinks: person.socialLinks,
+      externalLinks: person.externalLinks,
       createdAt: person.createdAt.toISOString(),
       updatedAt: person.updatedAt.toISOString(),
     });

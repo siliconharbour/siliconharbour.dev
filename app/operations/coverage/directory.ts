@@ -23,9 +23,7 @@ export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> =
         "description",
         "website",
         "careersUrl",
-        "wikipedia",
-        "linkedin",
-        "github",
+        "externalLinks",
         "email",
         "location",
         "founded",
@@ -93,7 +91,7 @@ export const directoryCoverage: Record<string, Record<string, ColumnCoverage>> =
   people: {
     ...mappedFields(
       ["personCreate", "personUpdate"],
-      ["name", "bio", "website", "github", "avatar", "socialLinks", "visible"],
+      ["name", "bio", "website", "avatar", "externalLinks", "visible"],
     ),
     id: { excluded: "Generated identifier" },
     slug: { excluded: "Derived from name or title" },

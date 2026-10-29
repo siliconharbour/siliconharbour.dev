@@ -11,7 +11,7 @@ const mapCompany = (company: typeof companies.$inferSelect) => ({
   name: company.name,
   description: company.description,
   website: company.website,
-  wikipedia: company.wikipedia,
+  externalLinks: company.externalLinks,
   location: company.location,
   founded: company.founded,
   logo: imageUrl(company.logo),

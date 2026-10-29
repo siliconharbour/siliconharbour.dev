@@ -27,7 +27,7 @@ export async function importGithubProfiles(
       }
       const existing =
         (await getPersonByGitHub(user.html_url)) ?? (await getPersonByName(displayName));
-      if (existing && (mode === "following" || existing.github)) {
+      if (existing && (mode === "following" || existing.externalLinks?.github)) {
         imported.push(`${displayName} (skipped - already linked)`);
         continue;
       }
@@ -53,11 +53,11 @@ export async function importGithubProfiles(
         const bytes = await fetchAvatar(user.avatar_url);
         if (bytes) avatar = await processAndSaveIconImageWithPadding(bytes);
       }
-      if (githubOrgUrl && company && !company.github)
-        await updateCompany(company.id, { github: githubOrgUrl });
+      if (githubOrgUrl && company && !company.externalLinks?.github)
+        await updateCompany(company.id, { externalLinks: { github: githubOrgUrl } });
       if (existing) {
         await updatePerson(existing.id, {
-          github: user.html_url,
+          externalLinks: { github: user.html_url },
           website: existing.website || user.blog || null,
           avatar: existing.avatar || avatar,
           bio: existing.bio?.startsWith("GitHub user from") ? bio : existing.bio,
@@ -68,7 +68,7 @@ export async function importGithubProfiles(
           name: displayName,
           bio,
           website: user.blog || null,
-          github: user.html_url,
+          externalLinks: { github: user.html_url },
           avatar,
           visible: false,
         });

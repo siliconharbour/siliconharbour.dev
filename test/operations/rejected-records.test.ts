@@ -113,7 +113,7 @@ it("expires restore access while retaining explicit cleanup and its import block
   const person = await ops.personCreate.execute(ctx, {
     name: "Person",
     bio: "Bio",
-    github: "@Example",
+    externalLinks: { github: "@Example" },
   });
   const avatar = image();
   await db.update(people).set({ avatar }).where(eq(people.id, person.id));

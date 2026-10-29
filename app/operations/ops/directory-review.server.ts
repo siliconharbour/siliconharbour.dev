@@ -29,12 +29,12 @@ import { normalizeBlockKey } from "~/lib/import-blocklist-key";
 async function removePerson(id: number, block: boolean, reason?: string | null) {
   const person = await getPersonById(id);
   if (!person) throw new NotFoundError("Person not found");
-  if (block && !person.github)
+  if (block && !person.externalLinks?.github)
     throw new ConflictError("Cannot block a person without a GitHub profile");
-  if (block && person.github)
+  if (block && person.externalLinks?.github)
     blockItem(
       "github",
-      person.github,
+      person.externalLinks?.github,
       person.name,
       reason === undefined ? "Removed during review" : reason,
     );
@@ -156,7 +156,7 @@ export const directoryReviewOperations = {
         .filter(Boolean);
       const matches = (await getHiddenPeople()).filter((person) =>
         terms.every((term) =>
-          `${person.name} ${person.bio} ${Object.values(person.socialLinks ?? {}).join(" ")}`
+          `${person.name} ${person.bio} ${Object.values(person.externalLinks ?? {}).join(" ")}`
             .toLowerCase()
             .includes(term),
         ),

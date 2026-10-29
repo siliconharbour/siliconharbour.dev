@@ -20,7 +20,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const existingPeople = await loadAllAdminItems(request, operationCatalog.personList);
   const existingGitHubs = new Set(
-    existingPeople.filter((p) => p.github).map((p) => p.github!.toLowerCase()),
+    existingPeople.flatMap((p) =>
+      p.externalLinks?.github ? [p.externalLinks.github.toLowerCase()] : [],
+    ),
   );
 
   const result = await runAdminOperation(request, operationCatalog.githubFollowingStatus, {});

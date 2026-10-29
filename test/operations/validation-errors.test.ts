@@ -7,7 +7,7 @@ it("reports allowed fields at the failing nested object or union variant", () =>
       .object({
         type: z.literal("person"),
         name: z.string(),
-        socialLinks: z
+        externalLinks: z
           .object({ twitter: z.string().optional(), linkedin: z.string().optional() })
           .strict(),
       })
@@ -21,7 +21,7 @@ it("reports allowed fields at the failing nested object or union variant", () =>
       })
       .strict(),
   ]);
-  const person = { type: "person", name: "Person", socialLinks: { bogus: "value" } };
+  const person = { type: "person", name: "Person", externalLinks: { bogus: "value" } };
   const parsed = schema.safeParse(person);
   if (parsed.success) throw new Error("Expected validation failure");
   const message = formatValidationError(parsed.error, schema, person);

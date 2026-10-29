@@ -52,7 +52,7 @@ it.each(["personDelete", "personReject", "personBulkReject"] as const)(
     const person = await ops.personCreate.execute(ctx, {
       name: "Review target",
       bio: "Description",
-      github: "example",
+      externalLinks: { github: "example" },
     });
     blockItem("github", "example", "Original name", "Custom reason");
     const original = await getBlockedItem("github", "example");
@@ -92,7 +92,7 @@ it("uses supplied and default reasons for new blocks", async () => {
   const first = await ops.personCreate.execute(ctx, {
     name: "First",
     bio: "Description",
-    github: "first",
+    externalLinks: { github: "first" },
   });
   await ops.personDelete.execute(ctx, {
     id: first.id,
@@ -103,14 +103,14 @@ it("uses supplied and default reasons for new blocks", async () => {
   const second = await ops.personCreate.execute(ctx, {
     name: "Second",
     bio: "Description",
-    github: "second",
+    externalLinks: { github: "second" },
   });
   await ops.personReject.execute(ctx, { id: second.id, confirm: true });
   expect((await getBlockedItem("github", "second"))?.reason).toBe("Rejected during review");
   await ops.personCreate.execute(ctx, {
     name: "Third",
     bio: "Description",
-    github: "third",
+    externalLinks: { github: "third" },
   });
   await ops.personBulkReject.execute(ctx, {
     pattern: "Third",
@@ -124,7 +124,7 @@ it("restoring a rejection preserves a block that predates it", async () => {
   const person = await ops.personCreate.execute(ctx, {
     name: "Existing block",
     bio: "Description",
-    github: "existing",
+    externalLinks: { github: "existing" },
   });
   blockItem("github", "existing", "Existing block", "Custom reason");
   const original = await getBlockedItem("github", "existing");
