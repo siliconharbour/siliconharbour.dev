@@ -26,24 +26,17 @@ App runs at `http://localhost:3000`
 
 ### Local newsletter testbed
 
-Run the sibling Lists project alongside this app. From `../lists`, start its Compose stack using
-the port overrides in [its local development guide](https://github.com/jackharrhy/lists/blob/main/LOCAL_DEVELOPMENT.md). For example,
-Lists can run at `http://localhost:18080` and its Mailpit inbox at `http://localhost:18025` while
-Silicon Harbour runs at `http://localhost:3000` with `pnpm run dev`. Mailpit captures confirmation
-and campaign messages; the local stack does not send real email.
+Run Tea's Lists app with disposable storage and Mailpit using its
+`apps/lists/LOCAL_DEVELOPMENT.md` guide. Lists can run at `http://localhost:18080` and Mailpit
+at `http://localhost:18025`, alongside Silicon Harbour at `http://localhost:3000`.
+Use an isolated machine identity and list fixture; never point sending tests at production.
 
-Lists' local integration test covers subscriber API signup, confirmation, campaign creation and
-editing, and Mailpit delivery. Silicon Harbour does not yet have a Lists client or newsletter UI,
-so there is no cross-app browser test yet. When those are added, configure a server-side Lists URL
-and scoped token for the local instance; keep the token out of browser code. Create a local
-`lists.local` list in Lists, and reserve campaign sending for its admin UI.
-
-### Database Commands
+The server-side client and `/manage/newsletter` UI use the Lists REST API. The provider's local
+integration suite covers signup, confirmation, campaign editing and captured delivery. The
+consumer's token, list-ownership and rollout tests use mocked HTTP and send no mail:
 
 ```bash
-pnpm run db:migrate    # Run migrations
-pnpm run db:studio     # Open Drizzle Studio
-pnpm run db:seed       # Seed database
+pnpm test test/lib/newsletter-auth.test.ts test/lib/newsletter.test.ts test/operations/newsletter-create.test.ts
 ```
 
 ## Docker
@@ -67,33 +60,48 @@ docker run -p 3000:3000 -v ./data:/app/data siliconharbour
 
 ## Environment Variables
 
-| Variable             | Description                                       | Default                    |
-| -------------------- | ------------------------------------------------- | -------------------------- |
-| `DATA_DIR`           | Directory for database and uploads                | `./data`                   |
-| `DB_NAME`            | SQLite database filename                          | `siliconharbour.db`        |
-| `IMAGES_DIR_NAME`    | Subdirectory for uploaded images                  | `images`                   |
-| `SESSION_SECRET`     | Signs login and OAuth sessions                    | Required in prod           |
-| `SITE_URL`           | Public application/MCP resource URL               | Production URL             |
-| `OAUTH_ISSUER_URL`   | OAuth issuer URL (if different)                   | `SITE_URL`                 |
-| `LISTS_API_URL`      | Lists server base URL (server only)               | Unset                      |
-| `LISTS_API_TOKEN`    | Lists token for the Silicon Harbour list          | Unset                      |
-| `LISTS_LIST_SLUG`    | Lists mailing list slug                           | `siliconharbour`           |
-| `LISTS_FROM_ADDRESS` | Campaign sender address                           | `hello@siliconharbour.dev` |
-| `LISTS_PILOT_EMAILS` | Comma-separated addresses allowed for pilot sends | Unset                      |
+| Variable                   | Description                                       | Default                    |
+| -------------------------- | ------------------------------------------------- | -------------------------- |
+| `DATA_DIR`                 | Directory for database and uploads                | `./data`                   |
+| `DB_NAME`                  | SQLite database filename                          | `siliconharbour.db`        |
+| `IMAGES_DIR_NAME`          | Subdirectory for uploaded images                  | `images`                   |
+| `SESSION_SECRET`           | Signs login and OAuth sessions                    | Required in prod           |
+| `SITE_URL`                 | Public application/MCP resource URL               | Production URL             |
+| `OAUTH_ISSUER_URL`         | OAuth issuer URL (if different)                   | `SITE_URL`                 |
+| `LISTS_API_URL`            | Lists server base URL (server only)               | Unset                      |
+| `LISTS_AUTH_ISSUER`        | HTTPS issuer for the newsletter machine identity  | Unset                      |
+| `LISTS_AUTH_CLIENT_ID`     | Dedicated newsletter machine client ID            | Unset                      |
+| `LISTS_AUTH_CLIENT_SECRET` | Server-only machine client secret                 | Unset                      |
+| `LISTS_AUTH_SCOPE`         | Exact reviewed audience and permission scopes     | Unset                      |
+| `LISTS_LIST_SLUG`          | Lists mailing list slug                           | `siliconharbour`           |
+| `LISTS_FROM_ADDRESS`       | Campaign sender address                           | `hello@siliconharbour.dev` |
+| `LISTS_PILOT_EMAILS`       | Comma-separated addresses allowed for pilot sends | Unset                      |
 
 ## Newsletter development
 
-Run Lists with its `compose.yml` (Mailpit captures outgoing mail at port 8025), create a list
-named `Silicon Harbour` with slug `siliconharbour`, and create a member token assigned only to
-that list. Give it `lists:read`, `subscribers:read`, `subscribers:write`, `campaigns:read`,
-`campaigns:write`, and `campaigns:send` scopes. Point `LISTS_API_URL` at the local Lists app,
-set `LISTS_API_TOKEN`, and use `LISTS_FROM_ADDRESS=news@lists.local` when the local Lists
-sender domain is `lists.local`. Set `LISTS_PILOT_EMAILS` to test addresses captured by Mailpit.
+The newsletter uses a dedicated machine identity restricted to the Silicon Harbour list.
+Its six REST permissions are `lists:read`, `subscribers:read`, `subscribers:write`,
+`campaigns:read`, `campaigns:write`, and `campaigns:send`. Auth supplies the exact issuer,
+client credential and scope string, including the project audience and member role. These
+values stay on the server. Do not request browser, MCP, refresh, admin or other-list access.
 
-The newsletter starts with public signup and full-list sending disabled. Admins can add pilot
-subscribers, confirm through Mailpit, preview drafts, and use pilot send without enabling either
-rollout setting. The token remains on the Silicon Harbour server. Production should use a
-dedicated Lists member assigned only to this list.
+Set `LISTS_API_URL` to Tea's Lists origin. The client discovers a same-origin HTTPS token
+endpoint, uses `client_credentials` with `client_secret_basic`, and caches the token in memory
+until shortly before its returned expiry. Concurrent exchanges share one request. Authorization
+rejections discard the cached token; writes and sends are never automatically replayed.
+There is no static-token or owner-credential fallback. Coordinate secret rotation through Auth
+and reload the consumer with the replacement; do not assume existing access tokens are revoked
+by replacing a client secret.
+
+For isolated local delivery, use `LISTS_FROM_ADDRESS=news@lists.local` when the provider's sender
+domain is `lists.local`, and put only captured test addresses in `LISTS_PILOT_EMAILS`.
+Public signup and full-list sending start disabled. Admins can add pilot subscribers, confirm
+through Mailpit, preview drafts and use pilot send without enabling either rollout setting.
+
+The Lists-to-Tea cutover must keep source credentials and routing unchanged until the replacement
+issuer/resource and isolated newsletter workflows pass acceptance. Preserve list, subscriber and
+campaign IDs, the sender, pilot allowlist and rollout flags. Shared deployment changes belong to
+the Infra owner; revoke the old source credential only after the consumer is accepted.
 
 ## MCP access
 

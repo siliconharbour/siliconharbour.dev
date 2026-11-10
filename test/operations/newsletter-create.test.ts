@@ -1,3 +1,4 @@
+import { mockNewsletterProvider } from "../helpers/newsletter-provider";
 import { afterEach, expect, it, vi } from "vitest";
 import { operationCatalog as ops } from "~/operations/catalog";
 import { adminContext } from "~/operations/context";
@@ -8,12 +9,11 @@ afterEach(() => {
 });
 it("reuses newsletter drafts and memberships without repeating writes or confirmations", async () => {
   vi.stubEnv("LISTS_API_URL", "https://lists.test");
-  vi.stubEnv("LISTS_API_TOKEN", "test-token");
+
   const campaigns: Record<string, unknown>[] = [];
   const subscribers: Record<string, unknown>[] = [];
   const writes: string[] = [];
-  vi.stubGlobal(
-    "fetch",
+  mockNewsletterProvider(
     vi.fn(async (url: URL, init?: RequestInit) => {
       const body = init?.body ? JSON.parse(String(init.body)) : null;
       let data: unknown;

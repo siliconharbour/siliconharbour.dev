@@ -1,7 +1,9 @@
+import { mockNewsletterProvider } from "../helpers/newsletter-provider";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getNewsletterFlags,
   getNewsletterSends,
+  getNewsletterStats,
   setNewsletterFlags,
   sendNewsletterTest,
 } from "~/lib/newsletter.server";
@@ -25,7 +27,7 @@ describe("newsletter rollout", () => {
 
   it("reads actual campaign send records through Lists", async () => {
     vi.stubEnv("LISTS_API_URL", "http://lists.test:8080");
-    vi.stubEnv("LISTS_API_TOKEN", "test-token");
+
     const fetchMock = vi.fn(
       async (_url: URL) =>
         new Response(
@@ -35,7 +37,7 @@ describe("newsletter rollout", () => {
           { status: 200 },
         ),
     );
-    vi.stubGlobal("fetch", fetchMock);
+    mockNewsletterProvider(fetchMock);
     expect(await getNewsletterSends(12, 50)).toMatchObject([
       { email: "pilot@example.com", status: "delivered" },
     ]);
@@ -54,11 +56,10 @@ describe("newsletter rollout", () => {
 
   it("sends a test only to confirmed addresses on the pilot allowlist", async () => {
     vi.stubEnv("LISTS_API_URL", "http://lists.test:8080");
-    vi.stubEnv("LISTS_API_TOKEN", "test-token");
+
     vi.stubEnv("LISTS_PILOT_EMAILS", "pilot@example.com, pending@example.com");
     const calls: { path: string; body?: unknown }[] = [];
-    vi.stubGlobal(
-      "fetch",
+    mockNewsletterProvider(
       vi.fn(async (input: URL, init?: RequestInit) => {
         const path = input.pathname + input.search;
         const body = init?.body ? JSON.parse(String(init.body)) : undefined;
@@ -101,10 +102,9 @@ describe("newsletter rollout", () => {
 
 it("returns honest provider pagination, including empty filtered campaign pages", async () => {
   vi.stubEnv("LISTS_API_URL", "https://lists.example.com");
-  vi.stubEnv("LISTS_API_TOKEN", "test-token");
+
   const requests: URL[] = [];
-  vi.stubGlobal(
-    "fetch",
+  mockNewsletterProvider(
     vi.fn(async (input: URL | string) => {
       const url = new URL(input);
       requests.push(url);
@@ -152,4 +152,43 @@ it("returns honest provider pagination, including empty filtered campaign pages"
     total: null,
     nextOffset: null,
   });
+});
+
+it.each([401, 403])(
+  "fails closed on provider authorization failure %i without retrying",
+  async (status) => {
+    vi.stubEnv("LISTS_API_URL", "https://lists.test");
+
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ error: "Authorization denied" }), { status }),
+      );
+    mockNewsletterProvider(fetchMock);
+    await expect(getNewsletterStats(4)).rejects.toThrow(`Lists request failed (${status})`);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe("https://lists.test/api/v1/lists/4/stats");
+    expect(init.headers.Authorization).toBe("Bearer fixture-machine-token");
+  },
+);
+
+it("refuses a campaign from another list before looking up recipients or sending", async () => {
+  vi.stubEnv("LISTS_API_URL", "https://lists.test");
+
+  vi.stubEnv("LISTS_PILOT_EMAILS", "pilot@example.test");
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        data: { id: 7, audienceType: "list", audienceId: 3, audienceData: null },
+      }),
+      { status: 200 },
+    ),
+  );
+  mockNewsletterProvider(fetchMock);
+  await expect(sendNewsletterTest(7, 4)).rejects.toThrow(
+    "Campaign does not belong to the Silicon Harbour list",
+  );
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(String(fetchMock.mock.calls[0][0])).toBe("https://lists.test/api/v1/campaigns/7");
 });

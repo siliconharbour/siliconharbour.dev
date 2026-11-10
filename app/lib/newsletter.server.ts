@@ -1,3 +1,4 @@
+import { isNewsletterAuthConfigured, newsletterAuth } from "./newsletter-auth.server";
 import { campaignAudience } from "~/operations/contracts/newsletter";
 import type { z } from "zod";
 import { InvalidOperationError } from "~/operations/errors";
@@ -89,7 +90,7 @@ const PUBLIC_SIGNUP_KEY = "newsletter_public_signup_enabled";
 const LIVE_SEND_KEY = "newsletter_live_send_enabled";
 
 export function isNewsletterConfigured() {
-  return Boolean(process.env.LISTS_API_URL && process.env.LISTS_API_TOKEN);
+  return Boolean(process.env.LISTS_API_URL && isNewsletterAuthConfigured());
 }
 
 export function pilotEmails() {
@@ -158,10 +159,13 @@ export async function setNewsletterFlags(flags: { publicSignup: boolean; liveSen
 
 async function listsRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const baseUrl = process.env.LISTS_API_URL;
-  const token = process.env.LISTS_API_TOKEN;
-  if (!baseUrl || !token) throw new InvalidOperationError("Lists is not configured");
+  if (!baseUrl || !isNewsletterAuthConfigured())
+    throw new InvalidOperationError("Lists is not configured");
+  const auth = newsletterAuth();
+  const token = await auth.token();
   const response = await fetch(new URL(`/api/v1${path}`, baseUrl), {
     ...init,
+    redirect: "error",
     signal: init.signal ?? AbortSignal.timeout(20_000),
     headers: {
       Authorization: `Bearer ${token}`,
@@ -169,12 +173,16 @@ async function listsRequest<T>(path: string, init: RequestInit = {}): Promise<T>
       ...init.headers,
     },
   });
+  if (response.status === 401 || response.status === 403) auth.invalidate(token);
   const body = (await response.json().catch(() => null)) as
     | ListsResponse<T>
     | { error?: string }
     | null;
   if (!response.ok || !body || !("data" in body)) {
-    const detail = body && "error" in body ? body.error : undefined;
+    const detail =
+      response.status !== 401 && response.status !== 403 && body && "error" in body
+        ? body.error
+        : undefined;
     throw new InvalidOperationError(
       `Lists request failed (${response.status})${detail ? `: ${detail}` : ""}`,
     );
