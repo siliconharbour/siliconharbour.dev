@@ -35,7 +35,7 @@ export default function NewsletterIndex() {
         </div>
         {!data.configured ? (
           <p className="border border-amber-200 bg-amber-50 p-pad-4 text-amber-700">
-            Set LISTS_API_URL and LISTS_API_TOKEN on the server to connect the newsletter.
+            Configure the newsletter connection on the server.
           </p>
         ) : (
           <>
