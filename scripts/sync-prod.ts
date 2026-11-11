@@ -179,17 +179,10 @@ function startContainer() {
 }
 
 function checkContainerStatus(): boolean {
-  try {
-    const result = ssh(
-      `cd ${REMOTE_COMPOSE_DIR} && docker compose ps --format json ${SERVICE_NAME}`,
-    );
-    if (result.includes('"State":"running"') || result.includes('"Status":"Up')) {
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
+  const state = ssh("docker inspect --format '{{.State.Status}}' mug-siliconharbour-1").trim();
+  if (state === "running") return true;
+  if (state === "exited" || state === "created") return false;
+  throw new Error(`Production container state is ${state}; refusing database replacement`);
 }
 
 async function runPush() {
