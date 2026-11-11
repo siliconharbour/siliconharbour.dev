@@ -229,6 +229,7 @@ button {
       translate 150ms;
   }
   .card-stack {
+    display: grid;
     position: relative;
     padding-bottom: calc(var(--theme-stack-step) * 2);
     padding-right: calc(var(--theme-stack-step) * 2);

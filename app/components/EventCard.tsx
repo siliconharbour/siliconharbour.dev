@@ -122,7 +122,7 @@ function StackedWrapper({
     <div className="card-stack">
       <div aria-hidden="true" className="card-stack-back card-surface bg-soft" />
       <div aria-hidden="true" className="card-stack-middle card-surface bg-soft" />
-      <div className="relative">{children}</div>
+      <div className="relative grid">{children}</div>
     </div>
   );
 }
