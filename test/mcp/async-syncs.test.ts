@@ -101,3 +101,36 @@ it("retains failed importer results and the initiating administrator", async () 
     ],
   });
 });
+
+it("continues after a failed step and keeps prior polling snapshots unchanged", async () => {
+  const pending = deferred<{ success: boolean; added: number; skipped: number; removed: number }>();
+  const run = startAsyncSync([
+    {
+      type: "event",
+      sourceId: 1,
+      name: "Failed",
+      run: async () => {
+        throw new Error("source busy");
+      },
+    },
+    { type: "event", sourceId: 2, name: "Next", run: () => pending.promise },
+  ]);
+  await vi.waitFor(() => expect(getAsyncSync(run.id)?.current?.sourceId).toBe(2));
+  const snapshot = getAsyncSync(run.id)!;
+  expect(snapshot).toMatchObject({ status: "running", completed: 0, failed: 1 });
+  pending.resolve({ success: true, added: 1, skipped: 0, removed: 0 });
+  await vi.waitFor(() => expect(getAsyncSync(run.id)?.status).toBe("failed"));
+  expect(getAsyncSync(run.id)).toMatchObject({ completed: 1, failed: 1, current: undefined });
+  expect(snapshot.steps[1].status).toBe("running");
+});
+
+it("bounds active runs without evicting them and frees capacity after completion", async () => {
+  const pending = deferred<{ success: boolean; added: number; skipped: number; removed: number }>();
+  const task = { type: "event" as const, sourceId: 1, name: "Held", run: () => pending.promise };
+  const runs = Array.from({ length: 20 }, () => startAsyncSync([task]));
+  expect(() => startAsyncSync([task])).toThrow("Too many source syncs");
+  expect(runs.every((run) => getAsyncSync(run.id)?.status === "running")).toBe(true);
+  pending.resolve({ success: true, added: 0, skipped: 0, removed: 0 });
+  await vi.waitFor(() => expect(getAsyncSync(runs[19].id)?.status).toBe("completed"));
+  expect(() => startAsyncSync([])).not.toThrow();
+});

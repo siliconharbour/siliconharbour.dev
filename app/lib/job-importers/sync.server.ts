@@ -1,3 +1,4 @@
+import { withWorkLock } from "../work-lock.server";
 /**
  * Job Import Sync Logic
  * Handles the sync algorithm for importing jobs from external sources
@@ -254,7 +255,7 @@ async function applyFetchedJobsToSource(
  * 4. For existing jobs not in fetched list: mark as removed
  * 5. Update source metadata
  */
-export async function syncJobs(sourceId: number): Promise<SyncResult> {
+async function syncJobsUnlocked(sourceId: number): Promise<SyncResult> {
   const source = await getSourceById(sourceId);
   if (!source) {
     return {
@@ -267,9 +268,6 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
       totalActive: 0,
     };
   }
-
-  // Mark as pending
-  await updateSource(sourceId, { fetchStatus: "pending", fetchError: null });
 
   try {
     const importer = getImporter(source.sourceType as JobSourceType);
@@ -284,7 +282,7 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
 
     // 1. Fetch current jobs from ATS
     const fetchedJobs = await importer.fetchJobs(config);
-    return applyFetchedJobsToSource(source, fetchedJobs);
+    return await applyFetchedJobsToSource(source, fetchedJobs);
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);
     await updateSource(sourceId, { fetchStatus: "error", fetchError: error });
@@ -305,7 +303,7 @@ export async function syncJobs(sourceId: number): Promise<SyncResult> {
  * Sync jobs using a manually supplied fetched job list.
  * Useful as a fallback for sources blocked by anti-bot protection.
  */
-export async function syncJobsFromFetched(
+async function syncJobsFromFetchedUnlocked(
   sourceId: number,
   fetchedJobs: FetchedJob[],
 ): Promise<SyncResult> {
@@ -321,8 +319,6 @@ export async function syncJobsFromFetched(
       totalActive: 0,
     };
   }
-
-  await updateSource(sourceId, { fetchStatus: "pending", fetchError: null });
 
   try {
     return await applyFetchedJobsToSource(source, fetchedJobs);
@@ -567,3 +563,9 @@ export async function hideAllPendingJobs(): Promise<number> {
     .where(eq(jobs.status, "pending_review"));
   return result.changes;
 }
+
+export const syncJobs = (sourceId: number) =>
+  withWorkLock(`source:job:${sourceId}`, () => syncJobsUnlocked(sourceId));
+
+export const syncJobsFromFetched = (sourceId: number, fetchedJobs: FetchedJob[]) =>
+  withWorkLock(`source:job:${sourceId}`, () => syncJobsFromFetchedUnlocked(sourceId, fetchedJobs));

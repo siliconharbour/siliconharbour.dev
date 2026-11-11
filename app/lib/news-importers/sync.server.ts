@@ -1,3 +1,5 @@
+import { formatError } from "~/mcp/errors";
+import { withWorkLock } from "../work-lock.server";
 /**
  * News Import Sync Logic
  * Handles the sync algorithm for importing news from external sources
@@ -173,7 +175,7 @@ async function updateSourceMeta(
 /**
  * Sync news from an import source.
  */
-export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> {
+async function syncNewsSourceUnlocked(sourceId: number): Promise<NewsSyncResult> {
   const source = await getNewsSourceById(sourceId);
   if (!source) {
     return {
@@ -185,8 +187,6 @@ export async function syncNewsSource(sourceId: number): Promise<NewsSyncResult> 
       totalPublished: 0,
     };
   }
-
-  await updateSourceMeta(sourceId, { lastSyncStatus: "pending", lastSyncError: null });
 
   try {
     const importer = getNewsImporter(source.sourceType as NewsSourceType);
@@ -334,15 +334,20 @@ export async function syncAllNewsSources(): Promise<{
   };
 
   for (const source of sources) {
-    const result = await syncNewsSource(source.id);
-    if (result.success) {
-      totals.sourcesSucceeded++;
-      totals.added += result.added;
-      totals.updated += result.updated;
-      totals.filtered += result.filtered;
-    } else {
+    try {
+      const result = await syncNewsSource(source.id);
+      if (result.success) {
+        totals.sourcesSucceeded++;
+        totals.added += result.added;
+        totals.updated += result.updated;
+        totals.filtered += result.filtered;
+      } else {
+        totals.sourcesFailed++;
+        totals.errors.push(`${source.name}: ${result.error}`);
+      }
+    } catch (error) {
       totals.sourcesFailed++;
-      totals.errors.push(`${source.name}: ${result.error}`);
+      totals.errors.push(`${source.name}: ${formatError(error)}`);
     }
   }
 
@@ -398,3 +403,6 @@ export async function hideAllPendingNews(): Promise<number> {
     .where(eq(news.status, "pending_review"));
   return result.changes;
 }
+
+export const syncNewsSource = (sourceId: number) =>
+  withWorkLock(`source:news:${sourceId}`, () => syncNewsSourceUnlocked(sourceId));
