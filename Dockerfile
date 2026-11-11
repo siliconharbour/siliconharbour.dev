@@ -1,7 +1,7 @@
 FROM platformatic/node-caged:26-slim AS package-manager-base
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-RUN npm install -g pnpm@12.15.0
+RUN npm install -g pnpm@12.18.0
 
 FROM package-manager-base AS dependency-base
 RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
