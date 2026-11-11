@@ -109,7 +109,7 @@ export const directoryAdoptInput = z
 export const importBatchOutput = z
   .object({ imported: z.array(z.string()), errors: z.array(z.string()) })
   .strict();
-import { id, importJobStatuses, githubFollowingModes } from "../fields";
+import { id, importRunStatuses, githubFollowingModes } from "../fields";
 export const githubBasicUser = z
   .object({ login: text("login", 100), id: id(), avatar_url: url(), html_url: url() })
   .strict();
@@ -143,7 +143,9 @@ export const githubSearchOutput = z
   .strict();
 export const githubProgressOutput = z
   .object({
-    status: z.enum(importJobStatuses),
+    status: z.enum(importRunStatuses),
+    runId: z.string().nullable(),
+    pauseReason: z.enum(["user", "rate_limit"]).nullable(),
     totalItems: z.number(),
     processedItems: z.number(),
     currentPage: z.number(),
@@ -160,8 +162,28 @@ export const githubProgressOutput = z
     waitingForRateLimit: z.boolean(),
   })
   .strict();
+export const githubRunInput = z
+  .object({
+    runId: text("runId", 100).describe(
+      "Run identity returned by the status operation; stale runs are rejected.",
+    ),
+  })
+  .strict();
+export const githubRunConfirmedInput = githubRunInput.extend({ confirm }).strict();
+export const githubLocationStartInput = z
+  .object({
+    runId: text("runId", 100)
+      .nullable()
+      .describe("Current run identity, or null when no run exists."),
+    confirm,
+  })
+  .strict();
 export const githubContinueInput = z
-  .object({ downloadAvatars: z.boolean().default(true), confirm })
+  .object({
+    runId: githubRunInput.shape.runId,
+    downloadAvatars: z.boolean().default(true),
+    confirm,
+  })
   .strict();
 export const githubFollowingStartInput = z
   .object({
@@ -172,7 +194,9 @@ export const githubFollowingStartInput = z
   .strict();
 export const githubFollowingOutput = z
   .object({
-    status: z.enum(importJobStatuses),
+    status: z.enum(importRunStatuses),
+    runId: z.string().nullable(),
+    pauseReason: z.enum(["user", "rate_limit"]).nullable(),
     sourceUsername: z.string().nullable(),
     mode: z.enum(githubFollowingModes).nullable(),
     totalUsers: z.number(),

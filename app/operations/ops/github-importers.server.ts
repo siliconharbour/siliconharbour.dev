@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { defineOperation } from "../define";
-import { emptyInput, confirm } from "../fields";
+import { emptyInput } from "../fields";
 import { toPlain } from "../plain";
 import {
   githubImportInput,
@@ -9,6 +9,9 @@ import {
   githubSearchOutput,
   githubProgressOutput,
   githubContinueInput,
+  githubRunInput,
+  githubRunConfirmedInput,
+  githubLocationStartInput,
   githubFollowingStartInput,
   githubFollowingOutput,
 } from "../contracts/importers";
@@ -29,7 +32,6 @@ import {
   resetFollowingImport,
 } from "~/lib/github-following-import.server";
 import { importGithubProfiles } from "~/lib/github-profile-import.server";
-const confirmed = emptyInput.extend({ confirm }).strict();
 export const githubImporterOperations = {
   githubLocationSearch: defineOperation({
     name: "githubLocationSearch",
@@ -106,11 +108,11 @@ export const githubImporterOperations = {
     access: "admin",
     summary: "Start the bulk GitHub location import.",
     description:
-      "Initialize the existing location import and live GitHub search. Requires confirm: true. Advance it with githubLocationBulkContinue and poll githubLocationBulkStatus.",
-    input: confirmed,
+      "Initialize or resume the location import. Completed runs require reset before restarting. Requires confirm: true. Advance it with githubLocationBulkContinue and poll githubLocationBulkStatus.",
+    input: githubLocationStartInput,
     output: githubProgressOutput,
-    examples: [{ title: "Start import", input: { confirm: true } }],
-    run: async () => toPlain(await startImport()),
+    examples: [{ title: "Start import", input: { runId: null, confirm: true } }],
+    run: async (_ctx, { runId }) => toPlain(await startImport(runId)),
   }),
   githubLocationBulkContinue: defineOperation({
     name: "githubLocationBulkContinue",
@@ -128,8 +130,9 @@ export const githubImporterOperations = {
         errors: z.array(z.string()),
       })
       .strict(),
-    examples: [{ title: "Next batch", input: { confirm: true } }],
-    run: async (_ctx, { downloadAvatars }) => toPlain(await processNextBatch(downloadAvatars)),
+    examples: [{ title: "Next batch", input: { runId: "run", confirm: true } }],
+    run: async (_ctx, { runId, downloadAvatars }) =>
+      toPlain(await processNextBatch(runId, downloadAvatars)),
   }),
   githubLocationBulkPause: defineOperation({
     name: "githubLocationBulkPause",
@@ -138,11 +141,11 @@ export const githubImporterOperations = {
     access: "admin",
     summary: "Pause the bulk GitHub location import.",
     description:
-      "Persist the paused state without fetching more profiles. Existing imported records are retained.",
-    input: emptyInput,
+      "Wait for the active batch to finish, then pause. Existing imported records are retained.",
+    input: githubRunInput,
     output: githubProgressOutput,
-    examples: [{ title: "Pause", input: {} }],
-    run: async () => toPlain(await pauseImport()),
+    examples: [{ title: "Pause", input: { runId: "run" } }],
+    run: async (_ctx, { runId }) => toPlain(await pauseImport(runId)),
   }),
   githubLocationBulkReset: defineOperation({
     name: "githubLocationBulkReset",
@@ -151,11 +154,11 @@ export const githubImporterOperations = {
     access: "admin",
     summary: "Reset bulk GitHub location import progress.",
     description:
-      "Clear import progress without deleting imported directory records. Requires confirm: true.",
-    input: confirmed,
+      "Wait for the active batch to finish, then clear progress without deleting imported directory records. Requires confirm: true.",
+    input: githubRunConfirmedInput,
     output: githubProgressOutput,
-    examples: [{ title: "Reset", input: { confirm: true } }],
-    run: async () => toPlain(await resetImport()),
+    examples: [{ title: "Reset", input: { runId: "run", confirm: true } }],
+    run: async (_ctx, { runId }) => toPlain(await resetImport(runId)),
   }),
   githubFollowingStatus: defineOperation({
     name: "githubFollowingStatus",
@@ -164,7 +167,7 @@ export const githubImporterOperations = {
     access: "admin",
     summary: "Get GitHub connection import progress and profiles.",
     description:
-      "Read the current following/follower job state and fetched profiles without advancing it.",
+      "Read persisted run identity, pause reason, queue progress and fetched profiles without advancing the job. Profiles survive server restarts.",
     input: emptyInput,
     output: githubFollowingOutput,
     examples: [{ title: "Progress", input: {} }],
@@ -190,11 +193,11 @@ export const githubImporterOperations = {
     access: "admin",
     summary: "Fetch the next GitHub connection profile batch.",
     description:
-      "Advance the active job using the existing rate-limit behavior. This gathers profiles without creating people. Requires confirm: true.",
-    input: confirmed,
+      "Advance the active job and checkpoint each profile. Concurrent batch requests fail instead of replaying. This gathers profiles without creating people. Requires confirm: true.",
+    input: githubRunConfirmedInput,
     output: githubFollowingOutput,
-    examples: [{ title: "Next batch", input: { confirm: true } }],
-    run: async () => toPlain(await processFollowingBatch()),
+    examples: [{ title: "Next batch", input: { runId: "run", confirm: true } }],
+    run: async (_ctx, { runId }) => toPlain(await processFollowingBatch(runId)),
   }),
   githubFollowingResume: defineOperation({
     name: "githubFollowingResume",
@@ -204,10 +207,10 @@ export const githubImporterOperations = {
     summary: "Resume a paused GitHub connection job.",
     description:
       "Resume the existing following/follower job and its live GitHub work. Requires confirm: true.",
-    input: confirmed,
+    input: githubRunConfirmedInput,
     output: githubFollowingOutput,
-    examples: [{ title: "Resume", input: { confirm: true } }],
-    run: async () => toPlain(await resumeFollowingImport()),
+    examples: [{ title: "Resume", input: { runId: "run", confirm: true } }],
+    run: async (_ctx, { runId }) => toPlain(await resumeFollowingImport(runId)),
   }),
   githubFollowingPause: defineOperation({
     name: "githubFollowingPause",
@@ -215,12 +218,11 @@ export const githubImporterOperations = {
     risk: "write",
     access: "admin",
     summary: "Pause a GitHub connection job.",
-    description:
-      "Persist paused progress and retain fetched profiles without making another GitHub request.",
-    input: emptyInput,
+    description: "Wait for the active batch to finish, then pause and retain fetched profiles.",
+    input: githubRunInput,
     output: githubFollowingOutput,
-    examples: [{ title: "Pause", input: {} }],
-    run: async () => toPlain(await pauseFollowingImport()),
+    examples: [{ title: "Pause", input: { runId: "run" } }],
+    run: async (_ctx, { runId }) => toPlain(await pauseFollowingImport(runId)),
   }),
   githubFollowingReset: defineOperation({
     name: "githubFollowingReset",
@@ -229,11 +231,11 @@ export const githubImporterOperations = {
     access: "admin",
     summary: "Reset a GitHub connection import job.",
     description:
-      "Clear job progress and fetched profiles without deleting people already imported. Requires confirm: true.",
-    input: confirmed,
+      "Wait for the active batch to finish, then clear progress and fetched profiles without deleting people already imported. Requires confirm: true.",
+    input: githubRunConfirmedInput,
     output: githubFollowingOutput,
-    examples: [{ title: "Reset", input: { confirm: true } }],
-    run: async () => toPlain(await resetFollowingImport()),
+    examples: [{ title: "Reset", input: { runId: "run", confirm: true } }],
+    run: async (_ctx, { runId }) => toPlain(await resetFollowingImport(runId)),
   }),
   githubFollowingImport: defineOperation({
     name: "githubFollowingImport",

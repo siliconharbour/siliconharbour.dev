@@ -1,6 +1,6 @@
 import { parseKeywords } from "~/lib/keywords";
 import type { ExternalLinks, ProjectLinks } from "~/lib/links";
-import { importJobStatuses } from "~/lib/entity-types";
+import { importRunStatuses } from "~/lib/entity-types";
 import {
   contentTypes,
   eventTimeModes,
@@ -651,7 +651,12 @@ export type NewRateLimit = typeof rateLimits.$inferInsert;
 
 export const importJobs = sqliteTable("import_jobs", {
   id: text("id").primaryKey(), // e.g., "github-import"
-  status: text("status", { enum: importJobStatuses }).notNull().default("idle"),
+  status: text("status", { enum: importRunStatuses }).notNull().default("idle"),
+  runId: text("run_id").notNull(),
+  pauseReason: text("pause_reason", { enum: ["user", "rate_limit"] }),
+  payload: text("payload", { mode: "json" }).$type<
+    import("~/lib/github.types").FollowingImportData
+  >(),
   // Progress tracking
   totalItems: integer("total_items").default(0),
   processedItems: integer("processed_items").default(0),

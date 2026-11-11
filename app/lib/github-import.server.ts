@@ -5,6 +5,9 @@
  * Progress is persisted to allow resuming interrupted imports.
  */
 
+import { randomUUID } from "node:crypto";
+import { withWorkLock } from "./work-lock.server";
+import { importRunState, assertImportRun, readImportJob } from "./github-import-state.server";
 import { externalLinkKeys, type ExternalLinks } from "./links";
 import { db } from "~/db";
 import { importJobs } from "~/db/schema";
@@ -26,7 +29,7 @@ import {
 } from "./companies.server";
 import { processAndSaveIconImageWithPadding } from "./images.server";
 import { isBlocked, blockItem } from "./import-blocklist.server";
-import type { ImportProgress, ImportJobStatus } from "./github.types";
+import type { ImportProgress } from "./github.types";
 
 export type { ImportProgress };
 
@@ -119,71 +122,45 @@ export async function getImportProgress(): Promise<ImportProgress> {
     .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID))
     .get();
 
-  if (!job) {
-    return {
-      status: "idle",
-      totalItems: 0,
-      processedItems: 0,
-      currentPage: 1,
-      totalPages: 0,
-      importedCount: 0,
-      skippedCount: 0,
-      blockedCount: 0,
-      errorCount: 0,
-      rateLimitRemaining: null,
-      rateLimitReset: null,
-      lastError: null,
-      lastActivity: null,
-      canResume: false,
-      waitingForRateLimit: false,
-    };
-  }
-
-  const now = Date.now();
-  const resetTime = job.rateLimitReset ? job.rateLimitReset * 1000 : null;
-  const waitingForRateLimit =
-    job.status === "paused" &&
-    job.rateLimitRemaining === 0 &&
-    resetTime !== null &&
-    resetTime > now;
-
   return {
-    status: job.status as ImportJobStatus,
-    totalItems: job.totalItems ?? 0,
-    processedItems: job.processedItems ?? 0,
-    currentPage: job.currentPage ?? 1,
-    totalPages: job.totalPages ?? 0,
-    importedCount: job.importedCount ?? 0,
-    skippedCount: job.skippedCount ?? 0,
-    blockedCount: 0, // Not tracked in job table, computed at display time from blocklist
-    errorCount: job.errorCount ?? 0,
-    rateLimitRemaining: job.rateLimitRemaining,
-    rateLimitReset: job.rateLimitReset ? new Date(job.rateLimitReset * 1000) : null,
-    lastError: job.lastError,
-    lastActivity: job.lastActivity,
-    canResume: job.status === "paused" || job.status === "error",
-    waitingForRateLimit,
+    ...importRunState(job),
+    status: job?.status ?? "idle",
+    totalItems: job?.totalItems ?? 0,
+    processedItems: job?.processedItems ?? 0,
+    currentPage: job?.currentPage ?? 1,
+    totalPages: job?.totalPages ?? 0,
+    importedCount: job?.importedCount ?? 0,
+    skippedCount: job?.skippedCount ?? 0,
+    blockedCount: 0,
+    errorCount: job?.errorCount ?? 0,
+    rateLimitRemaining: job?.rateLimitRemaining ?? null,
+    rateLimitReset: job?.rateLimitReset ? new Date(job.rateLimitReset * 1000) : null,
+    lastError: job?.lastError ?? null,
+    lastActivity: job?.lastActivity ?? null,
   };
 }
 
-export async function startImport(): Promise<ImportProgress> {
+async function startImportLocked(runId: string | null): Promise<ImportProgress> {
   const existing = await db
     .select()
     .from(importJobs)
     .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID))
     .get();
 
-  if (existing?.status === "running") {
+  assertImportRun(existing, runId);
+
+  if (existing?.status === "running" || existing?.status === "completed") {
     return getImportProgress();
   }
 
-  if (existing?.rateLimitRemaining === 0 && existing?.rateLimitReset) {
+  if (importRunState(existing).waitingForRateLimit && existing?.rateLimitReset) {
     const resetTime = existing.rateLimitReset * 1000;
     if (resetTime > Date.now()) {
       await db
         .update(importJobs)
         .set({
           status: "paused",
+          pauseReason: "rate_limit",
           lastError: `Rate limited until ${new Date(resetTime).toLocaleTimeString()}`,
           lastActivity: new Date(),
         })
@@ -199,6 +176,7 @@ export async function startImport(): Promise<ImportProgress> {
 
       await db.insert(importJobs).values({
         id: GITHUB_IMPORT_JOB_ID,
+        runId: randomUUID(),
         status: "running",
         totalItems: searchResult.total,
         processedItems: 0,
@@ -216,7 +194,8 @@ export async function startImport(): Promise<ImportProgress> {
       const errorMsg = String(e);
       await db.insert(importJobs).values({
         id: GITHUB_IMPORT_JOB_ID,
-        status: "error",
+        runId: randomUUID(),
+        status: "failed",
         lastError: errorMsg,
         lastActivity: new Date(),
         createdAt: new Date(),
@@ -228,6 +207,7 @@ export async function startImport(): Promise<ImportProgress> {
       .update(importJobs)
       .set({
         status: "running",
+        pauseReason: null,
         lastError: null,
         lastActivity: new Date(),
       })
@@ -237,7 +217,7 @@ export async function startImport(): Promise<ImportProgress> {
   return getImportProgress();
 }
 
-export async function processNextBatch(downloadAvatars: boolean = true): Promise<{
+async function processNextBatchLocked(downloadAvatars: boolean = true): Promise<{
   progress: ImportProgress;
   processed: string[];
   errors: string[];
@@ -302,6 +282,7 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
             .update(importJobs)
             .set({
               status: "paused",
+              pauseReason: "rate_limit",
               processedItems,
               importedCount,
               skippedCount,
@@ -341,6 +322,7 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
             .update(importJobs)
             .set({
               status: "paused",
+              pauseReason: "rate_limit",
               processedItems,
               importedCount,
               skippedCount,
@@ -393,7 +375,7 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
     await db
       .update(importJobs)
       .set({
-        status: "error",
+        status: "failed",
         lastError: errorMsg,
         lastActivity: new Date(),
       })
@@ -409,19 +391,17 @@ export async function processNextBatch(downloadAvatars: boolean = true): Promise
   };
 }
 
-export async function pauseImport(): Promise<ImportProgress> {
-  await db
-    .update(importJobs)
-    .set({
-      status: "paused",
-      lastActivity: new Date(),
-    })
-    .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
-
+async function pauseImportLocked(): Promise<ImportProgress> {
+  const job = readImportJob(GITHUB_IMPORT_JOB_ID);
+  if (job?.status === "running")
+    db.update(importJobs)
+      .set({ status: "paused", pauseReason: "user", lastActivity: new Date() })
+      .where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID))
+      .run();
   return getImportProgress();
 }
 
-export async function resetImport(): Promise<ImportProgress> {
+async function resetImportLocked(): Promise<ImportProgress> {
   await db.delete(importJobs).where(eq(importJobs.id, GITHUB_IMPORT_JOB_ID));
   clearNewfoundlandUsersCache();
   return getImportProgress();
@@ -545,3 +525,29 @@ async function importSingleUser(
 
   return { name: displayName, action: "imported" };
 }
+
+export const startImport = (runId: string | null = null) =>
+  withWorkLock(GITHUB_IMPORT_JOB_ID, () => startImportLocked(runId));
+export const processNextBatch = (runId: string, downloadAvatars = true) =>
+  withWorkLock(GITHUB_IMPORT_JOB_ID, async () => {
+    assertImportRun(readImportJob(GITHUB_IMPORT_JOB_ID), runId);
+    return processNextBatchLocked(downloadAvatars);
+  });
+export const pauseImport = (runId: string) =>
+  withWorkLock(
+    GITHUB_IMPORT_JOB_ID,
+    async () => {
+      assertImportRun(readImportJob(GITHUB_IMPORT_JOB_ID), runId);
+      return pauseImportLocked();
+    },
+    "wait",
+  );
+export const resetImport = (runId: string) =>
+  withWorkLock(
+    GITHUB_IMPORT_JOB_ID,
+    async () => {
+      assertImportRun(readImportJob(GITHUB_IMPORT_JOB_ID), runId);
+      return resetImportLocked();
+    },
+    "wait",
+  );

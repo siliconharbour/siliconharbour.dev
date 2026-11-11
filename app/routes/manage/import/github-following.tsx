@@ -1,3 +1,4 @@
+import { Alert } from "~/components/ui";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { jsonFromForm } from "~/lib/admin/import-form-adapters";
 import { operationCatalog } from "~/operations/catalog";
@@ -70,8 +71,8 @@ export async function action({ request }: Route.ActionArgs) {
     intent === "start"
       ? { username: form.get("username"), mode: form.get("mode") || "following", confirm: true }
       : intent === "pause"
-        ? {}
-        : { confirm: true };
+        ? { runId: form.get("runId") }
+        : { runId: form.get("runId"), confirm: true };
   const result = await runAdminOperation(
     request,
     operations[intent as keyof typeof operations],
@@ -101,20 +102,20 @@ export default function ImportGitHubFollowing() {
   };
 
   const handleContinue = () => {
-    fetcher.submit({ intent: "continue" }, { method: "post" });
+    fetcher.submit({ intent: "continue", runId: progress.runId ?? "" }, { method: "post" });
   };
 
   const handlePause = () => {
-    fetcher.submit({ intent: "pause" }, { method: "post" });
+    fetcher.submit({ intent: "pause", runId: progress.runId ?? "" }, { method: "post" });
   };
 
   const handleResume = () => {
-    fetcher.submit({ intent: "resume" }, { method: "post" });
+    fetcher.submit({ intent: "resume", runId: progress.runId ?? "" }, { method: "post" });
   };
 
   const handleReset = () => {
     setSelected(new Set());
-    fetcher.submit({ intent: "reset" }, { method: "post" });
+    fetcher.submit({ intent: "reset", runId: progress.runId ?? "" }, { method: "post" });
   };
 
   const isExisting = (user: GitHubUserBasic) => {
@@ -191,6 +192,12 @@ export default function ImportGitHubFollowing() {
         "Fetch Next Batch" repeatedly to fetch profiles (10 at a time).
       </p>
 
+      {fetcher.data && "error" in fetcher.data && fetcher.data.error && (
+        <div role="alert">
+          <Alert tone="danger">{fetcher.data.error}</Alert>
+        </div>
+      )}
+
       {/* Rate limit indicator */}
       {progress.rateLimitRemaining !== null && (
         <div className="text-sm text-subtle">
@@ -247,7 +254,7 @@ export default function ImportGitHubFollowing() {
             <h2 className="font-semibold text-heading">
               {progress.sourceUsername
                 ? `@${progress.sourceUsername}'s ${progress.mode}`
-                : "Stale job (server restarted?)"}
+                : "Start a new import"}
             </h2>
 
             <div className="flex items-center gap-gap-2">
@@ -262,7 +269,7 @@ export default function ImportGitHubFollowing() {
                 </button>
               )}
 
-              {progress.status === "running" && !canContinue && !isWorking && (
+              {progress.status === "running" && !isWorking && (
                 <button
                   type="button"
                   onClick={handlePause}
@@ -272,11 +279,11 @@ export default function ImportGitHubFollowing() {
                 </button>
               )}
 
-              {progress.status === "paused" && (
+              {progress.canResume && (
                 <button
                   type="button"
                   onClick={handleResume}
-                  disabled={isWorking}
+                  disabled={isWorking || progress.waitingForRateLimit}
                   className="px-pad-3 py-pad-1-5 text-sm bg-primary hover:bg-primary-hover disabled:bg-harbour-300 disabled:cursor-not-allowed text-white font-medium transition-colors"
                 >
                   Resume
@@ -334,7 +341,7 @@ export default function ImportGitHubFollowing() {
               className={`h-full transition-all duration-300 ${
                 progress.status === "completed"
                   ? "bg-blue-500"
-                  : progress.status === "error"
+                  : progress.status === "failed"
                     ? "bg-red-500"
                     : "bg-green-500"
               }`}
@@ -349,10 +356,10 @@ export default function ImportGitHubFollowing() {
             </div>
           )}
 
-          {/* Stale job warning */}
+          {/* No resumable queue */}
           {!progress.sourceUsername && (
             <div className="text-sm text-amber-700 bg-amber-50 p-pad-2">
-              This job lost its data (server restarted). Click "Reset" to start fresh.
+              No saved queue is available. Reset to start a new import.
             </div>
           )}
 
