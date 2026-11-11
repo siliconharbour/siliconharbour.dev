@@ -40,11 +40,10 @@ jobs:
           set -euo pipefail
           data=$(mktemp -d)
           name="siliconharbour-runtime-${GITHUB_RUN_ID}"
-          trap 'docker logs "$name" 2>/dev/null || true; docker rm -f "$name" 2>/dev/null || true; rm -rf "$data"' EXIT
-          docker build --target development-dependencies-env -t siliconharbour-migrations .
-          docker run --rm --network none -v "$data:/data" -e DB_URL=/data/smoke.db \
-            siliconharbour-migrations pnpm run db:migrate
+          trap 'docker logs "$name" 2>/dev/null || true; docker rm -f "$name" 2>/dev/null || true; sudo rm -rf "$data"' EXIT
           docker build -t siliconharbour-runtime .
+          docker run --rm --network none -v "$data:/data" -e DB_URL=/data/smoke.db \
+            siliconharbour-runtime node --import tsx scripts/migrate.ts
           docker run -d --name "$name" --network none -v "$data:/data" \
             -e DB_URL=/data/smoke.db -e DATA_DIR=/data -e DB_NAME=smoke.db -e NODE_ENV=production \
             -e SESSION_SECRET=container-test-secret-at-least-thirty-two-bytes \
@@ -63,3 +62,29 @@ jobs:
             sleep 2
           done
           test "$ready" = true
+          cp -r drizzle "$data/migrations"
+          python3 - "$data/migrations" <<'PYFIXTURE'
+          import json, pathlib, sys
+          path = pathlib.Path(sys.argv[1])
+          journal_path = path / "meta/_journal.json"
+          journal = json.loads(journal_path.read_text())
+          last = journal["entries"][-1]
+          journal["entries"].append({"idx": last["idx"] + 1, "version": "6", "when": last["when"] + 1000, "tag": "9999_online_smoke", "breakpoints": True})
+          journal_path.write_text(json.dumps(journal))
+          (path / "9999_online_smoke.sql").write_text("CREATE TABLE online_migration_probe(id INTEGER PRIMARY KEY);\n--> statement-breakpoint\nINSERT INTO online_migration_probe VALUES(1);")
+          PYFIXTURE
+          docker run --rm --network none --volumes-from "$name" \
+            -v "$data/migrations:/app/drizzle:ro" -e DB_URL=/data/smoke.db \
+            siliconharbour-runtime node --import tsx scripts/migrate.ts --existing --backup-dir /data/backups
+          docker exec "$name" node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import Database from "better-sqlite3";
+            import { readdirSync } from "node:fs";
+            const db = new Database("/data/smoke.db", { readonly: true });
+            assert.equal(db.prepare("SELECT count(*) AS n FROM online_migration_probe").get().n, 1);
+            assert.equal(db.pragma("integrity_check", { simple: true }), "ok");
+            assert.equal(db.pragma("foreign_key_check").length, 0);
+            db.close();
+            assert.equal(readdirSync("/data/backups").filter(file => file.endsWith(".sqlite")).length, 1);
+            assert.equal((await fetch("http://127.0.0.1:3000/api/events")).status, 200);
+          '

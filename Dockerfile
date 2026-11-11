@@ -36,6 +36,8 @@ COPY ./app/lib /app/app/lib
 COPY ./app/theme /app/app/theme
 COPY ./app/db /app/app/db
 COPY ./public /app/public
+COPY ./drizzle /app/drizzle
+COPY ./scripts/migrate.ts /app/scripts/migrate.ts
 COPY server.ts /app/server.ts
 COPY tsconfig.json /app/tsconfig.json
 WORKDIR /app
