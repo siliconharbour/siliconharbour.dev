@@ -20,7 +20,7 @@
     "importers:validate": "tsx scripts/validate-importer-html-parsers.ts",
     "sync-prod": "tsx scripts/sync-prod.ts",
     "backup-prod": "tsx scripts/sync-prod.ts backup",
-    "migrate-prod": "tsx scripts/sync-prod.ts migrate",
+    "migrate-prod": "tsx scripts/migrate-prod.ts",
     "push-prod-db": "tsx scripts/sync-prod.ts push",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -1,15 +1,18 @@
-import { openSqlite } from "../app/db/sqlite.server";
+import { parseArgs } from "node:util";
+import { migrateFile } from "../app/db/migrate-file.server";
 import { DB_PATH } from "../app/lib/paths.server";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { migrateDatabase } from "../app/db/migrate.server";
 
-const path = DB_PATH;
-mkdirSync(dirname(path), { recursive: true });
-const sqlite = openSqlite(path);
+const { values } = parseArgs({
+  options: { existing: { type: "boolean", default: false }, "backup-dir": { type: "string" } },
+});
 try {
-  migrateDatabase(sqlite);
-  console.log("Database migrations applied.");
-} finally {
-  sqlite.close();
+  const result = await migrateFile(DB_PATH, {
+    existing: values.existing,
+    backupDir: values["backup-dir"],
+  });
+  if (result.backupPath) console.log(`Database backup: ${result.backupPath}`);
+  console.log(`Database migrations applied: ${result.applied}`);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : "Database migration failed");
+  process.exitCode = 1;
 }

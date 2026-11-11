@@ -113,25 +113,31 @@ the migration SQL is valid and the schema change works as expected.
 
 ### 5. Production Migration (operator-run)
 
-**You do NOT run this.** The operator does, after the new code is deployed to prod.
+`pnpm run migrate-prod` pulls the selected runtime image on Mug, prints its immutable
+image ID/revision for confirmation, and runs its packaged migrations in a one-off
+container against the existing production volume. Use `--image <tag-or-digest>` to
+select a release explicitly. The website stays running; no database is pulled or
+pushed and the application container is not replaced.
 
-`pnpm run migrate-prod` (defined in `scripts/sync-prod.ts`) orchestrates a zero-data-loss
-prod migration with downtime:
+Pending migrations get a verified, private SQLite backup in the production volume's
+`backups/` directory. All pending SQL and journal changes run in one immediate
+transaction, with strict foreign-key and quick checks before commit. Failure rolls
+back that transaction; do not restore a backup over newer production writes.
 
-1. Stops the production container
-2. Backs up the prod database (zip archive in `./tmp/backup/`)
-3. Pulls the prod DB locally
-4. Runs `pnpm run db:migrate` against the local copy
-5. Pushes the migrated DB back to prod
-6. Restarts the production container
+Review SQL for compatibility with the running release. WAL allows reads during
+migration, but writers still serialize and may hit the busy timeout. Large table
+rebuilds or incompatible changes still need a coordinated maintenance window or
+staged expand/contract releases. Do not promise every schema change is zero downtime.
 
-It prompts for confirmation twice and requires `yes` for both. If the migration fails,
-prod is left untouched and a backup is available.
+Migrations are explicit release operations, not an automatic application-start hook.
+Ship and migrate the selected image before deploying code that requires its schema.
+`sync-prod`, `backup-prod`, and `push-prod-db` remain available for deliberate data
+editing; pulls use a consistent SQLite snapshot, and a full database push still
+stops the application and replaces production data.
 
-**Your responsibility:** write the migration (schema + SQL + journal), run it locally to
-verify it applies cleanly, and tell the operator that a prod migration is needed. The
-operator decides when to run `pnpm run migrate-prod` (typically after the code change
-is deployed, so the new code matches the new schema).
+Agents prepare/test migrations and report them. Run production commands only with
+operator authorization. For local migrations, application and tooling honor
+`DB_URL`, otherwise `DATA_DIR`/`DB_NAME`.
 
 ## Session Completion
 

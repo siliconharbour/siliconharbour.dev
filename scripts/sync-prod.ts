@@ -1,37 +1,12 @@
 import { openSqlite } from "../app/db/sqlite.server";
 import { tmpdir } from "node:os";
+import { REMOTE_HOST, quote, ssh } from "./production";
 import { execSync, execFileSync } from "child_process";
 import { existsSync, mkdirSync, rmSync, mkdtempSync, chmodSync } from "fs";
 import { join } from "path";
 import * as readline from "readline";
 
 process.umask(0o077);
-
-const REMOTE_HOST = "jack@jackharrhy.dev";
-const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
-function ssh(command: string, options?: { stdio?: "inherit" | "pipe" }) {
-  return (
-    execFileSync(
-      "ssh",
-      [
-        "-o",
-        "BatchMode=yes",
-        "-o",
-        "ConnectTimeout=10",
-        "-o",
-        "ServerAliveInterval=15",
-        "-o",
-        "ServerAliveCountMax=3",
-        REMOTE_HOST,
-        command,
-      ],
-      {
-        stdio: options?.stdio ?? "pipe",
-        encoding: "utf8",
-      },
-    )?.toString() ?? ""
-  );
-}
 
 const REMOTE_PATH = "/home/jack/infra/hosts/mug/volumes/siliconharbour/";
 const REMOTE_DB_FILE = "/home/jack/infra/hosts/mug/volumes/siliconharbour/siliconharbour.db";
@@ -41,14 +16,14 @@ const LOCAL_DATA_PATH = "./data/";
 const LOCAL_DB_FILE = "./data/siliconharbour.db";
 const BACKUP_DIR = "./tmp/backup/";
 
-type Mode = "sync" | "backup" | "migrate" | "push";
+type Mode = "sync" | "backup" | "push";
 
 function getMode(): Mode {
   const arg = process.argv[2];
   if (arg === "backup") return "backup";
-  if (arg === "migrate") return "migrate";
   if (arg === "push") return "push";
-  return "sync";
+  if (arg === undefined) return "sync";
+  throw new Error(`Unknown sync mode: ${arg}. Use pnpm run migrate-prod for migrations.`);
 }
 
 function getTimestamp(): string {
@@ -217,111 +192,6 @@ function checkContainerStatus(): boolean {
   }
 }
 
-async function runMigrate() {
-  console.log("");
-  console.log("=".repeat(60));
-  console.log("  PRODUCTION DATABASE MIGRATION");
-  console.log("=".repeat(60));
-  console.log("");
-  console.log("This will:");
-  console.log("  1. Stop the production container");
-  console.log("  2. Create a backup of the production database");
-  console.log("  3. Pull the database locally");
-  console.log("  4. Run migrations on the local copy");
-  console.log("  5. Push the migrated database back to production");
-  console.log("  6. Start the production container");
-  console.log("");
-  console.log("=".repeat(60));
-  console.log("  WARNING: THIS WILL CAUSE DOWNTIME");
-  console.log("=".repeat(60));
-  console.log("");
-
-  let answer = await prompt("Are you sure you want to continue? Type 'yes' to proceed: ");
-  if (answer !== "yes") {
-    console.log("Aborted.");
-    process.exit(0);
-  }
-
-  console.log("");
-  answer = await prompt("Have you tested these migrations locally? Type 'yes' to confirm: ");
-  if (answer !== "yes") {
-    console.log("Please test migrations locally first. Aborted.");
-    process.exit(0);
-  }
-
-  console.log("");
-  console.log("=".repeat(60));
-  console.log("  STARTING MIGRATION PROCESS");
-  console.log("=".repeat(60));
-  console.log("");
-
-  // Step 1: Check and stop container
-  console.log("[1/6] Checking container status...");
-  const isRunning = checkContainerStatus();
-  if (isRunning) {
-    console.log("Container is running. Stopping it now...");
-    stopContainer();
-  } else {
-    console.log("Container is already stopped.");
-  }
-  console.log("");
-
-  // Step 2: Create backup
-  console.log("[2/6] Creating backup of production database...");
-  const backupFile = runBackup();
-  console.log(`Backup saved to: ${backupFile}`);
-  console.log("");
-
-  // Step 3: Pull to local
-  console.log("[3/6] Pulling production data to local...");
-  if (!existsSync(LOCAL_DATA_PATH)) {
-    mkdirSync(LOCAL_DATA_PATH, { recursive: true });
-  }
-  sync(LOCAL_DATA_PATH);
-  console.log("");
-
-  // Step 4: Run migrations locally
-  console.log("[4/6] Running migrations on local database...");
-  try {
-    execSync("pnpm run db:migrate", { stdio: "inherit" });
-    console.log("Migrations completed successfully.");
-  } catch {
-    console.error("");
-    console.error("=".repeat(60));
-    console.error("  MIGRATION FAILED!");
-    console.error("=".repeat(60));
-    console.error("");
-    console.error("The migrations failed. Production data has NOT been modified.");
-    console.error(`A backup is available at: ${backupFile}`);
-    console.error("");
-
-    const restart = await prompt("Do you want to restart the production container? Type 'yes': ");
-    if (restart === "yes") {
-      startContainer();
-    }
-    process.exit(1);
-  }
-  console.log("");
-
-  // Step 5: Push back to production (database only)
-  console.log("[5/6] Pushing migrated database back to production...");
-  await pushDatabaseToRemote();
-  console.log("");
-
-  // Step 6: Start container
-  console.log("[6/6] Starting production container...");
-  startContainer();
-  console.log("");
-
-  console.log("=".repeat(60));
-  console.log("  MIGRATION COMPLETE!");
-  console.log("=".repeat(60));
-  console.log("");
-  console.log("Production database has been migrated and the service is running.");
-  console.log(`Backup available at: ${backupFile}`);
-  console.log("");
-}
-
 async function runPush() {
   console.log("");
   console.log("=".repeat(60));
@@ -416,9 +286,7 @@ async function runPush() {
 async function main() {
   const mode = getMode();
 
-  if (mode === "migrate") {
-    await runMigrate();
-  } else if (mode === "push") {
+  if (mode === "push") {
     await runPush();
   } else if (mode === "backup") {
     runBackup();
