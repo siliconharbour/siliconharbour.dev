@@ -8,13 +8,6 @@ allowBuilds:
   sharp: true
   msgpackr-extract: false
 
-minimumReleaseAgeExclude:
-  - "@react-router/dev@8.5.0"
-  - "@react-router/express@8.5.0"
-  - "@react-router/node@8.5.0"
-  - "@react-router/serve@8.5.0"
-  - react-router@8.5.0
-
 onlyBuiltDependencies:
   - bcrypt
   - better-sqlite3
