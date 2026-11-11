@@ -142,6 +142,9 @@ export const administrationCoverage: Record<string, Record<string, ColumnCoverag
     updatedIp: { excluded: "Captured from the request" },
   },
   import_jobs: {
+    runId: { excluded: "Generated per import run" },
+    pauseReason: { excluded: "Importer pause transition" },
+    payload: { excluded: "Checkpointed following import queue and results" },
     id: { excluded: "Fixed importer job identifier" },
     status: { excluded: "Maintained by the existing importer state machine" },
     totalItems: { excluded: "Maintained by the existing importer state machine" },

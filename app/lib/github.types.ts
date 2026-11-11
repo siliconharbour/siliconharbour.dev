@@ -1,4 +1,4 @@
-import type { importJobStatuses } from "./entity-types";
+import type { importRunStatuses } from "./entity-types";
 /**
  * GitHub API types - shared between client and server
  */
@@ -46,7 +46,7 @@ export interface RateLimitInfo {
 /**
  * Import job status - matches the DB schema
  */
-export type ImportJobStatus = (typeof importJobStatuses)[number];
+export type ImportJobStatus = (typeof importRunStatuses)[number];
 
 /**
  * Import progress state for bulk GitHub import
@@ -54,6 +54,8 @@ export type ImportJobStatus = (typeof importJobStatuses)[number];
  */
 export interface ImportProgress {
   status: ImportJobStatus;
+  runId: string | null;
+  pauseReason: "user" | "rate_limit" | null;
   totalItems: number;
   processedItems: number;
   currentPage: number;
@@ -69,3 +71,12 @@ export interface ImportProgress {
   canResume: boolean;
   waitingForRateLimit: boolean;
 }
+
+export type FollowingImportData = {
+  sourceUsername: string;
+  mode: "following" | "followers" | "both";
+  users: GitHubUserBasic[];
+  pendingUsernames: string[];
+  profiles: GitHubUser[];
+  errors: string[];
+};

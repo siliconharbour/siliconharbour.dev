@@ -1,3 +1,4 @@
+import { Alert } from "~/components/ui";
 import { optionalBlockReason } from "~/lib/admin/form";
 import { loadAllAdminItems, runAdminOperation } from "~/lib/admin/run-operation.server";
 import { normalizeBlockKey } from "~/lib/import-blocklist-key";
@@ -116,6 +117,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
   if (intent === "bulk-continue") {
     const result = await runAdminOperation(request, operationCatalog.githubLocationBulkContinue, {
+      runId: form.get("runId"),
       downloadAvatars: form.get("downloadAvatars") !== "false",
       confirm: true,
     });
@@ -137,7 +139,9 @@ export async function action({ request }: Route.ActionArgs) {
   const result = await runAdminOperation(
     request,
     operations[intent as keyof typeof operations],
-    intent === "bulk-pause" ? {} : { confirm: true },
+    intent === "bulk-pause"
+      ? { runId: form.get("runId") }
+      : { runId: form.get("runId") || null, confirm: true },
   );
   return result.ok
     ? ({ intent: intent as keyof typeof operations, progress: result.data, error: null } as const)
@@ -167,6 +171,7 @@ export default function ImportGitHub() {
   const fetcherData = fetcher.data;
 
   useEffect(() => {
+    if (fetcherData && "error" in fetcherData && fetcherData.error) setAutoRun(false);
     if (fetcherData?.intent === "search" && fetcherData.users) {
       if (fetchedUsers.length === 0 || fetcherData.page !== currentPage) {
         if (fetcherData.users.length > 0) {
@@ -214,13 +219,17 @@ export default function ImportGitHub() {
     if (autoRun && bulkProgress.status === "running" && fetcher.state === "idle") {
       const timer = setTimeout(() => {
         fetcher.submit(
-          { intent: "bulk-continue", downloadAvatars: String(downloadAvatars) },
+          {
+            intent: "bulk-continue",
+            runId: bulkProgress.runId ?? "",
+            downloadAvatars: String(downloadAvatars),
+          },
           { method: "post" },
         );
       }, 500); // Small delay between batches
       return () => clearTimeout(timer);
     }
-  }, [autoRun, bulkProgress.status, fetcher.state, fetcher, downloadAvatars]);
+  }, [autoRun, bulkProgress.status, bulkProgress.runId, fetcher.state, fetcher, downloadAvatars]);
 
   // Auto-resume after rate limit
   useEffect(() => {
@@ -229,12 +238,21 @@ export default function ImportGitHub() {
       if (waitTime > 0 && waitTime < 3600000) {
         // Max 1 hour wait
         const timer = setTimeout(() => {
-          fetcher.submit({ intent: "bulk-start" }, { method: "post" });
+          fetcher.submit(
+            { intent: "bulk-start", runId: bulkProgress.runId ?? "" },
+            { method: "post" },
+          );
         }, waitTime);
         return () => clearTimeout(timer);
       }
     }
-  }, [autoRun, bulkProgress.waitingForRateLimit, bulkProgress.rateLimitReset, fetcher]);
+  }, [
+    autoRun,
+    bulkProgress.waitingForRateLimit,
+    bulkProgress.rateLimitReset,
+    bulkProgress.runId,
+    fetcher,
+  ]);
 
   const isExisting = (user: GitHubUser) => {
     const githubUrl = user.html_url.toLowerCase();
@@ -285,18 +303,18 @@ export default function ImportGitHub() {
 
   const handleBulkStart = () => {
     setAutoRun(true);
-    fetcher.submit({ intent: "bulk-start" }, { method: "post" });
+    fetcher.submit({ intent: "bulk-start", runId: bulkProgress.runId ?? "" }, { method: "post" });
   };
 
   const handleBulkPause = () => {
     setAutoRun(false);
-    fetcher.submit({ intent: "bulk-pause" }, { method: "post" });
+    fetcher.submit({ intent: "bulk-pause", runId: bulkProgress.runId ?? "" }, { method: "post" });
   };
 
   const handleBulkReset = () => {
     setAutoRun(false);
     setRecentActivity([]);
-    fetcher.submit({ intent: "bulk-reset" }, { method: "post" });
+    fetcher.submit({ intent: "bulk-reset", runId: bulkProgress.runId ?? "" }, { method: "post" });
   };
 
   const handleBlock = (user: GitHubUser) => {
@@ -339,6 +357,12 @@ export default function ImportGitHub() {
         Search for GitHub users in Newfoundland & Labrador and import them as people. Use "Import
         All" for automatic bulk import with rate limit handling.
       </p>
+
+      {fetcherData && "error" in fetcherData && fetcherData.error && (
+        <div role="alert">
+          <Alert tone="danger">{fetcherData.error}</Alert>
+        </div>
+      )}
 
       {/* Bulk Import Section */}
       <div className="border border-line p-pad-4 bg-soft flex flex-col gap-gap-4">
@@ -407,7 +431,7 @@ export default function ImportGitHub() {
             </button>
           )}
 
-          {bulkProgress.status === "error" && (
+          {bulkProgress.status === "failed" && (
             <>
               <button
                 type="button"
@@ -465,7 +489,7 @@ export default function ImportGitHub() {
                 className={`h-full transition-all duration-300 ${
                   bulkProgress.status === "completed"
                     ? "bg-blue-500"
-                    : bulkProgress.status === "error"
+                    : bulkProgress.status === "failed"
                       ? "bg-red-500"
                       : "bg-green-500"
                 }`}
@@ -492,7 +516,7 @@ export default function ImportGitHub() {
             )}
 
             {/* Error display */}
-            {bulkProgress.lastError && bulkProgress.status === "error" && (
+            {bulkProgress.lastError && bulkProgress.status === "failed" && (
               <div className="text-sm text-red-600 bg-red-50 p-pad-2">{bulkProgress.lastError}</div>
             )}
 
@@ -546,13 +570,6 @@ export default function ImportGitHub() {
         >
           {isSearching ? "Searching..." : "Search GitHub Users in Newfoundland & Labrador"}
         </button>
-      )}
-
-      {/* Error display */}
-      {fetcherData?.intent === "search" && fetcherData.error && (
-        <div className="p-pad-4 bg-red-50 border border-red-200 text-red-600">
-          {fetcherData.error}
-        </div>
       )}
 
       {/* Import results */}
