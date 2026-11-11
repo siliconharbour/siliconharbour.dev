@@ -18,10 +18,19 @@ it("backs up committed WAL data, migrates beside a live reader, and does not rep
   writeFileSync(join(migrationsFolder, "0000_add_note.sql"), "ALTER TABLE items ADD note TEXT;");
   const app = openSqlite(path);
   app.exec(
-    "CREATE TABLE items(id INTEGER PRIMARY KEY, value TEXT); INSERT INTO items VALUES(1,'original'); BEGIN;",
+    "CREATE TABLE items(id INTEGER PRIMARY KEY, value TEXT); INSERT INTO items VALUES(1,'original');",
   );
-  app.prepare("SELECT * FROM items").all();
   try {
+    const blockedBackup = join(dir, "not-a-directory");
+    writeFileSync(blockedBackup, "occupied");
+    await expect(
+      migrateFile(path, { existing: true, migrationsFolder, backupDir: blockedBackup }),
+    ).rejects.toThrow();
+    expect(
+      (app.pragma("table_info(items)") as Array<{ name: string }>).map((column) => column.name),
+    ).toEqual(["id", "value"]);
+    app.exec("BEGIN");
+    app.prepare("SELECT * FROM items").all();
     const result = await migrateFile(path, { existing: true, migrationsFolder, backupDir });
     expect(result.applied).toBe(1);
     expect(statSync(result.backupPath!).mode & 0o777).toBe(0o600);
