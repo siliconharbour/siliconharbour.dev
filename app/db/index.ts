@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { openSqlite } from "./sqlite.server";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 import { existsSync, mkdirSync } from "fs";
@@ -10,7 +10,7 @@ if (!existsSync(dir)) {
   mkdirSync(dir, { recursive: true });
 }
 
-const sqlite = new Database(DB_PATH);
+const sqlite = openSqlite(DB_PATH);
 export const db = drizzle(sqlite, { schema });
 
 // Export raw sqlite for FTS5 queries

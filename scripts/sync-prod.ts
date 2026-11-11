@@ -1,11 +1,40 @@
-import { execSync } from "child_process";
-import { existsSync, mkdirSync, rmSync } from "fs";
+import { openSqlite } from "../app/db/sqlite.server";
+import { tmpdir } from "node:os";
+import { execSync, execFileSync } from "child_process";
+import { existsSync, mkdirSync, rmSync, mkdtempSync, chmodSync } from "fs";
 import { join } from "path";
 import * as readline from "readline";
 
+process.umask(0o077);
+
 const REMOTE_HOST = "jack@jackharrhy.dev";
-const REMOTE_PATH = "~/infra/hosts/mug/volumes/siliconharbour/";
-const REMOTE_DB_FILE = "~/infra/hosts/mug/volumes/siliconharbour/siliconharbour.db";
+const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+function ssh(command: string, options?: { stdio?: "inherit" | "pipe" }) {
+  return (
+    execFileSync(
+      "ssh",
+      [
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=10",
+        "-o",
+        "ServerAliveInterval=15",
+        "-o",
+        "ServerAliveCountMax=3",
+        REMOTE_HOST,
+        command,
+      ],
+      {
+        stdio: options?.stdio ?? "pipe",
+        encoding: "utf8",
+      },
+    )?.toString() ?? ""
+  );
+}
+
+const REMOTE_PATH = "/home/jack/infra/hosts/mug/volumes/siliconharbour/";
+const REMOTE_DB_FILE = "/home/jack/infra/hosts/mug/volumes/siliconharbour/siliconharbour.db";
 const REMOTE_COMPOSE_DIR = "~/infra/hosts/mug";
 const SERVICE_NAME = "siliconharbour";
 const LOCAL_DATA_PATH = "./data/";
@@ -27,40 +56,62 @@ function getTimestamp(): string {
   return now.toISOString().replace(/[:.]/g, "-").replace("T", "_").slice(0, 19);
 }
 
-function ssh(command: string, options?: { stdio?: "inherit" | "pipe" }): string {
-  const result = execSync(`ssh ${REMOTE_HOST} "${command}"`, {
-    stdio: options?.stdio ?? "pipe",
-    encoding: "utf-8",
-  });
-  return result?.toString() ?? "";
-}
-
 function sync(destPath: string) {
-  const source = `${REMOTE_HOST}:${REMOTE_PATH}`;
-
-  console.log(`Syncing from ${source} to ${destPath}...`);
-  console.log("");
-
-  // rsync flags:
-  // -a: archive mode (preserves permissions, timestamps, etc.)
-  // -v: verbose
-  // -z: compress during transfer
-  // --progress: show progress
-  execSync(`rsync -avz --progress --rsync-path='sudo -n rsync' "${source}" "${destPath}"`, {
-    stdio: "inherit",
-  });
+  const database = join(destPath, "siliconharbour.db");
+  if (["-wal", "-shm", "-journal"].some((suffix) => existsSync(database + suffix)))
+    throw new Error(
+      "Local SQLite sidecars are present. Close or recover the local database before pulling production data",
+    );
+  mkdirSync(destPath, { recursive: true });
+  const snapshot = ssh("mktemp /tmp/siliconharbour-db.XXXXXXXX").trim();
+  if (!/^\/tmp\/siliconharbour-db\.[A-Za-z0-9]{8}$/.test(snapshot))
+    throw new Error("Unexpected remote snapshot path");
+  try {
+    ssh(`sudo -n sqlite3 -readonly ${quote(REMOTE_DB_FILE)} ${quote(`.backup ${snapshot}`)}`);
+    execFileSync(
+      "rsync",
+      [
+        "-avz",
+        "--rsync-path=sudo -n rsync",
+        "--exclude=siliconharbour.db*",
+        "--exclude=backups/",
+        `${REMOTE_HOST}:${REMOTE_PATH}`,
+        destPath,
+      ],
+      { stdio: "inherit" },
+    );
+    execFileSync(
+      "rsync",
+      ["-avz", "--rsync-path=sudo -n rsync", `${REMOTE_HOST}:${snapshot}`, database],
+      { stdio: "inherit" },
+    );
+    chmodSync(database, 0o600);
+  } finally {
+    ssh(`sudo -n rm -f ${quote(snapshot)}`);
+  }
 }
 
-function pushDatabaseToRemote() {
-  const dest = `${REMOTE_HOST}:${REMOTE_DB_FILE}`;
-
-  console.log(`Pushing database from ${LOCAL_DB_FILE} to ${dest}...`);
-  console.log("");
-
-  // Use rsync with sudo on remote via --rsync-path
-  execSync(`rsync -avz --progress --rsync-path="sudo rsync" "${LOCAL_DB_FILE}" "${dest}"`, {
-    stdio: "inherit",
-  });
+async function pushDatabaseToRemote() {
+  const dir = mkdtempSync(join(tmpdir(), "siliconharbour-push-"));
+  const snapshot = join(dir, "siliconharbour.db");
+  const sqlite = openSqlite(LOCAL_DB_FILE, { readonly: true });
+  try {
+    await sqlite.backup(snapshot);
+    chmodSync(snapshot, 0o600);
+    // A stopped process may leave WAL files; recover and close them before replacing its DB.
+    ssh(`sudo -n sqlite3 ${quote(REMOTE_DB_FILE)} 'PRAGMA wal_checkpoint(TRUNCATE);'`);
+    ssh(
+      `test ! -e ${quote(REMOTE_DB_FILE + "-wal")} && test ! -e ${quote(REMOTE_DB_FILE + "-shm")}`,
+    );
+    execFileSync(
+      "rsync",
+      ["-avz", "--rsync-path=sudo -n rsync", snapshot, `${REMOTE_HOST}:${REMOTE_DB_FILE}`],
+      { stdio: "inherit" },
+    );
+  } finally {
+    sqlite.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function runSync() {
@@ -254,7 +305,7 @@ async function runMigrate() {
 
   // Step 5: Push back to production (database only)
   console.log("[5/6] Pushing migrated database back to production...");
-  pushDatabaseToRemote();
+  await pushDatabaseToRemote();
   console.log("");
 
   // Step 6: Start container
@@ -329,7 +380,7 @@ async function runPush() {
     console.log("");
 
     console.log("[3/4] Pushing local database to production...");
-    pushDatabaseToRemote();
+    await pushDatabaseToRemote();
     console.log("");
 
     if (wasRunning) {

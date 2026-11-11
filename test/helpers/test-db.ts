@@ -1,5 +1,5 @@
 import { registerMigrationFunctions } from "../../app/db/migrate.server";
-import Database from "better-sqlite3";
+import { openSqlite } from "../../app/db/sqlite.server";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "../../app/db/schema";
 import { readdirSync, readFileSync } from "fs";
@@ -32,7 +32,7 @@ export function createTestDb() {
     cachedStatements = getMigrationStatements();
   }
 
-  const sqlite = new Database(":memory:");
+  const sqlite = openSqlite(":memory:");
   registerMigrationFunctions(sqlite);
 
   for (const stmt of cachedStatements) {
