@@ -1,3 +1,4 @@
+import { withWorkLock } from "../work-lock.server";
 import { deleteEvent } from "~/lib/events.server";
 /**
  * Event Import Sync Logic
@@ -391,13 +392,11 @@ async function refreshPendingEvent(
   await syncOrganizerReferences(eventId, organizer);
 }
 
-export async function syncEvents(sourceId: number): Promise<EventSyncResult> {
+async function syncEventsUnlocked(sourceId: number): Promise<EventSyncResult> {
   const source = await getEventImportSourceById(sourceId);
   if (!source) {
     return { success: false, error: "Source not found", added: 0, skipped: 0, removed: 0 };
   }
-
-  await updateSourceMeta(sourceId, { fetchStatus: "pending", fetchError: null });
 
   try {
     const importer = getEventImporter(source.sourceType);
@@ -517,3 +516,6 @@ export async function approveImportedEventWithCover(id: number) {
   await approveImportedEvent(id);
   return { approved: true, coverPulled: Boolean(cover) };
 }
+
+export const syncEvents = (sourceId: number) =>
+  withWorkLock(`source:event:${sourceId}`, () => syncEventsUnlocked(sourceId));

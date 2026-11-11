@@ -1,9 +1,24 @@
+import { formatError } from "~/mcp/errors";
 import { getAllImportSourcesWithStats, syncJobs } from "./sync.server";
 export async function syncAllJobSources() {
   const sources = await getAllImportSourcesWithStats();
   const results = [];
-  for (const source of sources)
-    results.push({ sourceId: source.id, ...(await syncJobs(source.id)) });
+  for (const source of sources) {
+    try {
+      results.push({ sourceId: source.id, ...(await syncJobs(source.id)) });
+    } catch (error) {
+      results.push({
+        sourceId: source.id,
+        success: false,
+        error: formatError(error),
+        added: 0,
+        updated: 0,
+        removed: 0,
+        reactivated: 0,
+        totalActive: 0,
+      });
+    }
+  }
   const succeeded = results.filter((result) => result.success);
   return {
     success: succeeded.length === sources.length,

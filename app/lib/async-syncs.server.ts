@@ -4,175 +4,145 @@ import type { eventSyncOutput } from "~/operations/contracts/events";
 import type { jobSyncOutput } from "~/operations/contracts/jobs";
 import type { newsSyncOutput } from "~/operations/contracts/news";
 import { randomUUID } from "node:crypto";
+import { ConflictError } from "~/operations/errors";
 import { formatError } from "~/mcp/errors";
 
 type SyncResult =
   | z.output<typeof eventSyncOutput>
   | z.output<typeof jobSyncOutput>
   | z.output<typeof newsSyncOutput>;
-
-type AsyncSyncStatus = "running" | "completed" | "failed";
-
 export type AsyncSyncTaskType = "event" | "job" | "news";
-
-export type AsyncSyncTask = {
-  type: AsyncSyncTaskType;
-  sourceId: number;
-  name: string;
-  run: () => Promise<SyncResult>;
-};
-
-type AsyncSyncStep = {
-  type: AsyncSyncTaskType;
-  sourceId: number;
-  name: string;
-  status: AsyncSyncStatus;
-  startedAt: string;
-  finishedAt?: string;
-  durationMs?: number;
-  result?: SyncResult;
-  error?: string;
-};
-
-type AsyncSync = {
+type Source = { type: AsyncSyncTaskType; sourceId: number; name: string };
+export type AsyncSyncTask = Source & { run: () => Promise<SyncResult> };
+type Finished = { finishedAt: string; durationMs: number };
+type AsyncSyncStep = Source & { startedAt: string } & (
+    | { status: "running" }
+    | (Finished & { status: "completed"; result: SyncResult })
+    | (Finished & { status: "failed"; error: string; result?: SyncResult })
+  );
+type RunData = {
   id: string;
-  status: AsyncSyncStatus;
   startedAt: string;
-  finishedAt?: string;
-  durationMs?: number;
   total: number;
-  completed: number;
-  failed: number;
-  current?: { type: AsyncSyncTaskType; sourceId: number; name: string };
   steps: AsyncSyncStep[];
   startedBy: number | null;
   via: "mcp" | "admin-ui" | null;
-  error?: string;
 };
-
+type AsyncSync = RunData &
+  (
+    | { status: "running"; current?: Source }
+    | (Finished & { status: "completed" })
+    | (Finished & { status: "failed"; error?: string })
+  );
 const asyncSyncs = new Map<string, AsyncSync>();
 const MAX_STORED_ASYNC_SYNCS = 20;
-
-function nowIso() {
-  return new Date().toISOString();
+function finished(startedAt: string): Finished {
+  const finishedAt = new Date().toISOString();
+  return { finishedAt, durationMs: Date.parse(finishedAt) - Date.parse(startedAt) };
 }
-
-function trimStoredRuns() {
-  const overflow = asyncSyncs.size - MAX_STORED_ASYNC_SYNCS;
-  if (overflow <= 0) return;
-
-  const removable = [...asyncSyncs.values()]
-    .filter((run) => run.status !== "running")
-    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
-    .slice(0, overflow);
-
-  for (const run of removable) asyncSyncs.delete(run.id);
+function reserveRunSlot() {
+  if (asyncSyncs.size < MAX_STORED_ASYNC_SYNCS) return;
+  const oldest = [...asyncSyncs.values()].find((run) => run.status !== "running");
+  if (!oldest)
+    throw new ConflictError("Too many source syncs are running. Wait for one to finish.");
+  asyncSyncs.delete(oldest.id);
 }
-
-async function runTasks(run: AsyncSync, tasks: AsyncSyncTask[]) {
+async function runTasks(initial: AsyncSync & { status: "running" }, tasks: AsyncSyncTask[]) {
+  let run = initial;
   for (const task of tasks) {
-    run.current = { type: task.type, sourceId: task.sourceId, name: task.name };
-    const stepStartedAt = nowIso();
-    const stepStartMs = Date.now();
+    const { type, sourceId, name } = task;
+    const source = { type, sourceId, name };
     const step: AsyncSyncStep = {
-      type: task.type,
-      sourceId: task.sourceId,
-      name: task.name,
+      ...source,
       status: "running",
-      startedAt: stepStartedAt,
+      startedAt: new Date().toISOString(),
     };
-    run.steps.push(step);
-
+    run = { ...run, current: source, steps: [...run.steps, step] };
+    asyncSyncs.set(run.id, run);
+    let outcome: AsyncSyncStep;
     try {
-      step.result = await task.run();
-      if (step.result.success) {
-        step.status = "completed";
-        run.completed += 1;
-      } else {
-        step.status = "failed";
-        step.error = step.result.error ?? "Source sync failed";
-        run.failed += 1;
-      }
+      const result = await task.run();
+      outcome = result.success
+        ? { ...step, ...finished(step.startedAt), status: "completed", result }
+        : {
+            ...step,
+            ...finished(step.startedAt),
+            status: "failed",
+            result,
+            error: result.error ?? "Source sync failed",
+          };
     } catch (error) {
-      step.status = "failed";
-      step.error = formatError(error);
-      run.failed += 1;
-    } finally {
-      step.finishedAt = nowIso();
-      step.durationMs = Date.now() - stepStartMs;
+      outcome = {
+        ...step,
+        ...finished(step.startedAt),
+        status: "failed",
+        error: formatError(error),
+      };
     }
+    run = { ...run, current: undefined, steps: [...run.steps.slice(0, -1), outcome] };
+    asyncSyncs.set(run.id, run);
   }
-
-  run.current = undefined;
-  run.finishedAt = nowIso();
-  run.durationMs = Date.parse(run.finishedAt) - Date.parse(run.startedAt);
-  run.status = run.failed > 0 ? "failed" : "completed";
-  trimStoredRuns();
+  const { current: _, status: __, ...data } = run;
+  asyncSyncs.set(run.id, {
+    ...data,
+    ...finished(run.startedAt),
+    status: run.steps.some((step) => step.status === "failed") ? "failed" : "completed",
+  });
 }
-
 export function startAsyncSync(tasks: AsyncSyncTask[], actor: OperationContext["actor"] = null) {
-  const id = randomUUID();
-  const run: AsyncSync = {
-    id,
+  reserveRunSlot();
+  const run: AsyncSync & { status: "running" } = {
+    id: randomUUID(),
     status: "running",
-    startedAt: nowIso(),
+    startedAt: new Date().toISOString(),
     total: tasks.length,
-    completed: 0,
-    failed: 0,
     steps: [],
     startedBy: actor?.userId ?? null,
     via: actor?.via ?? null,
   };
-  asyncSyncs.set(id, run);
-
+  asyncSyncs.set(run.id, run);
   void runTasks(run, tasks).catch((error) => {
-    run.status = "failed";
-    run.current = undefined;
-    run.finishedAt = nowIso();
-    run.durationMs = Date.parse(run.finishedAt) - Date.parse(run.startedAt);
-    run.failed += Math.max(1, run.total - run.completed - run.failed);
-    run.error = formatError(error);
-    trimStoredRuns();
+    const current = asyncSyncs.get(run.id)!;
+    const { status: _, ...data } = current;
+    asyncSyncs.set(run.id, {
+      ...data,
+      ...finished(run.startedAt),
+      status: "failed",
+      steps: current.steps.map((step) =>
+        step.status === "running"
+          ? { ...step, ...finished(step.startedAt), status: "failed", error: formatError(error) }
+          : step,
+      ),
+      error: formatError(error),
+    });
   });
-
-  return summarizeAsyncSync(run);
+  return summarizeAsyncSync(asyncSyncs.get(run.id)!);
 }
-
 export function getAsyncSync(runId: string) {
   const run = asyncSyncs.get(runId);
   return run ? summarizeAsyncSync(run) : null;
 }
-
 export function listAsyncSyncs() {
   return [...asyncSyncs.values()]
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
     .map(summarizeAsyncSync);
 }
-
 export function summarizeAsyncSync(run: AsyncSync) {
   return {
-    id: run.id,
-    startedBy: run.startedBy,
-    via: run.via,
-    error: run.error,
-    status: run.status,
-    startedAt: run.startedAt,
-    finishedAt: run.finishedAt,
-    durationMs: run.durationMs,
-    total: run.total,
-    completed: run.completed,
-    failed: run.failed,
-    current: run.current,
+    ...run,
+    current: run.status === "running" ? run.current : undefined,
+    error: run.status === "failed" ? run.error : undefined,
+    finishedAt: run.status === "running" ? undefined : run.finishedAt,
+    durationMs: run.status === "running" ? undefined : run.durationMs,
+    completed: run.steps.filter((step) => step.status === "completed").length,
+    failed: run.steps.filter((step) => step.status === "failed").length,
+    // Callers receive snapshots, never the registry's mutable step array.
     steps: run.steps.map((step) => ({
-      type: step.type,
-      sourceId: step.sourceId,
-      name: step.name,
-      status: step.status,
-      startedAt: step.startedAt,
-      finishedAt: step.finishedAt,
-      durationMs: step.durationMs,
-      result: step.result,
-      error: step.error,
+      ...step,
+      error: step.status === "failed" ? step.error : undefined,
+      result: step.status === "running" ? undefined : step.result,
+      finishedAt: step.status === "running" ? undefined : step.finishedAt,
+      durationMs: step.status === "running" ? undefined : step.durationMs,
     })),
   };
 }

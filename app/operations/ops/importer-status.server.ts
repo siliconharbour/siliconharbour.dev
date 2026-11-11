@@ -17,7 +17,7 @@ export const importerStatusOperations = {
     access: "admin",
     summary: "Queue an asynchronous sync across import source types.",
     description:
-      "Queue each selected source once, in event, job, then news order. Event sources use the shared ordering and Luma request queue. Defaults to all types. Returns one process-local run; poll with asyncSyncGet. Avoid overlapping scheduled runs. Requires confirm: true.",
+      "Queue each selected source once, in event, job, then news order. Event sources use the shared ordering and Luma request queue. Defaults to all types. Returns one process-local run; poll with asyncSyncGet. Same-source overlap fails instead of fetching or applying twice; other sources still run. Requires confirm: true.",
     input: z
       .object({
         types: z
@@ -40,7 +40,7 @@ export const importerStatusOperations = {
     access: "admin",
     summary: "Get an asynchronous import sync run.",
     description:
-      "Poll a process-local run ID for current step, lifecycle counts, per-source results, or errors. Old completed runs may be evicted.",
+      "Poll a process-local run ID for current step, lifecycle counts, per-source results, or errors. The registry holds at most 20 runs, including active runs; old finished runs may be evicted. All run IDs disappear on server restart. A missing ID does not prove that no writes happened: inspect source results before explicitly retrying.",
     input: z.object({ id: text("id", 100) }).strict(),
     output: asyncSyncOutput,
     examples: [{ title: "Poll run", input: { id: "example" } }],
