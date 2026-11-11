@@ -1,10 +1,11 @@
 import { defineConfig } from "drizzle-kit";
+import { DB_PATH } from "./app/lib/paths.server";
 
 export default defineConfig({
   schema: "./app/db/schema.ts",
   out: "./drizzle",
   dialect: "sqlite",
   dbCredentials: {
-    url: process.env.DB_URL || "./data/siliconharbour.db",
+    url: DB_PATH,
   },
 });
